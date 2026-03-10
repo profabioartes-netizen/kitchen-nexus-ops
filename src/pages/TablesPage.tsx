@@ -125,20 +125,24 @@ export default function TablesPage() {
     },
   });
 
-  // Today's revenue from finalized orders
-  const { data: todayRevenue = 0 } = useQuery({
+  // Today's revenue and client count from finalized orders
+  const { data: todayStats = { revenue: 0, clients: 0 } } = useQuery({
     queryKey: ["today_revenue"],
     queryFn: async () => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const { data, error } = await supabase
         .from("orders")
-        .select("total")
+        .select("total, guests")
         .eq("status", "finalized")
         .gte("created_at", todayStart.toISOString());
       if (error) throw error;
-      return data.reduce((sum, o) => sum + Number(o.total), 0);
+      return {
+        revenue: data.reduce((sum, o) => sum + Number(o.total), 0),
+        clients: data.reduce((sum, o) => sum + (o.guests || 1), 0),
+      };
     },
+  });
   });
 
   // Fetch items for the previewed order
