@@ -616,6 +616,42 @@ export default function TableOrderPage() {
           </div>
         </div>
       )}
+      {/* Note dialog */}
+      {noteItemId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Observação do Item</h3>
+              <button onClick={() => { setNoteItemId(null); setNoteText(""); }} className="rounded p-1 hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Ex: Sem cebola, bem passado..."
+              rows={3}
+              autoFocus
+              className="w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={() => { setNoteItemId(null); setNoteText(""); }}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => saveNote.mutate({ itemId: noteItemId, notes: noteText.trim() })}
+                disabled={saveNote.isPending}
+                className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
