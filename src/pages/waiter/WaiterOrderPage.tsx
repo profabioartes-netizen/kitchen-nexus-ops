@@ -409,7 +409,7 @@ export default function WaiterOrderPage() {
       <>
         <TableOpenDialog
           open={showOpenDialog}
-          tableName={table?.name ?? "Mesa"}
+          tableName={table?.name ?? "Comanda"}
           onConfirm={(data) => createOrder.mutate(data)}
           onCancel={() => navigate("/garcom/mesas")}
           isPending={createOrder.isPending}
