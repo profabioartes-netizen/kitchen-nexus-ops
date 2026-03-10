@@ -62,7 +62,7 @@ export default function TablesPage() {
   const [didDrag, setDidDrag] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
-  const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Realtime: auto-refresh when tables or orders change in DB
   useEffect(() => {
