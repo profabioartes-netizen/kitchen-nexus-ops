@@ -43,7 +43,7 @@ function TableDuration({ createdAt }: { createdAt: string }) {
   }, []);
   const mins = Math.floor((now - new Date(createdAt).getTime()) / 60000);
   return (
-    <span className="flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums font-medium">
+    <span className="flex items-center gap-1 text-[11px] tabular-nums font-medium" style={{ color: "inherit", opacity: 0.7 }}>
       <span className="text-[12px]">⏱</span>
       {mins} min
     </span>
