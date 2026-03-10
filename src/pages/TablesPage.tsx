@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 
@@ -18,6 +19,13 @@ const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill"];
 const TABLE_W = 130;
 const TABLE_H = 120;
 
+interface QuickEditForm {
+  id: string;
+  name: string;
+  seats: string;
+  sector: string;
+}
+
 export default function TablesPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -27,6 +35,7 @@ export default function TablesPage() {
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
   const [didDrag, setDidDrag] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
@@ -53,19 +62,6 @@ export default function TablesPage() {
     },
   });
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
-        .from("restaurant_tables")
-        .update({ status })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-    },
-  });
-
   const updatePosition = useMutation({
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
       const { error } = await supabase
@@ -79,13 +75,46 @@ export default function TablesPage() {
     },
   });
 
+  const quickEditMutation = useMutation({
+    mutationFn: async (form: QuickEditForm) => {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({
+          name: form.name.trim(),
+          seats: parseInt(form.seats) || 4,
+          sector: form.sector.trim() || null,
+        } as any)
+        .eq("id", form.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
+      setQuickEdit(null);
+      toast.success("Mesa atualizada!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const openTable = (id: string) => {
     navigate(`/mesas/${id}/pedido`);
+  };
+
+  const handleQuickEdit = (e: React.MouseEvent, table: any) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setQuickEdit({
+      id: table.id,
+      name: table.name,
+      seats: String(table.seats),
+      sector: (table as any).sector || "",
+    });
   };
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, tableId: string, tableX: number, tableY: number) => {
       if (viewMode !== "floor") return;
+      if (quickEdit) return; // Don't drag while editing
       e.preventDefault();
       e.stopPropagation();
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -96,7 +125,7 @@ export default function TablesPage() {
       setDragPos({ x: tableX, y: tableY });
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     },
-    [viewMode]
+    [viewMode, quickEdit]
   );
 
   const handlePointerMove = useCallback(
@@ -128,7 +157,6 @@ export default function TablesPage() {
     return acc;
   }, {});
 
-  // Auto-assign positions for tables that have no position set (both 0,0)
   const tablesWithPositions = tables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
     if (hasPosition) return t;
@@ -207,11 +235,20 @@ export default function TablesPage() {
           {tables.map((table) => {
             const order = ordersByTable[table.id];
             return (
-              <button
+              <div
                 key={table.id}
+                className={`table-status-${table.status} relative flex flex-col items-center justify-center rounded-lg border-2 p-4 min-h-[120px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
                 onClick={() => openTable(table.id)}
-                className={`table-status-${table.status} relative flex flex-col items-center justify-center rounded-lg border-2 p-4 min-h-[120px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
               >
+                {/* Quick edit button */}
+                <button
+                  onClick={(e) => handleQuickEdit(e, table)}
+                  className="absolute top-1.5 right-1.5 rounded p-1 opacity-0 group-hover:opacity-100 hover:bg-secondary/80 transition-opacity z-10"
+                  title="Editar mesa"
+                >
+                  <Edit2 className="h-3 w-3 text-muted-foreground" />
+                </button>
+
                 <span className="font-display text-lg">{table.name}</span>
                 {(table as any).internal_number && (
                   <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
@@ -231,7 +268,7 @@ export default function TablesPage() {
                 {order?.waiter_name && (
                   <span className="text-[10px] text-muted-foreground mt-1">{order.waiter_name}</span>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -256,7 +293,7 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`table-status-${table.status} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`table-status-${table.status} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
@@ -265,6 +302,16 @@ export default function TablesPage() {
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
                 }}
               >
+                {/* Quick edit button on floor plan */}
+                <button
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => handleQuickEdit(e, table)}
+                  className="absolute top-1 right-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary/80 transition-opacity z-10"
+                  title="Editar mesa"
+                >
+                  <Edit2 className="h-2.5 w-2.5 text-muted-foreground" />
+                </button>
+
                 <span className="font-display text-sm">{table.name}</span>
                 {(table as any).internal_number && (
                   <span className="text-[8px] text-muted-foreground">#{(table as any).internal_number}</span>
@@ -285,6 +332,68 @@ export default function TablesPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Quick edit popover */}
+      {quickEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-xs rounded-lg border bg-background p-4 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Edição Rápida</h3>
+              <button onClick={() => setQuickEdit(null)} className="rounded p-1 hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Nome de Exibição</label>
+                <input
+                  type="text"
+                  value={quickEdit.name}
+                  onChange={(e) => setQuickEdit({ ...quickEdit, name: e.target.value })}
+                  autoFocus
+                  className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Lugares</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={quickEdit.seats}
+                    onChange={(e) => setQuickEdit({ ...quickEdit, seats: e.target.value })}
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Setor</label>
+                  <input
+                    type="text"
+                    value={quickEdit.sector}
+                    onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
+                    placeholder="Ex: Varanda"
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setQuickEdit(null)} className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary">
+                Cancelar
+              </button>
+              <button
+                disabled={!quickEdit.name.trim() || quickEditMutation.isPending}
+                onClick={() => quickEditMutation.mutate(quickEdit)}
+                className="flex items-center gap-1.5 rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                <Check className="h-3.5 w-3.5" />
+                {quickEditMutation.isPending ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
