@@ -428,7 +428,7 @@ export default function TablesPage() {
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
                 style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
-                onClick={() => openTable(table.id)}
+                onClick={() => handleQuickEdit({ stopPropagation: () => {}, preventDefault: () => {} } as any, table)}
               >
 
 
