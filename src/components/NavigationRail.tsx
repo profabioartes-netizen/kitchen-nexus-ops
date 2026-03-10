@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 
 const navItems = [
-  { to: "/", icon: LayoutGrid, label: "Mesas" },
+  { to: "/", icon: LayoutGrid, label: "Comandas" },
   
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
   { to: "/produtos", icon: Package, label: "Produtos" },

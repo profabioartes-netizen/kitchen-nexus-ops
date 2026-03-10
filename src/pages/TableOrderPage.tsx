@@ -238,12 +238,12 @@ export default function TableOrderPage() {
         // Close source order
         await supabase.from("orders").update({ status: "merged" }).eq("id", order.id);
         // Copy activity logs to target table
-        await logActivity(targetTableId, "order_merged", `Pedido da ${table?.name ?? "mesa"} mesclado — R$ ${Number(order.total).toFixed(2)}`, targetOrder.id, profile?.full_name);
+        await logActivity(targetTableId, "order_merged", `Pedido da ${table?.name ?? "comanda"} mesclado — R$ ${Number(order.total).toFixed(2)}`, targetOrder.id, profile?.full_name);
       } else {
         // Simply reassign the order to the target table
         await supabase.from("orders").update({ table_id: targetTableId }).eq("id", order.id);
         // Copy activity logs referencing this table to the new one
-        await logActivity(targetTableId, "order_received", `Pedido transferido da ${table?.name ?? "mesa"} — R$ ${Number(order.total).toFixed(2)}`, order.id, profile?.full_name);
+        await logActivity(targetTableId, "order_received", `Pedido transferido da ${table?.name ?? "comanda"} — R$ ${Number(order.total).toFixed(2)}`, order.id, profile?.full_name);
       }
 
       // Source table becomes free
@@ -252,7 +252,7 @@ export default function TableOrderPage() {
       await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", targetTableId);
 
       // Log on source table
-      await logActivity(tableId!, "table_transferred", `Pedido transferido para ${targetTable?.name ?? "outra mesa"}${merge ? " (mesclado)" : ""}`, order.id, profile?.full_name);
+      await logActivity(tableId!, "table_transferred", `Pedido transferido para ${targetTable?.name ?? "outra comanda"}${merge ? " (mesclado)" : ""}`, order.id, profile?.full_name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -272,10 +272,10 @@ export default function TableOrderPage() {
   // Merge tables mutation
   const mergeTablesMutation = useMutation({
     mutationFn: async (sourceTableId: string) => {
-      if (!order) throw new Error("Sem pedido aberto nesta mesa");
+      if (!order) throw new Error("Sem pedido aberto nesta comanda");
       const sourceTable = allTables.find((t) => t.id === sourceTableId);
       const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
-      if (!sourceOrder) throw new Error("Mesa selecionada não possui pedido aberto");
+      if (!sourceOrder) throw new Error("Comanda selecionada não possui pedido aberto");
 
       // Move all items from source order to this order
       await supabase.from("order_items").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
@@ -335,7 +335,7 @@ export default function TableOrderPage() {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
-      const tableLabel = customerName ? `${table?.name ?? "Mesa"} — ${customerName}` : undefined;
+      const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
       const { data, error } = await supabase
         .from("orders")
         .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
@@ -649,7 +649,7 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
-      toast.success("Mesa finalizada! Dados registrados nos relatórios.");
+      toast.success("Comanda finalizada! Dados registrados nos relatórios.");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
@@ -796,7 +796,7 @@ export default function TableOrderPage() {
           <div className="flex items-center gap-2 flex-1">
             <input
               type="text"
-              defaultValue={table?.name ?? "Mesa"}
+              defaultValue={table?.name ?? "Comanda"}
               key={table?.id}
               onBlur={async (e) => {
                 const newName = e.target.value.trim();
@@ -1097,7 +1097,7 @@ export default function TableOrderPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-md bg-status-free text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <CheckCircle2 className="h-5 w-5" />
-                <span>{finalizeMutation.isPending ? "Finalizando..." : "Finalizar Mesa"}</span>
+                <span>{finalizeMutation.isPending ? "Finalizando..." : "Finalizar Comanda"}</span>
               </button>
               <button
                 onClick={() => setShowCancelConfirm(true)}

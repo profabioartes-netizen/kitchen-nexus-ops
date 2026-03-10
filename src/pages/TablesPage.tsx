@@ -221,7 +221,7 @@ export default function TablesPage() {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       setQuickEdit(null);
-      toast.success("Mesa atualizada!");
+      toast.success("Comanda atualizada!");
       navigate(`/mesas/${variables.id}/pedido`);
     },
     onError: (err) => toast.error((err as Error).message),
@@ -279,7 +279,7 @@ export default function TablesPage() {
         const toRemove = sorted.slice(desiredCount);
         const blocked = toRemove.filter(t => ["occupied", "delivered"].includes(t.status));
         if (blocked.length > 0) {
-          throw new Error(`Não é possível reduzir: ${blocked.length} mesa(s) com status ativo (${blocked.map(t => t.name).join(", ")}). Libere-as primeiro.`);
+          throw new Error(`Não é possível reduzir: ${blocked.length} comanda(s) com status ativo (${blocked.map(t => t.name).join(", ")}). Libere-as primeiro.`);
         }
         const idsToRemove = toRemove.map(t => t.id);
         // Check if any have open orders
@@ -289,7 +289,7 @@ export default function TablesPage() {
           .in("table_id", idsToRemove)
           .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
         if (activeOrders && activeOrders.length > 0) {
-          throw new Error("Não é possível remover mesas com pedidos abertos.");
+          throw new Error("Não é possível remover comandas com pedidos abertos.");
         }
         // Deactivate (soft delete) tables
         const { error } = await supabase
@@ -303,8 +303,8 @@ export default function TablesPage() {
         const newTables = [];
         for (let i = currentCount + 1; i <= desiredCount; i++) {
           newTables.push({
-            name: `Mesa ${i}`,
-            default_name: `Mesa ${i}`,
+            name: `Comanda ${i}`,
+            default_name: `Comanda ${i}`,
             seats: 4,
             active: true,
             status: "free",
@@ -320,7 +320,7 @@ export default function TablesPage() {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_all"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       setTableCountOpen(false);
-      toast.success("Quantidade de mesas atualizada!");
+      toast.success("Quantidade de comandas atualizada!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -418,7 +418,7 @@ export default function TablesPage() {
     <div className="p-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Mapa de Mesas</h1>
+        <h1 className="text-2xl font-semibold">Mapa de Comandas</h1>
         <div className="flex gap-2">
           <div className="flex rounded-md border bg-card overflow-hidden">
             <button
@@ -450,13 +450,13 @@ export default function TablesPage() {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors">
                 <Plus className="h-4 w-4 text-muted-foreground" />
-                Qtd. Mesas
+                Qtd. Comandas
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-4" align="end">
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Mesas</label>
+                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Comandas</label>
                   <Input
                     type="number"
                     min="1"
@@ -465,7 +465,7 @@ export default function TablesPage() {
                     onChange={(e) => setTableCountValue(e.target.value)}
                     className="mt-1"
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} mesas</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} comandas</p>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
@@ -547,7 +547,7 @@ export default function TablesPage() {
           </div>
         ))}
         {viewMode === "floor" && (
-          <span className="text-xs text-muted-foreground ml-auto italic">Arraste as mesas para reorganizar o layout</span>
+          <span className="text-xs text-muted-foreground ml-auto italic">Arraste as comandas para reorganizar o layout</span>
         )}
       </div>
 

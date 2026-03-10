@@ -78,7 +78,7 @@ export default function TableManagementPage() {
       setShowForm(false);
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      toast.success(editingId ? "Mesa atualizada!" : "Mesa criada!");
+      toast.success(editingId ? "Comanda atualizada!" : "Comanda criada!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -91,7 +91,7 @@ export default function TableManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      toast.success("Mesa removida!");
+      toast.success("Comanda removida!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -142,7 +142,7 @@ export default function TableManagementPage() {
     <div className="p-6 max-w-3xl">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold">Gerenciar Mesas</h1>
+          <h1 className="text-2xl font-semibold">Gerenciar Comandas</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {activeCount} ativa(s) de {tables.length} total
           </p>
@@ -152,7 +152,7 @@ export default function TableManagementPage() {
           className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
-          Nova Mesa
+          Nova Comanda
         </button>
       </div>
 
@@ -264,7 +264,7 @@ export default function TableManagementPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
           <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{editingId ? "Editar Mesa" : "Nova Mesa"}</h2>
+              <h2 className="text-lg font-semibold">{editingId ? "Editar Comanda" : "Nova Comanda"}</h2>
               <button onClick={() => setShowForm(false)} className="rounded p-1 hover:bg-secondary">
                 <X className="h-5 w-5" />
               </button>
@@ -276,7 +276,7 @@ export default function TableManagementPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Varanda VIP, Mesa Janela 1"
+                  placeholder="Ex: Varanda VIP, Comanda Janela 1"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">Nome personalizado exibido no mapa e comanda</p>
@@ -321,7 +321,7 @@ export default function TableManagementPage() {
                   onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   className="rounded border-input h-4 w-4 accent-accent"
                 />
-                <span className="text-sm font-medium">Mesa ativa (visível no mapa)</span>
+                <span className="text-sm font-medium">Comanda ativa (visível no mapa)</span>
               </label>
             </div>
             <div className="flex justify-end gap-2 mt-6">

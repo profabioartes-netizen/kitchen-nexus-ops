@@ -186,7 +186,7 @@ export default function WaiterOrderPage() {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
-      const tableLabel = customerName ? `${table?.name ?? "Mesa"} — ${customerName}` : undefined;
+      const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
       const { data, error } = await supabase.from("orders").insert({
         table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel,
         customer_name: customerName, guests,
@@ -409,7 +409,7 @@ export default function WaiterOrderPage() {
       <>
         <TableOpenDialog
           open={showOpenDialog}
-          tableName={table?.name ?? "Mesa"}
+          tableName={table?.name ?? "Comanda"}
           onConfirm={(data) => createOrder.mutate(data)}
           onCancel={() => navigate("/garcom/mesas")}
           isPending={createOrder.isPending}
@@ -444,7 +444,7 @@ export default function WaiterOrderPage() {
         <div className="flex-1 min-w-0">
           <input
             type="text"
-            defaultValue={table?.name ?? "Mesa"}
+            defaultValue={table?.name ?? "Comanda"}
             key={table?.id}
             onBlur={async (e) => {
               const newName = e.target.value.trim();

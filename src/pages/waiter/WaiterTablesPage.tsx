@@ -70,7 +70,7 @@ export default function WaiterTablesPage() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ChefHat className="h-6 w-6 text-accent" />
-          <h1 className="text-lg font-semibold">Mesas</h1>
+          <h1 className="text-lg font-semibold">Comandas</h1>
         </div>
         <div className="flex items-center gap-1.5 rounded-full bg-card border px-3 py-1.5">
           <Users className="h-3.5 w-3.5 text-muted-foreground" />
