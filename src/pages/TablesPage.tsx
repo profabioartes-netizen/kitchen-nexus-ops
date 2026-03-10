@@ -701,8 +701,8 @@ export default function TablesPage() {
                     }}
                     className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97]"
                     style={{
-                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#c7c5f0",
-                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "#3730a3",
+                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
+                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
                     }}
                     title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
