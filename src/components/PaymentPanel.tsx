@@ -155,7 +155,33 @@ export default function PaymentPanel({
     setSplitPeople(2);
     setSplitCustomValue("");
     setSplitTab("quantity");
+    setSelectedItems({});
     setSplitOpen(true);
+  };
+
+  const toggleItemSelection = (itemId: string, maxQty: number) => {
+    setSelectedItems((prev) => {
+      const current = prev[itemId] || 0;
+      if (current > 0) {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      }
+      return { ...prev, [itemId]: maxQty };
+    });
+  };
+
+  const adjustItemQty = (itemId: string, delta: number, maxQty: number) => {
+    setSelectedItems((prev) => {
+      const current = prev[itemId] || 0;
+      const next = Math.max(0, Math.min(maxQty, current + delta));
+      if (next === 0) {
+        const copy = { ...prev };
+        delete copy[itemId];
+        return copy;
+      }
+      return { ...prev, [itemId]: next };
+    });
   };
 
   return (
