@@ -151,9 +151,89 @@ export default function TableOrderPage() {
     },
   });
 
+  // All active tables (for transfer dialog)
+  const { data: allTables = [] } = useQuery({
+    queryKey: ["restaurant_tables"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("restaurant_tables")
+        .select("*")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Open orders for all tables (to detect conflicts)
+  const { data: allOpenOrders = [] } = useQuery({
+    queryKey: ["open_orders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("status", "open");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   if (!activeCategory && categories.length > 0) {
     setActiveCategory(categories[0].id);
   }
+
+  // Transfer order mutation
+  const transferOrder = useMutation({
+    mutationFn: async ({ targetTableId, merge }: { targetTableId: string; merge: boolean }) => {
+      if (!order) throw new Error("Sem pedido aberto");
+      const targetTable = allTables.find((t) => t.id === targetTableId);
+      const targetOrder = allOpenOrders.find((o) => o.table_id === targetTableId);
+
+      if (targetOrder && !merge) {
+        throw new Error("MERGE_REQUIRED");
+      }
+
+      if (targetOrder && merge) {
+        // Move all items to target order
+        await supabase.from("order_items").update({ order_id: targetOrder.id }).eq("order_id", order.id);
+        // Move payments
+        await supabase.from("payments").update({ order_id: targetOrder.id }).eq("order_id", order.id);
+        // Update target order total
+        const newTotal = Number(order.total) + Number(targetOrder.total);
+        await supabase.from("orders").update({ total: newTotal }).eq("id", targetOrder.id);
+        // Close source order
+        await supabase.from("orders").update({ status: "merged" }).eq("id", order.id);
+        // Copy activity logs to target table
+        await logActivity(targetTableId, "order_merged", `Pedido da ${table?.name ?? "mesa"} mesclado — R$ ${Number(order.total).toFixed(2)}`, targetOrder.id, profile?.full_name);
+      } else {
+        // Simply reassign the order to the target table
+        await supabase.from("orders").update({ table_id: targetTableId }).eq("id", order.id);
+        // Copy activity logs referencing this table to the new one
+        await logActivity(targetTableId, "order_received", `Pedido transferido da ${table?.name ?? "mesa"} — R$ ${Number(order.total).toFixed(2)}`, order.id, profile?.full_name);
+      }
+
+      // Source table becomes free
+      await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId!);
+      // Target table becomes occupied
+      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", targetTableId);
+
+      // Log on source table
+      await logActivity(tableId!, "table_transferred", `Pedido transferido para ${targetTable?.name ?? "outra mesa"}${merge ? " (mesclado)" : ""}`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      toast.success("Pedido transferido com sucesso!");
+      navigate("/");
+    },
+    onError: (err) => {
+      if ((err as Error).message === "MERGE_REQUIRED") {
+        setMergeConfirm(true);
+      } else {
+        toast.error((err as Error).message);
+      }
+    },
+  });
 
   // Create order
   const createOrder = useMutation({
