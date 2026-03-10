@@ -17,7 +17,7 @@ interface ProductFormData {
 const emptyForm: ProductFormData = {
   name: "",
   category_id: "",
-  price: "",
+  price: "0,00",
   station: "",
   stock: "-1",
   active: true,
