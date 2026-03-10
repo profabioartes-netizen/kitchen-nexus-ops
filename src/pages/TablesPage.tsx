@@ -317,7 +317,10 @@ export default function TablesPage() {
     const q = searchQuery.toLowerCase().trim();
     return tables.filter((t) => {
       const order = ordersByTable[t.id];
-      return order?.customer_name?.toLowerCase().includes(q);
+      const customerMatch = order?.customer_name?.toLowerCase().includes(q);
+      const tableNameMatch = t.name.toLowerCase().includes(q);
+      const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
+      return customerMatch || tableNameMatch || waiterMatch;
     });
   }, [tables, ordersByTable, searchQuery]);
 
