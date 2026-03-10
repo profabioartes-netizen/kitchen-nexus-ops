@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +52,7 @@ export default function TableOrderPage() {
   const [showWaiterPrompt, setShowWaiterPrompt] = useState(false);
   const [noteItemId, setNoteItemId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const autoCreatedRef = useRef(false);
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
@@ -148,7 +149,15 @@ export default function TableOrderPage() {
     },
   });
 
-  // Add item
+  // Auto-create order if table has no active order
+  useEffect(() => {
+    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
+      autoCreatedRef.current = true;
+      createOrder.mutate(undefined);
+    }
+  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
+
+
   const addItem = useMutation({
     mutationFn: async (product: (typeof products)[0]) => {
       let currentOrder = order;
@@ -338,47 +347,12 @@ export default function TableOrderPage() {
     );
   }
 
-  // Show waiter prompt if no order exists yet
+  // Show loading while auto-creating order
   if (!order && !orderLoading && !tableLoading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
-        <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-lg">
-          <h2 className="text-lg font-semibold mb-1">{table?.name ?? "Mesa"}</h2>
-          <p className="text-sm text-muted-foreground mb-4">Abrir nova comanda</p>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Nome do Garçom</label>
-              <div className="relative mt-1">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={waiterName}
-                  onChange={(e) => setWaiterName(e.target.value)}
-                  placeholder="Ex: João"
-                  autoFocus
-                  className="w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navigate("/")}
-                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary"
-              >
-                Voltar
-              </button>
-              <button
-                onClick={async () => {
-                  await createOrder.mutateAsync(waiterName || undefined);
-                }}
-                disabled={createOrder.isPending}
-                className="flex-1 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-              >
-                {createOrder.isPending ? "Abrindo..." : "Abrir Mesa"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
       </div>
     );
   }
@@ -461,9 +435,22 @@ export default function TableOrderPage() {
       <div className="w-80 border-l bg-card flex flex-col">
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg">Comanda</h2>
-          {order?.waiter_name && (
-            <p className="text-xs text-muted-foreground">Garçom: {order.waiter_name}</p>
-          )}
+          <div className="flex items-center gap-1.5 mt-1">
+            <User className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={waiterName || order?.waiter_name || ""}
+              onChange={(e) => setWaiterName(e.target.value)}
+              onBlur={async () => {
+                if (order && waiterName && waiterName !== order.waiter_name) {
+                  await supabase.from("orders").update({ waiter_name: waiterName }).eq("id", order.id);
+                  queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                }
+              }}
+              placeholder="Nome do garçom..."
+              className="text-xs bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 flex-1 text-muted-foreground"
+            />
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-1">
