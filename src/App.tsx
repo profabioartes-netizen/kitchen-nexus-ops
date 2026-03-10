@@ -75,6 +75,14 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
+            {/* Waiter mobile mode */}
+            <Route path="/garcom/login" element={<WaiterLoginPage />} />
+            <Route path="/garcom" element={<WaiterLayout />}>
+              <Route index element={<WaiterTablesPage />} />
+              <Route path="mesa/:tableId" element={<WaiterOrderPage />} />
+              <Route path="pedidos" element={<WaiterOrdersPage />} />
+              <Route path="perfil" element={<WaiterProfilePage />} />
+            </Route>
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </AuthProvider>
