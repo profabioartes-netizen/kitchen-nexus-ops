@@ -289,7 +289,7 @@ export default function TablesPage() {
           .in("table_id", idsToRemove)
           .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
         if (activeOrders && activeOrders.length > 0) {
-          throw new Error("Não é possível remover mesas com pedidos abertos.");
+          throw new Error("Não é possível remover comandas com pedidos abertos.");
         }
         // Deactivate (soft delete) tables
         const { error } = await supabase
