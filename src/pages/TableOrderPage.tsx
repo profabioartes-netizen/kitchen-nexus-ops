@@ -131,6 +131,21 @@ export default function TableOrderPage() {
       });
   }, [orderItems, queryClient]);
 
+  // Fetch payments for this order
+  const { data: payments = [] } = useQuery({
+    queryKey: ["order_payments", order?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("order_id", order!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!order?.id,
+  });
+
   // Fetch complements for all order items
   const orderItemIds = orderItems.map((i) => i.id);
   const { data: itemComplements = [] } = useQuery({
