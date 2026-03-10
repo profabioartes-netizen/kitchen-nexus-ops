@@ -18,7 +18,7 @@ const statusLabels: Record<TableStatus, string> = {
 
 const badgeStyles: Record<TableStatus, { bg: string; color: string }> = {
   free: { bg: "rgba(0,0,0,0.08)", color: "#444" },
-  occupied: { bg: "#c7c5f0", color: "#3730a3" },
+  occupied: { bg: "#7c6bc4", color: "white" },
   bill: { bg: "hsl(25 85% 55% / 0.15)", color: "hsl(25 85% 35%)" },
   delivered: { bg: "#166534", color: "#bbf7d6" },
 };
@@ -558,7 +558,7 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
-                style={useInlineOccupied ? { backgroundColor: "#c7c3f0", borderColor: "#c7c3f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
+                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
 
@@ -701,8 +701,8 @@ export default function TablesPage() {
                     }}
                     className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97]"
                     style={{
-                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#c7c5f0",
-                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "#3730a3",
+                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
+                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
                     }}
                     title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
@@ -747,7 +747,7 @@ export default function TablesPage() {
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(floorInlineOccupied ? { backgroundColor: "#c7c3f0", borderColor: "#c7c3f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
                 {/* Delivery toggle on floor plan */}
@@ -760,10 +760,10 @@ export default function TablesPage() {
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
                     className="absolute top-1 left-1 rounded-full p-1 z-20 hover:scale-110 transition-transform"
-                    style={{ backgroundColor: effectiveFloorStatus === "delivered" ? "#166534" : "#c7c5f0" }}
+                    style={{ backgroundColor: effectiveFloorStatus === "delivered" ? "#166534" : "#7c6bc4" }}
                     title={effectiveFloorStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveFloorStatus === "delivered" ? "#bbf7d6" : "#3730a3" }} />
+                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveFloorStatus === "delivered" ? "#bbf7d6" : "white" }} />
                   </button>
                 )}
 
