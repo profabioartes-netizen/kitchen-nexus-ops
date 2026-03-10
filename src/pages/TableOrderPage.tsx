@@ -1006,7 +1006,7 @@ export default function TableOrderPage() {
               orderItems={orderItems}
               serviceFeeEnabled={serviceFeeEnabled}
               onToggleServiceFee={setServiceFeeEnabled}
-              onPay={(payments) => payMutation.mutate(payments)}
+              onPay={(result) => payMutation.mutate(result)}
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
             />
