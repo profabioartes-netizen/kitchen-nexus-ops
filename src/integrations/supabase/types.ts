@@ -337,6 +337,51 @@ export type Database = {
         }
         Relationships: []
       }
+      table_activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          description: string
+          id: string
+          order_id: string | null
+          table_id: string
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description: string
+          id?: string
+          order_id?: string | null
+          table_id: string
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string
+          id?: string
+          order_id?: string | null
+          table_id?: string
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_activity_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_activity_log_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
