@@ -85,7 +85,7 @@ export default function TableOrderPage() {
     enabled: !!tableId,
   });
 
-  // Fetch open order for this table
+  // Fetch active order for this table (open, billing_in_progress, or paid_pending_finalization)
   const { data: order, isLoading: orderLoading } = useQuery({
     queryKey: ["table_order", tableId],
     queryFn: async () => {
@@ -93,7 +93,7 @@ export default function TableOrderPage() {
         .from("orders")
         .select("*")
         .eq("table_id", tableId!)
-        .eq("status", "open")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
         .maybeSingle();
       if (error) throw error;
       return data;
