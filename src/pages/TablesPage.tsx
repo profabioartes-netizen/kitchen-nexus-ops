@@ -461,6 +461,8 @@ export default function TablesPage() {
                       sideOffset={8}
                       className="w-52 p-0 shadow-md max-h-[320px] overflow-y-auto"
                       onClick={(e) => e.stopPropagation()}
+                      onMouseEnter={() => setPreviewOrderId(order.id)}
+                      onMouseLeave={() => setPreviewOrderId(null)}
                     >
                       {previewItems.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
