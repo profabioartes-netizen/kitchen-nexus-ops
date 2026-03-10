@@ -25,6 +25,7 @@ export default function TablesPage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [didDrag, setDidDrag] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const { data: tables = [], isLoading } = useQuery({
@@ -78,10 +79,8 @@ export default function TablesPage() {
     },
   });
 
-  const cycleStatus = (id: string, currentStatus: string) => {
-    const idx = statusCycle.indexOf(currentStatus as TableStatus);
-    const next = statusCycle[(idx + 1) % statusCycle.length];
-    updateStatus.mutate({ id, status: next });
+  const openTable = (id: string) => {
+    navigate(`/mesas/${id}/pedido`);
   };
 
   const handlePointerDown = useCallback(
@@ -92,6 +91,7 @@ export default function TablesPage() {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
       setDraggingId(tableId);
+      setDidDrag(false);
       setDragOffset({ x: e.clientX - rect.left - tableX, y: e.clientY - rect.top - tableY });
       setDragPos({ x: tableX, y: tableY });
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -107,15 +107,20 @@ export default function TablesPage() {
       const x = Math.max(0, Math.min(rect.width - TABLE_W, e.clientX - rect.left - dragOffset.x));
       const y = Math.max(0, Math.min(rect.height - TABLE_H, e.clientY - rect.top - dragOffset.y));
       setDragPos({ x, y });
+      setDidDrag(true);
     },
     [draggingId, dragOffset]
   );
 
   const handlePointerUp = useCallback(() => {
     if (!draggingId) return;
-    updatePosition.mutate({ id: draggingId, x: dragPos.x, y: dragPos.y });
+    if (didDrag) {
+      updatePosition.mutate({ id: draggingId, x: dragPos.x, y: dragPos.y });
+    } else {
+      openTable(draggingId);
+    }
     setDraggingId(null);
-  }, [draggingId, dragPos, updatePosition]);
+  }, [draggingId, dragPos, didDrag, updatePosition]);
 
   const occupied = tables.filter((t) => t.status === "occupied").length;
   const ordersByTable = openOrders.reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
@@ -204,7 +209,7 @@ export default function TablesPage() {
             return (
               <button
                 key={table.id}
-                onClick={() => cycleStatus(table.id, table.status)}
+                onClick={() => openTable(table.id)}
                 className={`table-status-${table.status} relative flex flex-col items-center justify-center rounded-lg border-2 p-4 min-h-[120px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
               >
                 <span className="font-display text-lg">{table.name}</span>
@@ -245,9 +250,6 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                onClick={() => {
-                  if (!isDragging) cycleStatus(table.id, table.status);
-                }}
                 className={`table-status-${table.status} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
