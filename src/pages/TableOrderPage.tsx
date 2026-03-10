@@ -346,22 +346,24 @@ export default function TableOrderPage() {
 
   // Pay & close
   const payMutation = useMutation({
-    mutationFn: async ({ method, serviceFeePct }: { method: string; serviceFeePct: number }) => {
+    mutationFn: async (payments: { method: string; amount: number }[]) => {
       if (!order) throw new Error("Sem pedido aberto");
-      const subtotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      const serviceFee = serviceFeePct > 0 ? subtotal * (serviceFeePct / 100) : 0;
-      const totalVal = subtotal + serviceFee;
       await supabase
         .from("order_items")
         .update({ sent_to_kitchen: true })
         .eq("order_id", order.id);
-      await supabase.from("payments").insert({ order_id: order.id, method, amount: totalVal });
-      await logActivity(
-        tableId!,
-        "payment_added",
-        `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[method] ?? method})${serviceFee > 0 ? ` — Taxa serviço: R$ ${serviceFee.toFixed(2)}` : ""}`,
-        order.id
-      );
+
+      // Insert all payments
+      for (const p of payments) {
+        await supabase.from("payments").insert({ order_id: order.id, method: p.method, amount: p.amount });
+      }
+
+      const totalVal = payments.reduce((s, p) => s + p.amount, 0);
+      const desc = payments.length === 1
+        ? `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[payments[0].method] ?? payments[0].method})`
+        : `Pagamento dividido (${payments.length}×): R$ ${totalVal.toFixed(2)} — ${payments.map(p => `${methodLabels[p.method] ?? p.method}: R$ ${p.amount.toFixed(2)}`).join(", ")}`;
+      await logActivity(tableId!, "payment_added", desc, order.id);
+
       await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
       await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId!);
       await logActivity(tableId!, "table_closed", `Mesa ${table?.name ?? ""} fechada`, order.id);
