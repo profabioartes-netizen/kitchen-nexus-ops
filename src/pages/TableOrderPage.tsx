@@ -796,7 +796,7 @@ export default function TableOrderPage() {
           <div className="flex items-center gap-2 flex-1">
             <input
               type="text"
-              defaultValue={table?.name ?? "Mesa"}
+              defaultValue={table?.name ?? "Comanda"}
               key={table?.id}
               onBlur={async (e) => {
                 const newName = e.target.value.trim();
