@@ -7,7 +7,9 @@ import {
   Printer,
   ChefHat,
   Flame,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: "/", icon: LayoutGrid, label: "Mesas" },
@@ -19,8 +21,10 @@ const navItems = [
 ];
 
 export function NavigationRail() {
+  const { profile, signOut } = useAuth();
+
   return (
-    <nav className="nav-rail flex-shrink-0">
+    <nav className="nav-rail flex-shrink-0 flex flex-col">
       <div className="mb-6 flex flex-col items-center gap-1">
         <ChefHat className="h-7 w-7 text-nav-active" />
         <span className="font-display text-[10px] tracking-wide text-nav-active">
@@ -28,7 +32,7 @@ export function NavigationRail() {
         </span>
       </div>
 
-      <div className="flex flex-col gap-1 w-full px-2">
+      <div className="flex flex-col gap-1 w-full px-2 flex-1">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -46,6 +50,22 @@ export function NavigationRail() {
             <span>{item.label}</span>
           </NavLink>
         ))}
+      </div>
+
+      {/* User info + logout */}
+      <div className="px-2 pb-3 flex flex-col items-center gap-2">
+        {profile?.full_name && (
+          <span className="text-[10px] text-nav-foreground text-center leading-tight truncate w-full">
+            {profile.full_name}
+          </span>
+        )}
+        <button
+          onClick={signOut}
+          className="flex flex-col items-center gap-1 rounded-md py-2 px-1 text-[11px] font-medium text-nav-foreground hover:bg-sidebar-accent transition-colors w-full"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sair</span>
+        </button>
       </div>
     </nav>
   );
