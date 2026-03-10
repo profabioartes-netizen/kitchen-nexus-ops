@@ -704,28 +704,15 @@ export default function TablesPage() {
                   className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Lugares</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={quickEdit.seats}
-                    onChange={(e) => setQuickEdit({ ...quickEdit, seats: e.target.value })}
-                    className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Setor</label>
-                  <input
-                    type="text"
-                    value={quickEdit.sector}
-                    onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
-                    placeholder="Ex: Varanda"
-                    className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Setor</label>
+                <input
+                  type="text"
+                  value={quickEdit.sector}
+                  onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
+                  placeholder="Ex: Varanda"
+                  className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
