@@ -1,8 +1,14 @@
 import { useState, useMemo } from "react";
 import {
-  CreditCard, Banknote, Smartphone, Users, SplitSquareHorizontal, ArrowLeft,
-  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Receipt,
+  CreditCard, Banknote, Smartphone, ArrowLeft,
+  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Receipt, Users, Hash,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type OrderItem = {
   id: string;
@@ -15,8 +21,6 @@ type PaymentEntry = {
   method: string;
   amount: number;
 };
-
-type SplitMode = "full" | "people" | "items";
 
 interface PaymentPanelProps {
   total: number;
@@ -59,15 +63,15 @@ export default function PaymentPanel({
   const [extraCharge, setExtraCharge] = useState(0);
   const [serviceFeePct, setServiceFeePct] = useState(10);
 
-  // ── Split ──
-  const [splitMode, setSplitMode] = useState<SplitMode>("full");
-  const [splitCount, setSplitCount] = useState(2);
-  // itemAssignment: { [itemId]: { [personIndex]: quantityAssigned } }
-  const [itemAssignment, setItemAssignment] = useState<Record<string, Record<number, number>>>({});
-
   // ── Payments ──
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
   const [customAmount, setCustomAmount] = useState("");
+
+  // ── Split modal ──
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [splitTab, setSplitTab] = useState<"quantity" | "value">("quantity");
+  const [splitPeople, setSplitPeople] = useState(2);
+  const [splitCustomValue, setSplitCustomValue] = useState("");
 
   // ── Calculations ──
   const discount = useMemo(
@@ -79,32 +83,9 @@ export default function PaymentPanel({
   const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
   const remaining = Math.max(0, Number((grandTotal - paidTotal).toFixed(2)));
 
-  // ── Split calculations ──
-  const splitAmounts = useMemo(() => {
-    if (splitMode === "people") {
-      const per = grandTotal / splitCount;
-      return Array.from({ length: splitCount }, () => Number(per.toFixed(2)));
-    }
-    if (splitMode === "items") {
-      const amounts = Array(splitCount).fill(0);
-      for (const item of orderItems) {
-        const assignments = itemAssignment[item.id] || {};
-        for (const [pIdx, qty] of Object.entries(assignments)) {
-          amounts[Number(pIdx)] += Number(item.price) * qty;
-        }
-      }
-      // Apply proportional adjustments
-      const rawTotal = amounts.reduce((s: number, a: number) => s + a, 0);
-      if (rawTotal > 0) {
-        return amounts.map((a: number) => Number(((a / rawTotal) * grandTotal).toFixed(2)));
-      }
-      return amounts;
-    }
-    return [grandTotal];
-  }, [splitMode, splitCount, grandTotal, orderItems, itemAssignment]);
-
-  // Track which splits are paid
-  const [splitPayments, setSplitPayments] = useState<(PaymentEntry | null)[]>([]);
+  // ── Split computed values ──
+  const splitPerPerson = splitTab === "quantity" ? Number((remaining / splitPeople).toFixed(2)) : 0;
+  const splitValue = splitTab === "value" ? Math.min(Number(splitCustomValue) || 0, remaining) : splitPerPerson;
 
   const addPayment = (method: string, amount?: number) => {
     const amt = amount ?? remaining;
@@ -118,99 +99,30 @@ export default function PaymentPanel({
   };
 
   const handleFinalize = () => {
-    if (splitMode !== "full") {
-      // Collect split payments
-      const allPayments = splitPayments.filter(Boolean) as PaymentEntry[];
-      if (allPayments.length < splitCount) return;
-      onPay(allPayments);
+    if (remaining > 0.01 && payments.length === 0) return;
+    onPay(payments.length > 0 ? payments : []);
+  };
+
+  const handleSplitConfirm = (method: string) => {
+    if (splitValue <= 0 || splitValue > remaining) return;
+    addPayment(method, splitValue);
+    // If quantity mode and all people would be paid, close
+    if (splitTab === "quantity") {
+      const newPaid = paidTotal + splitValue;
+      const newRemaining = Math.max(0, Number((grandTotal - newPaid).toFixed(2)));
+      if (newRemaining <= 0.01) {
+        setSplitOpen(false);
+      }
     } else {
-      if (remaining > 0.01 && payments.length === 0) return;
-      onPay(payments.length > 0 ? payments : []);
+      setSplitCustomValue("");
     }
   };
 
-  const paySplit = (index: number, method: string) => {
-    const newSplitPayments = [...splitPayments];
-    newSplitPayments[index] = { method, amount: splitAmounts[index] };
-    setSplitPayments(newSplitPayments);
-
-    // Auto-finalize if all splits paid
-    const filled = newSplitPayments.filter(Boolean) as PaymentEntry[];
-    if (filled.length === splitCount) {
-      onPay(filled);
-    }
-  };
-
-  const resetSplitPayments = (count?: number) => {
-    setSplitPayments(Array(count ?? splitCount).fill(null));
-  };
-
-  const updateSplitCount = (c: number) => {
-    const val = Math.max(2, Math.min(20, c));
-    setSplitCount(val);
-    resetSplitPayments(val);
-  };
-
-  const assignItemUnit = (itemId: string, personIdx: number, qty: number) => {
-    setItemAssignment((prev) => {
-      const next = { ...prev };
-      const current = { ...(next[itemId] || {}) };
-      if (qty <= 0) {
-        delete current[personIdx];
-      } else {
-        current[personIdx] = qty;
-      }
-      if (Object.keys(current).length === 0) {
-        delete next[itemId];
-      } else {
-        next[itemId] = current;
-      }
-      return next;
-    });
-  };
-
-  const getAssignedQty = (itemId: string, personIdx: number) => {
-    return itemAssignment[itemId]?.[personIdx] || 0;
-  };
-
-  const getTotalAssigned = (itemId: string) => {
-    const assignments = itemAssignment[itemId] || {};
-    return Object.values(assignments).reduce((s, q) => s + q, 0);
-  };
-
-  const assignAllToPersons = (itemId: string, personIdx: number, totalQty: number) => {
-    // Remove from all others, assign all to this person
-    setItemAssignment((prev) => {
-      const next = { ...prev };
-      next[itemId] = { [personIdx]: totalQty };
-      return next;
-    });
-  };
-
-  const splitItemEvenly = (itemId: string, totalQty: number) => {
-    const perPerson = Math.floor(totalQty / splitCount);
-    const remainder = totalQty % splitCount;
-    setItemAssignment((prev) => {
-      const next = { ...prev };
-      const current: Record<number, number> = {};
-      for (let i = 0; i < splitCount; i++) {
-        const q = perPerson + (i < remainder ? 1 : 0);
-        if (q > 0) current[i] = q;
-      }
-      if (Object.keys(current).length > 0) {
-        next[itemId] = current;
-      } else {
-        delete next[itemId];
-      }
-      return next;
-    });
-  };
-
-  const initSplit = (mode: SplitMode) => {
-    setSplitMode(mode);
-    setPayments([]);
-    resetSplitPayments(splitCount);
-    if (mode === "items") setItemAssignment({});
+  const openSplitModal = () => {
+    setSplitPeople(2);
+    setSplitCustomValue("");
+    setSplitTab("quantity");
+    setSplitOpen(true);
   };
 
   return (
@@ -343,138 +255,6 @@ export default function PaymentPanel({
               </div>
             </div>
           </div>
-
-          {/* Split mode selection */}
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Modo de Pagamento</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                { mode: "full" as const, icon: Receipt, label: "Conta Inteira" },
-                { mode: "people" as const, icon: Users, label: "Dividir Igual" },
-                { mode: "items" as const, icon: SplitSquareHorizontal, label: "Dividir Itens" },
-              ]).map(({ mode, icon: Icon, label }) => (
-                <button
-                  key={mode}
-                  onClick={() => initSplit(mode)}
-                  className={`flex flex-col items-center gap-1.5 rounded-md border py-3 px-2 text-xs font-medium transition-colors ${
-                    splitMode === mode
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "hover:bg-secondary"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Split by people config */}
-          {splitMode === "people" && (
-            <div className="rounded-md border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Número de pessoas</span>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => updateSplitCount(splitCount - 1)} className="rounded-md border p-1.5 hover:bg-secondary">
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="text-lg font-semibold w-8 text-center">{splitCount}</span>
-                  <button onClick={() => updateSplitCount(splitCount + 1)} className="rounded-md border p-1.5 hover:bg-secondary">
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm text-muted-foreground flex justify-between border-t pt-2">
-                <span>Valor por pessoa</span>
-                <span className="font-semibold text-foreground">R$ {(grandTotal / splitCount).toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Split by items config */}
-          {splitMode === "items" && (
-            <div className="rounded-md border p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Número de pessoas</span>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => updateSplitCount(splitCount - 1)} className="rounded-md border p-1.5 hover:bg-secondary">
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="text-lg font-semibold w-8 text-center">{splitCount}</span>
-                  <button onClick={() => updateSplitCount(splitCount + 1)} className="rounded-md border p-1.5 hover:bg-secondary">
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="border-t pt-3 space-y-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Atribuir itens</p>
-                {orderItems.map((item) => {
-                  const totalAssigned = getTotalAssigned(item.id);
-                  const unassigned = item.quantity - totalAssigned;
-                  return (
-                    <div key={item.id} className="rounded-md border p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium truncate">
-                          {item.quantity}× {item.product_name}
-                        </span>
-                        <span className="text-sm text-muted-foreground">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
-                      </div>
-                      {unassigned > 0 && (
-                        <p className="text-[10px] text-destructive">{unassigned} un. não atribuída(s)</p>
-                      )}
-                      {/* Quick actions */}
-                      <div className="flex gap-1.5 flex-wrap">
-                        <button
-                          onClick={() => splitItemEvenly(item.id, item.quantity)}
-                          className="rounded border px-2 py-1 text-[10px] font-medium hover:bg-secondary transition-colors flex items-center gap-1"
-                        >
-                          <SplitSquareHorizontal className="h-3 w-3" />
-                          Dividir igual
-                        </button>
-                      </div>
-                      {/* Per-person assignment */}
-                      <div className="grid gap-1.5">
-                        {Array.from({ length: splitCount }, (_, pi) => {
-                          const qty = getAssignedQty(item.id, pi);
-                          return (
-                            <div key={pi} className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium w-8">P{pi + 1}</span>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => assignItemUnit(item.id, pi, Math.max(0, qty - 1))}
-                                  disabled={qty === 0}
-                                  className="rounded border p-0.5 hover:bg-secondary disabled:opacity-30 transition-colors"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className="text-xs font-semibold w-5 text-center">{qty}</span>
-                                <button
-                                  onClick={() => {
-                                    const maxAdd = item.quantity - totalAssigned + qty;
-                                    assignItemUnit(item.id, pi, Math.min(qty + 1, maxAdd));
-                                  }}
-                                  disabled={totalAssigned >= item.quantity && qty === getAssignedQty(item.id, pi)}
-                                  className="rounded border p-0.5 hover:bg-secondary disabled:opacity-30 transition-colors"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                              <button
-                                onClick={() => assignAllToPersons(item.id, pi, item.quantity)}
-                                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors underline"
-                              >
-                                Tudo
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Right: Payment panel */}
@@ -509,159 +289,113 @@ export default function PaymentPanel({
             </div>
           </div>
 
-          {/* Full payment mode */}
-          {splitMode === "full" && (
-            <div className="flex-1 overflow-auto p-6 space-y-4">
-              {/* Payments added */}
-              {payments.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider">Pagamentos adicionados</p>
-                  {payments.map((p, i) => {
-                    const Icon = methodIcons[p.method] ?? CreditCard;
-                    return (
-                      <div key={i} className="flex items-center justify-between rounded-md border bg-background p-2.5">
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{methodLabels[p.method]}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold">R$ {p.amount.toFixed(2)}</span>
-                          <button onClick={() => removePayment(i)} className="rounded p-1 hover:bg-destructive/10 text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+          {/* Payment area */}
+          <div className="flex-1 overflow-auto p-6 space-y-4">
+            {/* Payments added */}
+            {payments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Pagamentos adicionados</p>
+                {payments.map((p, i) => {
+                  const Icon = methodIcons[p.method] ?? CreditCard;
+                  return (
+                    <div key={i} className="flex items-center justify-between rounded-md border bg-background p-2.5">
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{methodLabels[p.method]}</span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">R$ {p.amount.toFixed(2)}</span>
+                        <button onClick={() => removePayment(i)} className="rounded p-1 hover:bg-destructive/10 text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Remaining */}
+            <div className={`rounded-md p-4 text-center ${remaining <= 0.01 ? "bg-accent/10 border border-accent" : "bg-muted"}`}>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
+                {remaining <= 0.01 ? "Pago" : "Restante"}
+              </p>
+              <p className={`text-2xl font-semibold ${remaining <= 0.01 ? "text-accent" : ""}`}>
+                R$ {remaining.toFixed(2)}
+              </p>
+              {payments.length > 0 && remaining > 0.01 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pago: R$ {paidTotal.toFixed(2)} de R$ {grandTotal.toFixed(2)}
+                </p>
+              )}
+            </div>
+
+            {remaining > 0.01 && (
+              <>
+                {/* Custom amount input */}
+                <div>
+                  <label className="text-xs text-muted-foreground">Valor parcial (ou deixe vazio para o restante)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    max={remaining}
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    placeholder={remaining.toFixed(2)}
+                    className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+
+                {/* Payment method buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  {METHODS.map((method) => {
+                    const Icon = methodIcons[method];
+                    return (
+                      <button
+                        key={method}
+                        disabled={isPending}
+                        onClick={() => {
+                          const amt = customAmount ? Number(customAmount) : remaining;
+                          addPayment(method, amt);
+                          setCustomAmount("");
+                        }}
+                        className="flex items-center justify-center gap-2 rounded-md border bg-background py-3 text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-50"
+                      >
+                        <Icon className="h-4 w-4" />
+                        {methodLabels[method]}
+                      </button>
                     );
                   })}
                 </div>
-              )}
 
-              {/* Remaining */}
-              <div className={`rounded-md p-4 text-center ${remaining <= 0.01 ? "bg-accent/10 border border-accent" : "bg-muted"}`}>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                  {remaining <= 0.01 ? "Pago" : "Restante"}
-                </p>
-                <p className={`text-2xl font-display ${remaining <= 0.01 ? "text-accent" : ""}`}>
-                  R$ {remaining.toFixed(2)}
-                </p>
-              </div>
-
-              {/* Custom amount input */}
-              {remaining > 0.01 && (
-                <>
-                  <div>
-                    <label className="text-xs text-muted-foreground">Valor parcial (ou deixe vazio para o restante)</label>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={remaining}
-                      value={customAmount}
-                      onChange={(e) => setCustomAmount(e.target.value)}
-                      placeholder={remaining.toFixed(2)}
-                      className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </div>
-
-                  {/* Payment method buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {METHODS.map((method) => {
-                      const Icon = methodIcons[method];
-                      return (
-                        <button
-                          key={method}
-                          disabled={isPending}
-                          onClick={() => {
-                            const amt = customAmount ? Number(customAmount) : remaining;
-                            addPayment(method, amt);
-                            setCustomAmount("");
-                          }}
-                          className="flex items-center justify-center gap-2 rounded-md border bg-background py-3 text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-50"
-                        >
-                          <Icon className="h-4 w-4" />
-                          {methodLabels[method]}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {/* Finalize */}
-              {remaining <= 0.01 && payments.length > 0 && (
+                {/* Split bill button */}
                 <button
-                  onClick={handleFinalize}
-                  disabled={isPending}
-                  className="w-full rounded-md bg-accent text-accent-foreground py-3.5 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                  onClick={openSplitModal}
+                  className="w-full flex items-center justify-center gap-2 rounded-md border-2 border-dashed border-border py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
                 >
-                  {isPending ? "Finalizando..." : (
-                    <>
-                      <Check className="h-5 w-5" />
-                      Finalizar Pagamento
-                    </>
-                  )}
+                  <Users className="h-4 w-4" />
+                  Dividir Conta
                 </button>
-              )}
-            </div>
-          )}
+              </>
+            )}
 
-          {/* Split payment mode */}
-          {splitMode !== "full" && (
-            <div className="flex-1 overflow-auto p-6 space-y-3">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">
-                {splitMode === "people" ? "Pagamento por pessoa" : "Pagamento por grupo"}
-              </p>
-              {splitAmounts.map((amount, i) => {
-                const sp = splitPayments[i];
-                return (
-                  <div key={i} className={`rounded-md border p-3 ${sp ? "bg-muted/50 border-muted" : ""}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Pessoa {i + 1}</span>
-                      <span className="text-sm font-semibold">R$ {amount.toFixed(2)}</span>
-                    </div>
-                    {sp ? (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Check className="h-4 w-4 text-accent" />
-                        Pago — {methodLabels[sp.method]}
-                      </div>
-                    ) : amount > 0 ? (
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {METHODS.map((method) => {
-                          const Icon = methodIcons[method];
-                          return (
-                            <button
-                              key={method}
-                              disabled={isPending}
-                              onClick={() => paySplit(i, method)}
-                              className="flex flex-col items-center gap-0.5 rounded-md border bg-background py-2 text-[10px] font-medium hover:bg-secondary transition-colors disabled:opacity-50"
-                            >
-                              <Icon className="h-3.5 w-3.5" />
-                              {methodLabels[method]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-muted-foreground">Nenhum item atribuído</p>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Progress */}
-              {(() => {
-                const paidSplits = splitPayments.filter(Boolean).length;
-                return paidSplits > 0 && paidSplits < splitCount ? (
-                  <div className="rounded-md bg-muted p-3 text-center">
-                    <p className="text-xs text-muted-foreground">{paidSplits}/{splitCount} pagamentos realizados</p>
-                    <p className="text-sm font-semibold mt-0.5">
-                      Restante: R$ {splitAmounts.slice(paidSplits).reduce((s, a) => s + a, 0).toFixed(2)}
-                    </p>
-                  </div>
-                ) : null;
-              })()}
-            </div>
-          )}
+            {/* Finalize */}
+            {remaining <= 0.01 && payments.length > 0 && (
+              <button
+                onClick={handleFinalize}
+                disabled={isPending}
+                className="w-full rounded-md bg-accent text-accent-foreground py-3.5 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isPending ? "Finalizando..." : (
+                  <>
+                    <Check className="h-5 w-5" />
+                    Finalizar Pagamento
+                  </>
+                )}
+              </button>
+            )}
+          </div>
 
           {/* Bottom cancel */}
           <div className="border-t p-4">
@@ -674,6 +408,128 @@ export default function PaymentPanel({
           </div>
         </div>
       </div>
+
+      {/* ── Split Modal ── */}
+      <Dialog open={splitOpen} onOpenChange={setSplitOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Dividir Conta
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Summary bar */}
+          <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3">
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</p>
+              <p className="text-sm font-semibold">R$ {grandTotal.toFixed(2)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Pago</p>
+              <p className="text-sm font-semibold text-accent">R$ {paidTotal.toFixed(2)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Restante</p>
+              <p className="text-sm font-semibold">R$ {remaining.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Tab switcher */}
+          <div className="flex rounded-md border overflow-hidden">
+            <button
+              onClick={() => setSplitTab("quantity")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+                splitTab === "quantity" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"
+              }`}
+            >
+              <Hash className="h-4 w-4" />
+              Por Quantidade
+            </button>
+            <button
+              onClick={() => setSplitTab("value")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition-colors ${
+                splitTab === "value" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"
+              }`}
+            >
+              <DollarSign className="h-4 w-4" />
+              Por Valor
+            </button>
+          </div>
+
+          {/* Tab content */}
+          {splitTab === "quantity" ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Número de pessoas</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSplitPeople(Math.max(2, splitPeople - 1))}
+                    className="rounded-md border p-1.5 hover:bg-secondary transition-colors"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-lg font-semibold w-8 text-center">{splitPeople}</span>
+                  <button
+                    onClick={() => setSplitPeople(Math.min(20, splitPeople + 1))}
+                    className="rounded-md border p-1.5 hover:bg-secondary transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-md bg-muted p-4 text-center">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Valor por pessoa</p>
+                <p className="text-2xl font-semibold">R$ {splitPerPerson.toFixed(2)}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Valor desta parcela</label>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  max={remaining}
+                  value={splitCustomValue}
+                  onChange={(e) => setSplitCustomValue(e.target.value)}
+                  placeholder={remaining.toFixed(2)}
+                  className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  autoFocus
+                />
+              </div>
+              {Number(splitCustomValue) > 0 && Number(splitCustomValue) <= remaining && (
+                <div className="text-xs text-muted-foreground text-center">
+                  Após esta parcela, restará: R$ {(remaining - Number(splitCustomValue)).toFixed(2)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Payment method buttons inside modal */}
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Forma de pagamento</p>
+            <div className="grid grid-cols-2 gap-2">
+              {METHODS.map((method) => {
+                const Icon = methodIcons[method];
+                const disabled = isPending || splitValue <= 0 || splitValue > remaining;
+                return (
+                  <button
+                    key={method}
+                    disabled={disabled}
+                    onClick={() => handleSplitConfirm(method)}
+                    className="flex items-center justify-center gap-2 rounded-md border bg-background py-3 text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {methodLabels[method]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
