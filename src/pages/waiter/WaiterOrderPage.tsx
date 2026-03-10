@@ -259,7 +259,7 @@ export default function WaiterOrderPage() {
     mutationFn: async () => {
       if (!previousOrder?.items?.length) throw new Error("Sem pedido anterior");
       let currentOrder = order;
-      if (!currentOrder) currentOrder = await createOrder.mutateAsync();
+      if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
 
       for (const prevItem of previousOrder.items) {
         const product = products.find((p) => p.id === prevItem.product_id);
