@@ -561,7 +561,7 @@ export default function TablesPage() {
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
                 {/* Quick edit button on floor plan */}
