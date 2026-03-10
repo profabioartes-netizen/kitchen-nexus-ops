@@ -5,11 +5,11 @@ import {
   BarChart3,
   Package,
   Printer,
-  ChefHat,
   Flame,
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 
 const navItems = [
   { to: "/", icon: LayoutGrid, label: "Mesas" },
@@ -25,11 +25,8 @@ export function NavigationRail() {
 
   return (
     <nav className="nav-rail flex-shrink-0 flex flex-col">
-      <div className="mb-6 flex flex-col items-center gap-1">
-        <ChefHat className="h-7 w-7 text-nav-active" />
-        <span className="font-display text-[10px] tracking-wide text-nav-active">
-          KILO
-        </span>
+      <div className="mb-4 flex flex-col items-center px-2 pt-1">
+        <img src={coffeeLogo} alt="Coffee Thrones" className="h-10 w-auto object-contain" />
       </div>
 
       <div className="flex flex-col gap-1 w-full px-2 flex-1">
