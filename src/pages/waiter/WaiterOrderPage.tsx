@@ -296,7 +296,7 @@ export default function WaiterOrderPage() {
     mutationFn: async (payload: AddItemPayload) => {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
-      if (!currentOrder) currentOrder = await createOrder.mutateAsync();
+      if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
       const unitPrice = Number(product.price) + complementsTotal;
       const { data: insertedItem, error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity,
