@@ -67,6 +67,7 @@ export default function TablesPage() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
+        queryClient.invalidateQueries({ queryKey: ["order_item_counts"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -140,6 +141,22 @@ export default function TablesPage() {
       return data;
     },
     enabled: !!previewOrderId,
+  });
+
+  // Fetch item counts for all orders
+  const { data: orderItemCounts = {} } = useQuery({
+    queryKey: ["order_item_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
   });
 
   const updatePosition = useMutation({
@@ -452,16 +469,14 @@ export default function TablesPage() {
                   {statusLabels[status]}
                 </span>
 
-                {/* Order details */}
+{/* Order details */}
                 {order && (
                   <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
-                      {(order as any).guests > 1 && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                          <Users className="h-2.5 w-2.5" /> {(order as any).guests}
-                        </span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
+                      </span>
                     </div>
                     {(order as any)?.customer_name && (
                       <p className="text-[11px] text-accent font-medium truncate">{(order as any).customer_name}</p>
@@ -523,9 +538,12 @@ export default function TablesPage() {
                 <span className="text-[9px] font-medium uppercase tracking-wider mt-1 text-muted-foreground">
                   {statusLabels[table.status as TableStatus]}
                 </span>
-                {order && (
+{order && (
                   <>
                     <span className="text-[10px] font-semibold mt-0.5">R$ {Number(order.total).toFixed(2)}</span>
+                    <span className="text-[9px] text-muted-foreground">
+                      {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
+                    </span>
                     <TableDuration createdAt={order.created_at} />
                   </>
                 )}
