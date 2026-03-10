@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   CreditCard, Banknote, Smartphone, ArrowLeft,
-  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Receipt, Users, Hash,
+  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins,
 } from "lucide-react";
 import {
   Dialog,
@@ -66,6 +66,8 @@ export default function PaymentPanel({
   // ── Payments ──
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
   const [customAmount, setCustomAmount] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [cashReceived, setCashReceived] = useState("");
 
   // ── Split modal ──
   const [splitOpen, setSplitOpen] = useState(false);
@@ -83,6 +85,13 @@ export default function PaymentPanel({
   const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
   const remaining = Math.max(0, Number((grandTotal - paidTotal).toFixed(2)));
 
+  // ── Cash change ──
+  const paymentAmount = customAmount ? Number(customAmount) : remaining;
+  const cashReceivedNum = Number(cashReceived) || 0;
+  const cashChange = selectedMethod === "cash" && cashReceivedNum > paymentAmount
+    ? Number((cashReceivedNum - paymentAmount).toFixed(2))
+    : 0;
+
   // ── Split computed values ──
   const splitPerPerson = splitTab === "quantity" ? Number((remaining / splitPeople).toFixed(2)) : 0;
   const splitValue = splitTab === "value" ? Math.min(Number(splitCustomValue) || 0, remaining) : splitPerPerson;
@@ -92,6 +101,9 @@ export default function PaymentPanel({
     if (amt <= 0) return;
     const finalAmt = Math.min(amt, remaining);
     setPayments((prev) => [...prev, { method, amount: Number(finalAmt.toFixed(2)) }]);
+    setSelectedMethod(null);
+    setCashReceived("");
+    setCustomAmount("");
   };
 
   const removePayment = (index: number) => {
@@ -103,10 +115,25 @@ export default function PaymentPanel({
     onPay(payments.length > 0 ? payments : []);
   };
 
+  const handleMethodSelect = (method: string) => {
+    if (method === "cash") {
+      setSelectedMethod("cash");
+      setCashReceived("");
+    } else {
+      const amt = customAmount ? Number(customAmount) : remaining;
+      addPayment(method, amt);
+    }
+  };
+
+  const confirmCashPayment = () => {
+    const amt = customAmount ? Number(customAmount) : remaining;
+    if (amt <= 0) return;
+    addPayment("cash", amt);
+  };
+
   const handleSplitConfirm = (method: string) => {
     if (splitValue <= 0 || splitValue > remaining) return;
     addPayment(method, splitValue);
-    // If quantity mode and all people would be paid, close
     if (splitTab === "quantity") {
       const newPaid = paidTotal + splitValue;
       const newRemaining = Math.max(0, Number((grandTotal - newPaid).toFixed(2)));
@@ -332,51 +359,118 @@ export default function PaymentPanel({
 
             {remaining > 0.01 && (
               <>
-                {/* Custom amount input */}
-                <div>
-                  <label className="text-xs text-muted-foreground">Valor parcial (ou deixe vazio para o restante)</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    max={remaining}
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    placeholder={remaining.toFixed(2)}
-                    className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-
-                {/* Payment method buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  {METHODS.map((method) => {
-                    const Icon = methodIcons[method];
-                    return (
+                {/* Cash payment flow */}
+                {selectedMethod === "cash" ? (
+                  <div className="space-y-3 rounded-md border-2 border-accent/30 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Banknote className="h-4 w-4 text-accent" />
+                        <span className="text-sm font-semibold">Pagamento em Dinheiro</span>
+                      </div>
                       <button
-                        key={method}
-                        disabled={isPending}
-                        onClick={() => {
-                          const amt = customAmount ? Number(customAmount) : remaining;
-                          addPayment(method, amt);
-                          setCustomAmount("");
-                        }}
-                        className="flex items-center justify-center gap-2 rounded-md border bg-background py-3 text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-50"
+                        onClick={() => { setSelectedMethod(null); setCashReceived(""); }}
+                        className="rounded p-1 hover:bg-secondary"
                       >
-                        <Icon className="h-4 w-4" />
-                        {methodLabels[method]}
+                        <X className="h-4 w-4" />
                       </button>
-                    );
-                  })}
-                </div>
+                    </div>
 
-                {/* Split bill button */}
-                <button
-                  onClick={openSplitModal}
-                  className="w-full flex items-center justify-center gap-2 rounded-md border-2 border-dashed border-border py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                >
-                  <Users className="h-4 w-4" />
-                  Dividir Conta
-                </button>
+                    <div className="text-center text-sm text-muted-foreground">
+                      Valor a pagar: <span className="font-semibold text-foreground">R$ {paymentAmount.toFixed(2)}</span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-muted-foreground">Valor recebido do cliente</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                        placeholder={paymentAmount.toFixed(2)}
+                        autoFocus
+                        className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-lg text-center font-semibold outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+
+                    {/* Change display */}
+                    {cashChange > 0 && (
+                      <div className="rounded-md bg-accent/10 border border-accent p-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1">
+                          <Coins className="h-4 w-4 text-accent" />
+                          <span className="text-xs text-accent uppercase tracking-wider font-semibold">Troco</span>
+                        </div>
+                        <p className="text-2xl font-bold text-accent">R$ {cashChange.toFixed(2)}</p>
+                      </div>
+                    )}
+
+                    {/* Quick cash values */}
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[5, 10, 20, 50, 100, 200].filter(v => v >= paymentAmount).slice(0, 4).map((val) => (
+                        <button
+                          key={val}
+                          onClick={() => setCashReceived(String(val))}
+                          className="rounded-md border bg-background py-2 text-xs font-medium hover:bg-secondary transition-colors"
+                        >
+                          R$ {val}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={confirmCashPayment}
+                      disabled={isPending || (cashReceivedNum > 0 && cashReceivedNum < paymentAmount)}
+                      className="w-full rounded-md bg-accent text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <Check className="h-5 w-5" />
+                      Confirmar Dinheiro
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Custom amount input */}
+                    <div>
+                      <label className="text-xs text-muted-foreground">Valor parcial (ou deixe vazio para o restante)</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        max={remaining}
+                        value={customAmount}
+                        onChange={(e) => setCustomAmount(e.target.value)}
+                        placeholder={remaining.toFixed(2)}
+                        className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
+
+                    {/* Payment method buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {METHODS.map((method) => {
+                        const Icon = methodIcons[method];
+                        return (
+                          <button
+                            key={method}
+                            disabled={isPending}
+                            onClick={() => handleMethodSelect(method)}
+                            className="flex items-center justify-center gap-2 rounded-md border bg-background py-3 text-sm font-medium hover:bg-secondary transition-colors disabled:opacity-50"
+                          >
+                            <Icon className="h-4 w-4" />
+                            {methodLabels[method]}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Split bill button */}
+                    <button
+                      onClick={openSplitModal}
+                      className="w-full flex items-center justify-center gap-2 rounded-md border-2 border-dashed border-border py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                    >
+                      <Users className="h-4 w-4" />
+                      Dividir Conta
+                    </button>
+                  </>
+                )}
               </>
             )}
 
