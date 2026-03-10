@@ -697,6 +697,63 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Save order — print items to their stations and mark table as "delivered"
+  const saveOrder = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido aberto");
+
+      // Group items by station and create print jobs
+      const itemsByStation: Record<string, typeof orderItems> = {};
+      for (const item of orderItems) {
+        const product = products.find((p) => p.id === item.product_id);
+        const station = (product as any)?.station || "Cozinha";
+        if (!itemsByStation[station]) itemsByStation[station] = [];
+        itemsByStation[station].push(item);
+      }
+
+      for (const [station, items] of Object.entries(itemsByStation)) {
+        await supabase.from("print_jobs").insert({
+          station,
+          status: "pending",
+          payload: {
+            type: "order_save",
+            table_name: table?.name || "—",
+            waiter_name: order.waiter_name || null,
+            order_id: order.id,
+            items: items.map((i) => ({
+              name: i.product_name,
+              quantity: i.quantity,
+              notes: i.notes || null,
+            })),
+          },
+        });
+      }
+
+      // Mark all unsent items as sent
+      const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
+      if (unsent.length > 0) {
+        const ids = unsent.map((i) => i.id);
+        await supabase
+          .from("order_items")
+          .update({ sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString() } as any)
+          .in("id", ids);
+      }
+
+      // Update table status to "delivered"
+      await supabase.from("restaurant_tables").update({ status: "delivered" }).eq("id", tableId!);
+
+      await logActivity(tableId!, "order_saved", `Pedido salvo e enviado para impressão — ${orderItems.length} item(ns)`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
+      toast.success("Pedido salvo e enviado para impressão!");
+      navigate("/");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
