@@ -66,6 +66,7 @@
     --status-occupied: 258 78% 42%;
     --status-reserved: 215 65% 55%;
     --status-bill: 25 85% 55%;
+    --status-delivered: 145 65% 42%;
   }
 
   .light {
