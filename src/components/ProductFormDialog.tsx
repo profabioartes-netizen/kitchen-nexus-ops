@@ -17,7 +17,7 @@ interface ProductFormData {
 const emptyForm: ProductFormData = {
   name: "",
   category_id: "",
-  price: "",
+  price: "0,00",
   station: "",
   stock: "-1",
   active: true,
@@ -85,8 +85,7 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   // Initialize form when editing
   if (isEditing && existingProduct && !initialized) {
     // Convert price from dot to comma format
-    const priceStr = String(existingProduct.price);
-    const priceWithComma = priceStr.includes('.') ? priceStr.replace('.', ',') : priceStr;
+    const priceWithComma = Number(existingProduct.price).toFixed(2).replace('.', ',');
     
     setForm({
       name: existingProduct.name,
@@ -204,26 +203,15 @@ export function ProductFormDialog({ productId, onClose }: Props) {
               <label className="text-sm font-medium text-muted-foreground">Preço (R$)</label>
               <input
                 type="text"
-                inputMode="decimal"
+                inputMode="numeric"
                 value={form.price}
                 onChange={(e) => {
-                  // Allow only digits and one comma
-                  let val = e.target.value.replace(/[^\d,]/g, '');
-                  // Ensure only one comma
-                  const parts = val.split(',');
-                  if (parts.length > 2) {
-                    val = parts[0] + ',' + parts.slice(1).join('');
-                  }
-                  // Limit to 2 decimal places
-                  if (parts[1] && parts[1].length > 2) {
-                    val = parts[0] + ',' + parts[1].slice(0, 2);
-                  }
-                  setForm({ ...form, price: val });
-                }}
-                onBlur={() => {
-                  // Format on blur - ensure 2 decimal places
-                  const num = parseFloat(form.price.replace(',', '.')) || 0;
-                  setForm({ ...form, price: num.toFixed(2).replace('.', ',') });
+                  // Strip everything except digits
+                  const digits = e.target.value.replace(/\D/g, '');
+                  // Convert to cents-based value
+                  const cents = parseInt(digits, 10) || 0;
+                  const formatted = (cents / 100).toFixed(2).replace('.', ',');
+                  setForm({ ...form, price: formatted });
                 }}
                 className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 placeholder="0,00"
