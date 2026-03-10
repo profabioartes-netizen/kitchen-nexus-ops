@@ -100,6 +100,51 @@ export type Database = {
           },
         ]
       }
+      order_item_complements: {
+        Row: {
+          complement_id: string
+          complement_name: string
+          created_at: string
+          id: string
+          order_item_id: string
+          price: number
+          quantity: number
+        }
+        Insert: {
+          complement_id: string
+          complement_name: string
+          created_at?: string
+          id?: string
+          order_item_id: string
+          price?: number
+          quantity?: number
+        }
+        Update: {
+          complement_id?: string
+          complement_name?: string
+          created_at?: string
+          id?: string
+          order_item_id?: string
+          price?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_complements_complement_id_fkey"
+            columns: ["complement_id"]
+            isOneToOne: false
+            referencedRelation: "complements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_complements_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
