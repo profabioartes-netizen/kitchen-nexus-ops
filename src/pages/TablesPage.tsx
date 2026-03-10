@@ -303,8 +303,8 @@ export default function TablesPage() {
         const newTables = [];
         for (let i = currentCount + 1; i <= desiredCount; i++) {
           newTables.push({
-            name: `Mesa ${i}`,
-            default_name: `Mesa ${i}`,
+            name: `Comanda ${i}`,
+            default_name: `Comanda ${i}`,
             seats: 4,
             active: true,
             status: "free",

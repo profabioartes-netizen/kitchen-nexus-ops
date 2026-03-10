@@ -1097,7 +1097,7 @@ export default function TableOrderPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-md bg-status-free text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 <CheckCircle2 className="h-5 w-5" />
-                <span>{finalizeMutation.isPending ? "Finalizando..." : "Finalizar Mesa"}</span>
+                <span>{finalizeMutation.isPending ? "Finalizando..." : "Finalizar Comanda"}</span>
               </button>
               <button
                 onClick={() => setShowCancelConfirm(true)}

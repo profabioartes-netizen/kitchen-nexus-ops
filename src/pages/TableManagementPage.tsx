@@ -321,7 +321,7 @@ export default function TableManagementPage() {
                   onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   className="rounded border-input h-4 w-4 accent-accent"
                 />
-                <span className="text-sm font-medium">Mesa ativa (visível no mapa)</span>
+                <span className="text-sm font-medium">Comanda ativa (visível no mapa)</span>
               </label>
             </div>
             <div className="flex justify-end gap-2 mt-6">

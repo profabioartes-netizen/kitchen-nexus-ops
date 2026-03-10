@@ -49,7 +49,7 @@ export default function WaiterOrdersPage() {
       </div>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm truncate">
-          {(order as any).restaurant_tables?.name ?? "Sem mesa"}
+          {(order as any).restaurant_tables?.name ?? "Sem comanda"}
         </p>
         <div className="flex items-center gap-2 mt-1">
           <Clock className="h-3 w-3 text-muted-foreground" />

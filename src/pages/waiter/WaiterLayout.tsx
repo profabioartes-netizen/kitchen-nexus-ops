@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 const tabs = [
-  { to: "/garcom", icon: LayoutGrid, label: "Mesas", end: true },
+  { to: "/garcom", icon: LayoutGrid, label: "Comandas", end: true },
   { to: "/garcom/pedidos", icon: ClipboardList, label: "Pedidos" },
   { to: "/garcom/perfil", icon: UserCircle, label: "Perfil" },
 ];

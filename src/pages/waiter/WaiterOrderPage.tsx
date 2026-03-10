@@ -444,7 +444,7 @@ export default function WaiterOrderPage() {
         <div className="flex-1 min-w-0">
           <input
             type="text"
-            defaultValue={table?.name ?? "Mesa"}
+            defaultValue={table?.name ?? "Comanda"}
             key={table?.id}
             onBlur={async (e) => {
               const newName = e.target.value.trim();
