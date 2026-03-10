@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -12,13 +12,14 @@ import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
 import TableOpenDialog from "@/components/TableOpenDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill";
+type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "Livre",
   occupied: "Ocupada",
   reserved: "Reservada",
   bill: "Conta",
+  delivered: "Pedido Entregue",
 };
 
 const methodLabels: Record<string, string> = {
@@ -697,6 +698,63 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Save order — print items to their stations and mark table as "delivered"
+  const saveOrder = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido aberto");
+
+      // Group items by station and create print jobs
+      const itemsByStation: Record<string, typeof orderItems> = {};
+      for (const item of orderItems) {
+        const product = products.find((p) => p.id === item.product_id);
+        const station = (product as any)?.station || "Cozinha";
+        if (!itemsByStation[station]) itemsByStation[station] = [];
+        itemsByStation[station].push(item);
+      }
+
+      for (const [station, items] of Object.entries(itemsByStation)) {
+        await supabase.from("print_jobs").insert({
+          station,
+          status: "pending",
+          payload: {
+            type: "order_save",
+            table_name: table?.name || "—",
+            waiter_name: order.waiter_name || null,
+            order_id: order.id,
+            items: items.map((i) => ({
+              name: i.product_name,
+              quantity: i.quantity,
+              notes: i.notes || null,
+            })),
+          },
+        });
+      }
+
+      // Mark all unsent items as sent
+      const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
+      if (unsent.length > 0) {
+        const ids = unsent.map((i) => i.id);
+        await supabase
+          .from("order_items")
+          .update({ sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString() } as any)
+          .in("id", ids);
+      }
+
+      // Update table status to "delivered"
+      await supabase.from("restaurant_tables").update({ status: "delivered" }).eq("id", tableId!);
+
+      await logActivity(tableId!, "order_saved", `Pedido salvo e enviado para impressão — ${orderItems.length} item(ns)`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
+      toast.success("Pedido salvo e enviado para impressão!");
+      navigate("/");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
@@ -1086,14 +1144,25 @@ export default function TableOrderPage() {
                   <span className="text-sm">Fechar Conta</span>
                 </button>
               </div>
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                disabled={!order || cancelOrder.isPending}
-                className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
-              >
-                <Ban className="h-3.5 w-3.5" />
-                Cancelar Mesa
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => saveOrder.mutate()}
+                  disabled={!order || orderItems.length === 0 || saveOrder.isPending}
+                  className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: "#16a34a", color: "white" }}
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {saveOrder.isPending ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  disabled={!order || cancelOrder.isPending}
+                  className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Cancelar Mesa
+                </button>
+              </div>
             </>
           ) : (
             <PaymentPanel

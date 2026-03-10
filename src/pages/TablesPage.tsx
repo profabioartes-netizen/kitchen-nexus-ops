@@ -6,16 +6,17 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill";
+type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "Livre",
   occupied: "Ocupada",
   reserved: "Reservada",
   bill: "Conta",
+  delivered: "Pedido Entregue",
 };
 
-const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill"];
+const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
 
 const TABLE_W = 130;
 const TABLE_H = 140;
@@ -384,11 +385,13 @@ export default function TablesPage() {
             const effectiveStatus: TableStatus = order
               ? (order.status === "billing_in_progress" ? "bill" : "occupied")
               : (table.status as TableStatus);
+            const useInlineOccupied = effectiveStatus === "occupied";
+            const useInlineDelivered = effectiveStatus === "delivered";
             return (
               <div
                 key={table.id}
-                className={`${effectiveStatus !== "occupied" ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
-                style={effectiveStatus === "occupied" ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : undefined}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : undefined}
                 onClick={() => openTable(table.id)}
               >
                 {/* Quick edit button */}
@@ -545,18 +548,20 @@ export default function TablesPage() {
                 const effectiveFloorStatus: TableStatus = order
                   ? (order.status === "billing_in_progress" ? "bill" : "occupied")
                   : (table.status as TableStatus);
+                const floorInlineOccupied = effectiveFloorStatus === "occupied";
+                const floorInlineDelivered = effectiveFloorStatus === "delivered";
                 return (
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`${effectiveFloorStatus !== "occupied" ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`${!floorInlineOccupied && !floorInlineDelivered ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(effectiveFloorStatus === "occupied" ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : {}),
                 }}
               >
                 {/* Quick edit button on floor plan */}
