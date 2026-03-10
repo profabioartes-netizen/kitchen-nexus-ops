@@ -599,7 +599,7 @@ export default function TableOrderPage() {
   const finalizeMutation = useMutation({
     mutationFn: async () => {
       if (!order) throw new Error("Sem pedido");
-      await supabase.from("orders").update({ status: "finalized" }).eq("id", order.id);
+      await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
       const { data: tableData } = await supabase
         .from("restaurant_tables")
         .select("default_name")
@@ -612,6 +612,8 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Mesa finalizada! Dados registrados nos relatórios.");
       navigate("/");
     },
@@ -623,11 +625,18 @@ export default function TableOrderPage() {
   const cancelOrder = useMutation({
     mutationFn: async () => {
       if (!order) throw new Error("Sem pedido aberto");
+      // Delete complements for all order items first (FK constraint)
+      const itemIds = orderItems.map((i) => i.id);
+      if (itemIds.length > 0) {
+        await supabase.from("order_item_complements").delete().in("order_item_id", itemIds);
+      }
+      // Delete all order items
+      await supabase.from("order_items").delete().eq("order_id", order.id);
       // Delete payments associated with this order
       await supabase.from("payments").delete().eq("order_id", order.id);
       // Set order status to cancelled (will NOT appear in reports)
-      await supabase.from("orders").update({ status: "canceled" }).eq("id", order.id);
-      // Reset table
+      await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
+      // Reset table fully
       const { data: tableData } = await supabase
         .from("restaurant_tables")
         .select("default_name")
@@ -635,11 +644,13 @@ export default function TableOrderPage() {
         .single();
       const resetName = (tableData as any)?.default_name || table?.name;
       await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
-      await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada`, order.id, profile?.full_name);
+      await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Pedido cancelado. Mesa liberada.");
       navigate("/");
     },
