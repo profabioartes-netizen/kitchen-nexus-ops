@@ -458,7 +458,7 @@ export default function TableOrderPage() {
           {filtered.map((product) => (
             <button
               key={product.id}
-              onClick={() => addItem.mutate(product)}
+              onClick={() => setSelectedProduct(product)}
               disabled={addItem.isPending}
               className="flex flex-col items-start rounded-lg border bg-card p-3 text-left transition-all hover:border-accent active:scale-[0.97]"
             >
