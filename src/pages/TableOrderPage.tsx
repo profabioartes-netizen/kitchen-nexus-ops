@@ -244,7 +244,7 @@ export default function TableOrderPage() {
       const ids = unsent.map((i) => i.id);
       const { error } = await supabase
         .from("order_items")
-        .update({ sent_to_kitchen: true })
+        .update({ sent_to_kitchen: true, preparation_status: "sent" } as any)
         .in("id", ids);
       if (error) throw error;
       const desc = unsent.map((i) => `${i.product_name} ×${i.quantity}`).join(", ");
