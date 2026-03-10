@@ -534,6 +534,20 @@ export default function TableOrderPage() {
                   <p className="text-xs text-muted-foreground">
                     R$ {Number(item.price).toFixed(2)} × {item.quantity}
                   </p>
+                  {/* Complements */}
+                  {(() => {
+                    const comps = itemComplements.filter((c) => c.order_item_id === item.id);
+                    if (comps.length === 0) return null;
+                    return (
+                      <div className="mt-0.5 space-y-0">
+                        {comps.map((c) => (
+                          <p key={c.id} className="text-[10px] text-muted-foreground">
+                            + {c.complement_name}{Number(c.price) > 0 ? ` (R$ ${Number(c.price).toFixed(2)})` : ""}
+                          </p>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   {item.notes && (
                     <p className="text-[10px] text-muted-foreground italic mt-0.5 truncate">📝 {item.notes}</p>
                   )}
