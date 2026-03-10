@@ -186,6 +186,8 @@ export default function TableManagementPage() {
             <tr className="border-b bg-secondary/50">
               <th className="px-4 py-2 w-16 font-medium text-center">Ordem</th>
               <th className="text-left px-4 py-2 font-medium">Nome</th>
+              <th className="text-center px-4 py-2 font-medium">Nº Int.</th>
+              <th className="text-center px-4 py-2 font-medium">Setor</th>
               <th className="text-center px-4 py-2 font-medium">Lugares</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 w-32"></th>
@@ -214,6 +216,14 @@ export default function TableManagementPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 font-medium">{table.name}</td>
+                <td className="px-4 py-3 text-center text-xs text-muted-foreground">{(table as any).internal_number || "—"}</td>
+                <td className="px-4 py-3 text-center">
+                  {(table as any).sector ? (
+                    <span className="text-[10px] bg-accent/30 rounded-full px-2 py-0.5 font-medium">{(table as any).sector}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-center">{table.seats}</td>
                 <td className="px-4 py-3 text-center">
                   <button
