@@ -250,6 +250,7 @@ export default function TablesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {tables.map((table) => {
             const order = ordersByTable[table.id];
+            const isPreviewOpen = previewOrderId === order?.id;
             return (
               <div
                 key={table.id}
@@ -264,6 +265,20 @@ export default function TablesPage() {
                 >
                   <Edit2 className="h-3 w-3 text-muted-foreground" />
                 </button>
+
+                {/* Preview button for occupied tables */}
+                {order && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewOrderId(isPreviewOpen ? null : order.id);
+                    }}
+                    className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 ${isPreviewOpen ? "opacity-100 bg-accent/20" : "opacity-0 group-hover:opacity-100"} hover:bg-secondary/80`}
+                    title="Prévia do pedido"
+                  >
+                    <Eye className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                )}
 
                 <span className="font-display text-lg">{table.name}</span>
                 {(table as any).internal_number && (
@@ -289,6 +304,33 @@ export default function TablesPage() {
                 )}
                 {order?.waiter_name && (
                   <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
+                )}
+
+                {/* Order preview popup */}
+                {isPreviewOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute left-0 right-0 top-full mt-1 z-30 rounded-md border bg-background shadow-lg p-2.5 min-w-[160px]"
+                  >
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">Pedido</p>
+                    {previewItems.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">Carregando...</p>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {previewItems.slice(0, 6).map((item) => (
+                          <div key={item.id} className="flex items-center justify-between text-xs">
+                            <span className="truncate flex-1 mr-2">{item.product_name}</span>
+                            <span className="text-muted-foreground flex-shrink-0">×{item.quantity}</span>
+                          </div>
+                        ))}
+                        {previewItems.length > 6 && (
+                          <p className="text-[10px] text-muted-foreground text-center pt-1">
+                            +{previewItems.length - 6} itens...
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             );
