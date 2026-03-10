@@ -558,7 +558,7 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
-                style={useInlineOccupied ? { backgroundColor: "#c7c3f0", borderColor: "#c7c3f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
+                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
 
