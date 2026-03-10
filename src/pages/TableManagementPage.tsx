@@ -264,7 +264,7 @@ export default function TableManagementPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
           <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">{editingId ? "Editar Mesa" : "Nova Mesa"}</h2>
+              <h2 className="text-lg font-semibold">{editingId ? "Editar Comanda" : "Nova Comanda"}</h2>
               <button onClick={() => setShowForm(false)} className="rounded p-1 hover:bg-secondary">
                 <X className="h-5 w-5" />
               </button>
