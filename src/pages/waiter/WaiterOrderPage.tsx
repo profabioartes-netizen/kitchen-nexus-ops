@@ -289,12 +289,17 @@ export default function WaiterOrderPage() {
       const addedTotal = previousOrder.items.reduce((s: number, i: any) => s + Number(i.price) * i.quantity, 0);
       const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + addedTotal;
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      if (table?.status === "delivered") {
+        await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+      }
       await logActivity(tableId!, "order_repeated", `Pedido anterior repetido (${previousOrder.items.length} itens, R$ ${addedTotal.toFixed(2)})`, currentOrder.id, profile?.full_name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       toast.success("Pedido anterior repetido!");
     },
