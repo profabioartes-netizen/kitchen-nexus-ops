@@ -333,7 +333,8 @@ export default function TableOrderPage() {
   const createOrder = useMutation({
     mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
       const waiterLabel = profile?.full_name || null;
-      const customerName = params?.customerName || null;
+      // Use provided name, or fall back to the table's current name (if it differs from default_name, it's a customer name)
+      const customerName = params?.customerName || (table && table.name !== (table as any).default_name ? table.name : null);
       const guests = params?.guests || 1;
       const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
       const { data, error } = await supabase
