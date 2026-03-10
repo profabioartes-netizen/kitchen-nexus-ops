@@ -78,6 +78,7 @@ export default function TablesPage() {
     enabled: !!previewOrderId,
   });
 
+  const updatePosition = useMutation({
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
       const { error } = await supabase
         .from("restaurant_tables")
