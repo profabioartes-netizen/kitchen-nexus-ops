@@ -983,7 +983,7 @@ export default function TableOrderPage() {
                   <span className="text-sm">Enviar ({unsentCount})</span>
                 </button>
                 <button
-                  disabled={orderItems.length === 0}
+                  disabled={unpaidItems.length === 0}
                   onClick={() => setShowPayment(true)}
                   className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
