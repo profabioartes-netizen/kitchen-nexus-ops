@@ -538,9 +538,12 @@ export default function TablesPage() {
                 <span className="text-[9px] font-medium uppercase tracking-wider mt-1 text-muted-foreground">
                   {statusLabels[table.status as TableStatus]}
                 </span>
-                {order && (
+{order && (
                   <>
                     <span className="text-[10px] font-semibold mt-0.5">R$ {Number(order.total).toFixed(2)}</span>
+                    <span className="text-[9px] text-muted-foreground">
+                      {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
+                    </span>
                     <TableDuration createdAt={order.created_at} />
                   </>
                 )}
