@@ -13,7 +13,7 @@ const statusLabels: Record<TableStatus, string> = {
   occupied: "Pendente",
   reserved: "Reservada",
   bill: "Conta",
-  delivered: "Pedido Entregue",
+  delivered: "Concluído",
 };
 
 const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
