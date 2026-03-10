@@ -8,6 +8,7 @@ import TablesPage from "@/pages/TablesPage";
 import TableManagementPage from "@/pages/TableManagementPage";
 import TableOrderPage from "@/pages/TableOrderPage";
 import CashierPage from "@/pages/CashierPage";
+import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import ReportsPage from "@/pages/ReportsPage";
