@@ -795,7 +795,25 @@ export default function TableOrderPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <h1 className="text-xl font-semibold">{table?.name ?? "Mesa"}</h1>
+            <input
+              type="text"
+              defaultValue={table?.name ?? "Mesa"}
+              key={table?.id}
+              onBlur={async (e) => {
+                const newName = e.target.value.trim();
+                if (table && newName && newName !== table.name) {
+                  await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
+                  queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
+                  queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+                  if (order) {
+                    await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
+                    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                  }
+                }
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              className="text-xl font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 max-w-[200px]"
+            />
             {table && (
               <span className={`table-status-${table.status} rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border`}>
                 {statusLabels[table.status as TableStatus] ?? table.status}
