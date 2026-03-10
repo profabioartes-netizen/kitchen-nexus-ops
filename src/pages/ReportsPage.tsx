@@ -54,7 +54,7 @@ export default function ReportsPage() {
       const { data, error } = await supabase
         .from("payments")
         .select("*, orders!inner(status, created_at)")
-        .eq("orders.status", "closed")
+        .eq("orders.status", "finalized")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
