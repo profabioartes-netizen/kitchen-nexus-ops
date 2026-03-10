@@ -1,12 +1,12 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   ShoppingBag,
   Receipt,
   Loader2,
+  CalendarDays,
 } from "lucide-react";
 import {
   BarChart,
@@ -16,53 +16,132 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
 } from "recharts";
+import { format, subDays, startOfDay, isAfter } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const COLORS = [
+  "hsl(36 90% 44%)",
+  "hsl(220 60% 50%)",
+  "hsl(142 60% 40%)",
+  "hsl(0 73% 42%)",
+  "hsl(280 60% 50%)",
+  "hsl(180 50% 40%)",
+  "hsl(45 80% 50%)",
+  "hsl(330 60% 50%)",
+];
+
+const chartTooltipStyle = {
+  background: "hsl(30 20% 96%)",
+  border: "1px solid hsl(30 10% 82%)",
+  borderRadius: "6px",
+  fontSize: "12px",
+};
+
+type Period = "7" | "14" | "30" | "all";
 
 export default function ReportsPage() {
-  const { data: payments = [], isLoading } = useQuery({
+  const [period, setPeriod] = useState<Period>("7");
+
+  const { data: payments = [], isLoading: loadingPayments } = useQuery({
     queryKey: ["payments_report"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
         .select("*, orders(status, created_at)")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
   });
 
-  const { data: topItems = [] } = useQuery({
-    queryKey: ["top_items"],
+  const { data: orderItems = [], isLoading: loadingItems } = useQuery({
+    queryKey: ["order_items_report"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, price, quantity");
+        .select("product_name, price, quantity, orders(created_at), product_id, products(category_id, categories(name))");
       if (error) throw error;
-      // Aggregate
-      const map = new Map<string, { name: string; qty: number; revenue: number }>();
-      data.forEach((i) => {
-        const existing = map.get(i.product_name) || { name: i.product_name, qty: 0, revenue: 0 };
-        existing.qty += i.quantity;
-        existing.revenue += Number(i.price) * i.quantity;
-        map.set(i.product_name, existing);
-      });
-      return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+      return data;
     },
   });
 
-  const totalRevenue = payments.reduce((s, p) => s + Number(p.amount), 0);
-  const totalOrders = payments.length;
-  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const isLoading = loadingPayments || loadingItems;
 
-  // Group by method for bar chart
-  const byMethod = payments.reduce<Record<string, number>>((acc, p) => {
-    acc[p.method] = (acc[p.method] || 0) + Number(p.amount);
-    return acc;
-  }, {});
-  const methodChart = Object.entries(byMethod).map(([method, amount]) => ({
-    method: method === "cash" ? "Dinheiro" : method === "card" ? "Cartão" : "Pix",
-    amount,
-  }));
+  // Filter by period
+  const cutoff = period === "all" ? null : startOfDay(subDays(new Date(), parseInt(period)));
+
+  const filteredPayments = useMemo(() => {
+    if (!cutoff) return payments;
+    return payments.filter((p) => isAfter(new Date(p.created_at), cutoff));
+  }, [payments, cutoff]);
+
+  const filteredItems = useMemo(() => {
+    if (!cutoff) return orderItems;
+    return orderItems.filter((i) => {
+      const orderDate = (i.orders as any)?.created_at;
+      return orderDate && isAfter(new Date(orderDate), cutoff);
+    });
+  }, [orderItems, cutoff]);
+
+  // KPI stats
+  const totalRevenue = filteredPayments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalOrders = filteredPayments.length;
+  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const totalItemsSold = filteredItems.reduce((s, i) => s + i.quantity, 0);
+
+  // === Daily Revenue ===
+  const dailyRevenue = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredPayments.forEach((p) => {
+      const day = format(new Date(p.created_at), "dd/MM", { locale: ptBR });
+      map.set(day, (map.get(day) || 0) + Number(p.amount));
+    });
+    return Array.from(map.entries()).map(([day, revenue]) => ({ day, revenue }));
+  }, [filteredPayments]);
+
+  // === Sales by Product ===
+  const byProduct = useMemo(() => {
+    const map = new Map<string, { name: string; qty: number; revenue: number }>();
+    filteredItems.forEach((i) => {
+      const existing = map.get(i.product_name) || { name: i.product_name, qty: 0, revenue: 0 };
+      existing.qty += i.quantity;
+      existing.revenue += Number(i.price) * i.quantity;
+      map.set(i.product_name, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
+  }, [filteredItems]);
+
+  // === Sales by Category ===
+  const byCategory = useMemo(() => {
+    const map = new Map<string, { name: string; qty: number; revenue: number }>();
+    filteredItems.forEach((i) => {
+      const catName = (i.products as any)?.categories?.name || "Sem categoria";
+      const existing = map.get(catName) || { name: catName, qty: 0, revenue: 0 };
+      existing.qty += i.quantity;
+      existing.revenue += Number(i.price) * i.quantity;
+      map.set(catName, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
+  }, [filteredItems]);
+
+  // === Sales by Payment Method ===
+  const byMethod = useMemo(() => {
+    const map = new Map<string, { method: string; amount: number; count: number }>();
+    filteredPayments.forEach((p) => {
+      const label = p.method === "cash" ? "Dinheiro" : p.method === "card" ? "Cartão" : "Pix";
+      const existing = map.get(label) || { method: label, amount: 0, count: 0 };
+      existing.amount += Number(p.amount);
+      existing.count += 1;
+      map.set(label, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+  }, [filteredPayments]);
 
   if (isLoading) {
     return (
@@ -73,16 +152,44 @@ export default function ReportsPage() {
   }
 
   const stats = [
-    { label: "Faturamento Total", value: `R$ ${totalRevenue.toFixed(2)}`, icon: DollarSign },
-    { label: "Total de Pedidos", value: String(totalOrders), icon: ShoppingBag },
+    { label: "Faturamento", value: `R$ ${totalRevenue.toFixed(2)}`, icon: DollarSign },
+    { label: "Pedidos", value: String(totalOrders), icon: ShoppingBag },
     { label: "Ticket Médio", value: `R$ ${avgTicket.toFixed(2)}`, icon: Receipt },
+    { label: "Itens Vendidos", value: String(totalItemsSold), icon: CalendarDays },
   ];
+
+  const periods: { key: Period; label: string }[] = [
+    { key: "7", label: "7 dias" },
+    { key: "14", label: "14 dias" },
+    { key: "30", label: "30 dias" },
+    { key: "all", label: "Tudo" },
+  ];
+
+  const hasData = filteredPayments.length > 0 || filteredItems.length > 0;
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6">Relatórios</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Relatórios</h1>
+        <div className="flex gap-1 rounded-md border bg-card p-1">
+          {periods.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                period === p.key
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map((stat) => (
           <div key={stat.label} className="rounded-lg border bg-card p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -94,64 +201,162 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {methodChart.length > 0 && (
-          <div className="rounded-lg border bg-card p-4">
-            <h3 className="font-semibold mb-4">Faturamento por Método</h3>
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={methodChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(30 10% 82%)" />
-                <XAxis dataKey="method" tick={{ fontSize: 12 }} stroke="hsl(0 0% 45%)" />
-                <YAxis tick={{ fontSize: 12 }} stroke="hsl(0 0% 45%)" />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(30 20% 96%)",
-                    border: "1px solid hsl(30 10% 82%)",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Bar dataKey="amount" fill="hsl(36 90% 44%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {topItems.length > 0 && (
-          <div className="rounded-lg border bg-card p-4">
-            <h3 className="font-semibold mb-4">Produtos Mais Vendidos</h3>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2 font-medium">Produto</th>
-                  <th className="text-right py-2 font-medium">Qtd</th>
-                  <th className="text-right py-2 font-medium">Faturamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topItems.map((p, i) => (
-                  <tr key={p.name} className="border-b last:border-0">
-                    <td className="py-2.5 flex items-center gap-2">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-accent text-xs font-bold">
-                        {i + 1}
-                      </span>
-                      {p.name}
-                    </td>
-                    <td className="py-2.5 text-right text-muted-foreground">{p.qty}</td>
-                    <td className="py-2.5 text-right font-medium">R$ {p.revenue.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {payments.length === 0 && (
+      {!hasData && (
         <div className="text-center py-12 text-muted-foreground">
-          <p>Nenhum pagamento registrado ainda.</p>
+          <p>Nenhum dado para o período selecionado.</p>
           <p className="text-sm mt-1">Use o Caixa para registrar vendas.</p>
         </div>
+      )}
+
+      {hasData && (
+        <>
+          {/* Daily Revenue Chart */}
+          {dailyRevenue.length > 0 && (
+            <div className="rounded-lg border bg-card p-4 mb-6">
+              <h3 className="font-semibold mb-4">Faturamento Diário</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={dailyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(30 10% 82%)" />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="hsl(0 0% 45%)" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(0 0% 45%)" />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => [`R$ ${v.toFixed(2)}`, "Faturamento"]} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(36 90% 44%)" strokeWidth={2} dot={{ fill: "hsl(36 90% 44%)", r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Sales by Payment Method */}
+            {byMethod.length > 0 && (
+              <div className="rounded-lg border bg-card p-4">
+                <h3 className="font-semibold mb-4">Vendas por Método de Pagamento</h3>
+                <div className="flex items-center gap-6">
+                  <ResponsiveContainer width={180} height={180}>
+                    <PieChart>
+                      <Pie
+                        data={byMethod}
+                        dataKey="amount"
+                        nameKey="method"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        innerRadius={45}
+                      >
+                        {byMethod.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => [`R$ ${v.toFixed(2)}`]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2">
+                    {byMethod.map((m, i) => (
+                      <div key={m.method} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                          <span>{m.method}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-medium">R$ {m.amount.toFixed(2)}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">({m.count}x)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sales by Category */}
+            {byCategory.length > 0 && (
+              <div className="rounded-lg border bg-card p-4">
+                <h3 className="font-semibold mb-4">Vendas por Categoria</h3>
+                <div className="flex items-center gap-6">
+                  <ResponsiveContainer width={180} height={180}>
+                    <PieChart>
+                      <Pie
+                        data={byCategory}
+                        dataKey="revenue"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        innerRadius={45}
+                      >
+                        {byCategory.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => [`R$ ${v.toFixed(2)}`]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-2">
+                    {byCategory.map((c, i) => (
+                      <div key={c.name} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-3 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                          <span>{c.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-medium">R$ {c.revenue.toFixed(2)}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">({c.qty}un)</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sales by Product — Full Table */}
+          {byProduct.length > 0 && (
+            <div className="rounded-lg border bg-card p-4 mb-6">
+              <h3 className="font-semibold mb-4">Vendas por Produto</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Bar chart top 8 */}
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={byProduct.slice(0, 8)} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(30 10% 82%)" />
+                    <XAxis type="number" tick={{ fontSize: 11 }} stroke="hsl(0 0% 45%)" />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} stroke="hsl(0 0% 45%)" width={110} />
+                    <Tooltip contentStyle={chartTooltipStyle} formatter={(v: number) => [`R$ ${v.toFixed(2)}`, "Faturamento"]} />
+                    <Bar dataKey="revenue" fill="hsl(36 90% 44%)" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Full table */}
+                <div className="overflow-auto max-h-[280px]">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-card">
+                      <tr className="border-b">
+                        <th className="text-left py-2 font-medium">#</th>
+                        <th className="text-left py-2 font-medium">Produto</th>
+                        <th className="text-right py-2 font-medium">Qtd</th>
+                        <th className="text-right py-2 font-medium">Faturamento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {byProduct.map((p, i) => (
+                        <tr key={p.name} className="border-b last:border-0">
+                          <td className="py-2">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-accent text-xs font-bold">
+                              {i + 1}
+                            </span>
+                          </td>
+                          <td className="py-2">{p.name}</td>
+                          <td className="py-2 text-right text-muted-foreground">{p.qty}</td>
+                          <td className="py-2 text-right font-medium">R$ {p.revenue.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
