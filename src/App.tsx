@@ -16,6 +16,12 @@ import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
 import NotFound from "@/pages/NotFound";
+import WaiterLayout from "@/pages/waiter/WaiterLayout";
+import WaiterLoginPage from "@/pages/waiter/WaiterLoginPage";
+import WaiterTablesPage from "@/pages/waiter/WaiterTablesPage";
+import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
+import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
+import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
