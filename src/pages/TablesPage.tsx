@@ -263,10 +263,16 @@ export default function TablesPage() {
                 {order && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <span className="font-semibold">R$ {Number(order.total).toFixed(2)}</span>
+                    {(order as any).guests > 1 && (
+                      <span className="text-muted-foreground">{(order as any).guests}p</span>
+                    )}
                   </div>
                 )}
+                {(order as any)?.customer_name && (
+                  <span className="text-[10px] text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
+                )}
                 {order?.waiter_name && (
-                  <span className="text-[10px] text-muted-foreground mt-1">{order.waiter_name}</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
                 )}
               </div>
             );
