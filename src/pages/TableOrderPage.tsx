@@ -777,27 +777,15 @@ export default function TableOrderPage() {
     );
   }
 
-  // Show opening dialog for new orders
+  // Auto-creating order, show loading
   if (!order && !orderLoading && !tableLoading) {
     return (
-      <>
-        <TableOpenDialog
-          open={showOpenDialog}
-          tableName={table?.name ?? "Mesa"}
-          onConfirm={(data) => createOrder.mutate(data)}
-          onCancel={() => navigate("/")}
-          isPending={createOrder.isPending}
-        />
-        <div className="flex items-center justify-center h-full p-12">
-          {createOrder.isPending ? (
-            <>
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-            </>
-          ) : (
-            <span className="text-sm text-muted-foreground">Aguardando abertura da mesa...</span>
-          )}
-        </div>
+      <div className="flex items-center justify-center h-full p-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
+      </div>
+    );
+  }
       </>
     );
   }
