@@ -16,11 +16,11 @@ import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 
 const navItems = [
   { to: "/", icon: LayoutGrid, label: "Comandas" },
-  
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
+  { to: "/clientes", icon: Users, label: "Clientes" },
 ];
 
 export function NavigationRail() {
