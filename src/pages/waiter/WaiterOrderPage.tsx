@@ -272,11 +272,13 @@ export default function WaiterOrderPage() {
           sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString(),
         } as any);
 
-        const station = (product as any).station || "Cozinha";
-        await supabase.from("print_jobs").insert({
-          station, status: "pending",
-          payload: { product_name: prevItem.product_name, quantity: prevItem.quantity, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
-        });
+        const station = (product as any).station || "";
+        if (station) {
+          await supabase.from("print_jobs").insert({
+            station, status: "pending",
+            payload: { product_name: prevItem.product_name, quantity: prevItem.quantity, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
+          });
+        }
       }
 
       const addedTotal = previousOrder.items.reduce((s: number, i: any) => s + Number(i.price) * i.quantity, 0);
