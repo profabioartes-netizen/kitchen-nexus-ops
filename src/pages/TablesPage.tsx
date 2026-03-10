@@ -428,13 +428,6 @@ export default function TablesPage() {
               <Grid3X3 className="h-4 w-4" />
               Grade
             </button>
-            <button
-              onClick={() => setViewMode("floor")}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === "floor" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
-            >
-              <Move className="h-4 w-4" />
-              Planta
-            </button>
           </div>
           <button
             onClick={() => navigate("/mesas/gerenciar")}
