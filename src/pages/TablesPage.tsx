@@ -465,7 +465,7 @@ export default function TablesPage() {
                     onChange={(e) => setTableCountValue(e.target.value)}
                     className="mt-1"
                   />
-                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} mesas</p>
+                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} comandas</p>
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
