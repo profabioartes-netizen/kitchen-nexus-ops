@@ -1,0 +1,2 @@
+ALTER TABLE public.restaurant_tables DROP CONSTRAINT restaurant_tables_status_check;
+ALTER TABLE public.restaurant_tables ADD CONSTRAINT restaurant_tables_status_check CHECK (status IN ('free', 'occupied', 'reserved', 'bill', 'delivered'));
