@@ -669,7 +669,7 @@ export default function TablesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
           <div className="w-full max-w-xs rounded-lg border bg-background p-4 shadow-lg">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Edição Rápida</h3>
+              <h3 className="text-sm font-semibold">Abrir Mesa</h3>
               <button onClick={() => setQuickEdit(null)} className="rounded p-1 hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
