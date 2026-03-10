@@ -652,8 +652,13 @@ export default function TableOrderPage() {
       p.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const total = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+  const total = orderItems.reduce((s, i) => {
+    const unpaidQty = i.quantity - ((i as any).paid_quantity ?? 0);
+    return s + Number(i.price) * unpaidQty;
+  }, 0);
   const unsentCount = orderItems.filter((i) => !i.sent_to_kitchen).length;
+  const unpaidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) < i.quantity);
+  const paidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) >= i.quantity);
 
   if (tableLoading || orderLoading) {
     return (
