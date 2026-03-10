@@ -104,6 +104,22 @@ export default function TableOrderPage() {
     enabled: !!order?.id,
   });
 
+  // Fetch complements for all order items
+  const orderItemIds = orderItems.map((i) => i.id);
+  const { data: itemComplements = [] } = useQuery({
+    queryKey: ["order_item_complements", orderItemIds.join(",")],
+    queryFn: async () => {
+      if (orderItemIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("order_item_complements")
+        .select("*")
+        .in("order_item_id", orderItemIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: orderItemIds.length > 0,
+  });
+
   // Products & categories
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
