@@ -237,7 +237,67 @@ export default function TableOrderPage() {
     },
   });
 
-  // Create order
+  // Merge tables mutation
+  const mergeTablesMutation = useMutation({
+    mutationFn: async (sourceTableId: string) => {
+      if (!order) throw new Error("Sem pedido aberto nesta mesa");
+      const sourceTable = allTables.find((t) => t.id === sourceTableId);
+      const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
+      if (!sourceOrder) throw new Error("Mesa selecionada não possui pedido aberto");
+
+      // Move all items from source order to this order
+      await supabase.from("order_items").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
+      // Move all item complements (they follow the order_items FK automatically)
+      // Move payments from source to this order
+      await supabase.from("payments").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
+
+      // Combine totals
+      const newTotal = Number(order.total) + Number(sourceOrder.total);
+      // Preserve waiter info: keep both if different
+      const waiters = [order.waiter_name, sourceOrder.waiter_name].filter(Boolean);
+      const combinedWaiter = [...new Set(waiters)].join(", ") || null;
+      // Track merged tables
+      const existingMerged = (order as any).merged_from || [];
+      const mergedFrom = [...existingMerged, sourceTable?.name ?? sourceTableId];
+
+      await supabase.from("orders").update({
+        total: newTotal,
+        waiter_name: combinedWaiter,
+        merged_from: mergedFrom,
+      } as any).eq("id", order.id);
+
+      // Close source order as merged
+      await supabase.from("orders").update({ status: "merged" }).eq("id", sourceOrder.id);
+      // Free the source table
+      await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", sourceTableId);
+
+      // Log on this (target) table
+      await logActivity(
+        tableId!, "tables_merged",
+        `Mesas mescladas: ${sourceTable?.name ?? "?"} → ${table?.name ?? "?"} | Itens e pagamentos combinados | Total: R$ ${newTotal.toFixed(2)}${combinedWaiter ? ` | Garçons: ${combinedWaiter}` : ""}`,
+        order.id, profile?.full_name
+      );
+      // Log on source table
+      await logActivity(
+        sourceTableId, "table_merged_out",
+        `Mesa mesclada com ${table?.name ?? "?"} — pedido movido`,
+        sourceOrder.id, profile?.full_name
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
+      invalidateLog();
+      setShowMerge(false);
+      setMergeTarget(null);
+      toast.success("Mesas mescladas com sucesso!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const createOrder = useMutation({
     mutationFn: async (waiter?: string) => {
       const waiterLabel = waiter || profile?.full_name || null;
