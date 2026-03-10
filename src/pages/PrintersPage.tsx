@@ -64,7 +64,7 @@ export default function PrintersPage() {
   });
 
   const openNew = () => {
-    setForm({ name: "", station: "Cozinha", model: "", ip: "", port: "9100" });
+    setForm({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
     setEditing(null);
     setShowForm(true);
   };
