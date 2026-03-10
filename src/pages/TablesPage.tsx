@@ -469,16 +469,14 @@ export default function TablesPage() {
                   {statusLabels[status]}
                 </span>
 
-                {/* Order details */}
+{/* Order details */}
                 {order && (
                   <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
-                      {(order as any).guests > 1 && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                          <Users className="h-2.5 w-2.5" /> {(order as any).guests}
-                        </span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
+                      </span>
                     </div>
                     {(order as any)?.customer_name && (
                       <p className="text-[11px] text-accent font-medium truncate">{(order as any).customer_name}</p>
