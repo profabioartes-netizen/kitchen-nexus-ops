@@ -275,7 +275,7 @@ export default function TableOrderPage() {
       if (!order) throw new Error("Sem pedido aberto nesta comanda");
       const sourceTable = allTables.find((t) => t.id === sourceTableId);
       const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
-      if (!sourceOrder) throw new Error("Mesa selecionada não possui pedido aberto");
+      if (!sourceOrder) throw new Error("Comanda selecionada não possui pedido aberto");
 
       // Move all items from source order to this order
       await supabase.from("order_items").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
