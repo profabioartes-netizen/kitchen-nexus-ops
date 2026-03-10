@@ -39,6 +39,20 @@ export default function TablesPage() {
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
 
+  // Realtime: auto-refresh when tables or orders change in DB
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
     queryFn: async () => {
