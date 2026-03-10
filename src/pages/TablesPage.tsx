@@ -91,6 +91,7 @@ export default function TablesPage() {
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
       setDraggingId(tableId);
+      setDidDrag(false);
       setDragOffset({ x: e.clientX - rect.left - tableX, y: e.clientY - rect.top - tableY });
       setDragPos({ x: tableX, y: tableY });
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
