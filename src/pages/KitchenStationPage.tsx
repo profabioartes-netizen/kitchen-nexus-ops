@@ -104,7 +104,7 @@ export default function KitchenStationPage() {
       const { data, error } = await supabase
         .from("order_items")
         .select("*, orders!inner(status, table_id, restaurant_tables:table_id(name)), products!inner(station, prep_time_minutes)")
-        .eq("orders.status", "open")
+        .in("orders.status", ["open", "billing_in_progress", "paid_pending_finalization"])
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data as any[];
