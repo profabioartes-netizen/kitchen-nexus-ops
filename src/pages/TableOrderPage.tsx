@@ -240,6 +240,28 @@ export default function TableOrderPage() {
     },
   });
 
+  // Save note on item
+  const saveNote = useMutation({
+    mutationFn: async ({ itemId, notes }: { itemId: string; notes: string }) => {
+      const { error } = await supabase
+        .from("order_items")
+        .update({ notes: notes || null })
+        .eq("id", itemId);
+      if (error) throw error;
+      const item = orderItems.find((i) => i.id === itemId);
+      if (notes && item) {
+        await logActivity(tableId!, "note_added", `Obs em ${item.product_name}: "${notes}"`, order?.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      setNoteItemId(null);
+      setNoteText("");
+      invalidateLog();
+      toast.success("Observação salva!");
+    },
+  });
+
   // Send to kitchen
   const sendToKitchen = useMutation({
     mutationFn: async () => {
