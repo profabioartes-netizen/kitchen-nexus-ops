@@ -649,7 +649,7 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
-      toast.success("Mesa finalizada! Dados registrados nos relatórios.");
+      toast.success("Comanda finalizada! Dados registrados nos relatórios.");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
