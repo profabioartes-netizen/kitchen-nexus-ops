@@ -965,6 +965,113 @@ export default function TableOrderPage() {
           </div>
         </div>
       )}
+
+      {/* Merge dialog */}
+      {showMerge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-md rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Merge className="h-4 w-4" />
+                Juntar Mesas
+              </h3>
+              <button onClick={() => setShowMerge(false)} className="rounded p-1 hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {!mergeTarget ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Selecione a mesa que será absorvida pela <strong>{table?.name}</strong>.
+                  Todos os itens, pagamentos e observações serão combinados.
+                </p>
+                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-auto">
+                  {allTables
+                    .filter((t) => t.id !== tableId && allOpenOrders.some((o) => o.table_id === t.id))
+                    .map((t) => {
+                      const tOrder = allOpenOrders.find((o) => o.table_id === t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setMergeTarget(t.id)}
+                          className={`table-status-${t.status} flex flex-col items-center rounded-lg border-2 p-3 transition-all hover:scale-[1.02] active:scale-[0.98]`}
+                        >
+                          <span className="font-medium text-sm">{t.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{t.seats} lug</span>
+                          {tOrder && (
+                            <span className="text-[10px] font-semibold mt-1">R$ {Number(tOrder.total).toFixed(2)}</span>
+                          )}
+                          {tOrder?.waiter_name && (
+                            <span className="text-[9px] text-muted-foreground">{tOrder.waiter_name}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  {allTables.filter((t) => t.id !== tableId && allOpenOrders.some((o) => o.table_id === t.id)).length === 0 && (
+                    <p className="col-span-3 text-sm text-muted-foreground text-center py-6">
+                      Nenhuma outra mesa com pedido aberto
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const srcTable = allTables.find((t) => t.id === mergeTarget);
+                  const srcOrder = allOpenOrders.find((o) => o.table_id === mergeTarget);
+                  return (
+                    <>
+                      <div className="rounded-md border p-3 space-y-1">
+                        <p className="text-sm font-medium">Resumo da Junção</p>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{srcTable?.name} →</span>
+                          <span>{table?.name} (mesa principal)</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Total {table?.name}:</span>
+                          <span>R$ {Number(order?.total ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Total {srcTable?.name}:</span>
+                          <span>R$ {Number(srcOrder?.total ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-semibold border-t pt-1 mt-1">
+                          <span>Novo Total:</span>
+                          <span>R$ {(Number(order?.total ?? 0) + Number(srcOrder?.total ?? 0)).toFixed(2)}</span>
+                        </div>
+                        {(order?.waiter_name || srcOrder?.waiter_name) && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Garçons: {[...new Set([order?.waiter_name, srcOrder?.waiter_name].filter(Boolean))].join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        A <strong>{srcTable?.name}</strong> será liberada após a junção.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setMergeTarget(null)}
+                          className="flex-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-secondary"
+                        >
+                          Voltar
+                        </button>
+                        <button
+                          onClick={() => mergeTablesMutation.mutate(mergeTarget)}
+                          disabled={mergeTablesMutation.isPending}
+                          className="flex-1 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                        >
+                          {mergeTablesMutation.isPending ? "Juntando..." : "Confirmar Junção"}
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
