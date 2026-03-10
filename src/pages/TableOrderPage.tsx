@@ -404,19 +404,20 @@ export default function TableOrderPage() {
       // Create print job for the product's station (skip if no station)
       const station = (product as any).station || "";
       if (station) {
-      await supabase.from("print_jobs").insert({
-        station,
-        status: "pending",
-        payload: {
-          product_name: product.name,
-          quantity,
-          table_name: table?.name || "—",
-          waiter_name: currentOrder.waiter_name || waiterName || null,
-          notes: notes || null,
-          complements: complements.map((c) => `${c.name}${c.price > 0 ? ` (+R$${c.price.toFixed(2)})` : ""}`),
-          order_id: currentOrder.id,
-        },
-      });
+        await supabase.from("print_jobs").insert({
+          station,
+          status: "pending",
+          payload: {
+            product_name: product.name,
+            quantity,
+            table_name: table?.name || "—",
+            waiter_name: currentOrder.waiter_name || waiterName || null,
+            notes: notes || null,
+            complements: complements.map((c) => `${c.name}${c.price > 0 ? ` (+R$${c.price.toFixed(2)})` : ""}`),
+            order_id: currentOrder.id,
+          },
+        });
+      }
 
       const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce(
         (s, i) => s + Number(i.price) * i.quantity, 0
