@@ -623,74 +623,15 @@ export default function TableOrderPage() {
               </div>
             </>
           ) : (
-            <div className="space-y-3">
-              {/* Breakdown */}
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>R$ {total.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={serviceFeeEnabled}
-                      onChange={(e) => setServiceFeeEnabled(e.target.checked)}
-                      className="rounded border-muted-foreground/30"
-                    />
-                    Taxa de serviço (10%)
-                  </label>
-                  <span>{serviceFeeEnabled ? `R$ ${(total * 0.1).toFixed(2)}` : "—"}</span>
-                </div>
-                <div className="border-t pt-1.5 flex justify-between font-semibold text-base">
-                  <span>Total</span>
-                  <span>R$ {(serviceFeeEnabled ? total * 1.1 : total).toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Payment methods */}
-              <p className="text-xs text-muted-foreground text-center">Forma de pagamento</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate({ method: "pix", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
-                  className="flex flex-col items-center justify-center gap-1 rounded-md border bg-background py-3 font-medium hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <Smartphone className="h-4 w-4" />
-                  <span className="text-xs">Pix</span>
-                </button>
-                <button
-                  disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate({ method: "debit", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
-                  className="flex flex-col items-center justify-center gap-1 rounded-md border bg-background py-3 font-medium hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  <span className="text-xs">Débito</span>
-                </button>
-                <button
-                  disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate({ method: "credit", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
-                  className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  <span className="text-xs">Crédito</span>
-                </button>
-                <button
-                  disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate({ method: "cash", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
-                  className="flex flex-col items-center justify-center gap-1 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  <Banknote className="h-4 w-4" />
-                  <span className="text-xs">Dinheiro</span>
-                </button>
-              </div>
-              <button
-                onClick={() => setShowPayment(false)}
-                className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-1"
-              >
-                Cancelar
-              </button>
-            </div>
+            <PaymentPanel
+              total={total}
+              orderItems={orderItems}
+              serviceFeeEnabled={serviceFeeEnabled}
+              onToggleServiceFee={setServiceFeeEnabled}
+              onPay={(payments) => payMutation.mutate(payments)}
+              onCancel={() => setShowPayment(false)}
+              isPending={payMutation.isPending}
+            />
           )}
         </div>
       </div>
