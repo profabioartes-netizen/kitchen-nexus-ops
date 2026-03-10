@@ -397,7 +397,7 @@ export default function TablesPage() {
           {tables.map((table) => {
             const order = ordersByTable[table.id];
             const effectiveStatus: TableStatus = order
-              ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+              ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
               : (table.status as TableStatus);
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
