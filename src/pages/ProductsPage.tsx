@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Plus, Edit2, Trash2, Package, Loader2 } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Package, Loader2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { ProductFormDialog } from "@/components/ProductFormDialog";
 import { CategoriesManager } from "@/components/CategoriesManager";
@@ -15,6 +15,9 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [dragItem, setDragItem] = useState<string | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<string | null>(null);
+  const dragCategory = useRef<string | null>(null);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products_all"],
@@ -22,6 +25,7 @@ export default function ProductsPage() {
       const { data, error } = await supabase
         .from("products")
         .select("*, categories(name)")
+        .order("sort_order", { ascending: true })
         .order("name");
       if (error) throw error;
       return data;
@@ -41,16 +45,72 @@ export default function ProductsPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedItems: { id: string; sort_order: number }[]) => {
+      for (const item of orderedItems) {
+        await supabase.from("products").update({ sort_order: item.sort_order } as any).eq("id", item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products_all"] });
+      queryClient.invalidateQueries({ queryKey: ["products_active"] });
+    },
+  });
+
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const grouped = filtered.reduce<Record<string, typeof filtered>>((acc, p) => {
-    const cat = p.categories?.name || "Sem categoria";
+    const cat = (p as any).categories?.name || "Sem categoria";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(p);
     return acc;
   }, {});
+
+  const handleDragStart = (productId: string, category: string) => {
+    setDragItem(productId);
+    dragCategory.current = category;
+  };
+
+  const handleDragOver = (e: React.DragEvent, productId: string, category: string) => {
+    e.preventDefault();
+    if (dragCategory.current !== category) return;
+    setDragOverItem(productId);
+  };
+
+  const handleDrop = (category: string) => {
+    if (!dragItem || !dragOverItem || dragItem === dragOverItem || dragCategory.current !== category) {
+      setDragItem(null);
+      setDragOverItem(null);
+      return;
+    }
+
+    const items = [...(grouped[category] || [])];
+    const fromIndex = items.findIndex((i) => i.id === dragItem);
+    const toIndex = items.findIndex((i) => i.id === dragOverItem);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, moved);
+
+    const updates = items.map((item, idx) => ({ id: item.id, sort_order: idx }));
+    reorderMutation.mutate(updates);
+
+    // Optimistic update
+    queryClient.setQueryData(["products_all"], (old: any[]) => {
+      if (!old) return old;
+      const updated = [...old];
+      for (const u of updates) {
+        const p = updated.find((x) => x.id === u.id);
+        if (p) (p as any).sort_order = u.sort_order;
+      }
+      return updated.sort((a, b) => ((a as any).sort_order ?? 0) - ((b as any).sort_order ?? 0));
+    });
+
+    setDragItem(null);
+    setDragOverItem(null);
+  };
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "products", label: "Produtos" },
@@ -120,6 +180,7 @@ export default function ProductsPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-secondary/50">
+                        <th className="w-10 px-2 py-2"></th>
                         <th className="text-left px-4 py-2 font-medium">Produto</th>
                         <th className="text-left px-4 py-2 font-medium">Estação</th>
                         <th className="text-right px-4 py-2 font-medium">Preço</th>
@@ -130,7 +191,26 @@ export default function ProductsPage() {
                     </thead>
                     <tbody>
                       {items.map((product) => (
-                        <tr key={product.id} className="border-b last:border-0 hover:bg-secondary/30">
+                        <tr
+                          key={product.id}
+                          draggable={!search}
+                          onDragStart={() => handleDragStart(product.id, cat)}
+                          onDragOver={(e) => handleDragOver(e, product.id, cat)}
+                          onDrop={() => handleDrop(cat)}
+                          onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
+                          className={`border-b last:border-0 transition-colors ${
+                            dragItem === product.id ? "opacity-40" : ""
+                          } ${
+                            dragOverItem === product.id && dragItem !== product.id
+                              ? "border-t-2 border-t-accent"
+                              : ""
+                          } hover:bg-secondary/30`}
+                        >
+                          <td className="px-2 py-3 text-center">
+                            {!search && (
+                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing mx-auto" />
+                            )}
+                          </td>
                           <td className="px-4 py-3 flex items-center gap-2">
                             <Package className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{product.name}</span>
