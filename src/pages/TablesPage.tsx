@@ -564,6 +564,26 @@ export default function TablesPage() {
                     )}
                   </div>
                 )}
+
+                {/* Delivery toggle - below order details */}
+                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                    }}
+                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97]"
+                    style={{
+                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "rgba(255,255,255,0.2)",
+                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
+                    }}
+                    title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
+                  </button>
+                )}
               </div>
             );
           })}
