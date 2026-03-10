@@ -152,6 +152,7 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string
+          paid_quantity: number
           preparation_status: string
           preparing_at: string | null
           price: number
@@ -168,6 +169,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id: string
+          paid_quantity?: number
           preparation_status?: string
           preparing_at?: string | null
           price: number
@@ -184,6 +186,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string
+          paid_quantity?: number
           preparation_status?: string
           preparing_at?: string | null
           price?: number

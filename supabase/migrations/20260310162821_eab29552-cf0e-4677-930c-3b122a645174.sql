@@ -1,0 +1,1 @@
+ALTER TABLE public.order_items ADD COLUMN paid_quantity integer NOT NULL DEFAULT 0;
