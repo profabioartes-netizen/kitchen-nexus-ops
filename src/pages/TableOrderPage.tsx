@@ -502,7 +502,7 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Pay & close
+  // Pay — records payment but does NOT finalize
   const payMutation = useMutation({
     mutationFn: async (payments: { method: string; amount: number }[]) => {
       if (!order) throw new Error("Sem pedido aberto");
@@ -522,16 +522,10 @@ export default function TableOrderPage() {
         : `Pagamento dividido (${payments.length}×): R$ ${totalVal.toFixed(2)} — ${payments.map(p => `${methodLabels[p.method] ?? p.method}: R$ ${p.amount.toFixed(2)}`).join(", ")}`;
       await logActivity(tableId!, "payment_added", desc, order.id);
 
-      await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
-      // Reset table name to default and set status to free
-      const { data: tableData } = await supabase
-        .from("restaurant_tables")
-        .select("default_name")
-        .eq("id", tableId!)
-        .single();
-      const resetName = (tableData as any)?.default_name || table?.name;
-      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
-      await logActivity(tableId!, "table_closed", `Mesa ${table?.name ?? ""} fechada`, order.id);
+      // Move to paid_pending_finalization — table stays occupied until explicitly finalized
+      await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal }).eq("id", order.id);
+      await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
+      await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
 
       // Create receipt print job
       await supabase.from("print_jobs").insert({
@@ -561,7 +555,31 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      toast.success("Pagamento registrado! Mesa liberada.");
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      setShowPayment(false);
+      toast.success("Pagamento registrado! Finalize a mesa quando pronto.");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  // Finalize — moves order to finalized (appears in reports) and frees table
+  const finalizeMutation = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido");
+      await supabase.from("orders").update({ status: "finalized" }).eq("id", order.id);
+      const { data: tableData } = await supabase
+        .from("restaurant_tables")
+        .select("default_name")
+        .eq("id", tableId!)
+        .single();
+      const resetName = (tableData as any)?.default_name || table?.name;
+      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
+      await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      toast.success("Mesa finalizada! Dados registrados nos relatórios.");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
