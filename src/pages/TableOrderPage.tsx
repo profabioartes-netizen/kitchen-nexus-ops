@@ -341,7 +341,7 @@ export default function TableOrderPage() {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
       if (!currentOrder) {
-        currentOrder = await createOrder.mutateAsync(waiterName || undefined);
+        currentOrder = await createOrder.mutateAsync({});
       }
 
       const unitPrice = Number(product.price) + complementsTotal;
