@@ -196,12 +196,30 @@ export function ProductFormDialog({ productId, onClose }: Props) {
             <div>
               <label className="text-sm font-medium text-muted-foreground">Preço (R$)</label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                onChange={(e) => {
+                  // Allow only digits and one comma
+                  let val = e.target.value.replace(/[^\d,]/g, '');
+                  // Ensure only one comma
+                  const parts = val.split(',');
+                  if (parts.length > 2) {
+                    val = parts[0] + ',' + parts.slice(1).join('');
+                  }
+                  // Limit to 2 decimal places
+                  if (parts[1] && parts[1].length > 2) {
+                    val = parts[0] + ',' + parts[1].slice(0, 2);
+                  }
+                  setForm({ ...form, price: val });
+                }}
+                onBlur={() => {
+                  // Format on blur - ensure 2 decimal places
+                  const num = parseFloat(form.price.replace(',', '.')) || 0;
+                  setForm({ ...form, price: num.toFixed(2).replace('.', ',') });
+                }}
                 className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                placeholder="0,00"
               />
             </div>
             <div>
