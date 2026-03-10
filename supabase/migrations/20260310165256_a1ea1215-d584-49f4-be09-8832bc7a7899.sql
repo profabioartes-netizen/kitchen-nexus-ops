@@ -1,0 +1,2 @@
+ALTER TABLE public.orders DROP CONSTRAINT orders_status_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_status_check CHECK (status = ANY (ARRAY['open', 'billing_in_progress', 'paid_pending_finalization', 'finalized', 'canceled', 'cancelled', 'closed', 'merged']));

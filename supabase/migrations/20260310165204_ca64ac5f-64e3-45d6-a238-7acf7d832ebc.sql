@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can delete payments" ON public.payments FOR DELETE TO public USING (true);

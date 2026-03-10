@@ -628,14 +628,18 @@ export default function TableOrderPage() {
       // Delete complements for all order items first (FK constraint)
       const itemIds = orderItems.map((i) => i.id);
       if (itemIds.length > 0) {
-        await supabase.from("order_item_complements").delete().in("order_item_id", itemIds);
+        const { error: compErr } = await supabase.from("order_item_complements").delete().in("order_item_id", itemIds);
+        if (compErr) throw compErr;
       }
       // Delete all order items
-      await supabase.from("order_items").delete().eq("order_id", order.id);
+      const { error: itemsErr } = await supabase.from("order_items").delete().eq("order_id", order.id);
+      if (itemsErr) throw itemsErr;
       // Delete payments associated with this order
-      await supabase.from("payments").delete().eq("order_id", order.id);
+      const { error: payErr } = await supabase.from("payments").delete().eq("order_id", order.id);
+      if (payErr) throw payErr;
       // Set order status to cancelled (will NOT appear in reports)
-      await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
+      const { error: orderErr } = await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
+      if (orderErr) throw orderErr;
       // Reset table fully
       const { data: tableData } = await supabase
         .from("restaurant_tables")
@@ -643,7 +647,8 @@ export default function TableOrderPage() {
         .eq("id", tableId!)
         .single();
       const resetName = (tableData as any)?.default_name || table?.name;
-      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
+      const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
+      if (tableErr) throw tableErr;
       await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
     },
     onSuccess: () => {
