@@ -227,7 +227,7 @@ export default function WaiterOrderPage() {
   const quickAdd = useMutation({
     mutationFn: async (product: any) => {
       let currentOrder = order;
-      if (!currentOrder) currentOrder = await createOrder.mutateAsync();
+      if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
       const unitPrice = Number(product.price);
       const { error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity: 1,
