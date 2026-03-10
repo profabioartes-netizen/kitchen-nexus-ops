@@ -8,6 +8,7 @@ import TablesPage from "@/pages/TablesPage";
 import TableManagementPage from "@/pages/TableManagementPage";
 import TableOrderPage from "@/pages/TableOrderPage";
 import CashierPage from "@/pages/CashierPage";
+import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import ReportsPage from "@/pages/ReportsPage";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<TablesPage />} />
             <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
             <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
+            <Route path="/cozinha" element={<KitchenStationPage />} />
             <Route path="/caixa" element={<CashierPage />} />
             <Route path="/produtos" element={<ProductsPage />} />
             <Route path="/impressoras" element={<PrintersPage />} />
