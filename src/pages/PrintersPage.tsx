@@ -103,7 +103,7 @@ export default function PrintersPage() {
 
       {/* Routing diagram */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {["Cozinha", "Bar", "Sobremesa"].map((station) => {
+        {["Caixa", "Cozinha", "Bebidas", "Sobremesa"].map((station) => {
           const stationPrinters = printers.filter((p) => p.station === station && p.active);
           return (
             <div key={station} className="rounded-lg border bg-card p-4">
