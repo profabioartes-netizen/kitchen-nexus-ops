@@ -688,6 +688,17 @@ export default function TableOrderPage() {
               className="text-xs bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 flex-1 text-muted-foreground"
             />
           </div>
+          {(order as any)?.merged_from?.length > 0 && (
+            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+              <Merge className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">Mesclado de:</span>
+              {((order as any).merged_from as string[]).map((name: string, i: number) => (
+                <span key={i} className="text-[10px] bg-accent/50 rounded px-1.5 py-0.5 font-medium">
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-1">
