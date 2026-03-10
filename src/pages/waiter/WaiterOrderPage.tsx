@@ -235,11 +235,13 @@ export default function WaiterOrderPage() {
       } as any);
       if (itemError) throw itemError;
 
-      const station = (product as any).station || "Cozinha";
-      await supabase.from("print_jobs").insert({
-        station, status: "pending",
-        payload: { product_name: product.name, quantity: 1, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
-      });
+      const station = (product as any).station || "";
+      if (station) {
+        await supabase.from("print_jobs").insert({
+          station, status: "pending",
+          payload: { product_name: product.name, quantity: 1, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
+        });
+      }
 
       const newTotal = [...orderItems, { price: unitPrice, quantity: 1 }].reduce((s, i) => s + Number(i.price) * i.quantity, 0);
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
