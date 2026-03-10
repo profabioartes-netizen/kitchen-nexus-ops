@@ -567,6 +567,34 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Cancel / delete order without sending to reports
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const cancelOrder = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido aberto");
+      // Delete payments associated with this order
+      await supabase.from("payments").delete().eq("order_id", order.id);
+      // Set order status to cancelled (will NOT appear in reports)
+      await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+      // Reset table
+      const { data: tableData } = await supabase
+        .from("restaurant_tables")
+        .select("default_name")
+        .eq("id", tableId!)
+        .single();
+      const resetName = (tableData as any)?.default_name || table?.name;
+      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
+      await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      toast.success("Pedido cancelado. Mesa liberada.");
+      navigate("/");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
