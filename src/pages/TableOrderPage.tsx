@@ -690,10 +690,6 @@ export default function TableOrderPage() {
             </div>
           )}
         </div>
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Timeline panel */}
