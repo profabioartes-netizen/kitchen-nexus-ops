@@ -79,10 +79,8 @@ export default function TablesPage() {
     },
   });
 
-  const cycleStatus = (id: string, currentStatus: string) => {
-    const idx = statusCycle.indexOf(currentStatus as TableStatus);
-    const next = statusCycle[(idx + 1) % statusCycle.length];
-    updateStatus.mutate({ id, status: next });
+  const openTable = (id: string) => {
+    navigate(`/mesas/${id}/pedido`);
   };
 
   const handlePointerDown = useCallback(
