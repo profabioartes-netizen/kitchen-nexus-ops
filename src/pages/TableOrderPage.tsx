@@ -156,34 +156,27 @@ export default function TableOrderPage() {
         currentOrder = await createOrder.mutateAsync(waiterName || undefined);
       }
 
-      const existing = orderItems.find(
-        (i) => i.product_id === product.id && !i.sent_to_kitchen
-      );
-      if (existing) {
-        await supabase
-          .from("order_items")
-          .update({ quantity: existing.quantity + 1 })
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("order_items").insert({
-          order_id: currentOrder.id,
-          product_id: product.id,
-          product_name: product.name,
-          price: product.price,
-          quantity: 1,
-        });
-      }
+      await supabase.from("order_items").insert({
+        order_id: currentOrder.id,
+        product_id: product.id,
+        product_name: product.name,
+        price: product.price,
+        quantity: 1,
+        sent_to_kitchen: true,
+        preparation_status: "sent",
+      });
 
       const newTotal = [...orderItems, { price: product.price, quantity: 1 }].reduce(
         (s, i) => s + Number(i.price) * i.quantity, 0
       );
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
-      await logActivity(tableId!, "item_added", `Adicionado: ${product.name} (R$ ${Number(product.price).toFixed(2)})`, currentOrder.id);
+      await logActivity(tableId!, "item_added", `Adicionado e enviado à produção: ${product.name} (R$ ${Number(product.price).toFixed(2)})`, currentOrder.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       invalidateLog();
     },
   });
