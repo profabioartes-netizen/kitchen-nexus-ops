@@ -489,7 +489,7 @@ export default function TablesPage() {
       </div>
 
       {/* Summary Bar */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-occupied/15">
             <Users className="h-4.5 w-4.5 text-status-occupied" />
@@ -506,6 +506,15 @@ export default function TablesPage() {
           <div>
             <p className="text-xl font-bold leading-none">{free}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">Livres</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15">
+            <CheckCircle2 className="h-4.5 w-4.5 text-accent" />
+          </div>
+          <div>
+            <p className="text-xl font-bold leading-none">{todayStats.clients}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Atendidos hoje</p>
           </div>
         </div>
       </div>
