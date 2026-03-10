@@ -300,32 +300,38 @@ export type Database = {
       }
       restaurant_tables: {
         Row: {
+          active: boolean
           created_at: string
           id: string
           name: string
           position_x: number | null
           position_y: number | null
           seats: number
+          sort_order: number | null
           status: string
           updated_at: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
           id?: string
           name: string
           position_x?: number | null
           position_y?: number | null
           seats?: number
+          sort_order?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
+          active?: boolean
           created_at?: string
           id?: string
           name?: string
           position_x?: number | null
           position_y?: number | null
           seats?: number
+          sort_order?: number | null
           status?: string
           updated_at?: string
         }
