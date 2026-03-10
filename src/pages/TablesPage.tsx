@@ -450,7 +450,7 @@ export default function TablesPage() {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors">
                 <Plus className="h-4 w-4 text-muted-foreground" />
-                Qtd. Mesas
+                Qtd. Comandas
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-4" align="end">
