@@ -686,7 +686,7 @@ export default function TablesPage() {
                       <p className="text-[11px] text-accent font-medium truncate">{(order as any).customer_name}</p>
                     )}
                     {order?.waiter_name && (
-                      <p className="text-[10px] text-muted-foreground truncate">{order.waiter_name}</p>
+                      <p className="text-[10px] truncate" style={{ color: useInlineOccupied ? "#4f46e5" : useInlineDelivered ? "#15803d" : undefined }}>{order.waiter_name}</p>
                     )}
                   </div>
                 )}
