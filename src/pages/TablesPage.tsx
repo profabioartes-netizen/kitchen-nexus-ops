@@ -212,11 +212,12 @@ export default function TablesPage() {
         .eq("id", form.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       setQuickEdit(null);
       toast.success("Mesa atualizada!");
+      navigate(`/mesas/${variables.id}/pedido`);
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -426,7 +427,7 @@ export default function TablesPage() {
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
                 style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
-                onClick={() => handleQuickEdit(table)}
+                onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
 
 
