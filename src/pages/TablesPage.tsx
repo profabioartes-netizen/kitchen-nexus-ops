@@ -296,17 +296,22 @@ export default function TablesPage() {
                         return (
                           <div>
                             {newItems.length > 0 && (
-                              <div className="bg-accent/10 border-b border-accent/20 p-2.5">
-                                <p className="text-[10px] text-accent uppercase tracking-wider font-bold mb-1">Novos Pedidos</p>
-                                <div className="space-y-0.5">
-                                  {newItems.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between text-xs">
-                                      <span className="truncate flex-1 mr-2 font-medium">{item.product_name}</span>
-                                      <span className="text-accent flex-shrink-0 tabular-nums font-semibold">×{item.quantity}</span>
-                                    </div>
-                                  ))}
+                              <>
+                                <div className="bg-accent/15 rounded-md m-2 mb-0 p-2.5 ring-1 ring-accent/20">
+                                  <p className="text-[10px] text-accent uppercase tracking-widest font-black mb-1.5">● Novos Pedidos</p>
+                                  <div className="space-y-1">
+                                    {newItems.map((item) => (
+                                      <div key={item.id} className="flex items-center justify-between text-xs">
+                                        <span className="truncate flex-1 mr-2 font-semibold">{item.product_name}</span>
+                                        <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                                {ongoingItems.length > 0 && (
+                                  <div className="mx-2.5 my-1.5 border-t border-border" />
+                                )}
+                              </>
                             )}
                             {ongoingItems.length > 0 && (
                               <div className="p-2.5">
