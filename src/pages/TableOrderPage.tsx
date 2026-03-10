@@ -238,7 +238,7 @@ export default function TableOrderPage() {
         // Close source order
         await supabase.from("orders").update({ status: "merged" }).eq("id", order.id);
         // Copy activity logs to target table
-        await logActivity(targetTableId, "order_merged", `Pedido da ${table?.name ?? "mesa"} mesclado — R$ ${Number(order.total).toFixed(2)}`, targetOrder.id, profile?.full_name);
+        await logActivity(targetTableId, "order_merged", `Pedido da ${table?.name ?? "comanda"} mesclado — R$ ${Number(order.total).toFixed(2)}`, targetOrder.id, profile?.full_name);
       } else {
         // Simply reassign the order to the target table
         await supabase.from("orders").update({ table_id: targetTableId }).eq("id", order.id);
