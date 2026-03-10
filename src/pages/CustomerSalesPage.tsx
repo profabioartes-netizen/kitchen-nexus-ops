@@ -19,7 +19,6 @@ const methodLabels: Record<string, string> = {
 export default function CustomerSalesPage() {
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   // Fetch finalized orders with customer_name
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
