@@ -18,7 +18,7 @@ const statusLabels: Record<TableStatus, string> = {
 
 const badgeStyles: Record<TableStatus, { bg: string; color: string }> = {
   free: { bg: "rgba(0,0,0,0.08)", color: "#444" },
-  occupied: { bg: "rgba(255,255,255,0.2)", color: "white" },
+  occupied: { bg: "#c7c5f0", color: "#3730a3" },
   bill: { bg: "hsl(25 85% 55% / 0.15)", color: "hsl(25 85% 35%)" },
   delivered: { bg: "#166534", color: "#bbf7d6" },
 };
