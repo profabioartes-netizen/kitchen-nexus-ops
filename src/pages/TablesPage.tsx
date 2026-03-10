@@ -555,7 +555,10 @@ export default function TablesPage() {
                   )}
                 </div>
 
-                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
+                <span
+                  className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1.5 rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: badgeStyles[effectiveStatus].bg, color: badgeStyles[effectiveStatus].color }}
+                >
                   {statusLabels[effectiveStatus]}
                 </span>
 
