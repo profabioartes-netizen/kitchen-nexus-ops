@@ -4,12 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Loader2, Users, ChefHat } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
+type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "Livre",
   occupied: "Pendente",
-  reserved: "Reservada",
   bill: "Conta",
   delivered: "ENTREGUE",
 };
@@ -17,7 +16,6 @@ const statusLabels: Record<TableStatus, string> = {
 const statusColors: Record<TableStatus, string> = {
   free: "border-l-[hsl(var(--status-free))] bg-[hsl(var(--status-free)/0.06)]",
   occupied: "border-l-[hsl(var(--status-occupied))] bg-[hsl(var(--status-occupied)/0.06)]",
-  reserved: "border-l-[hsl(var(--status-reserved))] bg-[hsl(var(--status-reserved)/0.06)]",
   bill: "border-l-[hsl(var(--status-bill))] bg-[hsl(var(--status-bill)/0.06)]",
   delivered: "border-l-[#16a34a] bg-[#16a34a/0.06]",
 };
