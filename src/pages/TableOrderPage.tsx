@@ -599,7 +599,7 @@ export default function TableOrderPage() {
   const finalizeMutation = useMutation({
     mutationFn: async () => {
       if (!order) throw new Error("Sem pedido");
-      await supabase.from("orders").update({ status: "finalized" }).eq("id", order.id);
+      await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
       const { data: tableData } = await supabase
         .from("restaurant_tables")
         .select("default_name")
@@ -612,6 +612,8 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Mesa finalizada! Dados registrados nos relatórios.");
       navigate("/");
     },
