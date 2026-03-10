@@ -243,7 +243,7 @@ export default function TableOrderPage() {
         // Simply reassign the order to the target table
         await supabase.from("orders").update({ table_id: targetTableId }).eq("id", order.id);
         // Copy activity logs referencing this table to the new one
-        await logActivity(targetTableId, "order_received", `Pedido transferido da ${table?.name ?? "mesa"} — R$ ${Number(order.total).toFixed(2)}`, order.id, profile?.full_name);
+        await logActivity(targetTableId, "order_received", `Pedido transferido da ${table?.name ?? "comanda"} — R$ ${Number(order.total).toFixed(2)}`, order.id, profile?.full_name);
       }
 
       // Source table becomes free
