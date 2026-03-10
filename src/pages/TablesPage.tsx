@@ -548,18 +548,20 @@ export default function TablesPage() {
                 const effectiveFloorStatus: TableStatus = order
                   ? (order.status === "billing_in_progress" ? "bill" : "occupied")
                   : (table.status as TableStatus);
+                const floorInlineOccupied = effectiveFloorStatus === "occupied";
+                const floorInlineDelivered = effectiveFloorStatus === "delivered";
                 return (
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`${effectiveFloorStatus !== "occupied" ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`${!floorInlineOccupied && !floorInlineDelivered ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(effectiveFloorStatus === "occupied" ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : {}),
                 }}
               >
                 {/* Quick edit button on floor plan */}
