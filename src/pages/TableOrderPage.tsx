@@ -63,6 +63,8 @@ export default function TableOrderPage() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [mergeConfirm, setMergeConfirm] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState<string | null>(null);
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
