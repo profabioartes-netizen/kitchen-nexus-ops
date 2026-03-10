@@ -151,11 +151,57 @@ export default function PaymentPanel({
     resetSplitPayments(val);
   };
 
-  const assignItem = (itemId: string, personIdx: number) => {
+  const assignItemUnit = (itemId: string, personIdx: number, qty: number) => {
     setItemAssignment((prev) => {
       const next = { ...prev };
-      if (next[itemId] === personIdx) delete next[itemId];
-      else next[itemId] = personIdx;
+      const current = { ...(next[itemId] || {}) };
+      if (qty <= 0) {
+        delete current[personIdx];
+      } else {
+        current[personIdx] = qty;
+      }
+      if (Object.keys(current).length === 0) {
+        delete next[itemId];
+      } else {
+        next[itemId] = current;
+      }
+      return next;
+    });
+  };
+
+  const getAssignedQty = (itemId: string, personIdx: number) => {
+    return itemAssignment[itemId]?.[personIdx] || 0;
+  };
+
+  const getTotalAssigned = (itemId: string) => {
+    const assignments = itemAssignment[itemId] || {};
+    return Object.values(assignments).reduce((s, q) => s + q, 0);
+  };
+
+  const assignAllToPersons = (itemId: string, personIdx: number, totalQty: number) => {
+    // Remove from all others, assign all to this person
+    setItemAssignment((prev) => {
+      const next = { ...prev };
+      next[itemId] = { [personIdx]: totalQty };
+      return next;
+    });
+  };
+
+  const splitItemEvenly = (itemId: string, totalQty: number) => {
+    const perPerson = Math.floor(totalQty / splitCount);
+    const remainder = totalQty % splitCount;
+    setItemAssignment((prev) => {
+      const next = { ...prev };
+      const current: Record<number, number> = {};
+      for (let i = 0; i < splitCount; i++) {
+        const q = perPerson + (i < remainder ? 1 : 0);
+        if (q > 0) current[i] = q;
+      }
+      if (Object.keys(current).length > 0) {
+        next[itemId] = current;
+      } else {
+        delete next[itemId];
+      }
       return next;
     });
   };
