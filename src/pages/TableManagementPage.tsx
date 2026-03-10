@@ -167,7 +167,13 @@ export default function TableManagementPage() {
               className="table-status-free flex flex-col items-center justify-center rounded-lg border-2 p-2 min-h-[60px]"
             >
               <span className="font-display text-xs">{t.name}</span>
+              {(t as any).internal_number && (
+                <span className="text-[9px] text-muted-foreground">#{(t as any).internal_number}</span>
+              )}
               <span className="text-[10px] text-muted-foreground">{t.seats}lug</span>
+              {(t as any).sector && (
+                <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5 text-muted-foreground">{(t as any).sector}</span>
+              )}
             </div>
           ))}
         </div>
