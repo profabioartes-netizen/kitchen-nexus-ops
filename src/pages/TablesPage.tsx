@@ -34,12 +34,10 @@ function TableDuration({ createdAt }: { createdAt: string }) {
     return () => clearInterval(interval);
   }, []);
   const mins = Math.floor((now - new Date(createdAt).getTime()) / 60000);
-  const hrs = Math.floor(mins / 60);
-  const remainMins = mins % 60;
   return (
-    <span className="flex items-center gap-1 text-[10px] text-muted-foreground tabular-nums">
-      <Clock className="h-2.5 w-2.5" />
-      {hrs > 0 ? `${hrs}h${String(remainMins).padStart(2, "0")}` : `${mins}min`}
+    <span className="flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums font-medium">
+      <span className="text-[12px]">⏱</span>
+      {mins} min
     </span>
   );
 }
