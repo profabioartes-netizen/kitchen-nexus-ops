@@ -91,7 +91,7 @@ export default function TableManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      toast.success("Mesa removida!");
+      toast.success("Comanda removida!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
