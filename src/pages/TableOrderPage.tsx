@@ -454,8 +454,18 @@ export default function TableOrderPage() {
                   <p className="text-xs text-muted-foreground">
                     R$ {Number(item.price).toFixed(2)} × {item.quantity}
                   </p>
+                  {item.notes && (
+                    <p className="text-[10px] text-muted-foreground italic mt-0.5 truncate">📝 {item.notes}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 ml-2">
+                  <button
+                    onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }}
+                    className="rounded p-1 hover:bg-secondary"
+                    title="Observação"
+                  >
+                    <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
                     disabled={item.sent_to_kitchen}
@@ -477,6 +487,7 @@ export default function TableOrderPage() {
                     className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1 disabled:opacity-30"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                   </button>
                 </div>
               </div>
