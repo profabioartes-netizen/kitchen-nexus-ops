@@ -7,12 +7,11 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
+type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "LIVRE",
   occupied: "AGUARDANDO",
-  reserved: "RESERVADA",
   bill: "CONTA",
   delivered: "ENTREGUE",
 };
@@ -20,12 +19,11 @@ const statusLabels: Record<TableStatus, string> = {
 const badgeStyles: Record<TableStatus, { bg: string; color: string }> = {
   free: { bg: "rgba(0,0,0,0.08)", color: "#444" },
   occupied: { bg: "rgba(255,255,255,0.2)", color: "white" },
-  reserved: { bg: "hsl(215 65% 55% / 0.15)", color: "hsl(215 65% 35%)" },
   bill: { bg: "hsl(25 85% 55% / 0.15)", color: "hsl(25 85% 35%)" },
   delivered: { bg: "#166534", color: "#bbf7d6" },
 };
 
-const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
+const statusCycle: TableStatus[] = ["free", "occupied", "bill", "delivered"];
 
 const TABLE_W = 130;
 const TABLE_H = 140;
