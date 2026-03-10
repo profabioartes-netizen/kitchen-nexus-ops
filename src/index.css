@@ -184,8 +184,8 @@
     background: hsl(var(--status-bill) / 0.08);
   }
   .table-status-delivered {
-    border-color: #16a34a;
-    background: #16a34a !important;
-    color: white !important;
+    border-color: #bbf7d6;
+    background: #bbf7d6 !important;
+    color: #166534 !important;
   }
 }

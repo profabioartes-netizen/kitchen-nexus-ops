@@ -13,7 +13,7 @@ const statusLabels: Record<TableStatus, string> = {
   occupied: "Pendente",
   reserved: "Reservada",
   bill: "Conta",
-  delivered: "Pedido Entregue",
+  delivered: "Concluído",
 };
 
 const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
@@ -391,7 +391,7 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
-                style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : undefined}
+                style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => openTable(table.id)}
               >
                 {/* Quick edit button */}
@@ -561,7 +561,7 @@ export default function TablesPage() {
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
                 {/* Quick edit button on floor plan */}
