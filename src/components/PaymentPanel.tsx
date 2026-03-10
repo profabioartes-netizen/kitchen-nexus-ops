@@ -220,8 +220,16 @@ export default function PaymentPanel({
     const item = unpaidItems.find((i) => i.id === splitItemDialog.id);
     if (!item) return;
     if (splitMode === "quantity") {
-      const qtyToAdd = Math.max(1, Math.floor(item.remainingQty / splitQtyDivisor));
-      addItemToPayment(item.id, Math.min(qtyToAdd, item.remainingQty - (paymentItems[item.id] ?? 0)));
+      // Calculate the fractioned value: total item value / divisor
+      const totalItemValue = Number(item.price) * item.remainingQty;
+      const fractionedValue = Number((totalItemValue / splitQtyDivisor).toFixed(2));
+      // Set as custom amount so the user pays only the fraction
+      setCustomAmount(fractionedValue.toFixed(2));
+      // Add all remaining qty of this item to payment tracking
+      const canAdd = item.remainingQty - (paymentItems[item.id] ?? 0);
+      if (canAdd > 0) {
+        addItemToPayment(item.id, canAdd);
+      }
     }
     setSplitItemDialog(null);
   };
