@@ -12,13 +12,14 @@ import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
 import TableOpenDialog from "@/components/TableOpenDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill";
+type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "Livre",
   occupied: "Ocupada",
   reserved: "Reservada",
   bill: "Conta",
+  delivered: "Pedido Entregue",
 };
 
 const methodLabels: Record<string, string> = {
