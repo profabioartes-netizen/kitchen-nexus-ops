@@ -309,6 +309,32 @@ export default function TablesPage() {
                     </PopoverContent>
                   </Popover>
                 )}
+
+                <span className="font-display text-lg">{table.name}</span>
+                {(table as any).internal_number && (
+                  <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
+                )}
+                <span className="text-xs text-muted-foreground mt-1">{table.seats} lugares</span>
+                {(table as any).sector && (
+                  <span className="text-[9px] bg-accent/30 rounded-full px-1.5 py-0.5 mt-1 font-medium text-muted-foreground">{(table as any).sector}</span>
+                )}
+                <span className="text-[10px] font-medium uppercase tracking-wider mt-2 text-muted-foreground">
+                  {statusLabels[table.status as TableStatus]}
+                </span>
+                {order && (
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <span className="font-semibold">R$ {Number(order.total).toFixed(2)}</span>
+                    {(order as any).guests > 1 && (
+                      <span className="text-muted-foreground">{(order as any).guests}p</span>
+                    )}
+                  </div>
+                )}
+                {(order as any)?.customer_name && (
+                  <span className="text-[10px] text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
+                )}
+                {order?.waiter_name && (
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
+                )}
               </div>
             );
           })}
