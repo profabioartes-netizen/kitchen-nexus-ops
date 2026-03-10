@@ -822,7 +822,32 @@ export default function TableOrderPage() {
               Toque num produto para adicionar
             </p>
           )}
-          {orderItems.map((item) => {
+          {/* Paid items section */}
+          {paidItems.length > 0 && (
+            <>
+              <p className="text-[10px] text-accent uppercase tracking-wider font-semibold px-1 pt-1">✓ Itens pagos</p>
+              {paidItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-md border border-accent/20 bg-accent/5 p-2 opacity-60">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium truncate line-through">{item.product_name}</p>
+                      <span className="text-[9px] rounded px-1 py-0.5 font-medium bg-accent/10 text-accent">PAGO</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      R$ {Number(item.price).toFixed(2)} × {item.quantity}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {unpaidItems.length > 0 && (
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold px-1 pt-2">Itens pendentes</p>
+              )}
+            </>
+          )}
+          {/* Unpaid items */}
+          {unpaidItems.map((item) => {
+            const paidQty = (item as any).paid_quantity ?? 0;
+            const remainingQty = item.quantity - paidQty;
             const prepStatus = (item as any).preparation_status ?? "pending";
             const prepColors: Record<string, string> = {
               pending: "text-muted-foreground bg-muted",
@@ -853,9 +878,15 @@ export default function TableOrderPage() {
                         {prepLabels[prepStatus] ?? "PENDENTE"}
                       </span>
                     )}
+                    {paidQty > 0 && (
+                      <span className="text-[9px] rounded px-1 py-0.5 font-medium bg-accent/10 text-accent">
+                        {paidQty}/{item.quantity} pago
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    R$ {Number(item.price).toFixed(2)} × {item.quantity}
+                    R$ {Number(item.price).toFixed(2)} × {remainingQty}
+                    {paidQty > 0 && <span className="text-accent ml-1">(total: {item.quantity})</span>}
                   </p>
                   {/* Complements */}
                   {(() => {
@@ -890,7 +921,7 @@ export default function TableOrderPage() {
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                  <span className="w-6 text-center text-sm font-medium">{remainingQty}</span>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })}
                     disabled={item.sent_to_kitchen}
