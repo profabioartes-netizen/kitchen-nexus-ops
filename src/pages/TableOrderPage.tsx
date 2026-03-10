@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 
@@ -48,6 +48,10 @@ export default function TableOrderPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [waiterName, setWaiterName] = useState("");
+  const [showWaiterPrompt, setShowWaiterPrompt] = useState(false);
+  const [noteItemId, setNoteItemId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
@@ -126,15 +130,15 @@ export default function TableOrderPage() {
 
   // Create order
   const createOrder = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (waiter?: string) => {
       const { data, error } = await supabase
         .from("orders")
-        .insert({ table_id: tableId!, status: "open", total: 0 })
+        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiter || null })
         .select()
         .single();
       if (error) throw error;
       await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
-      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta`, data.id);
+      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta${waiter ? ` — Garçom: ${waiter}` : ""}`, data.id, waiter);
       return data;
     },
     onSuccess: () => {
@@ -149,7 +153,7 @@ export default function TableOrderPage() {
     mutationFn: async (product: (typeof products)[0]) => {
       let currentOrder = order;
       if (!currentOrder) {
-        currentOrder = await createOrder.mutateAsync();
+        currentOrder = await createOrder.mutateAsync(waiterName || undefined);
       }
 
       const existing = orderItems.find(
@@ -236,6 +240,28 @@ export default function TableOrderPage() {
     },
   });
 
+  // Save note on item
+  const saveNote = useMutation({
+    mutationFn: async ({ itemId, notes }: { itemId: string; notes: string }) => {
+      const { error } = await supabase
+        .from("order_items")
+        .update({ notes: notes || null })
+        .eq("id", itemId);
+      if (error) throw error;
+      const item = orderItems.find((i) => i.id === itemId);
+      if (notes && item) {
+        await logActivity(tableId!, "note_added", `Obs em ${item.product_name}: "${notes}"`, order?.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      setNoteItemId(null);
+      setNoteText("");
+      invalidateLog();
+      toast.success("Observação salva!");
+    },
+  });
+
   // Send to kitchen
   const sendToKitchen = useMutation({
     mutationFn: async () => {
@@ -300,6 +326,51 @@ export default function TableOrderPage() {
     return (
       <div className="flex items-center justify-center h-full p-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Show waiter prompt if no order exists yet
+  if (!order && !orderLoading && !tableLoading) {
+    return (
+      <div className="flex items-center justify-center h-full p-12">
+        <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-lg">
+          <h2 className="text-lg font-semibold mb-1">{table?.name ?? "Mesa"}</h2>
+          <p className="text-sm text-muted-foreground mb-4">Abrir nova comanda</p>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Nome do Garçom</label>
+              <div className="relative mt-1">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={waiterName}
+                  onChange={(e) => setWaiterName(e.target.value)}
+                  placeholder="Ex: João"
+                  autoFocus
+                  className="w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate("/")}
+                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={async () => {
+                  await createOrder.mutateAsync(waiterName || undefined);
+                }}
+                disabled={createOrder.isPending}
+                className="flex-1 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {createOrder.isPending ? "Abrindo..." : "Abrir Mesa"}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -428,8 +499,18 @@ export default function TableOrderPage() {
                   <p className="text-xs text-muted-foreground">
                     R$ {Number(item.price).toFixed(2)} × {item.quantity}
                   </p>
+                  {item.notes && (
+                    <p className="text-[10px] text-muted-foreground italic mt-0.5 truncate">📝 {item.notes}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 ml-2">
+                  <button
+                    onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }}
+                    className="rounded p-1 hover:bg-secondary"
+                    title="Observação"
+                  >
+                    <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
                     disabled={item.sent_to_kitchen}
@@ -532,6 +613,42 @@ export default function TableOrderPage() {
           </div>
           <div className="flex-1 overflow-auto">
             <ActivityTimeline tableId={tableId} />
+          </div>
+        </div>
+      )}
+      {/* Note dialog */}
+      {noteItemId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold">Observação do Item</h3>
+              <button onClick={() => { setNoteItemId(null); setNoteText(""); }} className="rounded p-1 hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Ex: Sem cebola, bem passado..."
+              rows={3}
+              autoFocus
+              className="w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={() => { setNoteItemId(null); setNoteText(""); }}
+                className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => saveNote.mutate({ itemId: noteItemId, notes: noteText.trim() })}
+                disabled={saveNote.isPending}
+                className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                Salvar
+              </button>
+            </div>
           </div>
         </div>
       )}
