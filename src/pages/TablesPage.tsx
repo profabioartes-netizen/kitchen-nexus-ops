@@ -632,15 +632,6 @@ export default function TablesPage() {
                   </button>
                 )}
 
-                {/* Quick edit button on floor plan */}
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => handleQuickEdit(e, table)}
-                  className="absolute top-1 right-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary/80 transition-opacity z-10"
-                  title="Editar mesa"
-                >
-                  <Edit2 className="h-2.5 w-2.5 text-muted-foreground" />
-                </button>
 
                 <span className="font-display text-sm">{table.name}</span>
                 
