@@ -134,7 +134,7 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("id, product_name, quantity, sent_to_kitchen")
+        .select("id, product_name, quantity, sent_to_kitchen, viewed_at")
         .eq("order_id", previewOrderId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
