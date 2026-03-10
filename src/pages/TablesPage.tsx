@@ -438,7 +438,7 @@ export default function TablesPage() {
                       e.preventDefault();
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
-                    className="absolute top-2 right-8 rounded-full p-1.5 z-20 hover:scale-110 transition-transform"
+                    className="absolute top-2 left-2 rounded-full p-1.5 z-20 hover:scale-110 transition-transform"
                     style={{ backgroundColor: effectiveStatus === "delivered" ? "#166534" : "rgba(255,255,255,0.25)" }}
                     title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
