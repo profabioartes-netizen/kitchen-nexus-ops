@@ -7,6 +7,7 @@ import {
   Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
+import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 
