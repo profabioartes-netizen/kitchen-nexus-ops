@@ -408,6 +408,20 @@ export default function TablesPage() {
                 style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => openTable(table.id)}
               >
+                {/* Delivery toggle button - only on occupied or delivered tables */}
+                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                    }}
+                    className={`absolute top-1.5 right-8 rounded p-1 transition-opacity z-10 ${effectiveStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    title={effectiveStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveStatus === "delivered" ? "#166534" : "white" }} />
+                  </button>
+                )}
+
                 {/* Quick edit button */}
                 <button
                   onClick={(e) => handleQuickEdit(e, table)}
