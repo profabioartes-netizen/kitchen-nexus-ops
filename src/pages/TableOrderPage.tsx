@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
+import PaymentPanel from "@/components/PaymentPanel";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 
