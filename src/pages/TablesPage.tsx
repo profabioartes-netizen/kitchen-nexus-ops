@@ -385,11 +385,13 @@ export default function TablesPage() {
             const effectiveStatus: TableStatus = order
               ? (order.status === "billing_in_progress" ? "bill" : "occupied")
               : (table.status as TableStatus);
+            const useInlineOccupied = effectiveStatus === "occupied";
+            const useInlineDelivered = effectiveStatus === "delivered";
             return (
               <div
                 key={table.id}
-                className={`${effectiveStatus !== "occupied" ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
-                style={effectiveStatus === "occupied" ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : undefined}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#16a34a", borderColor: "#16a34a", color: "white" } : undefined}
                 onClick={() => openTable(table.id)}
               >
                 {/* Quick edit button */}
