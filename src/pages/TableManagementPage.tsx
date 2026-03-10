@@ -39,7 +39,13 @@ export default function TableManagementPage() {
   };
 
   const openEdit = (t: typeof tables[0]) => {
-    setForm({ name: t.name, seats: String(t.seats), active: t.active });
+    setForm({
+      name: t.name,
+      seats: String(t.seats),
+      active: t.active,
+      internal_number: (t as any).internal_number || "",
+      sector: (t as any).sector || "",
+    });
     setEditingId(t.id);
     setShowForm(true);
   };
