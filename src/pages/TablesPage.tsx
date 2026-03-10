@@ -540,7 +540,7 @@ export default function TablesPage() {
                   <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
                         {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
                       </span>
                     </div>
