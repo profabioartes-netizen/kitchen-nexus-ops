@@ -183,4 +183,9 @@
     border-color: hsl(var(--status-bill));
     background: hsl(var(--status-bill) / 0.08);
   }
+  .table-status-delivered {
+    border-color: #16a34a;
+    background: #16a34a !important;
+    color: white !important;
+  }
 }
