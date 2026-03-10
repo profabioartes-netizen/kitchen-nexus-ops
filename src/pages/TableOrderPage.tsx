@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock,
 } from "lucide-react";
+import ActivityTimeline from "@/components/ActivityTimeline";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 
@@ -16,6 +17,29 @@ const statusLabels: Record<TableStatus, string> = {
   bill: "Conta",
 };
 
+const methodLabels: Record<string, string> = {
+  cash: "Dinheiro",
+  card: "Cartão",
+  pix: "Pix",
+};
+
+// Helper to log activity
+async function logActivity(
+  tableId: string,
+  action: string,
+  description: string,
+  orderId?: string | null,
+  userName?: string | null,
+) {
+  await supabase.from("table_activity_log").insert({
+    table_id: tableId,
+    order_id: orderId ?? null,
+    action,
+    description,
+    user_name: userName ?? null,
+  });
+}
+
 export default function TableOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const navigate = useNavigate();
@@ -23,6 +47,9 @@ export default function TableOrderPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+
+  const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
   // Fetch table
   const { data: table, isLoading: tableLoading } = useQuery({
@@ -39,7 +66,7 @@ export default function TableOrderPage() {
     enabled: !!tableId,
   });
 
-  // Fetch or identify open order for this table
+  // Fetch open order for this table
   const { data: order, isLoading: orderLoading } = useQuery({
     queryKey: ["table_order", tableId],
     queryFn: async () => {
@@ -97,7 +124,7 @@ export default function TableOrderPage() {
     setActiveCategory(categories[0].id);
   }
 
-  // Create order if none exists
+  // Create order
   const createOrder = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
@@ -106,17 +133,18 @@ export default function TableOrderPage() {
         .select()
         .single();
       if (error) throw error;
-      // Set table to occupied
       await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta`, data.id);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      invalidateLog();
     },
   });
 
-  // Add item to order
+  // Add item
   const addItem = useMutation({
     mutationFn: async (product: (typeof products)[0]) => {
       let currentOrder = order;
@@ -124,41 +152,39 @@ export default function TableOrderPage() {
         currentOrder = await createOrder.mutateAsync();
       }
 
-      // Check if item already in order (not yet sent)
       const existing = orderItems.find(
         (i) => i.product_id === product.id && !i.sent_to_kitchen
       );
       if (existing) {
-        const { error } = await supabase
+        await supabase
           .from("order_items")
           .update({ quantity: existing.quantity + 1 })
           .eq("id", existing.id);
-        if (error) throw error;
       } else {
-        const { error } = await supabase.from("order_items").insert({
+        await supabase.from("order_items").insert({
           order_id: currentOrder.id,
           product_id: product.id,
           product_name: product.name,
           price: product.price,
           quantity: 1,
         });
-        if (error) throw error;
       }
 
-      // Update order total
       const newTotal = [...orderItems, { price: product.price, quantity: 1 }].reduce(
         (s, i) => s + Number(i.price) * i.quantity, 0
       );
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await logActivity(tableId!, "item_added", `Adicionado: ${product.name} (R$ ${Number(product.price).toFixed(2)})`, currentOrder.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      invalidateLog();
     },
   });
 
-  // Update item quantity
+  // Update qty
   const updateQty = useMutation({
     mutationFn: async ({ itemId, delta }: { itemId: string; delta: number }) => {
       const item = orderItems.find((i) => i.id === itemId);
@@ -166,10 +192,16 @@ export default function TableOrderPage() {
       const newQty = item.quantity + delta;
       if (newQty <= 0) {
         await supabase.from("order_items").delete().eq("id", itemId);
+        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id);
       } else {
         await supabase.from("order_items").update({ quantity: newQty }).eq("id", itemId);
+        await logActivity(
+          tableId!,
+          "item_qty_changed",
+          `${item.product_name}: ${item.quantity} → ${newQty}`,
+          order?.id
+        );
       }
-      // Recalculate total
       const remaining = orderItems
         .map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
         .filter((i) => i.quantity > 0);
@@ -180,21 +212,27 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      invalidateLog();
     },
   });
 
   // Remove item
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
+      const item = orderItems.find((i) => i.id === itemId);
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
       await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      if (item) {
+        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} (×${item.quantity})`, order?.id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      invalidateLog();
     },
   });
 
@@ -209,30 +247,36 @@ export default function TableOrderPage() {
         .update({ sent_to_kitchen: true })
         .in("id", ids);
       if (error) throw error;
+      const desc = unsent.map((i) => `${i.product_name} ×${i.quantity}`).join(", ");
+      await logActivity(tableId!, "sent_to_kitchen", `Enviado à cozinha: ${desc}`, order?.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       toast.success("Pedido enviado à cozinha!");
+      invalidateLog();
     },
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Close & pay
+  // Pay & close
   const payMutation = useMutation({
     mutationFn: async (method: "cash" | "card" | "pix") => {
       if (!order) throw new Error("Sem pedido aberto");
-      const total = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      // Mark all sent
+      const totalVal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
       await supabase
         .from("order_items")
         .update({ sent_to_kitchen: true })
         .eq("order_id", order.id);
-      // Insert payment
-      await supabase.from("payments").insert({ order_id: order.id, method, amount: total });
-      // Close order
-      await supabase.from("orders").update({ status: "closed", total }).eq("id", order.id);
-      // Free table
+      await supabase.from("payments").insert({ order_id: order.id, method, amount: totalVal });
+      await logActivity(
+        tableId!,
+        "payment_added",
+        `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[method] ?? method})`,
+        order.id
+      );
+      await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
       await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId!);
+      await logActivity(tableId!, "table_closed", `Mesa ${table?.name ?? ""} fechada`, order.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -264,7 +308,6 @@ export default function TableOrderPage() {
     <div className="flex h-full">
       {/* Left: Product selection */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
-        {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate("/")}
@@ -272,7 +315,7 @@ export default function TableOrderPage() {
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <h1 className="text-xl font-semibold">{table?.name ?? "Mesa"}</h1>
             {table && (
               <span className={`table-status-${table.status} rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border`}>
@@ -280,9 +323,17 @@ export default function TableOrderPage() {
               </span>
             )}
           </div>
+          <button
+            onClick={() => setShowTimeline(!showTimeline)}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+              showTimeline ? "bg-accent text-accent-foreground" : "bg-card hover:bg-secondary"
+            }`}
+          >
+            <Clock className="h-4 w-4" />
+            Histórico
+          </button>
         </div>
 
-        {/* Search */}
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
@@ -294,7 +345,6 @@ export default function TableOrderPage() {
           />
         </div>
 
-        {/* Categories */}
         <div className="flex gap-2 mb-3 flex-wrap">
           {categories.map((cat) => (
             <button
@@ -311,7 +361,6 @@ export default function TableOrderPage() {
           ))}
         </div>
 
-        {/* Products grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto flex-1">
           {filtered.map((product) => (
             <button
@@ -457,6 +506,18 @@ export default function TableOrderPage() {
           )}
         </div>
       </div>
+
+      {/* Timeline panel */}
+      {showTimeline && tableId && (
+        <div className="w-72 border-l bg-background flex flex-col">
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-sm">Histórico de Atividades</h2>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <ActivityTimeline tableId={tableId} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
