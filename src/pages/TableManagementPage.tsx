@@ -152,7 +152,7 @@ export default function TableManagementPage() {
           className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
         >
           <Plus className="h-4 w-4" />
-          Nova Mesa
+          Nova Comanda
         </button>
       </div>
 
