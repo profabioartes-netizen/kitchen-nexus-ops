@@ -29,7 +29,7 @@ interface QuickEditForm {
 export default function TablesPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<"grid" | "floor">("floor");
+  const [viewMode, setViewMode] = useState<"grid" | "floor">("grid");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
