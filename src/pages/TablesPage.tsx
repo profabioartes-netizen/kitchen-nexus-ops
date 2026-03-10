@@ -440,6 +440,48 @@ export default function TablesPage() {
             <Settings className="h-4 w-4 text-muted-foreground" />
             Gerenciar
           </button>
+          <Popover open={tableCountOpen} onOpenChange={(open) => {
+            setTableCountOpen(open);
+            if (open) setTableCountValue(String(allTables.length));
+          }}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors">
+                <Plus className="h-4 w-4 text-muted-foreground" />
+                Qtd. Mesas
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4" align="end">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Mesas</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="200"
+                    value={tableCountValue}
+                    onChange={(e) => setTableCountValue(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} mesas</p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setTableCountOpen(false)}
+                    className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={!tableCountValue || parseInt(tableCountValue) < 1 || saveTableCount.isPending}
+                    onClick={() => saveTableCount.mutate(parseInt(tableCountValue))}
+                    className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                  >
+                    {saveTableCount.isPending ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
