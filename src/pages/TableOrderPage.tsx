@@ -301,30 +301,37 @@ export default function TableOrderPage() {
   });
 
   const createOrder = useMutation({
-    mutationFn: async (waiter?: string) => {
-      const waiterLabel = waiter || profile?.full_name || null;
+    mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
+      const waiterLabel = profile?.full_name || null;
+      const customerName = params?.customerName || null;
+      const guests = params?.guests || 1;
+      const tableLabel = customerName ? `${table?.name ?? "Mesa"} — ${customerName}` : undefined;
       const { data, error } = await supabase
         .from("orders")
-        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel })
+        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
         .select()
         .single();
       if (error) throw error;
-      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
-      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}`, data.id, waiterLabel);
+      const updatePayload: any = { status: "occupied" };
+      if (tableLabel) updatePayload.name = tableLabel;
+      await supabase.from("restaurant_tables").update(updatePayload).eq("id", tableId!);
+      const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
+      await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       invalidateLog();
+      setShowOpenDialog(false);
     },
   });
 
-  // Auto-create order if table has no active order
+  // Show opening dialog for free tables
   useEffect(() => {
     if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
       autoCreatedRef.current = true;
-      createOrder.mutate(undefined);
+      setShowOpenDialog(true);
     }
   }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
 
