@@ -13,7 +13,7 @@ const statusLabels: Record<TableStatus, string> = {
   occupied: "Pendente",
   reserved: "Reservada",
   bill: "Conta",
-  delivered: "Concluído",
+  delivered: "ENTREGUE",
 };
 
 const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
@@ -416,7 +416,7 @@ export default function TablesPage() {
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
                     className={`absolute top-1.5 right-8 rounded p-1 transition-opacity z-10 ${effectiveStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                    title={effectiveStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                    title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveStatus === "delivered" ? "#166534" : "white" }} />
                   </button>
@@ -521,17 +521,17 @@ export default function TablesPage() {
                 </div>
 
                 {(table as any).internal_number && (
-                  <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
+                  <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>#{(table as any).internal_number}</span>
                 )}
 
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-muted-foreground">{table.seats} lugares</span>
+                  <span className="text-xs" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{table.seats} lugares</span>
                   {(table as any).sector && (
-                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium text-muted-foreground">{(table as any).sector}</span>
+                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                   )}
                 </div>
 
-                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5 text-muted-foreground">
+                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
                   {statusLabels[effectiveStatus]}
                 </span>
 
@@ -540,7 +540,7 @@ export default function TablesPage() {
                   <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
                         {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
                       </span>
                     </div>
@@ -601,7 +601,7 @@ export default function TablesPage() {
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
                     className={`absolute top-1 right-7 rounded p-0.5 transition-opacity z-10 ${effectiveFloorStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                    title={effectiveFloorStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                    title={effectiveFloorStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
                     <CheckCircle2 className="h-3 w-3" style={{ color: effectiveFloorStatus === "delivered" ? "#166534" : "white" }} />
                   </button>
@@ -618,11 +618,11 @@ export default function TablesPage() {
                 </button>
 
                 <span className="font-display text-sm">{table.name}</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5">{table.seats} lug</span>
+                <span className="text-[10px] mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{table.seats} lug</span>
                 {(table as any).sector && (
-                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5 text-muted-foreground">{(table as any).sector}</span>
+                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                 )}
-                <span className="text-[9px] font-medium uppercase tracking-wider mt-1 text-muted-foreground">
+                <span className="text-[9px] font-medium uppercase tracking-wider mt-1" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>
                   {statusLabels[table.status as TableStatus]}
                 </span>
 {order && (
