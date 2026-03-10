@@ -6,6 +6,7 @@ import {
   Package,
   Printer,
   ChefHat,
+  Flame,
 } from "lucide-react";
 
 const navItems = [
