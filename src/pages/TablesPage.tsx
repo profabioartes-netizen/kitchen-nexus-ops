@@ -68,6 +68,8 @@ export default function TablesPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
         queryClient.invalidateQueries({ queryKey: ["order_item_counts"] });
+        queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
+        queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -134,7 +136,7 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("id, product_name, quantity, sent_to_kitchen")
+        .select("id, product_name, quantity, sent_to_kitchen, viewed_at")
         .eq("order_id", previewOrderId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -149,7 +151,24 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("order_id, quantity");
+        .select("order_id, quantity, viewed_at");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+  });
+
+  // Count unviewed items per order
+  const { data: unviewedCounts = {} } = useQuery({
+    queryKey: ["unviewed_item_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity, viewed_at")
+        .is("viewed_at", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       for (const item of data) {
@@ -378,6 +397,13 @@ export default function TablesPage() {
                   <Edit2 className="h-3 w-3 text-muted-foreground" />
                 </button>
 
+                {/* Unviewed items badge */}
+                {order && (unviewedCounts[order.id] || 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-black px-1 leading-none animate-pulse">
+                    {unviewedCounts[order.id]}
+                  </span>
+                )}
+
                 {/* Preview popover for occupied tables */}
                 {order && (
                   <Popover
@@ -413,8 +439,11 @@ export default function TablesPage() {
                                   <p className="text-[10px] text-accent uppercase tracking-widest font-black mb-1.5">● Novos Pedidos</p>
                                   <div className="space-y-1">
                                     {newItems.map((item) => (
-                                      <div key={item.id} className="flex items-center justify-between text-xs">
-                                        <span className="truncate flex-1 mr-2 font-semibold">{item.product_name}</span>
+                                      <div key={item.id} className="flex items-center justify-between text-xs gap-1">
+                                        <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
+                                        {!(item as any).viewed_at && (
+                                          <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                        )}
                                         <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
                                       </div>
                                     ))}
@@ -428,10 +457,13 @@ export default function TablesPage() {
                             {ongoingItems.length > 0 && (
                               <div className="p-2.5">
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pedido em Andamento</p>
-                                <div className="space-y-0.5">
+                                <div className="space-y-1">
                                   {ongoingItems.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between text-xs">
-                                      <span className="truncate flex-1 mr-2">{item.product_name}</span>
+                                    <div key={item.id} className="flex items-center justify-between text-xs gap-1">
+                                      <span className="truncate flex-1 mr-1">{item.product_name}</span>
+                                      {!(item as any).viewed_at && (
+                                        <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                      )}
                                       <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
                                     </div>
                                   ))}
