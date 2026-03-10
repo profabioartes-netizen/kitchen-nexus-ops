@@ -502,9 +502,10 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Pay — records payment but does NOT finalize
+  // Pay — records payment and marks items as paid
   const payMutation = useMutation({
-    mutationFn: async (payments: { method: string; amount: number }[]) => {
+    mutationFn: async (result: PaymentResult) => {
+      const { payments, paidItems } = result;
       if (!order) throw new Error("Sem pedido aberto");
       await supabase
         .from("order_items")
@@ -516,16 +517,47 @@ export default function TableOrderPage() {
         await supabase.from("payments").insert({ order_id: order.id, method: p.method, amount: p.amount });
       }
 
+      // Mark specific items as paid if split-by-items was used
+      if (paidItems && Object.keys(paidItems).length > 0) {
+        for (const [itemId, qtyPaid] of Object.entries(paidItems)) {
+          const item = orderItems.find((i) => i.id === itemId);
+          if (item) {
+            const newPaidQty = ((item as any).paid_quantity ?? 0) + qtyPaid;
+            await supabase.from("order_items").update({ paid_quantity: newPaidQty } as any).eq("id", itemId);
+          }
+        }
+      }
+
       const totalVal = payments.reduce((s, p) => s + p.amount, 0);
       const desc = payments.length === 1
         ? `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[payments[0].method] ?? payments[0].method})`
         : `Pagamento dividido (${payments.length}×): R$ ${totalVal.toFixed(2)} — ${payments.map(p => `${methodLabels[p.method] ?? p.method}: R$ ${p.amount.toFixed(2)}`).join(", ")}`;
       await logActivity(tableId!, "payment_added", desc, order.id);
 
-      // Move to paid_pending_finalization — table stays occupied until explicitly finalized
-      await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal }).eq("id", order.id);
-      await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
-      await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
+      // Check if all items are fully paid
+      const updatedItems = orderItems.map((i) => {
+        const addedPaid = paidItems?.[i.id] ?? 0;
+        const totalPaid = ((i as any).paid_quantity ?? 0) + addedPaid;
+        return { ...i, paid_quantity: totalPaid };
+      });
+      const allItemsPaid = updatedItems.every((i) => (i.paid_quantity ?? 0) >= i.quantity);
+
+      // Calculate remaining unpaid total for the order
+      const unpaidTotal = updatedItems.reduce((s, i) => {
+        const unpaidQty = Math.max(0, i.quantity - (i.paid_quantity ?? 0));
+        return s + Number(i.price) * unpaidQty;
+      }, 0);
+      
+      if (allItemsPaid) {
+        // All paid — move to paid_pending_finalization
+        await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal } as any).eq("id", order.id);
+        await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
+        await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
+      } else {
+        // Partial payment — keep order open, update total to unpaid amount
+        await supabase.from("orders").update({ status: "billing_in_progress", total: unpaidTotal } as any).eq("id", order.id);
+        await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+      }
 
       // Create receipt print job
       await supabase.from("print_jobs").insert({
@@ -556,8 +588,9 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       setShowPayment(false);
-      toast.success("Pagamento registrado! Finalize a mesa quando pronto.");
+      toast.success("Pagamento registrado!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
