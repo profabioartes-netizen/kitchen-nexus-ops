@@ -442,7 +442,25 @@ export default function WaiterOrderPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold truncate">{table?.name ?? "Mesa"}</h1>
+          <input
+            type="text"
+            defaultValue={table?.name ?? "Mesa"}
+            key={table?.id}
+            onBlur={async (e) => {
+              const newName = e.target.value.trim();
+              if (table && newName && newName !== table.name) {
+                await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
+                queryClient.invalidateQueries({ queryKey: ["table", tableId] });
+                queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+                if (order) {
+                  await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
+                  queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                }
+              }
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="text-lg font-bold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 w-full truncate"
+          />
         </div>
         <div className="flex flex-col items-end flex-shrink-0">
           <span className="text-lg font-bold text-accent">R$ {total.toFixed(2)}</span>
