@@ -91,6 +91,7 @@ export function ProductFormDialog({ productId, onClose }: Props) {
       station: existingProduct.station,
       stock: String(existingProduct.stock ?? -1),
       active: existingProduct.active,
+      prep_time_minutes: String((existingProduct as any).prep_time_minutes ?? 15),
     });
     setSelectedGroups(linkedGroups);
     setInitialized(true);
