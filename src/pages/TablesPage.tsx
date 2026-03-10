@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -36,6 +36,7 @@ export default function TablesPage() {
   const [didDrag, setDidDrag] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
+  const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
@@ -60,6 +61,21 @@ export default function TablesPage() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch items for the previewed order
+  const { data: previewItems = [] } = useQuery({
+    queryKey: ["preview_order_items", previewOrderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("id, product_name, quantity")
+        .eq("order_id", previewOrderId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!previewOrderId,
   });
 
   const updatePosition = useMutation({
@@ -234,6 +250,7 @@ export default function TablesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {tables.map((table) => {
             const order = ordersByTable[table.id];
+            const isPreviewOpen = previewOrderId === order?.id;
             return (
               <div
                 key={table.id}
@@ -248,6 +265,20 @@ export default function TablesPage() {
                 >
                   <Edit2 className="h-3 w-3 text-muted-foreground" />
                 </button>
+
+                {/* Preview button for occupied tables */}
+                {order && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewOrderId(isPreviewOpen ? null : order.id);
+                    }}
+                    className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 ${isPreviewOpen ? "opacity-100 bg-accent/20" : "opacity-0 group-hover:opacity-100"} hover:bg-secondary/80`}
+                    title="Prévia do pedido"
+                  >
+                    <Eye className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                )}
 
                 <span className="font-display text-lg">{table.name}</span>
                 {(table as any).internal_number && (
@@ -273,6 +304,33 @@ export default function TablesPage() {
                 )}
                 {order?.waiter_name && (
                   <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
+                )}
+
+                {/* Order preview popup */}
+                {isPreviewOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute left-0 right-0 top-full mt-1 z-30 rounded-md border bg-background shadow-lg p-2.5 min-w-[160px]"
+                  >
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">Pedido</p>
+                    {previewItems.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">Carregando...</p>
+                    ) : (
+                      <div className="space-y-0.5">
+                        {previewItems.slice(0, 6).map((item) => (
+                          <div key={item.id} className="flex items-center justify-between text-xs">
+                            <span className="truncate flex-1 mr-2">{item.product_name}</span>
+                            <span className="text-muted-foreground flex-shrink-0">×{item.quantity}</span>
+                          </div>
+                        ))}
+                        {previewItems.length > 6 && (
+                          <p className="text-[10px] text-muted-foreground text-center pt-1">
+                            +{previewItems.length - 6} itens...
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             );
