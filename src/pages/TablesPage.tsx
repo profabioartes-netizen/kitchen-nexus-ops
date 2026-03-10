@@ -253,9 +253,7 @@ export default function TablesPage() {
     navigate(`/mesas/${id}/pedido`);
   };
 
-  const handleQuickEdit = (e: React.MouseEvent, table: any) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const handleQuickEdit = (table: any) => {
     setQuickEdit({
       id: table.id,
       name: table.name,
