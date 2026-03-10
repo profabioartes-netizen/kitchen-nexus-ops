@@ -71,10 +71,10 @@ export default function PaymentPanel({
 
   // ── Split modal ──
   const [splitOpen, setSplitOpen] = useState(false);
-  const [splitTab, setSplitTab] = useState<"quantity" | "value">("quantity");
+  const [splitTab, setSplitTab] = useState<"quantity" | "value" | "items">("quantity");
   const [splitPeople, setSplitPeople] = useState(2);
   const [splitCustomValue, setSplitCustomValue] = useState("");
-
+  const [selectedItems, setSelectedItems] = useState<Record<string, number>>({});
   // ── Calculations ──
   const discount = useMemo(
     () => (discountType === "percent" ? total * (discountValue / 100) : discountValue),
