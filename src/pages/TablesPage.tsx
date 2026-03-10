@@ -651,8 +651,11 @@ export default function TablesPage() {
                 {(table as any).sector && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                 )}
-                <span className="text-[9px] font-medium uppercase tracking-wider mt-1" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>
-                  {statusLabels[table.status as TableStatus]}
+                <span
+                  className="inline-block text-[8px] font-bold uppercase tracking-wider mt-1 rounded-full px-1.5 py-0.5"
+                  style={{ backgroundColor: badgeStyles[effectiveFloorStatus].bg, color: badgeStyles[effectiveFloorStatus].color }}
+                >
+                  {statusLabels[effectiveFloorStatus]}
                 </span>
 {order && (
                   <>
