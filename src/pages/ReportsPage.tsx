@@ -67,7 +67,7 @@ export default function ReportsPage() {
       const { data, error } = await supabase
         .from("order_items")
         .select("product_name, price, quantity, orders!inner(status, created_at), product_id, products(category_id, categories(name))")
-        .eq("orders.status", "closed");
+        .eq("orders.status", "finalized");
       if (error) throw error;
       return data;
     },

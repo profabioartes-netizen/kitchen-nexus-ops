@@ -146,7 +146,7 @@ export default function WaiterOrderPage() {
         .from("orders")
         .select("id, total, created_at")
         .eq("table_id", tableId!)
-        .eq("status", "closed")
+        .eq("status", "finalized")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

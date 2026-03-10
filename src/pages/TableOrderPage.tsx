@@ -575,7 +575,7 @@ export default function TableOrderPage() {
       // Delete payments associated with this order
       await supabase.from("payments").delete().eq("order_id", order.id);
       // Set order status to cancelled (will NOT appear in reports)
-      await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+      await supabase.from("orders").update({ status: "canceled" }).eq("id", order.id);
       // Reset table
       const { data: tableData } = await supabase
         .from("restaurant_tables")
