@@ -15,6 +15,7 @@ import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
+import CustomerSalesPage from "@/pages/CustomerSalesPage";
 import NotFound from "@/pages/NotFound";
 import WaiterLayout from "@/pages/waiter/WaiterLayout";
 import WaiterLoginPage from "@/pages/waiter/WaiterLoginPage";
@@ -53,6 +54,7 @@ function ProtectedRoutes() {
         <Route path="/impressoras" element={<PrintersPage />} />
         <Route path="/impressoras/agente" element={<PrintAgentPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />
+        <Route path="/clientes" element={<CustomerSalesPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
