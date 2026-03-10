@@ -54,6 +54,7 @@ function ProtectedRoutes() {
         <Route path="/impressoras" element={<PrintersPage />} />
         <Route path="/impressoras/agente" element={<PrintAgentPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />
+        <Route path="/clientes" element={<CustomerSalesPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
