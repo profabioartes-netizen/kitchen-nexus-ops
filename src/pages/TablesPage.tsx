@@ -221,8 +221,22 @@ export default function TablesPage() {
         .update({ status: newStatus })
         .eq("id", id);
       if (error) throw error;
+      return newStatus;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, currentStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ["restaurant_tables"] });
+      const previous = queryClient.getQueryData(["restaurant_tables"]);
+      const newStatus = currentStatus === "delivered" ? "occupied" : "delivered";
+      queryClient.setQueryData(["restaurant_tables"], (old: any[]) =>
+        old?.map((t: any) => t.id === id ? { ...t, status: newStatus } : t) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["restaurant_tables"], context.previous);
+      toast.error("Erro ao atualizar status da mesa");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
     },
   });
@@ -397,7 +411,7 @@ export default function TablesPage() {
           {tables.map((table) => {
             const order = ordersByTable[table.id];
             const effectiveStatus: TableStatus = order
-              ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+              ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
               : (table.status as TableStatus);
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
@@ -576,7 +590,7 @@ export default function TablesPage() {
             const y = isDragging ? dragPos.y : (table.position_y ?? 0);
 
                 const effectiveFloorStatus: TableStatus = order
-                  ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+                  ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
                   : (table.status as TableStatus);
                 const floorInlineOccupied = effectiveFloorStatus === "occupied";
                 const floorInlineDelivered = effectiveFloorStatus === "delivered";
