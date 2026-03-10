@@ -488,7 +488,6 @@ export default function TableOrderPage() {
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
-                  </button>
                 </div>
               </div>
             );
