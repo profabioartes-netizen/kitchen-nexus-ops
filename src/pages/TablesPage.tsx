@@ -441,7 +441,7 @@ export default function TablesPage() {
                         onMouseEnter={(e) => { e.stopPropagation(); setPreviewOrderId(order.id); }}
                         onMouseLeave={(e) => { e.stopPropagation(); setPreviewOrderId(null); }}
                         className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 ${previewOrderId === order.id ? "opacity-100 bg-accent/20" : "opacity-0 group-hover:opacity-100"} hover:bg-secondary/80`}
-                        title="Prévia do pedido"
+                        
                       >
                         <Eye className="h-3 w-3 text-muted-foreground" />
                       </button>
