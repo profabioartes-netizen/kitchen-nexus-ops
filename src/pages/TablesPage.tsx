@@ -533,12 +533,11 @@ export default function TablesPage() {
                   <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>#{(table as any).internal_number}</span>
                 )}
 
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{table.seats} lugares</span>
-                  {(table as any).sector && (
+                {(table as any).sector && (
+                  <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 <span
                   className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1.5 rounded-full px-2 py-0.5"
