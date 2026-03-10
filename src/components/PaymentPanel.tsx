@@ -570,11 +570,22 @@ export default function PaymentPanel({
             <div>
               <label className="text-xs text-muted-foreground">Valor a pagar</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 min="0.01"
                 step="0.01"
-                value={customAmount || amountToPay.toFixed(2)}
-                onChange={(e) => setCustomAmount(e.target.value)}
+                value={customAmount ? customAmount : amountToPay > 0 ? amountToPay.toFixed(2).replace(".", ",") : ""}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const cents = parseInt(digits, 10) || 0;
+                  const formatted = (cents / 100).toFixed(2).replace(".", ",");
+                  setCustomAmount(formatted);
+                }}
+                onBlur={(e) => {
+                  if (customAmount && !customAmount.includes(",")) {
+                    setCustomAmount(customAmount + ",00");
+                  }
+                }}
                 className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
             </div>
