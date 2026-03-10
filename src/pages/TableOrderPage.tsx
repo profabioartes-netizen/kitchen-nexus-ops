@@ -370,6 +370,31 @@ export default function TableOrderPage() {
       await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
       await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId!);
       await logActivity(tableId!, "table_closed", `Mesa ${table?.name ?? ""} fechada`, order.id);
+
+      // Create receipt print job
+      await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "receipt",
+          table_name: table?.name || "—",
+          waiter_name: order.waiter_name || null,
+          order_id: order.id,
+          items: orderItems.map((i) => ({
+            name: i.product_name,
+            quantity: i.quantity,
+            unit_price: Number(i.price),
+            total: Number(i.price) * i.quantity,
+          })),
+          subtotal: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
+          total: totalVal,
+          payments: payments.map((p) => ({
+            method: methodLabels[p.method] ?? p.method,
+            amount: p.amount,
+          })),
+          closed_at: new Date().toISOString(),
+        },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
