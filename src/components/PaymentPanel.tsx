@@ -62,7 +62,8 @@ export default function PaymentPanel({
   // ── Split ──
   const [splitMode, setSplitMode] = useState<SplitMode>("full");
   const [splitCount, setSplitCount] = useState(2);
-  const [itemAssignment, setItemAssignment] = useState<Record<string, number>>({});
+  // itemAssignment: { [itemId]: { [personIndex]: quantityAssigned } }
+  const [itemAssignment, setItemAssignment] = useState<Record<string, Record<number, number>>>({});
 
   // ── Payments ──
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
@@ -87,9 +88,9 @@ export default function PaymentPanel({
     if (splitMode === "items") {
       const amounts = Array(splitCount).fill(0);
       for (const item of orderItems) {
-        const idx = itemAssignment[item.id];
-        if (idx !== undefined) {
-          amounts[idx] += Number(item.price) * item.quantity;
+        const assignments = itemAssignment[item.id] || {};
+        for (const [pIdx, qty] of Object.entries(assignments)) {
+          amounts[Number(pIdx)] += Number(item.price) * qty;
         }
       }
       // Apply proportional adjustments
@@ -150,11 +151,57 @@ export default function PaymentPanel({
     resetSplitPayments(val);
   };
 
-  const assignItem = (itemId: string, personIdx: number) => {
+  const assignItemUnit = (itemId: string, personIdx: number, qty: number) => {
     setItemAssignment((prev) => {
       const next = { ...prev };
-      if (next[itemId] === personIdx) delete next[itemId];
-      else next[itemId] = personIdx;
+      const current = { ...(next[itemId] || {}) };
+      if (qty <= 0) {
+        delete current[personIdx];
+      } else {
+        current[personIdx] = qty;
+      }
+      if (Object.keys(current).length === 0) {
+        delete next[itemId];
+      } else {
+        next[itemId] = current;
+      }
+      return next;
+    });
+  };
+
+  const getAssignedQty = (itemId: string, personIdx: number) => {
+    return itemAssignment[itemId]?.[personIdx] || 0;
+  };
+
+  const getTotalAssigned = (itemId: string) => {
+    const assignments = itemAssignment[itemId] || {};
+    return Object.values(assignments).reduce((s, q) => s + q, 0);
+  };
+
+  const assignAllToPersons = (itemId: string, personIdx: number, totalQty: number) => {
+    // Remove from all others, assign all to this person
+    setItemAssignment((prev) => {
+      const next = { ...prev };
+      next[itemId] = { [personIdx]: totalQty };
+      return next;
+    });
+  };
+
+  const splitItemEvenly = (itemId: string, totalQty: number) => {
+    const perPerson = Math.floor(totalQty / splitCount);
+    const remainder = totalQty % splitCount;
+    setItemAssignment((prev) => {
+      const next = { ...prev };
+      const current: Record<number, number> = {};
+      for (let i = 0; i < splitCount; i++) {
+        const q = perPerson + (i < remainder ? 1 : 0);
+        if (q > 0) current[i] = q;
+      }
+      if (Object.keys(current).length > 0) {
+        next[itemId] = current;
+      } else {
+        delete next[itemId];
+      }
       return next;
     });
   };
@@ -359,30 +406,68 @@ export default function PaymentPanel({
                   </button>
                 </div>
               </div>
-              <div className="border-t pt-3 space-y-1.5">
+              <div className="border-t pt-3 space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Atribuir itens</p>
                 {orderItems.map((item) => {
-                  const assignedTo = itemAssignment[item.id];
+                  const totalAssigned = getTotalAssigned(item.id);
+                  const unassigned = item.quantity - totalAssigned;
                   return (
-                    <div key={item.id} className="flex items-center gap-2 py-1">
-                      <span className="text-sm flex-1 truncate">
-                        {item.quantity}× {item.product_name}
-                        <span className="text-muted-foreground ml-1">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
-                      </span>
-                      <div className="flex gap-1">
-                        {Array.from({ length: splitCount }, (_, pi) => (
-                          <button
-                            key={pi}
-                            onClick={() => assignItem(item.id, pi)}
-                            className={`rounded-md px-2 py-1 text-xs font-medium border transition-colors ${
-                              assignedTo === pi
-                                ? "bg-accent text-accent-foreground border-accent"
-                                : "hover:bg-secondary border-border"
-                            }`}
-                          >
-                            P{pi + 1}
-                          </button>
-                        ))}
+                    <div key={item.id} className="rounded-md border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">
+                          {item.quantity}× {item.product_name}
+                        </span>
+                        <span className="text-sm text-muted-foreground">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
+                      </div>
+                      {unassigned > 0 && (
+                        <p className="text-[10px] text-destructive">{unassigned} un. não atribuída(s)</p>
+                      )}
+                      {/* Quick actions */}
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => splitItemEvenly(item.id, item.quantity)}
+                          className="rounded border px-2 py-1 text-[10px] font-medium hover:bg-secondary transition-colors flex items-center gap-1"
+                        >
+                          <SplitSquareHorizontal className="h-3 w-3" />
+                          Dividir igual
+                        </button>
+                      </div>
+                      {/* Per-person assignment */}
+                      <div className="grid gap-1.5">
+                        {Array.from({ length: splitCount }, (_, pi) => {
+                          const qty = getAssignedQty(item.id, pi);
+                          return (
+                            <div key={pi} className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium w-8">P{pi + 1}</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => assignItemUnit(item.id, pi, Math.max(0, qty - 1))}
+                                  disabled={qty === 0}
+                                  className="rounded border p-0.5 hover:bg-secondary disabled:opacity-30 transition-colors"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="text-xs font-semibold w-5 text-center">{qty}</span>
+                                <button
+                                  onClick={() => {
+                                    const maxAdd = item.quantity - totalAssigned + qty;
+                                    assignItemUnit(item.id, pi, Math.min(qty + 1, maxAdd));
+                                  }}
+                                  disabled={totalAssigned >= item.quantity && qty === getAssignedQty(item.id, pi)}
+                                  className="rounded border p-0.5 hover:bg-secondary disabled:opacity-30 transition-colors"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => assignAllToPersons(item.id, pi, item.quantity)}
+                                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors underline"
+                              >
+                                Tudo
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
