@@ -531,7 +531,7 @@ export default function TablesPage() {
                   )}
                 </div>
 
-                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5 text-muted-foreground">
+                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
                   {statusLabels[effectiveStatus]}
                 </span>
 
