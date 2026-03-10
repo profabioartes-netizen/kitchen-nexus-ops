@@ -38,6 +38,7 @@ export default function WaiterOrderPage() {
   const [shortcutTab, setShortcutTab] = useState<ShortcutTab>("popular");
   const [showShortcuts, setShowShortcuts] = useState(true);
   const autoCreatedRef = useRef(false);
+  const [showOpenDialog, setShowOpenDialog] = useState(false);
 
   // ── Data queries ──
 
