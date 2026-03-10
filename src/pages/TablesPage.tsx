@@ -430,21 +430,6 @@ export default function TablesPage() {
                 style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => openTable(table.id)}
               >
-                {/* Delivery toggle button - only on occupied or delivered tables */}
-                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
-                    }}
-                    className="absolute top-2 left-2 rounded-full p-1.5 z-20 hover:scale-110 transition-transform"
-                    style={{ backgroundColor: effectiveStatus === "delivered" ? "#166534" : "rgba(255,255,255,0.25)" }}
-                    title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
-                  >
-                    <CheckCircle2 className="h-4 w-4" style={{ color: effectiveStatus === "delivered" ? "#bbf7d6" : "white" }} />
-                  </button>
-                )}
 
                 {/* Quick edit button */}
                 <button
@@ -578,6 +563,26 @@ export default function TablesPage() {
                       <p className="text-[10px] text-muted-foreground truncate">{order.waiter_name}</p>
                     )}
                   </div>
+                )}
+
+                {/* Delivery toggle - below order details */}
+                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                    }}
+                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97]"
+                    style={{
+                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "rgba(255,255,255,0.2)",
+                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
+                    }}
+                    title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
+                  </button>
                 )}
               </div>
             );
