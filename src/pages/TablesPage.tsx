@@ -267,71 +267,48 @@ export default function TablesPage() {
                   <Edit2 className="h-3 w-3 text-muted-foreground" />
                 </button>
 
-                {/* Preview button for occupied tables */}
+                {/* Preview popover for occupied tables */}
                 {order && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPreviewOrderId(isPreviewOpen ? null : order.id);
-                    }}
-                    className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 ${isPreviewOpen ? "opacity-100 bg-accent/20" : "opacity-0 group-hover:opacity-100"} hover:bg-secondary/80`}
-                    title="Prévia do pedido"
+                  <Popover
+                    open={previewOrderId === order.id}
+                    onOpenChange={(open) => setPreviewOrderId(open ? order.id : null)}
                   >
-                    <Eye className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                )}
-
-                <span className="font-display text-lg">{table.name}</span>
-                {(table as any).internal_number && (
-                  <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
-                )}
-                <span className="text-xs text-muted-foreground mt-1">{table.seats} lugares</span>
-                {(table as any).sector && (
-                  <span className="text-[9px] bg-accent/30 rounded-full px-1.5 py-0.5 mt-1 font-medium text-muted-foreground">{(table as any).sector}</span>
-                )}
-                <span className="text-[10px] font-medium uppercase tracking-wider mt-2 text-muted-foreground">
-                  {statusLabels[table.status as TableStatus]}
-                </span>
-                {order && (
-                  <div className="mt-2 flex items-center gap-2 text-xs">
-                    <span className="font-semibold">R$ {Number(order.total).toFixed(2)}</span>
-                    {(order as any).guests > 1 && (
-                      <span className="text-muted-foreground">{(order as any).guests}p</span>
-                    )}
-                  </div>
-                )}
-                {(order as any)?.customer_name && (
-                  <span className="text-[10px] text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
-                )}
-                {order?.waiter_name && (
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
-                )}
-
-                {/* Order preview popup */}
-                {isPreviewOpen && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute left-0 right-0 top-full mt-1 z-30 rounded-md border bg-background shadow-lg p-2.5 min-w-[160px]"
-                  >
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">Pedido</p>
-                    {previewItems.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">Carregando...</p>
-                    ) : (
-                      <div className="space-y-0.5">
-                        {previewItems.slice(0, 6).map((item) => (
-                          <div key={item.id} className="flex items-center justify-between text-xs">
-                            <span className="truncate flex-1 mr-2">{item.product_name}</span>
-                            <span className="text-muted-foreground flex-shrink-0">×{item.quantity}</span>
-                          </div>
-                        ))}
-                        {previewItems.length > 6 && (
-                          <p className="text-[10px] text-muted-foreground text-center pt-1">
-                            +{previewItems.length - 6} itens...
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    <PopoverTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 ${previewOrderId === order.id ? "opacity-100 bg-accent/20" : "opacity-0 group-hover:opacity-100"} hover:bg-secondary/80`}
+                        title="Prévia do pedido"
+                      >
+                        <Eye className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="right"
+                      align="start"
+                      sideOffset={8}
+                      className="w-48 p-2.5 shadow-md"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">Pedido</p>
+                      {previewItems.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">Carregando...</p>
+                      ) : (
+                        <div className="space-y-0.5">
+                          {previewItems.slice(0, 3).map((item) => (
+                            <div key={item.id} className="flex items-center justify-between text-xs">
+                              <span className="truncate flex-1 mr-2">{item.product_name}</span>
+                              <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
+                            </div>
+                          ))}
+                          {previewItems.length > 3 && (
+                            <p className="text-[10px] text-muted-foreground text-center pt-1">
+                              +{previewItems.length - 3} mais
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 )}
               </div>
             );
