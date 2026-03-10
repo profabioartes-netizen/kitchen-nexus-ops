@@ -8,7 +8,7 @@ export default function PrintersPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", station: "Cozinha", model: "", ip: "", port: "9100" });
+  const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
