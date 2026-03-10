@@ -107,6 +107,7 @@ export default function TablesPage() {
       const x = Math.max(0, Math.min(rect.width - TABLE_W, e.clientX - rect.left - dragOffset.x));
       const y = Math.max(0, Math.min(rect.height - TABLE_H, e.clientY - rect.top - dragOffset.y));
       setDragPos({ x, y });
+      setDidDrag(true);
     },
     [draggingId, dragOffset]
   );
