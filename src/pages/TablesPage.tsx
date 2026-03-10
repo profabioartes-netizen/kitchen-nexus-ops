@@ -558,7 +558,7 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
-                style={useInlineOccupied ? { backgroundColor: "#e0dff5", borderColor: "#e0dff5", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
+                style={useInlineOccupied ? { backgroundColor: "#c7c3f0", borderColor: "#c7c3f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
 
@@ -747,7 +747,7 @@ export default function TablesPage() {
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(floorInlineOccupied ? { backgroundColor: "#e0dff5", borderColor: "#e0dff5", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#c7c3f0", borderColor: "#c7c3f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
                 {/* Delivery toggle on floor plan */}
