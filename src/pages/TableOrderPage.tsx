@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -63,6 +63,8 @@ export default function TableOrderPage() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [mergeConfirm, setMergeConfirm] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeTarget, setMergeTarget] = useState<string | null>(null);
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
@@ -235,7 +237,67 @@ export default function TableOrderPage() {
     },
   });
 
-  // Create order
+  // Merge tables mutation
+  const mergeTablesMutation = useMutation({
+    mutationFn: async (sourceTableId: string) => {
+      if (!order) throw new Error("Sem pedido aberto nesta mesa");
+      const sourceTable = allTables.find((t) => t.id === sourceTableId);
+      const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
+      if (!sourceOrder) throw new Error("Mesa selecionada não possui pedido aberto");
+
+      // Move all items from source order to this order
+      await supabase.from("order_items").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
+      // Move all item complements (they follow the order_items FK automatically)
+      // Move payments from source to this order
+      await supabase.from("payments").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
+
+      // Combine totals
+      const newTotal = Number(order.total) + Number(sourceOrder.total);
+      // Preserve waiter info: keep both if different
+      const waiters = [order.waiter_name, sourceOrder.waiter_name].filter(Boolean);
+      const combinedWaiter = [...new Set(waiters)].join(", ") || null;
+      // Track merged tables
+      const existingMerged = (order as any).merged_from || [];
+      const mergedFrom = [...existingMerged, sourceTable?.name ?? sourceTableId];
+
+      await supabase.from("orders").update({
+        total: newTotal,
+        waiter_name: combinedWaiter,
+        merged_from: mergedFrom,
+      } as any).eq("id", order.id);
+
+      // Close source order as merged
+      await supabase.from("orders").update({ status: "merged" }).eq("id", sourceOrder.id);
+      // Free the source table
+      await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", sourceTableId);
+
+      // Log on this (target) table
+      await logActivity(
+        tableId!, "tables_merged",
+        `Mesas mescladas: ${sourceTable?.name ?? "?"} → ${table?.name ?? "?"} | Itens e pagamentos combinados | Total: R$ ${newTotal.toFixed(2)}${combinedWaiter ? ` | Garçons: ${combinedWaiter}` : ""}`,
+        order.id, profile?.full_name
+      );
+      // Log on source table
+      await logActivity(
+        sourceTableId, "table_merged_out",
+        `Mesa mesclada com ${table?.name ?? "?"} — pedido movido`,
+        sourceOrder.id, profile?.full_name
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
+      invalidateLog();
+      setShowMerge(false);
+      setMergeTarget(null);
+      toast.success("Mesas mescladas com sucesso!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const createOrder = useMutation({
     mutationFn: async (waiter?: string) => {
       const waiterLabel = waiter || profile?.full_name || null;
@@ -544,6 +606,14 @@ export default function TableOrderPage() {
             Transferir
           </button>
           <button
+            onClick={() => { setShowMerge(true); setMergeTarget(null); }}
+            disabled={!order || orderItems.length === 0}
+            className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors bg-card hover:bg-secondary disabled:opacity-50"
+          >
+            <Merge className="h-4 w-4" />
+            Juntar Mesas
+          </button>
+          <button
             onClick={() => setShowTimeline(!showTimeline)}
             className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
               showTimeline ? "bg-accent text-accent-foreground" : "bg-card hover:bg-secondary"
@@ -618,6 +688,17 @@ export default function TableOrderPage() {
               className="text-xs bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 flex-1 text-muted-foreground"
             />
           </div>
+          {(order as any)?.merged_from?.length > 0 && (
+            <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+              <Merge className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">Mesclado de:</span>
+              {((order as any).merged_from as string[]).map((name: string, i: number) => (
+                <span key={i} className="text-[10px] bg-accent/50 rounded px-1.5 py-0.5 font-medium">
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-1">
@@ -890,6 +971,113 @@ export default function TableOrderPage() {
                     {transferOrder.isPending ? "Mesclando..." : "Mesclar Pedidos"}
                   </button>
                 </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Merge dialog */}
+      {showMerge && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-md rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Merge className="h-4 w-4" />
+                Juntar Mesas
+              </h3>
+              <button onClick={() => setShowMerge(false)} className="rounded p-1 hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {!mergeTarget ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Selecione a mesa que será absorvida pela <strong>{table?.name}</strong>.
+                  Todos os itens, pagamentos e observações serão combinados.
+                </p>
+                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-auto">
+                  {allTables
+                    .filter((t) => t.id !== tableId && allOpenOrders.some((o) => o.table_id === t.id))
+                    .map((t) => {
+                      const tOrder = allOpenOrders.find((o) => o.table_id === t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setMergeTarget(t.id)}
+                          className={`table-status-${t.status} flex flex-col items-center rounded-lg border-2 p-3 transition-all hover:scale-[1.02] active:scale-[0.98]`}
+                        >
+                          <span className="font-medium text-sm">{t.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{t.seats} lug</span>
+                          {tOrder && (
+                            <span className="text-[10px] font-semibold mt-1">R$ {Number(tOrder.total).toFixed(2)}</span>
+                          )}
+                          {tOrder?.waiter_name && (
+                            <span className="text-[9px] text-muted-foreground">{tOrder.waiter_name}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  {allTables.filter((t) => t.id !== tableId && allOpenOrders.some((o) => o.table_id === t.id)).length === 0 && (
+                    <p className="col-span-3 text-sm text-muted-foreground text-center py-6">
+                      Nenhuma outra mesa com pedido aberto
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const srcTable = allTables.find((t) => t.id === mergeTarget);
+                  const srcOrder = allOpenOrders.find((o) => o.table_id === mergeTarget);
+                  return (
+                    <>
+                      <div className="rounded-md border p-3 space-y-1">
+                        <p className="text-sm font-medium">Resumo da Junção</p>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{srcTable?.name} →</span>
+                          <span>{table?.name} (mesa principal)</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Total {table?.name}:</span>
+                          <span>R$ {Number(order?.total ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span>Total {srcTable?.name}:</span>
+                          <span>R$ {Number(srcOrder?.total ?? 0).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-semibold border-t pt-1 mt-1">
+                          <span>Novo Total:</span>
+                          <span>R$ {(Number(order?.total ?? 0) + Number(srcOrder?.total ?? 0)).toFixed(2)}</span>
+                        </div>
+                        {(order?.waiter_name || srcOrder?.waiter_name) && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Garçons: {[...new Set([order?.waiter_name, srcOrder?.waiter_name].filter(Boolean))].join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        A <strong>{srcTable?.name}</strong> será liberada após a junção.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setMergeTarget(null)}
+                          className="flex-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-secondary"
+                        >
+                          Voltar
+                        </button>
+                        <button
+                          onClick={() => mergeTablesMutation.mutate(mergeTarget)}
+                          disabled={mergeTablesMutation.isPending}
+                          className="flex-1 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                        >
+                          {mergeTablesMutation.isPending ? "Juntando..." : "Confirmar Junção"}
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

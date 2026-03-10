@@ -215,6 +215,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          merged_from: string[] | null
           status: string
           table_id: string | null
           total: number
@@ -224,6 +225,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          merged_from?: string[] | null
           status?: string
           table_id?: string | null
           total?: number
@@ -233,6 +235,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          merged_from?: string[] | null
           status?: string
           table_id?: string | null
           total?: number
