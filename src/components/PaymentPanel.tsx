@@ -406,30 +406,68 @@ export default function PaymentPanel({
                   </button>
                 </div>
               </div>
-              <div className="border-t pt-3 space-y-1.5">
+              <div className="border-t pt-3 space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Atribuir itens</p>
                 {orderItems.map((item) => {
-                  const assignedTo = itemAssignment[item.id];
+                  const totalAssigned = getTotalAssigned(item.id);
+                  const unassigned = item.quantity - totalAssigned;
                   return (
-                    <div key={item.id} className="flex items-center gap-2 py-1">
-                      <span className="text-sm flex-1 truncate">
-                        {item.quantity}× {item.product_name}
-                        <span className="text-muted-foreground ml-1">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
-                      </span>
-                      <div className="flex gap-1">
-                        {Array.from({ length: splitCount }, (_, pi) => (
-                          <button
-                            key={pi}
-                            onClick={() => assignItem(item.id, pi)}
-                            className={`rounded-md px-2 py-1 text-xs font-medium border transition-colors ${
-                              assignedTo === pi
-                                ? "bg-accent text-accent-foreground border-accent"
-                                : "hover:bg-secondary border-border"
-                            }`}
-                          >
-                            P{pi + 1}
-                          </button>
-                        ))}
+                    <div key={item.id} className="rounded-md border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium truncate">
+                          {item.quantity}× {item.product_name}
+                        </span>
+                        <span className="text-sm text-muted-foreground">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
+                      </div>
+                      {unassigned > 0 && (
+                        <p className="text-[10px] text-destructive">{unassigned} un. não atribuída(s)</p>
+                      )}
+                      {/* Quick actions */}
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => splitItemEvenly(item.id, item.quantity)}
+                          className="rounded border px-2 py-1 text-[10px] font-medium hover:bg-secondary transition-colors flex items-center gap-1"
+                        >
+                          <SplitSquareHorizontal className="h-3 w-3" />
+                          Dividir igual
+                        </button>
+                      </div>
+                      {/* Per-person assignment */}
+                      <div className="grid gap-1.5">
+                        {Array.from({ length: splitCount }, (_, pi) => {
+                          const qty = getAssignedQty(item.id, pi);
+                          return (
+                            <div key={pi} className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium w-8">P{pi + 1}</span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => assignItemUnit(item.id, pi, Math.max(0, qty - 1))}
+                                  disabled={qty === 0}
+                                  className="rounded border p-0.5 hover:bg-secondary disabled:opacity-30 transition-colors"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="text-xs font-semibold w-5 text-center">{qty}</span>
+                                <button
+                                  onClick={() => {
+                                    const maxAdd = item.quantity - totalAssigned + qty;
+                                    assignItemUnit(item.id, pi, Math.min(qty + 1, maxAdd));
+                                  }}
+                                  disabled={totalAssigned >= item.quantity && qty === getAssignedQty(item.id, pi)}
+                                  className="rounded border p-0.5 hover:bg-secondary disabled:opacity-30 transition-colors"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => assignAllToPersons(item.id, pi, item.quantity)}
+                                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors underline"
+                              >
+                                Tudo
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
