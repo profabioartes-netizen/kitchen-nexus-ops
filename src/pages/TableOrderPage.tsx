@@ -698,7 +698,7 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Save order — print items to their stations and mark table as "delivered"
+  // Save order — print items to their stations (does NOT change table status)
   const saveOrder = useMutation({
     mutationFn: async () => {
       if (!order) throw new Error("Sem pedido aberto");
@@ -740,16 +740,12 @@ export default function TableOrderPage() {
           .in("id", ids);
       }
 
-      // Update table status to "delivered"
-      await supabase.from("restaurant_tables").update({ status: "delivered" }).eq("id", tableId!);
-
       await logActivity(tableId!, "order_saved", `Pedido salvo e enviado para impressão — ${orderItems.length} item(ns)`, order.id, profile?.full_name);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
-      toast.success("Pedido salvo e enviado para impressão!");
+      toast.success("Pedido enviado para impressão!");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
