@@ -84,10 +84,14 @@ export function ProductFormDialog({ productId, onClose }: Props) {
 
   // Initialize form when editing
   if (isEditing && existingProduct && !initialized) {
+    // Convert price from dot to comma format
+    const priceStr = String(existingProduct.price);
+    const priceWithComma = priceStr.includes('.') ? priceStr.replace('.', ',') : priceStr;
+    
     setForm({
       name: existingProduct.name,
       category_id: existingProduct.category_id || "",
-      price: String(existingProduct.price),
+      price: priceWithComma,
       station: existingProduct.station,
       stock: String(existingProduct.stock ?? -1),
       active: existingProduct.active,
