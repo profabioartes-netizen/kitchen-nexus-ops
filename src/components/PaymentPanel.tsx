@@ -94,7 +94,13 @@ export default function PaymentPanel({
 
   // ── Split computed values ──
   const splitPerPerson = splitTab === "quantity" ? Number((remaining / splitPeople).toFixed(2)) : 0;
-  const splitValue = splitTab === "value" ? Math.min(Number(splitCustomValue) || 0, remaining) : splitPerPerson;
+  const selectedItemsTotal = useMemo(() => {
+    return orderItems.reduce((sum, item) => {
+      const qty = selectedItems[item.id] || 0;
+      return sum + Number(item.price) * qty;
+    }, 0);
+  }, [orderItems, selectedItems]);
+  const splitValue = splitTab === "quantity" ? splitPerPerson : splitTab === "value" ? Math.min(Number(splitCustomValue) || 0, remaining) : Math.min(selectedItemsTotal, remaining);
 
   const addPayment = (method: string, amount?: number) => {
     const amt = amount ?? remaining;
