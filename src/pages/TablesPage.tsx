@@ -387,7 +387,8 @@ export default function TablesPage() {
             return (
               <div
                 key={table.id}
-                className={`table-status-${effectiveStatus} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                className={`${effectiveStatus !== "occupied" ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                style={effectiveStatus === "occupied" ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : undefined}
                 onClick={() => openTable(table.id)}
               >
                 {/* Quick edit button */}
