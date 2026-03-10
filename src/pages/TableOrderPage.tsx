@@ -20,7 +20,8 @@ const statusLabels: Record<TableStatus, string> = {
 
 const methodLabels: Record<string, string> = {
   cash: "Dinheiro",
-  card: "Cartão",
+  debit: "Débito",
+  credit: "Crédito",
   pix: "Pix",
 };
 
@@ -54,6 +55,7 @@ export default function TableOrderPage() {
   const [noteItemId, setNoteItemId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [serviceFeeEnabled, setServiceFeeEnabled] = useState(false);
   const autoCreatedRef = useRef(false);
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
@@ -343,9 +345,11 @@ export default function TableOrderPage() {
 
   // Pay & close
   const payMutation = useMutation({
-    mutationFn: async (method: "cash" | "card" | "pix") => {
+    mutationFn: async ({ method, serviceFeePct }: { method: string; serviceFeePct: number }) => {
       if (!order) throw new Error("Sem pedido aberto");
-      const totalVal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+      const subtotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+      const serviceFee = serviceFeePct > 0 ? subtotal * (serviceFeePct / 100) : 0;
+      const totalVal = subtotal + serviceFee;
       await supabase
         .from("order_items")
         .update({ sent_to_kitchen: true })
@@ -354,7 +358,7 @@ export default function TableOrderPage() {
       await logActivity(
         tableId!,
         "payment_added",
-        `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[method] ?? method})`,
+        `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[method] ?? method})${serviceFee > 0 ? ` — Taxa serviço: R$ ${serviceFee.toFixed(2)}` : ""}`,
         order.id
       );
       await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
@@ -590,57 +594,91 @@ export default function TableOrderPage() {
 
         {/* Footer */}
         <div className="border-t p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-display text-xl">TOTAL</span>
-            <span className="font-display text-xl">R$ {total.toFixed(2)}</span>
-          </div>
-
           {!showPayment ? (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                disabled={unsentCount === 0 || sendToKitchen.isPending}
-                onClick={() => sendToKitchen.mutate()}
-                className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-                <span className="text-sm">Enviar ({unsentCount})</span>
-              </button>
-              <button
-                disabled={orderItems.length === 0}
-                onClick={() => setShowPayment(true)}
-                className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                <CreditCard className="h-4 w-4" />
-                <span className="text-sm">Fechar Conta</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground text-center">Forma de pagamento</p>
-              <div className="grid grid-cols-3 gap-2">
+            <>
+              <div className="flex items-center justify-between">
+                <span className="font-display text-xl">TOTAL</span>
+                <span className="font-display text-xl">R$ {total.toFixed(2)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <button
-                  disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate("card")}
-                  className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                  disabled={unsentCount === 0 || sendToKitchen.isPending}
+                  onClick={() => sendToKitchen.mutate()}
+                  className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                  <span className="text-sm">Enviar ({unsentCount})</span>
+                </button>
+                <button
+                  disabled={orderItems.length === 0}
+                  onClick={() => setShowPayment(true)}
+                  className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   <CreditCard className="h-4 w-4" />
-                  <span className="text-xs">Cartão</span>
+                  <span className="text-sm">Fechar Conta</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-3">
+              {/* Breakdown */}
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>R$ {total.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={serviceFeeEnabled}
+                      onChange={(e) => setServiceFeeEnabled(e.target.checked)}
+                      className="rounded border-muted-foreground/30"
+                    />
+                    Taxa de serviço (10%)
+                  </label>
+                  <span>{serviceFeeEnabled ? `R$ ${(total * 0.1).toFixed(2)}` : "—"}</span>
+                </div>
+                <div className="border-t pt-1.5 flex justify-between font-semibold text-base">
+                  <span>Total</span>
+                  <span>R$ {(serviceFeeEnabled ? total * 1.1 : total).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Payment methods */}
+              <p className="text-xs text-muted-foreground text-center">Forma de pagamento</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  disabled={payMutation.isPending}
+                  onClick={() => payMutation.mutate({ method: "pix", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
+                  className="flex flex-col items-center justify-center gap-1 rounded-md border bg-background py-3 font-medium hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <Smartphone className="h-4 w-4" />
+                  <span className="text-xs">Pix</span>
                 </button>
                 <button
                   disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate("cash")}
+                  onClick={() => payMutation.mutate({ method: "debit", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
+                  className="flex flex-col items-center justify-center gap-1 rounded-md border bg-background py-3 font-medium hover:bg-secondary transition-colors disabled:opacity-50"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span className="text-xs">Débito</span>
+                </button>
+                <button
+                  disabled={payMutation.isPending}
+                  onClick={() => payMutation.mutate({ method: "credit", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
+                  className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  <span className="text-xs">Crédito</span>
+                </button>
+                <button
+                  disabled={payMutation.isPending}
+                  onClick={() => payMutation.mutate({ method: "cash", serviceFeePct: serviceFeeEnabled ? 10 : 0 })}
                   className="flex flex-col items-center justify-center gap-1 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   <Banknote className="h-4 w-4" />
                   <span className="text-xs">Dinheiro</span>
-                </button>
-                <button
-                  disabled={payMutation.isPending}
-                  onClick={() => payMutation.mutate("pix")}
-                  className="flex flex-col items-center justify-center gap-1 rounded-md bg-secondary text-secondary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  <Smartphone className="h-4 w-4" />
-                  <span className="text-xs">Pix</span>
                 </button>
               </div>
               <button
