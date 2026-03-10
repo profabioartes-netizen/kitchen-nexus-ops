@@ -1,67 +1,126 @@
 import { useState } from "react";
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone } from "lucide-react";
+import { toast } from "sonner";
 
 interface OrderItem {
   id: string;
+  product_id: string;
   name: string;
   price: number;
   qty: number;
 }
 
-const menuItems = [
-  { id: "esp", name: "Espresso", price: 6.0, category: "Bebidas" },
-  { id: "cap", name: "Cappuccino", price: 9.5, category: "Bebidas" },
-  { id: "lat", name: "Café Latte", price: 10.0, category: "Bebidas" },
-  { id: "suc", name: "Suco Natural", price: 12.0, category: "Bebidas" },
-  { id: "agua", name: "Água Mineral", price: 4.0, category: "Bebidas" },
-  { id: "cer", name: "Cerveja Artesanal", price: 18.0, category: "Bebidas" },
-  { id: "cro", name: "Croissant", price: 8.5, category: "Lanches" },
-  { id: "pan", name: "Panini Caprese", price: 22.0, category: "Lanches" },
-  { id: "sal", name: "Salada Caesar", price: 28.0, category: "Pratos" },
-  { id: "fil", name: "Filé com Fritas", price: 45.0, category: "Pratos" },
-  { id: "ris", name: "Risoto de Cogumelos", price: 38.0, category: "Pratos" },
-  { id: "tir", name: "Tiramisù", price: 18.0, category: "Sobremesas" },
-  { id: "che", name: "Cheesecake", price: 16.0, category: "Sobremesas" },
-  { id: "bro", name: "Brownie", price: 14.0, category: "Sobremesas" },
-];
-
-const categories = [...new Set(menuItems.map((i) => i.category))];
-
 export default function CashierPage() {
+  const queryClient = useQueryClient();
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>(categories[0]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const addItem = (item: (typeof menuItems)[0]) => {
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ["products_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*, categories(name)")
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Set default active category
+  if (!activeCategory && categories.length > 0) {
+    setActiveCategory(categories[0].id);
+  }
+
+  const addItem = (product: (typeof products)[0]) => {
     setOrder((prev) => {
-      const existing = prev.find((o) => o.id === item.id);
+      const existing = prev.find((o) => o.product_id === product.id);
       if (existing) {
         return prev.map((o) =>
-          o.id === item.id ? { ...o, qty: o.qty + 1 } : o
+          o.product_id === product.id ? { ...o, qty: o.qty + 1 } : o
         );
       }
-      return [...prev, { id: item.id, name: item.name, price: item.price, qty: 1 }];
+      return [...prev, {
+        id: crypto.randomUUID(),
+        product_id: product.id,
+        name: product.name,
+        price: Number(product.price),
+        qty: 1,
+      }];
     });
   };
 
   const updateQty = (id: string, delta: number) => {
     setOrder((prev) =>
-      prev
-        .map((o) => (o.id === id ? { ...o, qty: o.qty + delta } : o))
-        .filter((o) => o.qty > 0)
+      prev.map((o) => (o.id === id ? { ...o, qty: o.qty + delta } : o)).filter((o) => o.qty > 0)
     );
   };
 
-  const removeItem = (id: string) => {
-    setOrder((prev) => prev.filter((o) => o.id !== id));
-  };
+  const removeItem = (id: string) => setOrder((prev) => prev.filter((o) => o.id !== id));
 
   const subtotal = order.reduce((sum, o) => sum + o.price * o.qty, 0);
 
-  const filtered = menuItems.filter(
-    (i) =>
-      i.category === activeCategory &&
-      i.name.toLowerCase().includes(search.toLowerCase())
+  const payMutation = useMutation({
+    mutationFn: async (method: "cash" | "card" | "pix") => {
+      // Create order
+      const { data: newOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert({ status: "closed", total: subtotal })
+        .select()
+        .single();
+      if (orderError) throw orderError;
+
+      // Insert items
+      const items = order.map((o) => ({
+        order_id: newOrder.id,
+        product_id: o.product_id,
+        product_name: o.name,
+        price: o.price,
+        quantity: o.qty,
+      }));
+      const { error: itemsError } = await supabase.from("order_items").insert(items);
+      if (itemsError) throw itemsError;
+
+      // Insert payment
+      const { error: payError } = await supabase.from("payments").insert({
+        order_id: newOrder.id,
+        method,
+        amount: subtotal,
+      });
+      if (payError) throw payError;
+
+      return newOrder;
+    },
+    onSuccess: () => {
+      setOrder([]);
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      toast.success("Pagamento registrado com sucesso!");
+    },
+    onError: (err) => {
+      toast.error("Erro ao registrar pagamento: " + (err as Error).message);
+    },
+  });
+
+  const filtered = products.filter(
+    (p) =>
+      p.category_id === activeCategory &&
+      p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -81,38 +140,42 @@ export default function CashierPage() {
           </div>
         </div>
 
-        {/* Category tabs */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                activeCategory === cat
+                activeCategory === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-card text-foreground hover:bg-secondary"
               }`}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
 
-        {/* Items grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto flex-1">
-          {filtered.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => addItem(item)}
-              className="flex flex-col items-start rounded-lg border bg-card p-3 text-left transition-all hover:border-accent active:scale-[0.97]"
-            >
-              <span className="font-medium text-sm">{item.name}</span>
-              <span className="text-accent font-semibold mt-1">
-                R$ {item.price.toFixed(2)}
-              </span>
-            </button>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto flex-1">
+            {filtered.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => addItem(item)}
+                className="flex flex-col items-start rounded-lg border bg-card p-3 text-left transition-all hover:border-accent active:scale-[0.97]"
+              >
+                <span className="font-medium text-sm">{item.name}</span>
+                <span className="text-accent font-semibold mt-1">
+                  R$ {Number(item.price).toFixed(2)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Order panel */}
@@ -128,10 +191,7 @@ export default function CashierPage() {
             </p>
           )}
           {order.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between rounded-md border bg-background p-2"
-            >
+            <div key={item.id} className="flex items-center justify-between rounded-md border bg-background p-2">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -139,25 +199,14 @@ export default function CashierPage() {
                 </p>
               </div>
               <div className="flex items-center gap-1 ml-2">
-                <button
-                  onClick={() => updateQty(item.id, -1)}
-                  className="rounded p-1 hover:bg-secondary"
-                >
+                <button onClick={() => updateQty(item.id, -1)} className="rounded p-1 hover:bg-secondary">
                   <Minus className="h-3.5 w-3.5" />
                 </button>
-                <span className="w-6 text-center text-sm font-medium">
-                  {item.qty}
-                </span>
-                <button
-                  onClick={() => updateQty(item.id, 1)}
-                  className="rounded p-1 hover:bg-secondary"
-                >
+                <span className="w-6 text-center text-sm font-medium">{item.qty}</span>
+                <button onClick={() => updateQty(item.id, 1)} className="rounded p-1 hover:bg-secondary">
                   <Plus className="h-3.5 w-3.5" />
                 </button>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1"
-                >
+                <button onClick={() => removeItem(item.id)} className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -165,7 +214,6 @@ export default function CashierPage() {
           ))}
         </div>
 
-        {/* Total & pay */}
         <div className="border-t p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Subtotal</span>
@@ -173,18 +221,32 @@ export default function CashierPage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="font-display text-xl">TOTAL</span>
-            <span className="font-display text-xl">
-              R$ {subtotal.toFixed(2)}
-            </span>
+            <span className="font-display text-xl">R$ {subtotal.toFixed(2)}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity">
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              disabled={order.length === 0 || payMutation.isPending}
+              onClick={() => payMutation.mutate("card")}
+              className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
               <CreditCard className="h-4 w-4" />
-              Cartão
+              <span className="text-xs">Cartão</span>
             </button>
-            <button className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity">
+            <button
+              disabled={order.length === 0 || payMutation.isPending}
+              onClick={() => payMutation.mutate("cash")}
+              className="flex flex-col items-center justify-center gap-1 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
               <Banknote className="h-4 w-4" />
-              Dinheiro
+              <span className="text-xs">Dinheiro</span>
+            </button>
+            <button
+              disabled={order.length === 0 || payMutation.isPending}
+              onClick={() => payMutation.mutate("pix")}
+              className="flex flex-col items-center justify-center gap-1 rounded-md bg-secondary text-secondary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <Smartphone className="h-4 w-4" />
+              <span className="text-xs">Pix</span>
             </button>
           </div>
         </div>
