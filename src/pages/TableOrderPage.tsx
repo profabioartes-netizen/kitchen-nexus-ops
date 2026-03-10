@@ -708,7 +708,8 @@ export default function TableOrderPage() {
       const itemsByStation: Record<string, typeof orderItems> = {};
       for (const item of orderItems) {
         const product = products.find((p) => p.id === item.product_id);
-        const station = (product as any)?.station || "Cozinha";
+        const station = (product as any)?.station || "";
+        if (!station) continue;
         if (!itemsByStation[station]) itemsByStation[station] = [];
         itemsByStation[station].push(item);
       }
