@@ -221,8 +221,22 @@ export default function TablesPage() {
         .update({ status: newStatus })
         .eq("id", id);
       if (error) throw error;
+      return newStatus;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, currentStatus }) => {
+      await queryClient.cancelQueries({ queryKey: ["restaurant_tables"] });
+      const previous = queryClient.getQueryData(["restaurant_tables"]);
+      const newStatus = currentStatus === "delivered" ? "occupied" : "delivered";
+      queryClient.setQueryData(["restaurant_tables"], (old: any[]) =>
+        old?.map((t: any) => t.id === id ? { ...t, status: newStatus } : t) ?? []
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["restaurant_tables"], context.previous);
+      toast.error("Erro ao atualizar status da mesa");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
     },
   });
