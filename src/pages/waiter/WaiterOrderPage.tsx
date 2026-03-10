@@ -253,7 +253,9 @@ export default function WaiterOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       toast.success("Adicionado!", { duration: 1500 });
     },
