@@ -148,38 +148,50 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string
+          delivered_at: string | null
           id: string
           notes: string | null
           order_id: string
           preparation_status: string
+          preparing_at: string | null
           price: number
           product_id: string
           product_name: string
           quantity: number
+          ready_at: string | null
+          sent_at: string | null
           sent_to_kitchen: boolean
         }
         Insert: {
           created_at?: string
+          delivered_at?: string | null
           id?: string
           notes?: string | null
           order_id: string
           preparation_status?: string
+          preparing_at?: string | null
           price: number
           product_id: string
           product_name: string
           quantity?: number
+          ready_at?: string | null
+          sent_at?: string | null
           sent_to_kitchen?: boolean
         }
         Update: {
           created_at?: string
+          delivered_at?: string | null
           id?: string
           notes?: string | null
           order_id?: string
           preparation_status?: string
+          preparing_at?: string | null
           price?: number
           product_id?: string
           product_name?: string
           quantity?: number
+          ready_at?: string | null
+          sent_at?: string | null
           sent_to_kitchen?: boolean
         }
         Relationships: [
@@ -380,6 +392,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          prep_time_minutes: number
           price: number
           station: string
           stock: number | null
@@ -391,6 +404,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          prep_time_minutes?: number
           price?: number
           station?: string
           stock?: number | null
@@ -402,6 +416,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          prep_time_minutes?: number
           price?: number
           station?: string
           stock?: number | null

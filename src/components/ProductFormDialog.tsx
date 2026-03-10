@@ -11,6 +11,7 @@ interface ProductFormData {
   station: string;
   stock: string;
   active: boolean;
+  prep_time_minutes: string;
 }
 
 const emptyForm: ProductFormData = {
@@ -20,6 +21,7 @@ const emptyForm: ProductFormData = {
   station: "Cozinha",
   stock: "-1",
   active: true,
+  prep_time_minutes: "15",
 };
 
 interface Props {
@@ -89,6 +91,7 @@ export function ProductFormDialog({ productId, onClose }: Props) {
       station: existingProduct.station,
       stock: String(existingProduct.stock ?? -1),
       active: existingProduct.active,
+      prep_time_minutes: String((existingProduct as any).prep_time_minutes ?? 15),
     });
     setSelectedGroups(linkedGroups);
     setInitialized(true);
@@ -113,6 +116,7 @@ export function ProductFormDialog({ productId, onClose }: Props) {
         station: form.station,
         stock: parseInt(form.stock) || -1,
         active: form.active,
+        prep_time_minutes: parseInt(form.prep_time_minutes) || 15,
       };
 
       let pid = productId;
@@ -213,14 +217,24 @@ export function ProductFormDialog({ productId, onClose }: Props) {
             </div>
           </div>
 
-          {/* Stock & Active */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Stock, Prep Time & Active */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground">Estoque (-1 = ilimitado)</label>
               <input
                 type="number"
                 value={form.stock}
                 onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Tempo preparo (min)</label>
+              <input
+                type="number"
+                min="1"
+                value={form.prep_time_minutes}
+                onChange={(e) => setForm({ ...form, prep_time_minutes: e.target.value })}
                 className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
