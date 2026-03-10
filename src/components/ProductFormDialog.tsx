@@ -18,7 +18,7 @@ const emptyForm: ProductFormData = {
   name: "",
   category_id: "",
   price: "",
-  station: "Cozinha",
+  station: "",
   stock: "-1",
   active: true,
   prep_time_minutes: "15",
@@ -205,15 +205,17 @@ export function ProductFormDialog({ productId, onClose }: Props) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Estação</label>
+              <label className="text-sm font-medium text-muted-foreground">Categoria de Impressão</label>
               <select
                 value={form.station}
                 onChange={(e) => setForm({ ...form, station: e.target.value })}
                 className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               >
+                <option value="">Nenhuma (não imprime)</option>
                 <option value="Cozinha">Cozinha</option>
                 <option value="Bebidas">Bebidas</option>
                 <option value="Sobremesa">Sobremesa</option>
+                <option value="Caixa">Caixa</option>
               </select>
             </div>
           </div>
