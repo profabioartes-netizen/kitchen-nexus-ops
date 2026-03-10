@@ -43,7 +43,7 @@ function TableDuration({ createdAt }: { createdAt: string }) {
   }, []);
   const mins = Math.floor((now - new Date(createdAt).getTime()) / 60000);
   return (
-    <span className="flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums font-medium">
+    <span className="flex items-center gap-1 text-[11px] tabular-nums font-medium" style={{ color: "inherit", opacity: 0.7 }}>
       <span className="text-[12px]">⏱</span>
       {mins} min
     </span>
@@ -686,7 +686,7 @@ export default function TablesPage() {
                       <p className="text-[11px] text-accent font-medium truncate">{(order as any).customer_name}</p>
                     )}
                     {order?.waiter_name && (
-                      <p className="text-[10px] text-muted-foreground truncate">{order.waiter_name}</p>
+                      <p className="text-[10px] truncate" style={{ color: useInlineOccupied ? "#4f46e5" : useInlineDelivered ? "#15803d" : undefined }}>{order.waiter_name}</p>
                     )}
                   </div>
                 )}
