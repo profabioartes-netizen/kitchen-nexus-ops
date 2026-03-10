@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
@@ -62,6 +62,8 @@ export default function TablesPage() {
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tableCountOpen, setTableCountOpen] = useState(false);
+  const [tableCountValue, setTableCountValue] = useState("");
 
   // Realtime: auto-refresh when tables or orders change in DB
   useEffect(() => {
@@ -250,6 +252,76 @@ export default function TablesPage() {
     },
   });
 
+  // Fetch ALL tables (active + inactive) for counting
+  const { data: allTables = [] } = useQuery({
+    queryKey: ["restaurant_tables_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("restaurant_tables")
+        .select("*")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const saveTableCount = useMutation({
+    mutationFn: async (desiredCount: number) => {
+      const currentCount = allTables.length;
+      if (desiredCount === currentCount) return;
+
+      if (desiredCount < currentCount) {
+        // Tables to remove are the ones at the end (highest sort_order)
+        const sorted = [...allTables].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        const toRemove = sorted.slice(desiredCount);
+        const blocked = toRemove.filter(t => ["occupied", "delivered"].includes(t.status));
+        if (blocked.length > 0) {
+          throw new Error(`Não é possível reduzir: ${blocked.length} mesa(s) com status ativo (${blocked.map(t => t.name).join(", ")}). Libere-as primeiro.`);
+        }
+        const idsToRemove = toRemove.map(t => t.id);
+        // Check if any have open orders
+        const { data: activeOrders } = await supabase
+          .from("orders")
+          .select("id, table_id")
+          .in("table_id", idsToRemove)
+          .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
+        if (activeOrders && activeOrders.length > 0) {
+          throw new Error("Não é possível remover mesas com pedidos abertos.");
+        }
+        // Deactivate (soft delete) tables
+        const { error } = await supabase
+          .from("restaurant_tables")
+          .delete()
+          .in("id", idsToRemove);
+        if (error) throw error;
+      } else {
+        // Add new tables
+        const maxOrder = allTables.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0);
+        const newTables = [];
+        for (let i = currentCount + 1; i <= desiredCount; i++) {
+          newTables.push({
+            name: `Mesa ${i}`,
+            default_name: `Mesa ${i}`,
+            seats: 4,
+            active: true,
+            status: "free",
+            sort_order: maxOrder + (i - currentCount),
+          });
+        }
+        const { error } = await supabase.from("restaurant_tables").insert(newTables);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_all"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
+      setTableCountOpen(false);
+      toast.success("Quantidade de mesas atualizada!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const openTable = (id: string) => {
     navigate(`/mesas/${id}/pedido`);
   };
@@ -368,6 +440,48 @@ export default function TablesPage() {
             <Settings className="h-4 w-4 text-muted-foreground" />
             Gerenciar
           </button>
+          <Popover open={tableCountOpen} onOpenChange={(open) => {
+            setTableCountOpen(open);
+            if (open) setTableCountValue(String(allTables.length));
+          }}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors">
+                <Plus className="h-4 w-4 text-muted-foreground" />
+                Qtd. Mesas
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-4" align="end">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Mesas</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="200"
+                    value={tableCountValue}
+                    onChange={(e) => setTableCountValue(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} mesas</p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setTableCountOpen(false)}
+                    className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={!tableCountValue || parseInt(tableCountValue) < 1 || saveTableCount.isPending}
+                    onClick={() => saveTableCount.mutate(parseInt(tableCountValue))}
+                    className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                  >
+                    {saveTableCount.isPending ? "Salvando..." : "Salvar"}
+                  </button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
