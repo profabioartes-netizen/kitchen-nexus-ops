@@ -164,8 +164,9 @@
   }
 
   .table-status-free {
-    border-color: hsl(var(--status-free));
-    background: hsl(var(--status-free) / 0.08);
+    border-color: #d4d4d4;
+    background: #f2f2f2 !important;
+    color: #1a1a1a !important;
   }
   .table-status-occupied {
     border-color: hsl(258 78% 42%);
