@@ -456,7 +456,7 @@ export default function TablesPage() {
             <PopoverContent className="w-64 p-4" align="end">
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Mesas</label>
+                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Comandas</label>
                   <Input
                     type="number"
                     min="1"
