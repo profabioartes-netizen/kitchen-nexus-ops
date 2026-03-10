@@ -401,8 +401,9 @@ export default function TableOrderPage() {
         );
       }
 
-      // Create print job for the product's station
-      const station = (product as any).station || "Cozinha";
+      // Create print job for the product's station (skip if no station)
+      const station = (product as any).station || "";
+      if (station) {
       await supabase.from("print_jobs").insert({
         station,
         status: "pending",
