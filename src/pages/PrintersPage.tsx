@@ -8,7 +8,7 @@ export default function PrintersPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", station: "Cozinha", model: "", ip: "", port: "9100" });
+  const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
@@ -64,7 +64,7 @@ export default function PrintersPage() {
   });
 
   const openNew = () => {
-    setForm({ name: "", station: "Cozinha", model: "", ip: "", port: "9100" });
+    setForm({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
     setEditing(null);
     setShowForm(true);
   };
@@ -103,7 +103,7 @@ export default function PrintersPage() {
 
       {/* Routing diagram */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {["Cozinha", "Bar", "Sobremesa"].map((station) => {
+        {["Caixa", "Cozinha", "Bebidas", "Sobremesa"].map((station) => {
           const stationPrinters = printers.filter((p) => p.station === station && p.active);
           return (
             <div key={station} className="rounded-lg border bg-card p-4">
@@ -192,10 +192,10 @@ export default function PrintersPage() {
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Estação</label>
                 <select value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
-                  <option value="Cozinha">Cozinha</option>
-                  <option value="Bar">Bar</option>
-                  <option value="Sobremesa">Sobremesa</option>
                   <option value="Caixa">Caixa</option>
+                  <option value="Cozinha">Cozinha</option>
+                  <option value="Bebidas">Bebidas</option>
+                  <option value="Sobremesa">Sobremesa</option>
                 </select>
               </div>
               <div>

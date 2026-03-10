@@ -11,7 +11,7 @@ type PrepStatus = "pending" | "sent" | "preparing" | "ready" | "delivered";
 
 const stations = [
   { id: "Cozinha", label: "Cozinha", icon: ChefHat },
-  { id: "Bar", label: "Bebidas", icon: GlassWater },
+  { id: "Bebidas", label: "Bebidas", icon: GlassWater },
   { id: "Sobremesa", label: "Sobremesas", icon: CakeSlice },
 ] as const;
 
