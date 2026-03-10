@@ -320,7 +320,7 @@ export default function TablesPage() {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_all"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       setTableCountOpen(false);
-      toast.success("Quantidade de mesas atualizada!");
+      toast.success("Quantidade de comandas atualizada!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
