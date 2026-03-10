@@ -55,6 +55,7 @@ export default function TableOrderPage() {
   const [noteItemId, setNoteItemId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [serviceFeeEnabled, setServiceFeeEnabled] = useState(false);
   const autoCreatedRef = useRef(false);
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
