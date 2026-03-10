@@ -153,7 +153,7 @@ export default function TableOrderPage() {
     mutationFn: async (product: (typeof products)[0]) => {
       let currentOrder = order;
       if (!currentOrder) {
-        currentOrder = await createOrder.mutateAsync();
+        currentOrder = await createOrder.mutateAsync(waiterName || undefined);
       }
 
       const existing = orderItems.find(
