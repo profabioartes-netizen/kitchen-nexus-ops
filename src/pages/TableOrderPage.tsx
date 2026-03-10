@@ -1150,6 +1150,41 @@ export default function TableOrderPage() {
           </div>
         </div>
       )}
+
+      {/* Cancel order confirmation */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-destructive/10">
+                <Ban className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Cancelar Mesa</h3>
+                <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              O pedido será cancelado e <strong>não será contabilizado nos relatórios</strong>. Todos os pagamentos parciais serão descartados e a mesa será liberada.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-secondary"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => cancelOrder.mutate()}
+                disabled={cancelOrder.isPending}
+                className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {cancelOrder.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
