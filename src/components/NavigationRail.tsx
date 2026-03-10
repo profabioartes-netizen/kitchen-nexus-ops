@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutGrid,
@@ -7,6 +8,8 @@ import {
   Printer,
   Flame,
   LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
@@ -22,6 +25,19 @@ const navItems = [
 
 export function NavigationRail() {
   const { profile, signOut } = useAuth();
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("coffee-thrones-theme");
+    return saved !== "light";
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.add("light");
+    }
+    localStorage.setItem("coffee-thrones-theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   return (
     <nav className="nav-rail flex-shrink-0 flex flex-col">
@@ -49,8 +65,16 @@ export function NavigationRail() {
         ))}
       </div>
 
-      {/* User info + logout */}
+      {/* Theme toggle + User info + logout */}
       <div className="px-2 pb-3 flex flex-col items-center gap-2">
+        <button
+          onClick={() => setIsDark((v) => !v)}
+          className="flex flex-col items-center gap-1 rounded-md py-2 px-1 text-[11px] font-medium text-nav-foreground hover:bg-sidebar-accent transition-colors w-full"
+          title={isDark ? "Modo Claro" : "Modo Escuro"}
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <span>{isDark ? "Claro" : "Escuro"}</span>
+        </button>
         {profile?.full_name && (
           <span className="text-[10px] text-nav-foreground text-center leading-tight truncate w-full">
             {profile.full_name}
