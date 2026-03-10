@@ -9,6 +9,7 @@ import {
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel from "@/components/PaymentPanel";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 
