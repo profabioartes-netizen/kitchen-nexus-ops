@@ -29,7 +29,7 @@ interface QuickEditForm {
 export default function TablesPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<"grid" | "floor">("floor");
+  const [viewMode, setViewMode] = useState<"grid" | "floor">("grid");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
@@ -192,18 +192,18 @@ export default function TablesPage() {
           </div>
           <div className="flex rounded-md border bg-card overflow-hidden">
             <button
-              onClick={() => setViewMode("floor")}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === "floor" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
-            >
-              <Move className="h-4 w-4" />
-              Planta
-            </button>
-            <button
               onClick={() => setViewMode("grid")}
               className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === "grid" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
             >
               <Grid3X3 className="h-4 w-4" />
               Grade
+            </button>
+            <button
+              onClick={() => setViewMode("floor")}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === "floor" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
+            >
+              <Move className="h-4 w-4" />
+              Planta
             </button>
           </div>
           <button
