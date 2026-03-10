@@ -272,7 +272,7 @@ export default function TableOrderPage() {
   // Merge tables mutation
   const mergeTablesMutation = useMutation({
     mutationFn: async (sourceTableId: string) => {
-      if (!order) throw new Error("Sem pedido aberto nesta mesa");
+      if (!order) throw new Error("Sem pedido aberto nesta comanda");
       const sourceTable = allTables.find((t) => t.id === sourceTableId);
       const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
       if (!sourceOrder) throw new Error("Mesa selecionada não possui pedido aberto");
