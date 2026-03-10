@@ -13,7 +13,7 @@ import TableOpenDialog from "@/components/TableOpenDialog";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 const statusLabels: Record<TableStatus, string> = {
-  free: "Livre", occupied: "Ocupada", reserved: "Reservada", bill: "Conta",
+  free: "Livre", occupied: "Pendente", reserved: "Reservada", bill: "Conta",
 };
 
 async function logActivity(tableId: string, action: string, description: string, orderId?: string | null, userName?: string | null) {
