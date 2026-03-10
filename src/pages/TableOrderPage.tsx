@@ -19,7 +19,7 @@ const statusLabels: Record<TableStatus, string> = {
   occupied: "Pendente",
   reserved: "Reservada",
   bill: "Conta",
-  delivered: "Pedido Entregue",
+  delivered: "Concluído",
 };
 
 const methodLabels: Record<string, string> = {
