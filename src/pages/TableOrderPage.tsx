@@ -606,6 +606,14 @@ export default function TableOrderPage() {
             Transferir
           </button>
           <button
+            onClick={() => { setShowMerge(true); setMergeTarget(null); }}
+            disabled={!order || orderItems.length === 0}
+            className="flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors bg-card hover:bg-secondary disabled:opacity-50"
+          >
+            <Merge className="h-4 w-4" />
+            Juntar Mesas
+          </button>
+          <button
             onClick={() => setShowTimeline(!showTimeline)}
             className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
               showTimeline ? "bg-accent text-accent-foreground" : "bg-card hover:bg-secondary"
