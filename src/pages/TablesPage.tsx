@@ -397,6 +397,13 @@ export default function TablesPage() {
                   <Edit2 className="h-3 w-3 text-muted-foreground" />
                 </button>
 
+                {/* Unviewed items badge */}
+                {order && (unviewedCounts[order.id] || 0) > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 z-20 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-black px-1 leading-none animate-pulse">
+                    {unviewedCounts[order.id]}
+                  </span>
+                )}
+
                 {/* Preview popover for occupied tables */}
                 {order && (
                   <Popover
