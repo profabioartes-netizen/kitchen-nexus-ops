@@ -146,8 +146,15 @@ export default function PaymentPanel({
       if (newRemaining <= 0.01) {
         setSplitOpen(false);
       }
-    } else {
+    } else if (splitTab === "value") {
       setSplitCustomValue("");
+    } else {
+      setSelectedItems({});
+      const newPaid = paidTotal + splitValue;
+      const newRemaining = Math.max(0, Number((grandTotal - newPaid).toFixed(2)));
+      if (newRemaining <= 0.01) {
+        setSplitOpen(false);
+      }
     }
   };
 
