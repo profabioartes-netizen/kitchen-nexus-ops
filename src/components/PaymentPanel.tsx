@@ -570,11 +570,22 @@ export default function PaymentPanel({
             <div>
               <label className="text-xs text-muted-foreground">Valor a pagar</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 min="0.01"
                 step="0.01"
-                value={customAmount || amountToPay.toFixed(2)}
-                onChange={(e) => setCustomAmount(e.target.value)}
+                value={customAmount ? customAmount : amountToPay > 0 ? amountToPay.toFixed(2).replace(".", ",") : ""}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const cents = parseInt(digits, 10) || 0;
+                  const formatted = (cents / 100).toFixed(2).replace(".", ",");
+                  setCustomAmount(formatted);
+                }}
+                onBlur={(e) => {
+                  if (customAmount && !customAmount.includes(",")) {
+                    setCustomAmount(customAmount + ",00");
+                  }
+                }}
                 className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
               />
             </div>
@@ -584,18 +595,29 @@ export default function PaymentPanel({
               <div>
                 <label className="text-xs text-muted-foreground">Troco para</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   min="0"
                   step="0.01"
                   value={cashGiven}
-                  onChange={(e) => setCashGiven(e.target.value)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    const cents = parseInt(digits, 10) || 0;
+                    const formatted = (cents / 100).toFixed(2).replace(".", ",");
+                    setCashGiven(formatted);
+                  }}
+                  onBlur={(e) => {
+                    if (cashGiven && !cashGiven.includes(",")) {
+                      setCashGiven(cashGiven + ",00");
+                    }
+                  }}
                   placeholder="0,00"
                   className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
                 />
                 {cashChange > 0 && (
                   <div className="mt-2 rounded-md bg-accent/15 border border-accent/30 p-2.5 text-center">
                     <p className="text-xs text-accent uppercase tracking-wider font-semibold">Troco</p>
-                    <p className="text-xl font-bold text-accent tabular-nums">R$ {cashChange.toFixed(2)}</p>
+                    <p className="text-xl font-bold text-accent tabular-nums">R$ {cashChange.toFixed(2).replace(".", ",")}</p>
                   </div>
                 )}
                 {/* Quick cash values */}
