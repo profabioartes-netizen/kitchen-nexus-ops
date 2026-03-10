@@ -600,12 +600,14 @@ export default function TablesPage() {
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
-                    className={`absolute top-1 right-7 rounded p-0.5 transition-opacity z-10 ${effectiveFloorStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    className="absolute top-1 right-7 rounded-full p-1 z-20 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: effectiveFloorStatus === "delivered" ? "#166534" : "rgba(255,255,255,0.25)" }}
                     title={effectiveFloorStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
-                    <CheckCircle2 className="h-3 w-3" style={{ color: effectiveFloorStatus === "delivered" ? "#166534" : "white" }} />
+                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveFloorStatus === "delivered" ? "#bbf7d6" : "white" }} />
                   </button>
                 )}
 
