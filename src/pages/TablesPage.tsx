@@ -321,7 +321,7 @@ export default function TablesPage() {
     });
   }, [tables, ordersByTable, searchQuery]);
 
-  const tablesWithPositions = tables.map((t, i) => {
+  const tablesWithPositions = filteredTables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
     if (hasPosition) return t;
     const cols = 6;
