@@ -252,7 +252,7 @@ export default function TableOrderPage() {
       await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", targetTableId);
 
       // Log on source table
-      await logActivity(tableId!, "table_transferred", `Pedido transferido para ${targetTable?.name ?? "outra mesa"}${merge ? " (mesclado)" : ""}`, order.id, profile?.full_name);
+      await logActivity(tableId!, "table_transferred", `Pedido transferido para ${targetTable?.name ?? "outra comanda"}${merge ? " (mesclado)" : ""}`, order.id, profile?.full_name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });

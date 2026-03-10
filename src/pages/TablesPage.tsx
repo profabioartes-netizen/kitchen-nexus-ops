@@ -547,7 +547,7 @@ export default function TablesPage() {
           </div>
         ))}
         {viewMode === "floor" && (
-          <span className="text-xs text-muted-foreground ml-auto italic">Arraste as mesas para reorganizar o layout</span>
+          <span className="text-xs text-muted-foreground ml-auto italic">Arraste as comandas para reorganizar o layout</span>
         )}
       </div>
 
