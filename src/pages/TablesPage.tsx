@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2 } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -62,6 +63,7 @@ export default function TablesPage() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Realtime: auto-refresh when tables or orders change in DB
   useEffect(() => {
@@ -310,7 +312,16 @@ export default function TablesPage() {
     return acc;
   }, {});
 
-  const tablesWithPositions = tables.map((t, i) => {
+  const filteredTables = useMemo(() => {
+    if (!searchQuery.trim()) return tables;
+    const q = searchQuery.toLowerCase().trim();
+    return tables.filter((t) => {
+      const order = ordersByTable[t.id];
+      return order?.customer_name?.toLowerCase().includes(q);
+    });
+  }, [tables, ordersByTable, searchQuery]);
+
+  const tablesWithPositions = filteredTables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
     if (hasPosition) return t;
     const cols = 6;
@@ -390,6 +401,25 @@ export default function TablesPage() {
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nome do cliente..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 pr-9"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {/* Legend */}
       <div className="flex gap-4 mb-4">
         {statusCycle.map((s) => (
@@ -406,7 +436,7 @@ export default function TablesPage() {
       {/* Grid View */}
       {viewMode === "grid" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {tables.map((table) => {
+          {filteredTables.map((table) => {
             const order = ordersByTable[table.id];
             const effectiveStatus: TableStatus = order
               ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
