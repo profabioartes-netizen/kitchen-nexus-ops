@@ -53,6 +53,7 @@ export default function TableOrderPage() {
   const [showWaiterPrompt, setShowWaiterPrompt] = useState(false);
   const [noteItemId, setNoteItemId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const autoCreatedRef = useRef(false);
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
