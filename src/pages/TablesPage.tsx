@@ -149,7 +149,24 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("order_id, quantity");
+        .select("order_id, quantity, viewed_at");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+  });
+
+  // Count unviewed items per order
+  const { data: unviewedCounts = {} } = useQuery({
+    queryKey: ["unviewed_item_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity, viewed_at")
+        .is("viewed_at", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
       for (const item of data) {
