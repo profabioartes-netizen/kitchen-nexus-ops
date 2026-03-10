@@ -9,11 +9,19 @@ import { toast } from "sonner";
 type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
-  free: "Livre",
-  occupied: "Pendente",
-  reserved: "Reservada",
-  bill: "Conta",
+  free: "LIVRE",
+  occupied: "OCUPADA",
+  reserved: "RESERVADA",
+  bill: "CONTA",
   delivered: "ENTREGUE",
+};
+
+const badgeStyles: Record<TableStatus, { bg: string; color: string }> = {
+  free: { bg: "rgba(0,0,0,0.08)", color: "#444" },
+  occupied: { bg: "rgba(255,255,255,0.2)", color: "white" },
+  reserved: { bg: "hsl(215 65% 55% / 0.15)", color: "hsl(215 65% 35%)" },
+  bill: { bg: "hsl(25 85% 55% / 0.15)", color: "hsl(25 85% 35%)" },
+  delivered: { bg: "#166534", color: "#bbf7d6" },
 };
 
 const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
@@ -547,7 +555,10 @@ export default function TablesPage() {
                   )}
                 </div>
 
-                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
+                <span
+                  className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1.5 rounded-full px-2 py-0.5"
+                  style={{ backgroundColor: badgeStyles[effectiveStatus].bg, color: badgeStyles[effectiveStatus].color }}
+                >
                   {statusLabels[effectiveStatus]}
                 </span>
 
@@ -640,8 +651,11 @@ export default function TablesPage() {
                 {(table as any).sector && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                 )}
-                <span className="text-[9px] font-medium uppercase tracking-wider mt-1" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>
-                  {statusLabels[table.status as TableStatus]}
+                <span
+                  className="inline-block text-[8px] font-bold uppercase tracking-wider mt-1 rounded-full px-1.5 py-0.5"
+                  style={{ backgroundColor: badgeStyles[effectiveFloorStatus].bg, color: badgeStyles[effectiveFloorStatus].color }}
+                >
+                  {statusLabels[effectiveFloorStatus]}
                 </span>
 {order && (
                   <>
