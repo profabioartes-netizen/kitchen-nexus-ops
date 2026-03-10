@@ -1,0 +1,2 @@
+UPDATE orders SET status = 'paid_pending_finalization' WHERE id = 'f60e5738-7618-4fa0-9e5b-32a5db05bb4c';
+UPDATE order_items SET paid_quantity = quantity WHERE order_id = 'f60e5738-7618-4fa0-9e5b-32a5db05bb4c';
