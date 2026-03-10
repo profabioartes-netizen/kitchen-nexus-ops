@@ -601,7 +601,7 @@ export default function TablesPage() {
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
                     className={`absolute top-1 right-7 rounded p-0.5 transition-opacity z-10 ${effectiveFloorStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
-                    title={effectiveFloorStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                    title={effectiveFloorStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
                     <CheckCircle2 className="h-3 w-3" style={{ color: effectiveFloorStatus === "delivered" ? "#166534" : "white" }} />
                   </button>
