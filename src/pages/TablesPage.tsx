@@ -500,7 +500,7 @@ export default function TablesPage() {
                 </div>
 
                 <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5 text-muted-foreground">
-                  {statusLabels[status]}
+                  {statusLabels[effectiveStatus]}
                 </span>
 
 {/* Order details */}
