@@ -347,47 +347,12 @@ export default function TableOrderPage() {
     );
   }
 
-  // Show waiter prompt if no order exists yet
+  // Show loading while auto-creating order
   if (!order && !orderLoading && !tableLoading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
-        <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-lg">
-          <h2 className="text-lg font-semibold mb-1">{table?.name ?? "Mesa"}</h2>
-          <p className="text-sm text-muted-foreground mb-4">Abrir nova comanda</p>
-          <div className="space-y-3">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Nome do Garçom</label>
-              <div className="relative mt-1">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={waiterName}
-                  onChange={(e) => setWaiterName(e.target.value)}
-                  placeholder="Ex: João"
-                  autoFocus
-                  className="w-full rounded-md border bg-background pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => navigate("/")}
-                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary"
-              >
-                Voltar
-              </button>
-              <button
-                onClick={async () => {
-                  await createOrder.mutateAsync(waiterName || undefined);
-                }}
-                disabled={createOrder.isPending}
-                className="flex-1 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-              >
-                {createOrder.isPending ? "Abrindo..." : "Abrir Mesa"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
       </div>
     );
   }
