@@ -651,7 +651,7 @@ export default function TablesPage() {
                 </button>
 
                 <span className="font-display text-sm">{table.name}</span>
-                <span className="text-[10px] mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{table.seats} lug</span>
+                
                 {(table as any).sector && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                 )}
