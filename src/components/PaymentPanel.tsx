@@ -537,7 +537,7 @@ export default function PaymentPanel({
 
       {/* ── Split Modal ── */}
       <Dialog open={splitOpen} onOpenChange={setSplitOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
