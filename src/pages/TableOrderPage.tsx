@@ -881,6 +881,14 @@ export default function TableOrderPage() {
                   <span className="text-sm">Fechar Conta</span>
                 </button>
               </div>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={!order || cancelOrder.isPending}
+                className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+              >
+                <Ban className="h-3.5 w-3.5" />
+                Cancelar Mesa
+              </button>
             </>
           ) : (
             <PaymentPanel
