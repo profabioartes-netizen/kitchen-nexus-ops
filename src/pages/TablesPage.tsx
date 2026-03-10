@@ -312,6 +312,15 @@ export default function TablesPage() {
     return acc;
   }, {});
 
+  const filteredTables = useMemo(() => {
+    if (!searchQuery.trim()) return tables;
+    const q = searchQuery.toLowerCase().trim();
+    return tables.filter((t) => {
+      const order = ordersByTable[t.id];
+      return order?.customer_name?.toLowerCase().includes(q);
+    });
+  }, [tables, ordersByTable, searchQuery]);
+
   const tablesWithPositions = tables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
     if (hasPosition) return t;
