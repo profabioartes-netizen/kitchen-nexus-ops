@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check, Eye, ChefHat, UtensilsCrossed } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -213,6 +213,20 @@ export default function TablesPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const toggleDelivered = useMutation({
+    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      const newStatus = currentStatus === "delivered" ? "occupied" : "delivered";
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ status: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+    },
+  });
+
   const openTable = (id: string) => {
     navigate(`/mesas/${id}/pedido`);
   };
@@ -394,6 +408,20 @@ export default function TablesPage() {
                 style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
                 onClick={() => openTable(table.id)}
               >
+                {/* Delivery toggle button - only on occupied or delivered tables */}
+                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                    }}
+                    className={`absolute top-1.5 right-8 rounded p-1 transition-opacity z-10 ${effectiveStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    title={effectiveStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveStatus === "delivered" ? "#166534" : "white" }} />
+                  </button>
+                )}
+
                 {/* Quick edit button */}
                 <button
                   onClick={(e) => handleQuickEdit(e, table)}
@@ -564,6 +592,21 @@ export default function TablesPage() {
                   ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
+                {/* Delivery toggle on floor plan */}
+                {(effectiveFloorStatus === "occupied" || effectiveFloorStatus === "delivered") && (
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                    }}
+                    className={`absolute top-1 right-7 rounded p-0.5 transition-opacity z-10 ${effectiveFloorStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    title={effectiveFloorStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                  >
+                    <CheckCircle2 className="h-3 w-3" style={{ color: effectiveFloorStatus === "delivered" ? "#166534" : "white" }} />
+                  </button>
+                )}
+
                 {/* Quick edit button on floor plan */}
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
