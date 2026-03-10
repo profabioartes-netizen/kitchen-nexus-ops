@@ -431,14 +431,6 @@ export default function TablesPage() {
                 onClick={() => openTable(table.id)}
               >
 
-                {/* Quick edit button */}
-                <button
-                  onClick={(e) => handleQuickEdit(e, table)}
-                  className="absolute top-1.5 right-1.5 rounded p-1 opacity-0 group-hover:opacity-100 hover:bg-secondary/80 transition-opacity z-10"
-                  title="Editar mesa"
-                >
-                  <Edit2 className="h-3 w-3 text-muted-foreground" />
-                </button>
 
                 {/* Unviewed items badge */}
                 {order && (unviewedCounts[order.id] || 0) > 0 && (
