@@ -209,7 +209,7 @@ export default function TablesPage() {
             return (
               <button
                 key={table.id}
-                onClick={() => cycleStatus(table.id, table.status)}
+                onClick={() => openTable(table.id)}
                 className={`table-status-${table.status} relative flex flex-col items-center justify-center rounded-lg border-2 p-4 min-h-[120px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
               >
                 <span className="font-display text-lg">{table.name}</span>
