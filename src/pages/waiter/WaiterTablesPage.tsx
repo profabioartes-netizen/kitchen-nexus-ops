@@ -8,7 +8,7 @@ type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "Livre",
-  occupied: "Ocupada",
+  occupied: "Pendente",
   reserved: "Reservada",
   bill: "Conta",
   delivered: "Pedido Entregue",
