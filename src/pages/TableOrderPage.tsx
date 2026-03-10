@@ -149,7 +149,15 @@ export default function TableOrderPage() {
     },
   });
 
-  // Add item
+  // Auto-create order if table has no active order
+  useEffect(() => {
+    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
+      autoCreatedRef.current = true;
+      createOrder.mutate(undefined);
+    }
+  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
+
+
   const addItem = useMutation({
     mutationFn: async (product: (typeof products)[0]) => {
       let currentOrder = order;
