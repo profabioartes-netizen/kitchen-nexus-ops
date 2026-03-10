@@ -381,11 +381,13 @@ export default function TablesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {tables.map((table) => {
             const order = ordersByTable[table.id];
-            const status = table.status as TableStatus;
+            const effectiveStatus: TableStatus = order
+              ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+              : (table.status as TableStatus);
             return (
               <div
                 key={table.id}
-                className={`table-status-${status} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                className={`table-status-${effectiveStatus} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
                 onClick={() => openTable(table.id)}
               >
                 {/* Quick edit button */}
@@ -498,7 +500,7 @@ export default function TablesPage() {
                 </div>
 
                 <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5 text-muted-foreground">
-                  {statusLabels[status]}
+                  {statusLabels[effectiveStatus]}
                 </span>
 
 {/* Order details */}
@@ -539,11 +541,14 @@ export default function TablesPage() {
             const x = isDragging ? dragPos.x : (table.position_x ?? 0);
             const y = isDragging ? dragPos.y : (table.position_y ?? 0);
 
-            return (
+                const effectiveFloorStatus: TableStatus = order
+                  ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+                  : (table.status as TableStatus);
+                return (
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`table-status-${table.status} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`table-status-${effectiveFloorStatus} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
