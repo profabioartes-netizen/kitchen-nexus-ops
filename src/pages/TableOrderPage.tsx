@@ -177,21 +177,38 @@ export default function TableOrderPage() {
 
 
   const addItem = useMutation({
-    mutationFn: async (product: (typeof products)[0]) => {
+    mutationFn: async (payload: AddItemPayload) => {
+      const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
       if (!currentOrder) {
         currentOrder = await createOrder.mutateAsync(waiterName || undefined);
       }
 
-      await supabase.from("order_items").insert({
+      const unitPrice = Number(product.price) + complementsTotal;
+      const { data: insertedItem, error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id,
         product_id: product.id,
         product_name: product.name,
-        price: product.price,
-        quantity: 1,
+        price: unitPrice,
+        quantity,
+        notes: notes || null,
         sent_to_kitchen: true,
         preparation_status: "sent",
-      });
+      }).select().single();
+      if (itemError) throw itemError;
+
+      // Insert complements for this item
+      if (complements.length > 0) {
+        await supabase.from("order_item_complements").insert(
+          complements.map((c) => ({
+            order_item_id: insertedItem.id,
+            complement_id: c.id,
+            complement_name: c.name,
+            price: c.price,
+            quantity: c.quantity,
+          }))
+        );
+      }
 
       // Create print job for the product's station
       const station = (product as any).station || "Cozinha";
@@ -200,22 +217,27 @@ export default function TableOrderPage() {
         status: "pending",
         payload: {
           product_name: product.name,
-          quantity: 1,
+          quantity,
           table_name: table?.name || "—",
           waiter_name: currentOrder.waiter_name || waiterName || null,
-          notes: null,
+          notes: notes || null,
+          complements: complements.map((c) => `${c.name}${c.price > 0 ? ` (+R$${c.price.toFixed(2)})` : ""}`),
           order_id: currentOrder.id,
         },
       });
 
-      const newTotal = [...orderItems, { price: product.price, quantity: 1 }].reduce(
+      const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce(
         (s, i) => s + Number(i.price) * i.quantity, 0
       );
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
-      await logActivity(tableId!, "item_added", `Adicionado e enviado à produção: ${product.name} (R$ ${Number(product.price).toFixed(2)})`, currentOrder.id);
+
+      const compDesc = complements.length > 0 ? ` [${complements.map(c => c.name).join(", ")}]` : "";
+      await logActivity(tableId!, "item_added", `Adicionado e enviado à produção: ${product.name} ×${quantity}${compDesc} (R$ ${(unitPrice * quantity).toFixed(2)})`, currentOrder.id);
     },
     onSuccess: () => {
+      setSelectedProduct(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
