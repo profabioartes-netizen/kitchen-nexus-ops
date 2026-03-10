@@ -521,7 +521,7 @@ export default function TablesPage() {
                 </div>
 
                 {(table as any).internal_number && (
-                  <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
+                  <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>#{(table as any).internal_number}</span>
                 )}
 
                 <div className="flex items-center gap-2 mt-0.5">
