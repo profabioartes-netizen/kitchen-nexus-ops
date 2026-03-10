@@ -15,7 +15,7 @@ const statusLabels: Record<TableStatus, string> = {
 
 const statusColors: Record<TableStatus, string> = {
   free: "border-l-[hsl(var(--status-free))] bg-[hsl(var(--status-free)/0.06)]",
-  occupied: "border-l-[hsl(var(--status-occupied))] bg-[hsl(var(--status-occupied)/0.06)]",
+  occupied: "border-l-[#e0dff5] bg-[#e0dff5]",
   bill: "border-l-[hsl(var(--status-bill))] bg-[hsl(var(--status-bill)/0.06)]",
   delivered: "border-l-[#16a34a] bg-[#16a34a/0.06]",
 };
