@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check, Eye } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check, Eye, ChefHat, Clock, UtensilsCrossed } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -18,13 +18,30 @@ const statusLabels: Record<TableStatus, string> = {
 const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill"];
 
 const TABLE_W = 130;
-const TABLE_H = 120;
+const TABLE_H = 140;
 
 interface QuickEditForm {
   id: string;
   name: string;
   seats: string;
   sector: string;
+}
+
+function TableDuration({ createdAt }: { createdAt: string }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+  const mins = Math.floor((now - new Date(createdAt).getTime()) / 60000);
+  const hrs = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  return (
+    <span className="flex items-center gap-1 text-[10px] text-muted-foreground tabular-nums">
+      <Clock className="h-2.5 w-2.5" />
+      {hrs > 0 ? `${hrs}h${String(remainMins).padStart(2, "0")}` : `${mins}min`}
+    </span>
+  );
 }
 
 export default function TablesPage() {
@@ -48,6 +65,10 @@ export default function TablesPage() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+        queryClient.invalidateQueries({ queryKey: ["today_revenue"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -75,6 +96,36 @@ export default function TablesPage() {
         .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Kitchen orders: items sent to kitchen but not yet delivered
+  const { data: kitchenCount = 0 } = useQuery({
+    queryKey: ["kitchen_orders_count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("order_items")
+        .select("*", { count: "exact", head: true })
+        .eq("sent_to_kitchen", true)
+        .in("preparation_status", ["pending", "preparing"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  // Today's revenue from finalized orders
+  const { data: todayRevenue = 0 } = useQuery({
+    queryKey: ["today_revenue"],
+    queryFn: async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from("orders")
+        .select("total")
+        .eq("status", "finalized")
+        .gte("created_at", todayStart.toISOString());
+      if (error) throw error;
+      return data.reduce((sum, o) => sum + Number(o.total), 0);
     },
   });
 
@@ -145,7 +196,7 @@ export default function TablesPage() {
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, tableId: string, tableX: number, tableY: number) => {
       if (viewMode !== "floor") return;
-      if (quickEdit) return; // Don't drag while editing
+      if (quickEdit) return;
       e.preventDefault();
       e.stopPropagation();
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -183,6 +234,7 @@ export default function TablesPage() {
   }, [draggingId, dragPos, didDrag, updatePosition]);
 
   const occupied = tables.filter((t) => t.status === "occupied").length;
+  const free = tables.filter((t) => t.status === "free").length;
   const ordersByTable = openOrders.reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
     if (o.table_id) acc[o.table_id] = o;
     return acc;
@@ -210,17 +262,7 @@ export default function TablesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Mapa de Mesas</h1>
-        <div className="flex gap-3">
-          <div className="flex items-center gap-2 rounded-md bg-card px-3 py-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">{occupied}/{tables.length} ocupadas</span>
-          </div>
-          <div className="flex items-center gap-2 rounded-md bg-card px-3 py-2">
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              R$ {openOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)}
-            </span>
-          </div>
+        <div className="flex gap-2">
           <div className="flex rounded-md border bg-card overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
@@ -247,6 +289,46 @@ export default function TablesPage() {
         </div>
       </div>
 
+      {/* Summary Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-occupied/15">
+            <Users className="h-4.5 w-4.5 text-status-occupied" />
+          </div>
+          <div>
+            <p className="text-xl font-bold leading-none">{occupied}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Ocupadas</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-free/15">
+            <UtensilsCrossed className="h-4.5 w-4.5 text-status-free" />
+          </div>
+          <div>
+            <p className="text-xl font-bold leading-none">{free}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Livres</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-reserved/15">
+            <ChefHat className="h-4.5 w-4.5 text-status-reserved" />
+          </div>
+          <div>
+            <p className="text-xl font-bold leading-none">{kitchenCount}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Na Cozinha</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15">
+            <CircleDollarSign className="h-4.5 w-4.5 text-accent" />
+          </div>
+          <div>
+            <p className="text-xl font-bold leading-none">R$ {todayRevenue.toFixed(2)}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Faturamento Hoje</p>
+          </div>
+        </div>
+      </div>
+
       {/* Legend */}
       <div className="flex gap-4 mb-4">
         {statusCycle.map((s) => (
@@ -262,13 +344,14 @@ export default function TablesPage() {
 
       {/* Grid View */}
       {viewMode === "grid" && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {tables.map((table) => {
             const order = ordersByTable[table.id];
+            const status = table.status as TableStatus;
             return (
               <div
                 key={table.id}
-                className={`table-status-${table.status} relative flex flex-col items-center justify-center rounded-lg border-2 p-4 min-h-[120px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                className={`table-status-${status} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
                 onClick={() => openTable(table.id)}
               >
                 {/* Quick edit button */}
@@ -350,30 +433,45 @@ export default function TablesPage() {
                   </Popover>
                 )}
 
-                <span className="font-display text-lg">{table.name}</span>
+                {/* Table header */}
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-display text-lg leading-tight">{table.name}</span>
+                  {order && <TableDuration createdAt={order.created_at} />}
+                </div>
+
                 {(table as any).internal_number && (
                   <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
                 )}
-                <span className="text-xs text-muted-foreground mt-1">{table.seats} lugares</span>
-                {(table as any).sector && (
-                  <span className="text-[9px] bg-accent/30 rounded-full px-1.5 py-0.5 mt-1 font-medium text-muted-foreground">{(table as any).sector}</span>
-                )}
-                <span className="text-[10px] font-medium uppercase tracking-wider mt-2 text-muted-foreground">
-                  {statusLabels[table.status as TableStatus]}
+
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-muted-foreground">{table.seats} lugares</span>
+                  {(table as any).sector && (
+                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium text-muted-foreground">{(table as any).sector}</span>
+                  )}
+                </div>
+
+                <span className="text-[10px] font-semibold uppercase tracking-wider mt-1.5 text-muted-foreground">
+                  {statusLabels[status]}
                 </span>
+
+                {/* Order details */}
                 {order && (
-                  <div className="mt-2 flex items-center gap-2 text-xs">
-                    <span className="font-semibold">R$ {Number(order.total).toFixed(2)}</span>
-                    {(order as any).guests > 1 && (
-                      <span className="text-muted-foreground">{(order as any).guests}p</span>
+                  <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
+                      {(order as any).guests > 1 && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <Users className="h-2.5 w-2.5" /> {(order as any).guests}
+                        </span>
+                      )}
+                    </div>
+                    {(order as any)?.customer_name && (
+                      <p className="text-[11px] text-accent font-medium truncate">{(order as any).customer_name}</p>
+                    )}
+                    {order?.waiter_name && (
+                      <p className="text-[10px] text-muted-foreground truncate">{order.waiter_name}</p>
                     )}
                   </div>
-                )}
-                {(order as any)?.customer_name && (
-                  <span className="text-[10px] text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
-                )}
-                {order?.waiter_name && (
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
                 )}
               </div>
             );
@@ -420,9 +518,6 @@ export default function TablesPage() {
                 </button>
 
                 <span className="font-display text-sm">{table.name}</span>
-                {(table as any).internal_number && (
-                  <span className="text-[8px] text-muted-foreground">#{(table as any).internal_number}</span>
-                )}
                 <span className="text-[10px] text-muted-foreground mt-0.5">{table.seats} lug</span>
                 {(table as any).sector && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5 text-muted-foreground">{(table as any).sector}</span>
@@ -431,13 +526,16 @@ export default function TablesPage() {
                   {statusLabels[table.status as TableStatus]}
                 </span>
                 {order && (
-                  <span className="text-[10px] font-semibold mt-0.5">R$ {Number(order.total).toFixed(2)}{(order as any).guests > 1 ? ` · ${(order as any).guests}p` : ""}</span>
+                  <>
+                    <span className="text-[10px] font-semibold mt-0.5">R$ {Number(order.total).toFixed(2)}</span>
+                    <TableDuration createdAt={order.created_at} />
+                  </>
                 )}
                 {(order as any)?.customer_name && (
                   <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{(order as any).customer_name}</span>
                 )}
                 {order?.waiter_name && (
-                  <span className="text-[9px] text-muted-foreground">{order.waiter_name}</span>
+                  <span className="text-[9px] text-muted-foreground truncate max-w-[110px]">{order.waiter_name}</span>
                 )}
               </div>
             );
