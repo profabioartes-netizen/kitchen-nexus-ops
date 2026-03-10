@@ -116,6 +116,7 @@ export function ProductFormDialog({ productId, onClose }: Props) {
         station: form.station,
         stock: parseInt(form.stock) || -1,
         active: form.active,
+        prep_time_minutes: parseInt(form.prep_time_minutes) || 15,
       };
 
       let pid = productId;
