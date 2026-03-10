@@ -78,7 +78,7 @@ export default function TableManagementPage() {
       setShowForm(false);
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      toast.success(editingId ? "Mesa atualizada!" : "Mesa criada!");
+      toast.success(editingId ? "Comanda atualizada!" : "Comanda criada!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
