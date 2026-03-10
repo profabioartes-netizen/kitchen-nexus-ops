@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   CreditCard, Banknote, Smartphone, ArrowLeft,
-  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins,
+  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins, ListChecks,
 } from "lucide-react";
 import {
   Dialog,
