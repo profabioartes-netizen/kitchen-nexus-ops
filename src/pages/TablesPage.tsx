@@ -251,7 +251,6 @@ export default function TablesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {tables.map((table) => {
             const order = ordersByTable[table.id];
-            const isPreviewOpen = previewOrderId === order?.id;
             return (
               <div
                 key={table.id}
