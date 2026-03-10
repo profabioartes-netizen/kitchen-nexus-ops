@@ -20,7 +20,8 @@ const statusLabels: Record<TableStatus, string> = {
 
 const methodLabels: Record<string, string> = {
   cash: "Dinheiro",
-  card: "Cartão",
+  debit: "Débito",
+  credit: "Crédito",
   pix: "Pix",
 };
 
