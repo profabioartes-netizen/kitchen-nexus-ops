@@ -63,7 +63,7 @@
 
     /* Status Colors */
     --status-free: 142 60% 40%;
-    --status-occupied: 36 90% 44%;
+    --status-occupied: 48 90% 50%;
     --status-reserved: 220 60% 50%;
     --status-bill: 0 73% 42%;
   }

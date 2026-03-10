@@ -81,6 +81,7 @@ export default function TablesPage() {
         .from("restaurant_tables")
         .update({
           name: form.name.trim(),
+          default_name: form.name.trim(),
           seats: parseInt(form.seats) || 4,
           sector: form.sector.trim() || null,
         } as any)

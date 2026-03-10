@@ -54,6 +54,7 @@ export default function TableManagementPage() {
     mutationFn: async () => {
       const payload = {
         name: form.name.trim(),
+        default_name: form.name.trim(),
         seats: parseInt(form.seats) || 4,
         active: form.active,
         internal_number: form.internal_number.trim() || null,
