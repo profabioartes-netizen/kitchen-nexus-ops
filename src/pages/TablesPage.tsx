@@ -747,7 +747,7 @@ export default function TablesPage() {
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(floorInlineOccupied ? { backgroundColor: "#c7c3f0", borderColor: "#c7c3f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
+                  ...(floorInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
                 {/* Delivery toggle on floor plan */}
