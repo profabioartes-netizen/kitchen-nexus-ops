@@ -525,9 +525,9 @@ export default function TablesPage() {
                 )}
 
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-muted-foreground">{table.seats} lugares</span>
+                  <span className="text-xs" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{table.seats} lugares</span>
                   {(table as any).sector && (
-                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium text-muted-foreground">{(table as any).sector}</span>
+                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                   )}
                 </div>
 
