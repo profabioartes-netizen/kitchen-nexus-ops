@@ -279,7 +279,7 @@ export default function TablesPage() {
         const toRemove = sorted.slice(desiredCount);
         const blocked = toRemove.filter(t => ["occupied", "delivered"].includes(t.status));
         if (blocked.length > 0) {
-          throw new Error(`Não é possível reduzir: ${blocked.length} mesa(s) com status ativo (${blocked.map(t => t.name).join(", ")}). Libere-as primeiro.`);
+          throw new Error(`Não é possível reduzir: ${blocked.length} comanda(s) com status ativo (${blocked.map(t => t.name).join(", ")}). Libere-as primeiro.`);
         }
         const idsToRemove = toRemove.map(t => t.id);
         // Check if any have open orders
