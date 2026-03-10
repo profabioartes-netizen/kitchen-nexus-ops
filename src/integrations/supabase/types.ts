@@ -467,10 +467,12 @@ export type Database = {
           active: boolean
           created_at: string
           id: string
+          internal_number: string | null
           name: string
           position_x: number | null
           position_y: number | null
           seats: number
+          sector: string | null
           sort_order: number | null
           status: string
           updated_at: string
@@ -479,10 +481,12 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          internal_number?: string | null
           name: string
           position_x?: number | null
           position_y?: number | null
           seats?: number
+          sector?: string | null
           sort_order?: number | null
           status?: string
           updated_at?: string
@@ -491,10 +495,12 @@ export type Database = {
           active?: boolean
           created_at?: string
           id?: string
+          internal_number?: string | null
           name?: string
           position_x?: number | null
           position_y?: number | null
           seats?: number
+          sector?: string | null
           sort_order?: number | null
           status?: string
           updated_at?: string

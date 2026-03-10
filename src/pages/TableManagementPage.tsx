@@ -8,9 +8,11 @@ interface TableForm {
   name: string;
   seats: string;
   active: boolean;
+  internal_number: string;
+  sector: string;
 }
 
-const emptyForm: TableForm = { name: "", seats: "4", active: true };
+const emptyForm: TableForm = { name: "", seats: "4", active: true, internal_number: "", sector: "" };
 
 export default function TableManagementPage() {
   const queryClient = useQueryClient();
@@ -37,7 +39,13 @@ export default function TableManagementPage() {
   };
 
   const openEdit = (t: typeof tables[0]) => {
-    setForm({ name: t.name, seats: String(t.seats), active: t.active });
+    setForm({
+      name: t.name,
+      seats: String(t.seats),
+      active: t.active,
+      internal_number: (t as any).internal_number || "",
+      sector: (t as any).sector || "",
+    });
     setEditingId(t.id);
     setShowForm(true);
   };
@@ -48,7 +56,9 @@ export default function TableManagementPage() {
         name: form.name.trim(),
         seats: parseInt(form.seats) || 4,
         active: form.active,
-      };
+        internal_number: form.internal_number.trim() || null,
+        sector: form.sector.trim() || null,
+      } as any;
 
       if (editingId) {
         const { error } = await supabase.from("restaurant_tables").update(payload).eq("id", editingId);
@@ -157,7 +167,13 @@ export default function TableManagementPage() {
               className="table-status-free flex flex-col items-center justify-center rounded-lg border-2 p-2 min-h-[60px]"
             >
               <span className="font-display text-xs">{t.name}</span>
+              {(t as any).internal_number && (
+                <span className="text-[9px] text-muted-foreground">#{(t as any).internal_number}</span>
+              )}
               <span className="text-[10px] text-muted-foreground">{t.seats}lug</span>
+              {(t as any).sector && (
+                <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5 text-muted-foreground">{(t as any).sector}</span>
+              )}
             </div>
           ))}
         </div>
@@ -170,6 +186,8 @@ export default function TableManagementPage() {
             <tr className="border-b bg-secondary/50">
               <th className="px-4 py-2 w-16 font-medium text-center">Ordem</th>
               <th className="text-left px-4 py-2 font-medium">Nome</th>
+              <th className="text-center px-4 py-2 font-medium">Nº Int.</th>
+              <th className="text-center px-4 py-2 font-medium">Setor</th>
               <th className="text-center px-4 py-2 font-medium">Lugares</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 w-32"></th>
@@ -198,6 +216,14 @@ export default function TableManagementPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 font-medium">{table.name}</td>
+                <td className="px-4 py-3 text-center text-xs text-muted-foreground">{(table as any).internal_number || "—"}</td>
+                <td className="px-4 py-3 text-center">
+                  {(table as any).sector ? (
+                    <span className="text-[10px] bg-accent/30 rounded-full px-2 py-0.5 font-medium">{(table as any).sector}</span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-center">{table.seats}</td>
                 <td className="px-4 py-3 text-center">
                   <button
@@ -244,23 +270,46 @@ export default function TableManagementPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nome / Número</label>
+                <label className="text-sm font-medium text-muted-foreground">Nome de Exibição</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Mesa 13"
+                  placeholder="Ex: Varanda VIP, Mesa Janela 1"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">Nome personalizado exibido no mapa e comanda</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Número Interno (opcional)</label>
+                  <input
+                    type="text"
+                    value={form.internal_number}
+                    onChange={(e) => setForm({ ...form, internal_number: e.target.value })}
+                    placeholder="Ex: 13, A-5"
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Número de Lugares</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.seats}
+                    onChange={(e) => setForm({ ...form, seats: e.target.value })}
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Número de Lugares</label>
+                <label className="text-sm font-medium text-muted-foreground">Setor / Localização</label>
                 <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={form.seats}
-                  onChange={(e) => setForm({ ...form, seats: e.target.value })}
+                  type="text"
+                  value={form.sector}
+                  onChange={(e) => setForm({ ...form, sector: e.target.value })}
+                  placeholder="Ex: Salão, Varanda, Terraço, Bar"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
