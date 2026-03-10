@@ -442,11 +442,13 @@ export default function TablesPage() {
                 {order && (
                   <Popover
                     open={previewOrderId === order.id}
-                    onOpenChange={(open) => setPreviewOrderId(open ? order.id : null)}
+                    onOpenChange={(open) => { if (!open) setPreviewOrderId(null); }}
                   >
                     <PopoverTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
+                        onMouseEnter={(e) => { e.stopPropagation(); setPreviewOrderId(order.id); }}
+                        onMouseLeave={(e) => { e.stopPropagation(); setPreviewOrderId(null); }}
                         className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 ${previewOrderId === order.id ? "opacity-100 bg-accent/20" : "opacity-0 group-hover:opacity-100"} hover:bg-secondary/80`}
                         title="Prévia do pedido"
                       >
@@ -459,6 +461,8 @@ export default function TablesPage() {
                       sideOffset={8}
                       className="w-52 p-0 shadow-md max-h-[320px] overflow-y-auto"
                       onClick={(e) => e.stopPropagation()}
+                      onMouseEnter={() => setPreviewOrderId(order.id)}
+                      onMouseLeave={() => setPreviewOrderId(null)}
                     >
                       {previewItems.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
