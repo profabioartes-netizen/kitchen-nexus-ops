@@ -875,7 +875,30 @@ export default function TableOrderPage() {
 
         {/* Footer */}
         <div className="border-t p-4 space-y-3">
-          {!showPayment ? (
+          {order?.status === "paid_pending_finalization" ? (
+            <>
+              <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
+                <p className="text-sm font-semibold text-accent">✓ Pagamento concluído</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Finalize para registrar nos relatórios</p>
+              </div>
+              <button
+                onClick={() => finalizeMutation.mutate()}
+                disabled={finalizeMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 rounded-md bg-status-free text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-5 w-5" />
+                <span>{finalizeMutation.isPending ? "Finalizando..." : "Finalizar Mesa"}</span>
+              </button>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={cancelOrder.isPending}
+                className="w-full flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+              >
+                <Ban className="h-3.5 w-3.5" />
+                Cancelar Mesa
+              </button>
+            </>
+          ) : !showPayment ? (
             <>
               <div className="flex items-center justify-between">
                 <span className="font-display text-xl">TOTAL</span>
