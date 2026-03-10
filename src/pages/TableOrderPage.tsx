@@ -130,15 +130,15 @@ export default function TableOrderPage() {
 
   // Create order
   const createOrder = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (waiter?: string) => {
       const { data, error } = await supabase
         .from("orders")
-        .insert({ table_id: tableId!, status: "open", total: 0 })
+        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiter || null })
         .select()
         .single();
       if (error) throw error;
       await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
-      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta`, data.id);
+      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta${waiter ? ` — Garçom: ${waiter}` : ""}`, data.id, waiter);
       return data;
     },
     onSuccess: () => {
