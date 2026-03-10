@@ -4,8 +4,7 @@ import {
   ShoppingCart,
   BarChart3,
   Package,
-  Warehouse,
-  Settings,
+  Printer,
   ChefHat,
 } from "lucide-react";
 
@@ -13,9 +12,8 @@ const navItems = [
   { to: "/", icon: LayoutGrid, label: "Mesas" },
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
   { to: "/produtos", icon: Package, label: "Produtos" },
-  { to: "/estoque", icon: Warehouse, label: "Estoque" },
+  { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
-  { to: "/gestao", icon: Settings, label: "Gestão" },
 ];
 
 export function NavigationRail() {

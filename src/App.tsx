@@ -7,9 +7,8 @@ import { AppLayout } from "@/components/AppLayout";
 import TablesPage from "@/pages/TablesPage";
 import CashierPage from "@/pages/CashierPage";
 import ProductsPage from "@/pages/ProductsPage";
-import StockPage from "@/pages/StockPage";
+import PrintersPage from "@/pages/PrintersPage";
 import ReportsPage from "@/pages/ReportsPage";
-import ManagementPage from "@/pages/ManagementPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,9 +24,8 @@ const App = () => (
             <Route path="/" element={<TablesPage />} />
             <Route path="/caixa" element={<CashierPage />} />
             <Route path="/produtos" element={<ProductsPage />} />
-            <Route path="/estoque" element={<StockPage />} />
+            <Route path="/impressoras" element={<PrintersPage />} />
             <Route path="/relatorios" element={<ReportsPage />} />
-            <Route path="/gestao" element={<ManagementPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
