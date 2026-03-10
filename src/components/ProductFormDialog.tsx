@@ -109,10 +109,13 @@ export function ProductFormDialog({ productId, onClose }: Props) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // Convert price from Brazilian format (comma) to standard format (dot)
+      const priceValue = parseFloat(form.price.replace(',', '.')) || 0;
+      
       const payload = {
         name: form.name.trim(),
         category_id: form.category_id || null,
-        price: parseFloat(form.price) || 0,
+        price: priceValue,
         station: form.station,
         stock: parseInt(form.stock) || -1,
         active: form.active,
