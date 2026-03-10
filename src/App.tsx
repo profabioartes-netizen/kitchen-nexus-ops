@@ -25,6 +25,7 @@ const App = () => (
           <Route element={<AppLayout />}>
             <Route path="/" element={<TablesPage />} />
             <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
+            <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
             <Route path="/caixa" element={<CashierPage />} />
             <Route path="/produtos" element={<ProductsPage />} />
             <Route path="/impressoras" element={<PrintersPage />} />
