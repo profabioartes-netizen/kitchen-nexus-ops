@@ -252,7 +252,76 @@ export default function TablesPage() {
     },
   });
 
-  const openTable = (id: string) => {
+  // Fetch ALL tables (active + inactive) for counting
+  const { data: allTables = [] } = useQuery({
+    queryKey: ["restaurant_tables_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("restaurant_tables")
+        .select("*")
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const saveTableCount = useMutation({
+    mutationFn: async (desiredCount: number) => {
+      const currentCount = allTables.length;
+      if (desiredCount === currentCount) return;
+
+      if (desiredCount < currentCount) {
+        // Tables to remove are the ones at the end (highest sort_order)
+        const sorted = [...allTables].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        const toRemove = sorted.slice(desiredCount);
+        const blocked = toRemove.filter(t => ["occupied", "delivered"].includes(t.status));
+        if (blocked.length > 0) {
+          throw new Error(`Não é possível reduzir: ${blocked.length} mesa(s) com status ativo (${blocked.map(t => t.name).join(", ")}). Libere-as primeiro.`);
+        }
+        const idsToRemove = toRemove.map(t => t.id);
+        // Check if any have open orders
+        const { data: activeOrders } = await supabase
+          .from("orders")
+          .select("id, table_id")
+          .in("table_id", idsToRemove)
+          .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
+        if (activeOrders && activeOrders.length > 0) {
+          throw new Error("Não é possível remover mesas com pedidos abertos.");
+        }
+        // Deactivate (soft delete) tables
+        const { error } = await supabase
+          .from("restaurant_tables")
+          .delete()
+          .in("id", idsToRemove);
+        if (error) throw error;
+      } else {
+        // Add new tables
+        const maxOrder = allTables.reduce((m, t) => Math.max(m, t.sort_order ?? 0), 0);
+        const newTables = [];
+        for (let i = currentCount + 1; i <= desiredCount; i++) {
+          newTables.push({
+            name: `Mesa ${i}`,
+            default_name: `Mesa ${i}`,
+            seats: 4,
+            active: true,
+            status: "free",
+            sort_order: maxOrder + (i - currentCount),
+          });
+        }
+        const { error } = await supabase.from("restaurant_tables").insert(newTables);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_all"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
+      setTableCountOpen(false);
+      toast.success("Quantidade de mesas atualizada!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
     navigate(`/mesas/${id}/pedido`);
   };
 
