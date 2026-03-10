@@ -186,7 +186,7 @@ export default function WaiterOrderPage() {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
-      const tableLabel = customerName ? `${table?.name ?? "Mesa"} — ${customerName}` : undefined;
+      const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
       const { data, error } = await supabase.from("orders").insert({
         table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel,
         customer_name: customerName, guests,
