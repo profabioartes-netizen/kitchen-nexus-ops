@@ -93,6 +93,10 @@
 }
 
 @layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .nav-rail {
     @apply flex flex-col items-center py-4 gap-1;
     background: hsl(var(--nav-bg));
