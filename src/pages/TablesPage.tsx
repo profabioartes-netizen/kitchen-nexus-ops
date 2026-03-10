@@ -541,11 +541,14 @@ export default function TablesPage() {
             const x = isDragging ? dragPos.x : (table.position_x ?? 0);
             const y = isDragging ? dragPos.y : (table.position_y ?? 0);
 
-            return (
+                const effectiveFloorStatus: TableStatus = order
+                  ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+                  : (table.status as TableStatus);
+                return (
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`table-status-${table.status} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`table-status-${effectiveFloorStatus} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
