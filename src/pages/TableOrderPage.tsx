@@ -1143,14 +1143,25 @@ export default function TableOrderPage() {
                   <span className="text-sm">Fechar Conta</span>
                 </button>
               </div>
-              <button
-                onClick={() => setShowCancelConfirm(true)}
-                disabled={!order || cancelOrder.isPending}
-                className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
-              >
-                <Ban className="h-3.5 w-3.5" />
-                Cancelar Mesa
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => saveOrder.mutate()}
+                  disabled={!order || orderItems.length === 0 || saveOrder.isPending}
+                  className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: "#16a34a", color: "white" }}
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  {saveOrder.isPending ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  onClick={() => setShowCancelConfirm(true)}
+                  disabled={!order || cancelOrder.isPending}
+                  className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Cancelar Mesa
+                </button>
+              </div>
             </>
           ) : (
             <PaymentPanel
