@@ -120,7 +120,13 @@ export default function WaiterTablesPage() {
                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     {statusLabels[status]}
                   </span>
+                  {(order as any)?.guests > 1 && (
+                    <span className="text-[10px] text-muted-foreground">{(order as any).guests} pessoas</span>
+                  )}
                 </div>
+                {(order as any)?.customer_name && (
+                  <span className="text-xs text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 {order && (

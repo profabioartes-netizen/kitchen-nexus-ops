@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
+import TableOpenDialog from "@/components/TableOpenDialog";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 const statusLabels: Record<TableStatus, string> = {
@@ -37,6 +38,7 @@ export default function WaiterOrderPage() {
   const [shortcutTab, setShortcutTab] = useState<ShortcutTab>("popular");
   const [showShortcuts, setShowShortcuts] = useState(true);
   const autoCreatedRef = useRef(false);
+  const [showOpenDialog, setShowOpenDialog] = useState(false);
 
   // ── Data queries ──
 
@@ -180,24 +182,35 @@ export default function WaiterOrderPage() {
   // ── Mutations ──
 
   const createOrder = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
       const waiterLabel = profile?.full_name || null;
-      const { data, error } = await supabase.from("orders").insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel }).select().single();
+      const customerName = params?.customerName || null;
+      const guests = params?.guests || 1;
+      const tableLabel = customerName ? `${table?.name ?? "Mesa"} — ${customerName}` : undefined;
+      const { data, error } = await supabase.from("orders").insert({
+        table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel,
+        customer_name: customerName, guests,
+      } as any).select().single();
       if (error) throw error;
-      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
-      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta — Garçom: ${waiterLabel ?? "—"}`, data.id, waiterLabel);
+      const updatePayload: any = { status: "occupied" };
+      if (tableLabel) updatePayload.name = tableLabel;
+      await supabase.from("restaurant_tables").update(updatePayload).eq("id", tableId!);
+      const desc = `Mesa ${table?.name ?? ""} aberta — Garçom: ${waiterLabel ?? "—"}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
+      await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      setShowOpenDialog(false);
     },
   });
 
+  // Show dialog for free tables, auto-skip for tables with existing orders
   useEffect(() => {
     if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
       autoCreatedRef.current = true;
-      createOrder.mutate();
+      setShowOpenDialog(true);
     }
   }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
 
@@ -214,7 +227,7 @@ export default function WaiterOrderPage() {
   const quickAdd = useMutation({
     mutationFn: async (product: any) => {
       let currentOrder = order;
-      if (!currentOrder) currentOrder = await createOrder.mutateAsync();
+      if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
       const unitPrice = Number(product.price);
       const { error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity: 1,
@@ -246,7 +259,7 @@ export default function WaiterOrderPage() {
     mutationFn: async () => {
       if (!previousOrder?.items?.length) throw new Error("Sem pedido anterior");
       let currentOrder = order;
-      if (!currentOrder) currentOrder = await createOrder.mutateAsync();
+      if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
 
       for (const prevItem of previousOrder.items) {
         const product = products.find((p) => p.id === prevItem.product_id);
@@ -283,7 +296,7 @@ export default function WaiterOrderPage() {
     mutationFn: async (payload: AddItemPayload) => {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
-      if (!currentOrder) currentOrder = await createOrder.mutateAsync();
+      if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
       const unitPrice = Number(product.price) + complementsTotal;
       const { data: insertedItem, error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity,
@@ -393,10 +406,25 @@ export default function WaiterOrderPage() {
 
   if (!order && !orderLoading && !tableLoading) {
     return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-      </div>
+      <>
+        <TableOpenDialog
+          open={showOpenDialog}
+          tableName={table?.name ?? "Mesa"}
+          onConfirm={(data) => createOrder.mutate(data)}
+          onCancel={() => navigate("/garcom/mesas")}
+          isPending={createOrder.isPending}
+        />
+        <div className="flex items-center justify-center h-full p-12">
+          {createOrder.isPending ? (
+            <>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">Aguardando abertura da mesa...</span>
+          )}
+        </div>
+      </>
     );
   }
 

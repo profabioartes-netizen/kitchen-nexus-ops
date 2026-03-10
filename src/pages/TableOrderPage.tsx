@@ -9,6 +9,7 @@ import {
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel from "@/components/PaymentPanel";
+import TableOpenDialog from "@/components/TableOpenDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
@@ -60,6 +61,7 @@ export default function TableOrderPage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [serviceFeeEnabled, setServiceFeeEnabled] = useState(false);
   const autoCreatedRef = useRef(false);
+  const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
   const [mergeConfirm, setMergeConfirm] = useState(false);
@@ -299,30 +301,37 @@ export default function TableOrderPage() {
   });
 
   const createOrder = useMutation({
-    mutationFn: async (waiter?: string) => {
-      const waiterLabel = waiter || profile?.full_name || null;
+    mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
+      const waiterLabel = profile?.full_name || null;
+      const customerName = params?.customerName || null;
+      const guests = params?.guests || 1;
+      const tableLabel = customerName ? `${table?.name ?? "Mesa"} — ${customerName}` : undefined;
       const { data, error } = await supabase
         .from("orders")
-        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel })
+        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
         .select()
         .single();
       if (error) throw error;
-      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
-      await logActivity(tableId!, "table_opened", `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}`, data.id, waiterLabel);
+      const updatePayload: any = { status: "occupied" };
+      if (tableLabel) updatePayload.name = tableLabel;
+      await supabase.from("restaurant_tables").update(updatePayload).eq("id", tableId!);
+      const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
+      await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       invalidateLog();
+      setShowOpenDialog(false);
     },
   });
 
-  // Auto-create order if table has no active order
+  // Show opening dialog for free tables
   useEffect(() => {
     if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
       autoCreatedRef.current = true;
-      createOrder.mutate(undefined);
+      setShowOpenDialog(true);
     }
   }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
 
@@ -332,7 +341,7 @@ export default function TableOrderPage() {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
       if (!currentOrder) {
-        currentOrder = await createOrder.mutateAsync(waiterName || undefined);
+        currentOrder = await createOrder.mutateAsync({});
       }
 
       const unitPrice = Number(product.price) + complementsTotal;
@@ -575,13 +584,28 @@ export default function TableOrderPage() {
     );
   }
 
-  // Show loading while auto-creating order
+  // Show opening dialog for new orders
   if (!order && !orderLoading && !tableLoading) {
     return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-      </div>
+      <>
+        <TableOpenDialog
+          open={showOpenDialog}
+          tableName={table?.name ?? "Mesa"}
+          onConfirm={(data) => createOrder.mutate(data)}
+          onCancel={() => navigate("/")}
+          isPending={createOrder.isPending}
+        />
+        <div className="flex items-center justify-center h-full p-12">
+          {createOrder.isPending ? (
+            <>
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">Aguardando abertura da mesa...</span>
+          )}
+        </div>
+      </>
     );
   }
 

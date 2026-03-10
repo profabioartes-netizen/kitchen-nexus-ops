@@ -263,10 +263,16 @@ export default function TablesPage() {
                 {order && (
                   <div className="mt-2 flex items-center gap-2 text-xs">
                     <span className="font-semibold">R$ {Number(order.total).toFixed(2)}</span>
+                    {(order as any).guests > 1 && (
+                      <span className="text-muted-foreground">{(order as any).guests}p</span>
+                    )}
                   </div>
                 )}
+                {(order as any)?.customer_name && (
+                  <span className="text-[10px] text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
+                )}
                 {order?.waiter_name && (
-                  <span className="text-[10px] text-muted-foreground mt-1">{order.waiter_name}</span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{order.waiter_name}</span>
                 )}
               </div>
             );
@@ -324,7 +330,10 @@ export default function TablesPage() {
                   {statusLabels[table.status as TableStatus]}
                 </span>
                 {order && (
-                  <span className="text-[10px] font-semibold mt-1">R$ {Number(order.total).toFixed(2)}</span>
+                  <span className="text-[10px] font-semibold mt-0.5">R$ {Number(order.total).toFixed(2)}{(order as any).guests > 1 ? ` · ${(order as any).guests}p` : ""}</span>
+                )}
+                {(order as any)?.customer_name && (
+                  <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{(order as any).customer_name}</span>
                 )}
                 {order?.waiter_name && (
                   <span className="text-[9px] text-muted-foreground">{order.waiter_name}</span>
