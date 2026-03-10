@@ -676,7 +676,7 @@ export default function TablesPage() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Nome de Exibição</label>
+                <label className="text-xs font-medium text-muted-foreground">Nome do Cliente</label>
                 <input
                   type="text"
                   value={quickEdit.name}
