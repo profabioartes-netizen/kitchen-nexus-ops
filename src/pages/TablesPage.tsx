@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, Edit2, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2 } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -253,9 +253,7 @@ export default function TablesPage() {
     navigate(`/mesas/${id}/pedido`);
   };
 
-  const handleQuickEdit = (e: React.MouseEvent, table: any) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const handleQuickEdit = (table: any) => {
     setQuickEdit({
       id: table.id,
       name: table.name,
@@ -428,17 +426,9 @@ export default function TablesPage() {
                 key={table.id}
                 className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
                 style={useInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
-                onClick={() => openTable(table.id)}
+                onClick={() => handleQuickEdit(table)}
               >
 
-                {/* Quick edit button */}
-                <button
-                  onClick={(e) => handleQuickEdit(e, table)}
-                  className="absolute top-1.5 right-1.5 rounded p-1 opacity-0 group-hover:opacity-100 hover:bg-secondary/80 transition-opacity z-10"
-                  title="Editar mesa"
-                >
-                  <Edit2 className="h-3 w-3 text-muted-foreground" />
-                </button>
 
                 {/* Unviewed items badge */}
                 {order && (unviewedCounts[order.id] || 0) > 0 && (
@@ -640,15 +630,6 @@ export default function TablesPage() {
                   </button>
                 )}
 
-                {/* Quick edit button on floor plan */}
-                <button
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => handleQuickEdit(e, table)}
-                  className="absolute top-1 right-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary/80 transition-opacity z-10"
-                  title="Editar mesa"
-                >
-                  <Edit2 className="h-2.5 w-2.5 text-muted-foreground" />
-                </button>
 
                 <span className="font-display text-sm">{table.name}</span>
                 
@@ -704,13 +685,25 @@ export default function TablesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Setor</label>
+                <label className="text-xs font-medium text-muted-foreground">Mesa</label>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa Redonda Fora", "Mesa Quadrada Fora", "Quiosque"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setQuickEdit({ ...quickEdit, sector: opt })}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${quickEdit.sector === opt ? "bg-accent text-accent-foreground border-accent" : "bg-card hover:bg-secondary border-border text-foreground"}`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
                 <input
                   type="text"
                   value={quickEdit.sector}
                   onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
-                  placeholder="Ex: Varanda"
-                  className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="Ou digite manualmente..."
+                  className="mt-2 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
