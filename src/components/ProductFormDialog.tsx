@@ -18,7 +18,7 @@ const emptyForm: ProductFormData = {
   name: "",
   category_id: "",
   price: "",
-  station: "Cozinha",
+  station: "",
   stock: "-1",
   active: true,
   prep_time_minutes: "15",
