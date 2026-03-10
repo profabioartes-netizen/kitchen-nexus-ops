@@ -53,7 +53,8 @@ export default function ReportsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
-        .select("*, orders(status, created_at)")
+        .select("*, orders!inner(status, created_at)")
+        .eq("orders.status", "closed")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
@@ -65,7 +66,8 @@ export default function ReportsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("product_name, price, quantity, orders(created_at), product_id, products(category_id, categories(name))");
+        .select("product_name, price, quantity, orders!inner(status, created_at), product_id, products(category_id, categories(name))")
+        .eq("orders.status", "closed");
       if (error) throw error;
       return data;
     },

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -567,6 +567,34 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Cancel / delete order without sending to reports
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const cancelOrder = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido aberto");
+      // Delete payments associated with this order
+      await supabase.from("payments").delete().eq("order_id", order.id);
+      // Set order status to cancelled (will NOT appear in reports)
+      await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+      // Reset table
+      const { data: tableData } = await supabase
+        .from("restaurant_tables")
+        .select("default_name")
+        .eq("id", tableId!)
+        .single();
+      const resetName = (tableData as any)?.default_name || table?.name;
+      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
+      await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      toast.success("Pedido cancelado. Mesa liberada.");
+      navigate("/");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
@@ -853,6 +881,14 @@ export default function TableOrderPage() {
                   <span className="text-sm">Fechar Conta</span>
                 </button>
               </div>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={!order || cancelOrder.isPending}
+                className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+              >
+                <Ban className="h-3.5 w-3.5" />
+                Cancelar Mesa
+              </button>
             </>
           ) : (
             <PaymentPanel
@@ -1111,6 +1147,41 @@ export default function TableOrderPage() {
                 })()}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Cancel order confirmation */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-destructive/10">
+                <Ban className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Cancelar Mesa</h3>
+                <p className="text-xs text-muted-foreground">Esta ação não pode ser desfeita</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              O pedido será cancelado e <strong>não será contabilizado nos relatórios</strong>. Todos os pagamentos parciais serão descartados e a mesa será liberada.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-secondary"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => cancelOrder.mutate()}
+                disabled={cancelOrder.isPending}
+                className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {cancelOrder.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
+              </button>
+            </div>
           </div>
         </div>
       )}
