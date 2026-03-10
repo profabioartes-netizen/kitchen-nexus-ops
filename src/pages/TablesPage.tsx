@@ -413,12 +413,14 @@ export default function TablesPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
-                    className={`absolute top-1.5 right-8 rounded p-1 transition-opacity z-10 ${effectiveStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    className="absolute top-2 right-8 rounded-full p-1.5 z-20 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: effectiveStatus === "delivered" ? "#166534" : "rgba(255,255,255,0.25)" }}
                     title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
                   >
-                    <CheckCircle2 className="h-3.5 w-3.5" style={{ color: effectiveStatus === "delivered" ? "#166534" : "white" }} />
+                    <CheckCircle2 className="h-4 w-4" style={{ color: effectiveStatus === "delivered" ? "#bbf7d6" : "white" }} />
                   </button>
                 )}
 
