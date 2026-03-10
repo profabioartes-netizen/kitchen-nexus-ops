@@ -213,6 +213,20 @@ export default function TablesPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const toggleDelivered = useMutation({
+    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      const newStatus = currentStatus === "delivered" ? "occupied" : "delivered";
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ status: newStatus })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+    },
+  });
+
   const openTable = (id: string) => {
     navigate(`/mesas/${id}/pedido`);
   };
