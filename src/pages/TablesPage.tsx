@@ -67,6 +67,7 @@ export default function TablesPage() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
+        queryClient.invalidateQueries({ queryKey: ["order_item_counts"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
