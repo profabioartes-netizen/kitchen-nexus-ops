@@ -811,6 +811,90 @@ export default function TableOrderPage() {
         onAdd={(payload) => addItem.mutate(payload)}
         isPending={addItem.isPending}
       />
+
+      {/* Transfer dialog */}
+      {showTransfer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-md rounded-lg border bg-background p-5 shadow-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <ArrowRightLeft className="h-4 w-4" />
+                Transferir Pedido
+              </h3>
+              <button onClick={() => setShowTransfer(false)} className="rounded p-1 hover:bg-secondary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {!mergeConfirm ? (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Selecione a mesa de destino para transferir o pedido da <strong>{table?.name}</strong>:
+                </p>
+                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-auto">
+                  {allTables
+                    .filter((t) => t.id !== tableId)
+                    .map((t) => {
+                      const hasOrder = allOpenOrders.some((o) => o.table_id === t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            setTransferTarget(t.id);
+                            transferOrder.mutate({ targetTableId: t.id, merge: false });
+                          }}
+                          disabled={transferOrder.isPending}
+                          className={`table-status-${t.status} relative flex flex-col items-center rounded-lg border-2 p-3 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                            transferTarget === t.id ? "ring-2 ring-ring" : ""
+                          }`}
+                        >
+                          <span className="font-medium text-sm">{t.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{t.seats} lug</span>
+                          <span className="text-[9px] font-medium uppercase tracking-wider mt-1 text-muted-foreground">
+                            {statusLabels[t.status as TableStatus]}
+                          </span>
+                          {hasOrder && (
+                            <span className="text-[9px] text-[hsl(var(--status-occupied))] font-medium mt-0.5">
+                              Com pedido
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  A <strong>{allTables.find((t) => t.id === transferTarget)?.name}</strong> já possui um pedido aberto.
+                </p>
+                <p className="text-sm font-medium">
+                  Deseja mesclar os dois pedidos?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setMergeConfirm(false); setTransferTarget(null); }}
+                    className="flex-1 rounded-md border px-3 py-2 text-sm font-medium hover:bg-secondary"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (transferTarget) {
+                        transferOrder.mutate({ targetTableId: transferTarget, merge: true });
+                      }
+                    }}
+                    disabled={transferOrder.isPending}
+                    className="flex-1 rounded-md bg-primary text-primary-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                  >
+                    {transferOrder.isPending ? "Mesclando..." : "Mesclar Pedidos"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
