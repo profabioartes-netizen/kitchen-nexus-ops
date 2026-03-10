@@ -116,6 +116,21 @@ export default function TableOrderPage() {
     enabled: !!order?.id,
   });
 
+  // Mark unviewed items as viewed when the page loads
+  useEffect(() => {
+    if (!orderItems.length) return;
+    const unviewed = orderItems.filter((i) => !(i as any).viewed_at);
+    if (unviewed.length === 0) return;
+    const ids = unviewed.map((i) => i.id);
+    supabase
+      .from("order_items")
+      .update({ viewed_at: new Date().toISOString() } as any)
+      .in("id", ids)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+      });
+  }, [orderItems, queryClient]);
+
   // Fetch complements for all order items
   const orderItemIds = orderItems.map((i) => i.id);
   const { data: itemComplements = [] } = useQuery({
