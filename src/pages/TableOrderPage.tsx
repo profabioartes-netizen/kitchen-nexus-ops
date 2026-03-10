@@ -345,9 +345,11 @@ export default function TableOrderPage() {
 
   // Pay & close
   const payMutation = useMutation({
-    mutationFn: async (method: "cash" | "card" | "pix") => {
+    mutationFn: async ({ method, serviceFeePct }: { method: string; serviceFeePct: number }) => {
       if (!order) throw new Error("Sem pedido aberto");
-      const totalVal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+      const subtotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+      const serviceFee = serviceFeePct > 0 ? subtotal * (serviceFeePct / 100) : 0;
+      const totalVal = subtotal + serviceFee;
       await supabase
         .from("order_items")
         .update({ sent_to_kitchen: true })
@@ -356,7 +358,7 @@ export default function TableOrderPage() {
       await logActivity(
         tableId!,
         "payment_added",
-        `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[method] ?? method})`,
+        `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[method] ?? method})${serviceFee > 0 ? ` — Taxa serviço: R$ ${serviceFee.toFixed(2)}` : ""}`,
         order.id
       );
       await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
