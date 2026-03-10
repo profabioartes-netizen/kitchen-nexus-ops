@@ -701,6 +701,14 @@ export default function TableOrderPage() {
           </div>
         </div>
       )}
+
+      {/* Add item dialog */}
+      <AddItemDialog
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAdd={(payload) => addItem.mutate(payload)}
+        isPending={addItem.isPending}
+      />
     </div>
   );
 }
