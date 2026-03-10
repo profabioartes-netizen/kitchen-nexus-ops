@@ -47,9 +47,10 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <img src={coffeeLogo} alt="Coffee Thrones" className="h-24 mx-auto mb-2 object-contain" />
-          <p className="text-sm text-muted-foreground mt-1">Sistema de Atendimento</p>
+        <div className="text-center mb-10">
+          <img src={coffeeLogo} alt="Coffee Thrones" className="h-28 mx-auto mb-4 object-contain drop-shadow-md" />
+          <h1 className="font-display text-2xl tracking-tight">Coffee Thrones</h1>
+          <p className="text-sm text-muted-foreground mt-1.5 tracking-wide">Sistema de Atendimento</p>
         </div>
 
         <div className="rounded-lg border bg-card p-6 shadow-sm">
