@@ -97,7 +97,14 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .nav-rail {
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
     @apply flex flex-col items-center py-4 gap-1;
     background: hsl(var(--nav-bg));
     color: hsl(var(--nav-foreground));
