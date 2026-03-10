@@ -15,6 +15,7 @@ type OrderItem = {
   product_name: string;
   price: number;
   quantity: number;
+  paid_quantity?: number;
 };
 
 type PaymentEntry = {
@@ -22,12 +23,17 @@ type PaymentEntry = {
   amount: number;
 };
 
+export type PaymentResult = {
+  payments: PaymentEntry[];
+  paidItems?: Record<string, number>; // item id → qty being paid in this transaction
+};
+
 interface PaymentPanelProps {
   total: number;
   orderItems: OrderItem[];
   serviceFeeEnabled: boolean;
   onToggleServiceFee: (enabled: boolean) => void;
-  onPay: (payments: PaymentEntry[]) => void;
+  onPay: (result: PaymentResult) => void;
   onCancel: () => void;
   isPending: boolean;
 }
@@ -75,6 +81,16 @@ export default function PaymentPanel({
   const [splitPeople, setSplitPeople] = useState(2);
   const [splitCustomValue, setSplitCustomValue] = useState("");
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>({});
+
+  // ── Unpaid items for split-by-items ──
+  const unpaidItems = useMemo(() => {
+    return orderItems.map((item) => {
+      const paidQty = item.paid_quantity ?? 0;
+      const remainingQty = item.quantity - paidQty;
+      return { ...item, remainingQty };
+    }).filter((item) => item.remainingQty > 0);
+  }, [orderItems]);
+
   // ── Calculations ──
   const discount = useMemo(
     () => (discountType === "percent" ? total * (discountValue / 100) : discountValue),
@@ -95,12 +111,15 @@ export default function PaymentPanel({
   // ── Split computed values ──
   const splitPerPerson = splitTab === "quantity" ? Number((remaining / splitPeople).toFixed(2)) : 0;
   const selectedItemsTotal = useMemo(() => {
-    return orderItems.reduce((sum, item) => {
+    return unpaidItems.reduce((sum, item) => {
       const qty = selectedItems[item.id] || 0;
       return sum + Number(item.price) * qty;
     }, 0);
-  }, [orderItems, selectedItems]);
+  }, [unpaidItems, selectedItems]);
   const splitValue = splitTab === "quantity" ? splitPerPerson : splitTab === "value" ? Math.min(Number(splitCustomValue) || 0, remaining) : Math.min(selectedItemsTotal, remaining);
+
+  // Track accumulated paid items across multiple split-by-items in this session
+  const [accumulatedPaidItems, setAccumulatedPaidItems] = useState<Record<string, number>>({});
 
   const addPayment = (method: string, amount?: number) => {
     const amt = amount ?? remaining;
@@ -118,7 +137,11 @@ export default function PaymentPanel({
 
   const handleFinalize = () => {
     if (remaining > 0.01 && payments.length === 0) return;
-    onPay(payments.length > 0 ? payments : []);
+    const hasPaidItems = Object.keys(accumulatedPaidItems).length > 0;
+    onPay({
+      payments: payments.length > 0 ? payments : [],
+      paidItems: hasPaidItems ? accumulatedPaidItems : undefined,
+    });
   };
 
   const handleMethodSelect = (method: string) => {
@@ -140,7 +163,23 @@ export default function PaymentPanel({
   const handleSplitConfirm = (method: string) => {
     if (splitValue <= 0 || splitValue > remaining) return;
     addPayment(method, splitValue);
-    if (splitTab === "quantity") {
+
+    if (splitTab === "items") {
+      // Accumulate paid items
+      setAccumulatedPaidItems((prev) => {
+        const next = { ...prev };
+        for (const [itemId, qty] of Object.entries(selectedItems)) {
+          next[itemId] = (next[itemId] || 0) + qty;
+        }
+        return next;
+      });
+      setSelectedItems({});
+      const newPaid = paidTotal + splitValue;
+      const newRemaining = Math.max(0, Number((grandTotal - newPaid).toFixed(2)));
+      if (newRemaining <= 0.01) {
+        setSplitOpen(false);
+      }
+    } else if (splitTab === "quantity") {
       const newPaid = paidTotal + splitValue;
       const newRemaining = Math.max(0, Number((grandTotal - newPaid).toFixed(2)));
       if (newRemaining <= 0.01) {
@@ -148,13 +187,6 @@ export default function PaymentPanel({
       }
     } else if (splitTab === "value") {
       setSplitCustomValue("");
-    } else {
-      setSelectedItems({});
-      const newPaid = paidTotal + splitValue;
-      const newRemaining = Math.max(0, Number((grandTotal - newPaid).toFixed(2)));
-      if (newRemaining <= 0.01) {
-        setSplitOpen(false);
-      }
     }
   };
 
@@ -191,6 +223,15 @@ export default function PaymentPanel({
     });
   };
 
+  // Items available for selection in split-by-items (subtract already accumulated in this session)
+  const availableItems = useMemo(() => {
+    return unpaidItems.map((item) => {
+      const alreadyAccumulated = accumulatedPaidItems[item.id] || 0;
+      const availableQty = item.remainingQty - alreadyAccumulated;
+      return { ...item, availableQty };
+    }).filter((item) => item.availableQty > 0);
+  }, [unpaidItems, accumulatedPaidItems]);
+
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
@@ -217,15 +258,24 @@ export default function PaymentPanel({
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">Itens do Pedido</h2>
             <div className="space-y-1">
-              {orderItems.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground w-6 text-right">{item.quantity}×</span>
-                    <span>{item.product_name}</span>
+              {orderItems.map((item) => {
+                const paidQty = item.paid_quantity ?? 0;
+                const isFullyPaid = paidQty >= item.quantity;
+                return (
+                  <div key={item.id} className={`flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0 ${isFullyPaid ? "opacity-50" : ""}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground w-6 text-right">{item.quantity}×</span>
+                      <span>{item.product_name}</span>
+                      {paidQty > 0 && (
+                        <span className="text-[10px] rounded px-1.5 py-0.5 bg-accent/10 text-accent font-medium">
+                          {isFullyPaid ? "PAGO" : `${paidQty}/${item.quantity} pago`}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-medium">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
                   </div>
-                  <span className="font-medium">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -651,7 +701,10 @@ export default function PaymentPanel({
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">Selecione os itens para este pagamento:</p>
               <div className="max-h-56 overflow-auto space-y-1.5 rounded-md border p-2">
-                {orderItems.map((item) => {
+                {availableItems.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">Todos os itens já foram selecionados para pagamento</p>
+                )}
+                {availableItems.map((item) => {
                   const selectedQty = selectedItems[item.id] || 0;
                   const isSelected = selectedQty > 0;
                   return (
@@ -660,7 +713,7 @@ export default function PaymentPanel({
                       className={`flex items-center gap-2 rounded-md p-2 transition-colors cursor-pointer ${
                         isSelected ? "bg-accent/10 border border-accent/30" : "hover:bg-secondary border border-transparent"
                       }`}
-                      onClick={() => toggleItemSelection(item.id, item.quantity)}
+                      onClick={() => toggleItemSelection(item.id, item.availableQty)}
                     >
                       <div className={`flex-shrink-0 h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
                         isSelected ? "bg-accent border-accent" : "border-muted-foreground/30"
@@ -670,20 +723,23 @@ export default function PaymentPanel({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{item.product_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          R$ {Number(item.price).toFixed(2)} × {item.quantity}
+                          R$ {Number(item.price).toFixed(2)} × {item.availableQty}
+                          {item.availableQty < item.quantity && (
+                            <span className="ml-1 text-accent">({item.quantity - item.availableQty} já pago)</span>
+                          )}
                         </p>
                       </div>
-                      {isSelected && item.quantity > 1 && (
+                      {isSelected && item.availableQty > 1 && (
                         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={() => adjustItemQty(item.id, -1, item.quantity)}
+                            onClick={() => adjustItemQty(item.id, -1, item.availableQty)}
                             className="rounded p-1 hover:bg-secondary border"
                           >
                             <Minus className="h-3 w-3" />
                           </button>
                           <span className="w-5 text-center text-xs font-semibold">{selectedQty}</span>
                           <button
-                            onClick={() => adjustItemQty(item.id, 1, item.quantity)}
+                            onClick={() => adjustItemQty(item.id, 1, item.availableQty)}
                             className="rounded p-1 hover:bg-secondary border"
                           >
                             <Plus className="h-3 w-3" />
@@ -691,7 +747,7 @@ export default function PaymentPanel({
                         </div>
                       )}
                       <span className="text-sm font-semibold flex-shrink-0">
-                        R$ {(Number(item.price) * (isSelected ? selectedQty : item.quantity)).toFixed(2)}
+                        R$ {(Number(item.price) * (isSelected ? selectedQty : item.availableQty)).toFixed(2)}
                       </span>
                     </div>
                   );

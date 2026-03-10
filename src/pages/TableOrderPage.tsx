@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
-import PaymentPanel from "@/components/PaymentPanel";
+import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
 import TableOpenDialog from "@/components/TableOpenDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -502,9 +502,10 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Pay — records payment but does NOT finalize
+  // Pay — records payment and marks items as paid
   const payMutation = useMutation({
-    mutationFn: async (payments: { method: string; amount: number }[]) => {
+    mutationFn: async (result: PaymentResult) => {
+      const { payments, paidItems } = result;
       if (!order) throw new Error("Sem pedido aberto");
       await supabase
         .from("order_items")
@@ -516,16 +517,47 @@ export default function TableOrderPage() {
         await supabase.from("payments").insert({ order_id: order.id, method: p.method, amount: p.amount });
       }
 
+      // Mark specific items as paid if split-by-items was used
+      if (paidItems && Object.keys(paidItems).length > 0) {
+        for (const [itemId, qtyPaid] of Object.entries(paidItems)) {
+          const item = orderItems.find((i) => i.id === itemId);
+          if (item) {
+            const newPaidQty = ((item as any).paid_quantity ?? 0) + qtyPaid;
+            await supabase.from("order_items").update({ paid_quantity: newPaidQty } as any).eq("id", itemId);
+          }
+        }
+      }
+
       const totalVal = payments.reduce((s, p) => s + p.amount, 0);
       const desc = payments.length === 1
         ? `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[payments[0].method] ?? payments[0].method})`
         : `Pagamento dividido (${payments.length}×): R$ ${totalVal.toFixed(2)} — ${payments.map(p => `${methodLabels[p.method] ?? p.method}: R$ ${p.amount.toFixed(2)}`).join(", ")}`;
       await logActivity(tableId!, "payment_added", desc, order.id);
 
-      // Move to paid_pending_finalization — table stays occupied until explicitly finalized
-      await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal }).eq("id", order.id);
-      await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
-      await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
+      // Check if all items are fully paid
+      const updatedItems = orderItems.map((i) => {
+        const addedPaid = paidItems?.[i.id] ?? 0;
+        const totalPaid = ((i as any).paid_quantity ?? 0) + addedPaid;
+        return { ...i, paid_quantity: totalPaid };
+      });
+      const allItemsPaid = updatedItems.every((i) => (i.paid_quantity ?? 0) >= i.quantity);
+
+      // Calculate remaining unpaid total for the order
+      const unpaidTotal = updatedItems.reduce((s, i) => {
+        const unpaidQty = Math.max(0, i.quantity - (i.paid_quantity ?? 0));
+        return s + Number(i.price) * unpaidQty;
+      }, 0);
+      
+      if (allItemsPaid) {
+        // All paid — move to paid_pending_finalization
+        await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal } as any).eq("id", order.id);
+        await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
+        await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
+      } else {
+        // Partial payment — keep order open, update total to unpaid amount
+        await supabase.from("orders").update({ status: "billing_in_progress", total: unpaidTotal } as any).eq("id", order.id);
+        await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+      }
 
       // Create receipt print job
       await supabase.from("print_jobs").insert({
@@ -556,8 +588,9 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       setShowPayment(false);
-      toast.success("Pagamento registrado! Finalize a mesa quando pronto.");
+      toast.success("Pagamento registrado!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -619,8 +652,13 @@ export default function TableOrderPage() {
       p.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const total = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+  const total = orderItems.reduce((s, i) => {
+    const unpaidQty = i.quantity - ((i as any).paid_quantity ?? 0);
+    return s + Number(i.price) * unpaidQty;
+  }, 0);
   const unsentCount = orderItems.filter((i) => !i.sent_to_kitchen).length;
+  const unpaidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) < i.quantity);
+  const paidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) >= i.quantity);
 
   if (tableLoading || orderLoading) {
     return (
@@ -784,7 +822,32 @@ export default function TableOrderPage() {
               Toque num produto para adicionar
             </p>
           )}
-          {orderItems.map((item) => {
+          {/* Paid items section */}
+          {paidItems.length > 0 && (
+            <>
+              <p className="text-[10px] text-accent uppercase tracking-wider font-semibold px-1 pt-1">✓ Itens pagos</p>
+              {paidItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-md border border-accent/20 bg-accent/5 p-2 opacity-60">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium truncate line-through">{item.product_name}</p>
+                      <span className="text-[9px] rounded px-1 py-0.5 font-medium bg-accent/10 text-accent">PAGO</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      R$ {Number(item.price).toFixed(2)} × {item.quantity}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {unpaidItems.length > 0 && (
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold px-1 pt-2">Itens pendentes</p>
+              )}
+            </>
+          )}
+          {/* Unpaid items */}
+          {unpaidItems.map((item) => {
+            const paidQty = (item as any).paid_quantity ?? 0;
+            const remainingQty = item.quantity - paidQty;
             const prepStatus = (item as any).preparation_status ?? "pending";
             const prepColors: Record<string, string> = {
               pending: "text-muted-foreground bg-muted",
@@ -815,9 +878,15 @@ export default function TableOrderPage() {
                         {prepLabels[prepStatus] ?? "PENDENTE"}
                       </span>
                     )}
+                    {paidQty > 0 && (
+                      <span className="text-[9px] rounded px-1 py-0.5 font-medium bg-accent/10 text-accent">
+                        {paidQty}/{item.quantity} pago
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    R$ {Number(item.price).toFixed(2)} × {item.quantity}
+                    R$ {Number(item.price).toFixed(2)} × {remainingQty}
+                    {paidQty > 0 && <span className="text-accent ml-1">(total: {item.quantity})</span>}
                   </p>
                   {/* Complements */}
                   {(() => {
@@ -852,7 +921,7 @@ export default function TableOrderPage() {
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                  <span className="w-6 text-center text-sm font-medium">{remainingQty}</span>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })}
                     disabled={item.sent_to_kitchen}
@@ -914,7 +983,7 @@ export default function TableOrderPage() {
                   <span className="text-sm">Enviar ({unsentCount})</span>
                 </button>
                 <button
-                  disabled={orderItems.length === 0}
+                  disabled={unpaidItems.length === 0}
                   onClick={() => setShowPayment(true)}
                   className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
@@ -937,7 +1006,7 @@ export default function TableOrderPage() {
               orderItems={orderItems}
               serviceFeeEnabled={serviceFeeEnabled}
               onToggleServiceFee={setServiceFeeEnabled}
-              onPay={(payments) => payMutation.mutate(payments)}
+              onPay={(result) => payMutation.mutate(result)}
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
             />
