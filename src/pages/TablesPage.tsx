@@ -142,6 +142,22 @@ export default function TablesPage() {
     enabled: !!previewOrderId,
   });
 
+  // Fetch item counts for all orders
+  const { data: orderItemCounts = {} } = useQuery({
+    queryKey: ["order_item_counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+  });
+
   const updatePosition = useMutation({
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
       const { error } = await supabase
