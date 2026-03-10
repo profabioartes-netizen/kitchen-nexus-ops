@@ -43,7 +43,7 @@ export default function WaiterTablesPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("status", "open");
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
       if (error) throw error;
       return data;
     },

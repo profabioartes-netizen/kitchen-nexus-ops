@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -85,7 +85,7 @@ export default function TableOrderPage() {
     enabled: !!tableId,
   });
 
-  // Fetch open order for this table
+  // Fetch active order for this table (open, billing_in_progress, or paid_pending_finalization)
   const { data: order, isLoading: orderLoading } = useQuery({
     queryKey: ["table_order", tableId],
     queryFn: async () => {
@@ -93,7 +93,7 @@ export default function TableOrderPage() {
         .from("orders")
         .select("*")
         .eq("table_id", tableId!)
-        .eq("status", "open")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
         .maybeSingle();
       if (error) throw error;
       return data;
@@ -176,7 +176,7 @@ export default function TableOrderPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("status", "open");
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
       if (error) throw error;
       return data;
     },
@@ -502,7 +502,7 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Pay & close
+  // Pay — records payment but does NOT finalize
   const payMutation = useMutation({
     mutationFn: async (payments: { method: string; amount: number }[]) => {
       if (!order) throw new Error("Sem pedido aberto");
@@ -522,16 +522,10 @@ export default function TableOrderPage() {
         : `Pagamento dividido (${payments.length}×): R$ ${totalVal.toFixed(2)} — ${payments.map(p => `${methodLabels[p.method] ?? p.method}: R$ ${p.amount.toFixed(2)}`).join(", ")}`;
       await logActivity(tableId!, "payment_added", desc, order.id);
 
-      await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
-      // Reset table name to default and set status to free
-      const { data: tableData } = await supabase
-        .from("restaurant_tables")
-        .select("default_name")
-        .eq("id", tableId!)
-        .single();
-      const resetName = (tableData as any)?.default_name || table?.name;
-      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
-      await logActivity(tableId!, "table_closed", `Mesa ${table?.name ?? ""} fechada`, order.id);
+      // Move to paid_pending_finalization — table stays occupied until explicitly finalized
+      await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal }).eq("id", order.id);
+      await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
+      await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
 
       // Create receipt print job
       await supabase.from("print_jobs").insert({
@@ -561,7 +555,31 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      toast.success("Pagamento registrado! Mesa liberada.");
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      setShowPayment(false);
+      toast.success("Pagamento registrado! Finalize a mesa quando pronto.");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  // Finalize — moves order to finalized (appears in reports) and frees table
+  const finalizeMutation = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido");
+      await supabase.from("orders").update({ status: "finalized" }).eq("id", order.id);
+      const { data: tableData } = await supabase
+        .from("restaurant_tables")
+        .select("default_name")
+        .eq("id", tableId!)
+        .single();
+      const resetName = (tableData as any)?.default_name || table?.name;
+      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
+      await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      toast.success("Mesa finalizada! Dados registrados nos relatórios.");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
@@ -575,7 +593,7 @@ export default function TableOrderPage() {
       // Delete payments associated with this order
       await supabase.from("payments").delete().eq("order_id", order.id);
       // Set order status to cancelled (will NOT appear in reports)
-      await supabase.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+      await supabase.from("orders").update({ status: "canceled" }).eq("id", order.id);
       // Reset table
       const { data: tableData } = await supabase
         .from("restaurant_tables")
@@ -857,7 +875,30 @@ export default function TableOrderPage() {
 
         {/* Footer */}
         <div className="border-t p-4 space-y-3">
-          {!showPayment ? (
+          {order?.status === "paid_pending_finalization" ? (
+            <>
+              <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
+                <p className="text-sm font-semibold text-accent">✓ Pagamento concluído</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Finalize para registrar nos relatórios</p>
+              </div>
+              <button
+                onClick={() => finalizeMutation.mutate()}
+                disabled={finalizeMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 rounded-md bg-status-free text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-5 w-5" />
+                <span>{finalizeMutation.isPending ? "Finalizando..." : "Finalizar Mesa"}</span>
+              </button>
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={cancelOrder.isPending}
+                className="w-full flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+              >
+                <Ban className="h-3.5 w-3.5" />
+                Cancelar Mesa
+              </button>
+            </>
+          ) : !showPayment ? (
             <>
               <div className="flex items-center justify-between">
                 <span className="font-display text-xl">TOTAL</span>

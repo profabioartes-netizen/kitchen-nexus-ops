@@ -16,7 +16,7 @@ export default function WaiterOrdersPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*, restaurant_tables(name)")
-        .eq("status", "open")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;

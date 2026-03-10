@@ -81,7 +81,7 @@ export default function CashierPage() {
       // Create order
       const { data: newOrder, error: orderError } = await supabase
         .from("orders")
-        .insert({ status: "closed", total: subtotal })
+        .insert({ status: "finalized", total: subtotal })
         .select()
         .single();
       if (orderError) throw orderError;
