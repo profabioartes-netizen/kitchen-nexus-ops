@@ -63,7 +63,7 @@
 
     /* Status Colors — high contrast for POS */
     --status-free: 145 65% 42%;
-    --status-occupied: 38 80% 52%;
+    --status-occupied: 270 60% 50%;
     --status-reserved: 215 65% 55%;
     --status-bill: 25 85% 55%;
   }
