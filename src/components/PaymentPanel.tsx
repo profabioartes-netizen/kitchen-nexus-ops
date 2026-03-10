@@ -62,7 +62,8 @@ export default function PaymentPanel({
   // ── Split ──
   const [splitMode, setSplitMode] = useState<SplitMode>("full");
   const [splitCount, setSplitCount] = useState(2);
-  const [itemAssignment, setItemAssignment] = useState<Record<string, number>>({});
+  // itemAssignment: { [itemId]: { [personIndex]: quantityAssigned } }
+  const [itemAssignment, setItemAssignment] = useState<Record<string, Record<number, number>>>({});
 
   // ── Payments ──
   const [payments, setPayments] = useState<PaymentEntry[]>([]);
