@@ -62,6 +62,8 @@ export default function TablesPage() {
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
   const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tableCountOpen, setTableCountOpen] = useState(false);
+  const [tableCountValue, setTableCountValue] = useState("");
 
   // Realtime: auto-refresh when tables or orders change in DB
   useEffect(() => {
