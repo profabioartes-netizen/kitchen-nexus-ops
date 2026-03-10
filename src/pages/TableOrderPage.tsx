@@ -358,11 +358,11 @@ export default function TableOrderPage() {
     },
   });
 
-  // Show opening dialog for free tables
+  // Auto-create order for free tables (skip dialog)
   useEffect(() => {
     if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
       autoCreatedRef.current = true;
-      setShowOpenDialog(true);
+      createOrder.mutate({});
     }
   }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
 
