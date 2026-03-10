@@ -418,7 +418,7 @@ export default function TablesPage() {
     <div className="p-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Mapa de Mesas</h1>
+        <h1 className="text-2xl font-semibold">Mapa de Comandas</h1>
         <div className="flex gap-2">
           <div className="flex rounded-md border bg-card overflow-hidden">
             <button
