@@ -170,7 +170,7 @@ export default function TableOrderPage() {
         (s, i) => s + Number(i.price) * i.quantity, 0
       );
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
-      await logActivity(tableId!, "item_added", `Adicionado: ${product.name} (R$ ${Number(product.price).toFixed(2)})`, currentOrder.id);
+      await logActivity(tableId!, "item_added", `Adicionado e enviado à produção: ${product.name} (R$ ${Number(product.price).toFixed(2)})`, currentOrder.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
