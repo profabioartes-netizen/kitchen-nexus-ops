@@ -8,9 +8,11 @@ interface TableForm {
   name: string;
   seats: string;
   active: boolean;
+  internal_number: string;
+  sector: string;
 }
 
-const emptyForm: TableForm = { name: "", seats: "4", active: true };
+const emptyForm: TableForm = { name: "", seats: "4", active: true, internal_number: "", sector: "" };
 
 export default function TableManagementPage() {
   const queryClient = useQueryClient();
