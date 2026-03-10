@@ -517,6 +517,8 @@ export default function TableOrderPage() {
         await supabase.from("payments").insert({ order_id: order.id, method: p.method, amount: p.amount });
       }
 
+      const totalVal = payments.reduce((s, p) => s + p.amount, 0);
+
       // Mark specific items as paid if split-by-items was used
       if (paidItems && Object.keys(paidItems).length > 0) {
         for (const [itemId, qtyPaid] of Object.entries(paidItems)) {
@@ -526,19 +528,22 @@ export default function TableOrderPage() {
             await supabase.from("order_items").update({ paid_quantity: newPaidQty } as any).eq("id", itemId);
           }
         }
+      } else {
+        // Full payment (no split-by-items) — mark all items as fully paid
+        for (const item of orderItems) {
+          await supabase.from("order_items").update({ paid_quantity: item.quantity } as any).eq("id", item.id);
+        }
       }
-
-      const totalVal = payments.reduce((s, p) => s + p.amount, 0);
-      const desc = payments.length === 1
-        ? `Pagamento: R$ ${totalVal.toFixed(2)} (${methodLabels[payments[0].method] ?? payments[0].method})`
-        : `Pagamento dividido (${payments.length}×): R$ ${totalVal.toFixed(2)} — ${payments.map(p => `${methodLabels[p.method] ?? p.method}: R$ ${p.amount.toFixed(2)}`).join(", ")}`;
-      await logActivity(tableId!, "payment_added", desc, order.id);
 
       // Check if all items are fully paid
       const updatedItems = orderItems.map((i) => {
-        const addedPaid = paidItems?.[i.id] ?? 0;
-        const totalPaid = ((i as any).paid_quantity ?? 0) + addedPaid;
-        return { ...i, paid_quantity: totalPaid };
+        if (paidItems && Object.keys(paidItems).length > 0) {
+          const addedPaid = paidItems[i.id] ?? 0;
+          const totalPaid = ((i as any).paid_quantity ?? 0) + addedPaid;
+          return { ...i, paid_quantity: totalPaid };
+        }
+        // Full payment — all items are fully paid
+        return { ...i, paid_quantity: i.quantity };
       });
       const allItemsPaid = updatedItems.every((i) => (i.paid_quantity ?? 0) >= i.quantity);
 
