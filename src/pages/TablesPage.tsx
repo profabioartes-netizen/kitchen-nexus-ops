@@ -413,8 +413,11 @@ export default function TablesPage() {
                                   <p className="text-[10px] text-accent uppercase tracking-widest font-black mb-1.5">● Novos Pedidos</p>
                                   <div className="space-y-1">
                                     {newItems.map((item) => (
-                                      <div key={item.id} className="flex items-center justify-between text-xs">
-                                        <span className="truncate flex-1 mr-2 font-semibold">{item.product_name}</span>
+                                      <div key={item.id} className="flex items-center justify-between text-xs gap-1">
+                                        <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
+                                        {!(item as any).viewed_at && (
+                                          <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                        )}
                                         <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
                                       </div>
                                     ))}
@@ -428,10 +431,13 @@ export default function TablesPage() {
                             {ongoingItems.length > 0 && (
                               <div className="p-2.5">
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pedido em Andamento</p>
-                                <div className="space-y-0.5">
+                                <div className="space-y-1">
                                   {ongoingItems.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between text-xs">
-                                      <span className="truncate flex-1 mr-2">{item.product_name}</span>
+                                    <div key={item.id} className="flex items-center justify-between text-xs gap-1">
+                                      <span className="truncate flex-1 mr-1">{item.product_name}</span>
+                                      {!(item as any).viewed_at && (
+                                        <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                      )}
                                       <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
                                     </div>
                                   ))}
