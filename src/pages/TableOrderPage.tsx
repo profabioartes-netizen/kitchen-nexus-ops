@@ -786,9 +786,6 @@ export default function TableOrderPage() {
       </div>
     );
   }
-      </>
-    );
-  }
 
   return (
     <div className="flex h-full">
