@@ -48,6 +48,10 @@ export default function TableOrderPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [waiterName, setWaiterName] = useState("");
+  const [showWaiterPrompt, setShowWaiterPrompt] = useState(false);
+  const [noteItemId, setNoteItemId] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState("");
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
