@@ -213,7 +213,13 @@ export default function TablesPage() {
                 className={`table-status-${table.status} relative flex flex-col items-center justify-center rounded-lg border-2 p-4 min-h-[120px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98]`}
               >
                 <span className="font-display text-lg">{table.name}</span>
+                {(table as any).internal_number && (
+                  <span className="text-[10px] text-muted-foreground">#{(table as any).internal_number}</span>
+                )}
                 <span className="text-xs text-muted-foreground mt-1">{table.seats} lugares</span>
+                {(table as any).sector && (
+                  <span className="text-[9px] bg-accent/30 rounded-full px-1.5 py-0.5 mt-1 font-medium text-muted-foreground">{(table as any).sector}</span>
+                )}
                 <span className="text-[10px] font-medium uppercase tracking-wider mt-2 text-muted-foreground">
                   {statusLabels[table.status as TableStatus]}
                 </span>
