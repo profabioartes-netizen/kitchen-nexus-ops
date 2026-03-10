@@ -6,16 +6,17 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill";
+type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
 
 const statusLabels: Record<TableStatus, string> = {
   free: "Livre",
   occupied: "Ocupada",
   reserved: "Reservada",
   bill: "Conta",
+  delivered: "Pedido Entregue",
 };
 
-const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill"];
+const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill", "delivered"];
 
 const TABLE_W = 130;
 const TABLE_H = 140;
