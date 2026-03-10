@@ -36,6 +36,7 @@ export default function TablesPage() {
   const [didDrag, setDidDrag] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
+  const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
