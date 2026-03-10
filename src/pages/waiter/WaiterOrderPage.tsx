@@ -11,9 +11,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import TableOpenDialog from "@/components/TableOpenDialog";
 
-type TableStatus = "free" | "occupied" | "reserved" | "bill";
+type TableStatus = "free" | "occupied" | "bill";
 const statusLabels: Record<TableStatus, string> = {
-  free: "Livre", occupied: "Pendente", reserved: "Reservada", bill: "Conta",
+  free: "Livre", occupied: "Pendente", bill: "Conta",
 };
 
 async function logActivity(tableId: string, action: string, description: string, orderId?: string | null, userName?: string | null) {
