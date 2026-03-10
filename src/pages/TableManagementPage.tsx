@@ -276,7 +276,7 @@ export default function TableManagementPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Varanda VIP, Mesa Janela 1"
+                  placeholder="Ex: Varanda VIP, Comanda Janela 1"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">Nome personalizado exibido no mapa e comanda</p>
