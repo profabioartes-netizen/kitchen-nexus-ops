@@ -409,6 +409,7 @@ export type Database = {
           name: string
           prep_time_minutes: number
           price: number
+          sort_order: number | null
           station: string
           stock: number | null
           updated_at: string
@@ -421,6 +422,7 @@ export type Database = {
           name: string
           prep_time_minutes?: number
           price?: number
+          sort_order?: number | null
           station?: string
           stock?: number | null
           updated_at?: string
@@ -433,6 +435,7 @@ export type Database = {
           name?: string
           prep_time_minutes?: number
           price?: number
+          sort_order?: number | null
           station?: string
           stock?: number | null
           updated_at?: string
