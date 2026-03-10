@@ -224,6 +224,77 @@ export type Database = {
           },
         ]
       }
+      print_jobs: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          printed_at: string | null
+          printer_id: string | null
+          station: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          printed_at?: string | null
+          printer_id?: string | null
+          station: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          printed_at?: string | null
+          printer_id?: string | null
+          station?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_jobs_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      printers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          ip: string
+          model: string
+          name: string
+          port: number
+          station: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          ip?: string
+          model?: string
+          name: string
+          port?: number
+          station?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          ip?: string
+          model?: string
+          name?: string
+          port?: number
+          station?: string
+        }
+        Relationships: []
+      }
       product_complement_groups: {
         Row: {
           group_id: string

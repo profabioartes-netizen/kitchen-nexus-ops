@@ -166,6 +166,21 @@ export default function TableOrderPage() {
         preparation_status: "sent",
       });
 
+      // Create print job for the product's station
+      const station = (product as any).station || "Cozinha";
+      await supabase.from("print_jobs").insert({
+        station,
+        status: "pending",
+        payload: {
+          product_name: product.name,
+          quantity: 1,
+          table_name: table?.name || "—",
+          waiter_name: currentOrder.waiter_name || waiterName || null,
+          notes: null,
+          order_id: currentOrder.id,
+        },
+      });
+
       const newTotal = [...orderItems, { price: product.price, quantity: 1 }].reduce(
         (s, i) => s + Number(i.price) * i.quantity, 0
       );

@@ -11,6 +11,7 @@ import CashierPage from "@/pages/CashierPage";
 import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
+import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
 import NotFound from "@/pages/NotFound";
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/caixa" element={<CashierPage />} />
             <Route path="/produtos" element={<ProductsPage />} />
             <Route path="/impressoras" element={<PrintersPage />} />
+            <Route path="/impressoras/agente" element={<PrintAgentPage />} />
             <Route path="/relatorios" element={<ReportsPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
