@@ -162,6 +162,7 @@ export type Database = {
           ready_at: string | null
           sent_at: string | null
           sent_to_kitchen: boolean
+          viewed_at: string | null
         }
         Insert: {
           created_at?: string
@@ -179,6 +180,7 @@ export type Database = {
           ready_at?: string | null
           sent_at?: string | null
           sent_to_kitchen?: boolean
+          viewed_at?: string | null
         }
         Update: {
           created_at?: string
@@ -196,6 +198,7 @@ export type Database = {
           ready_at?: string | null
           sent_at?: string | null
           sent_to_kitchen?: boolean
+          viewed_at?: string | null
         }
         Relationships: [
           {
