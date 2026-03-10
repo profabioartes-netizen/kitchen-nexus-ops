@@ -70,7 +70,7 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("id, product_name, quantity")
+        .select("id, product_name, quantity, sent_to_kitchen")
         .eq("order_id", previewOrderId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -285,27 +285,48 @@ export default function TablesPage() {
                       side="right"
                       align="start"
                       sideOffset={8}
-                      className="w-48 p-2.5 shadow-md"
+                      className="w-52 p-0 shadow-md max-h-[320px] overflow-y-auto"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5">Pedido</p>
                       {previewItems.length === 0 ? (
-                        <p className="text-xs text-muted-foreground italic">Carregando...</p>
-                      ) : (
-                        <div className="space-y-0.5">
-                          {previewItems.slice(0, 3).map((item) => (
-                            <div key={item.id} className="flex items-center justify-between text-xs">
-                              <span className="truncate flex-1 mr-2">{item.product_name}</span>
-                              <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
-                            </div>
-                          ))}
-                          {previewItems.length > 3 && (
-                            <p className="text-[10px] text-muted-foreground text-center pt-1">
-                              +{previewItems.length - 3} mais
-                            </p>
-                          )}
-                        </div>
-                      )}
+                        <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
+                      ) : (() => {
+                        const newItems = previewItems.filter((i) => !i.sent_to_kitchen);
+                        const ongoingItems = previewItems.filter((i) => i.sent_to_kitchen);
+                        return (
+                          <div>
+                            {newItems.length > 0 && (
+                              <div className="bg-accent/10 border-b border-accent/20 p-2.5">
+                                <p className="text-[10px] text-accent uppercase tracking-wider font-bold mb-1">Novos Pedidos</p>
+                                <div className="space-y-0.5">
+                                  {newItems.map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between text-xs">
+                                      <span className="truncate flex-1 mr-2 font-medium">{item.product_name}</span>
+                                      <span className="text-accent flex-shrink-0 tabular-nums font-semibold">×{item.quantity}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {ongoingItems.length > 0 && (
+                              <div className="p-2.5">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pedido em Andamento</p>
+                                <div className="space-y-0.5">
+                                  {ongoingItems.map((item) => (
+                                    <div key={item.id} className="flex items-center justify-between text-xs">
+                                      <span className="truncate flex-1 mr-2">{item.product_name}</span>
+                                      <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {newItems.length === 0 && ongoingItems.length === 0 && (
+                              <p className="text-xs text-muted-foreground italic p-2.5">Sem itens</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </PopoverContent>
                   </Popover>
                 )}
