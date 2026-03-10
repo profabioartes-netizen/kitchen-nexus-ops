@@ -212,11 +212,12 @@ export default function TablesPage() {
         .eq("id", form.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       setQuickEdit(null);
       toast.success("Mesa atualizada!");
+      navigate(`/mesas/${variables.id}/pedido`);
     },
     onError: (err) => toast.error((err as Error).message),
   });
