@@ -143,7 +143,6 @@ export default function TablesPage() {
       };
     },
   });
-  });
 
   // Fetch items for the previewed order
   const { data: previewItems = [] } = useQuery({
