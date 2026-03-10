@@ -424,6 +424,11 @@ export default function TableOrderPage() {
       );
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
 
+      // If table is currently "delivered", reset to "occupied" since new items were added
+      if (table?.status === "delivered") {
+        await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+      }
+
       const compDesc = complements.length > 0 ? ` [${complements.map(c => c.name).join(", ")}]` : "";
       await logActivity(tableId!, "item_added", `Adicionado e enviado à produção: ${product.name} ×${quantity}${compDesc} (R$ ${(unitPrice * quantity).toFixed(2)})`, currentOrder.id);
     },
@@ -432,7 +437,9 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       invalidateLog();
     },
