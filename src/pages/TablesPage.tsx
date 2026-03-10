@@ -380,15 +380,6 @@ export default function TablesPage() {
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-reserved/15">
-            <ChefHat className="h-4.5 w-4.5 text-status-reserved" />
-          </div>
-          <div>
-            <p className="text-xl font-bold leading-none">{kitchenCount}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Na Cozinha</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15">
             <CircleDollarSign className="h-4.5 w-4.5 text-accent" />
           </div>
