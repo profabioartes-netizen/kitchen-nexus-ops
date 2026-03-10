@@ -549,7 +549,7 @@ export default function TablesPage() {
 
                 <span
                   className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1.5 rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: badgeStyles[effectiveStatus].bg, color: badgeStyles[effectiveStatus].color }}
+                  style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
                 >
                   {statusLabels[effectiveStatus]}
                 </span>
