@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Clock, CircleDollarSign, Loader2 } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 
@@ -15,6 +17,7 @@ const statusCycle: TableStatus[] = ["free", "occupied", "reserved", "bill"];
 
 export default function TablesPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
@@ -22,7 +25,8 @@ export default function TablesPage() {
       const { data, error } = await supabase
         .from("restaurant_tables")
         .select("*")
-        .order("name");
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -77,7 +81,7 @@ export default function TablesPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Mapa de Mesas</h1>
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <div className="flex items-center gap-2 rounded-md bg-card px-3 py-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">{occupied}/{tables.length} ocupadas</span>
@@ -88,6 +92,13 @@ export default function TablesPage() {
               R$ {openOrders.reduce((s, o) => s + Number(o.total), 0).toFixed(2)}
             </span>
           </div>
+          <button
+            onClick={() => navigate("/mesas/gerenciar")}
+            className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors"
+          >
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            Gerenciar
+          </button>
         </div>
       </div>
 
