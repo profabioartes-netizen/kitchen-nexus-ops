@@ -9,7 +9,7 @@ import {
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
-import TableOpenDialog from "@/components/TableOpenDialog";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill" | "delivered";
