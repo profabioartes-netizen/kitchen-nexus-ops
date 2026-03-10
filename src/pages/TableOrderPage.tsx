@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -130,6 +130,21 @@ export default function TableOrderPage() {
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       });
   }, [orderItems, queryClient]);
+
+  // Fetch payments for this order
+  const { data: payments = [] } = useQuery({
+    queryKey: ["order_payments", order?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("order_id", order!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!order?.id,
+  });
 
   // Fetch complements for all order items
   const orderItemIds = orderItems.map((i) => i.id);
@@ -977,6 +992,40 @@ export default function TableOrderPage() {
             );
           })}
         </div>
+
+        {/* Payment History */}
+        {payments.length > 0 && (
+          <div className="border-t px-4 py-3 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <Receipt className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Pagamentos ({payments.length})
+              </span>
+              <span className="ml-auto text-xs font-bold tabular-nums">
+                R$ {payments.reduce((s, p) => s + Number(p.amount), 0).toFixed(2)}
+              </span>
+            </div>
+            <div className="space-y-1.5 max-h-32 overflow-auto">
+              {payments.map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-md border bg-muted/30 px-2.5 py-1.5">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] rounded px-1.5 py-0.5 font-medium bg-primary/10 text-primary">
+                        {methodLabels[p.method] ?? p.method}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {new Date(p.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      {" · "}
+                      {new Date(p.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold tabular-nums">R$ {Number(p.amount).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="border-t p-4 space-y-3">
