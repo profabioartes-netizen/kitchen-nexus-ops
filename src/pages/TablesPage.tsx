@@ -322,6 +322,7 @@ export default function TablesPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const openTable = (id: string) => {
     navigate(`/mesas/${id}/pedido`);
   };
 
