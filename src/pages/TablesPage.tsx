@@ -549,13 +549,14 @@ export default function TablesPage() {
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`table-status-${effectiveFloorStatus} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`${effectiveFloorStatus !== "occupied" ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
+                  ...(effectiveFloorStatus === "occupied" ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : {}),
                 }}
               >
                 {/* Quick edit button on floor plan */}
