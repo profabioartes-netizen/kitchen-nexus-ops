@@ -435,9 +435,22 @@ export default function TableOrderPage() {
       <div className="w-80 border-l bg-card flex flex-col">
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg">Comanda</h2>
-          {order?.waiter_name && (
-            <p className="text-xs text-muted-foreground">Garçom: {order.waiter_name}</p>
-          )}
+          <div className="flex items-center gap-1.5 mt-1">
+            <User className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              value={waiterName || order?.waiter_name || ""}
+              onChange={(e) => setWaiterName(e.target.value)}
+              onBlur={async () => {
+                if (order && waiterName && waiterName !== order.waiter_name) {
+                  await supabase.from("orders").update({ waiter_name: waiterName }).eq("id", order.id);
+                  queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                }
+              }}
+              placeholder="Nome do garçom..."
+              className="text-xs bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 flex-1 text-muted-foreground"
+            />
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-1">
