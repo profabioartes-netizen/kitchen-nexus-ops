@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
+import TableOpenDialog from "@/components/TableOpenDialog";
 
 type TableStatus = "free" | "occupied" | "reserved" | "bill";
 const statusLabels: Record<TableStatus, string> = {
