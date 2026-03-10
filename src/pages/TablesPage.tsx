@@ -63,7 +63,21 @@ export default function TablesPage() {
     },
   });
 
-  const updatePosition = useMutation({
+  // Fetch items for the previewed order
+  const { data: previewItems = [] } = useQuery({
+    queryKey: ["preview_order_items", previewOrderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("id, product_name, quantity")
+        .eq("order_id", previewOrderId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!previewOrderId,
+  });
+
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
       const { error } = await supabase
         .from("restaurant_tables")
