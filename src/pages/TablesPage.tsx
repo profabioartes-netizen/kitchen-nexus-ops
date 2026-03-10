@@ -618,11 +618,11 @@ export default function TablesPage() {
                 </button>
 
                 <span className="font-display text-sm">{table.name}</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5">{table.seats} lug</span>
+                <span className="text-[10px] mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{table.seats} lug</span>
                 {(table as any).sector && (
-                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5 text-muted-foreground">{(table as any).sector}</span>
+                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
                 )}
-                <span className="text-[9px] font-medium uppercase tracking-wider mt-1 text-muted-foreground">
+                <span className="text-[9px] font-medium uppercase tracking-wider mt-1" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>
                   {statusLabels[table.status as TableStatus]}
                 </span>
 {order && (
