@@ -156,23 +156,15 @@ export default function TableOrderPage() {
         currentOrder = await createOrder.mutateAsync(waiterName || undefined);
       }
 
-      const existing = orderItems.find(
-        (i) => i.product_id === product.id && !i.sent_to_kitchen
-      );
-      if (existing) {
-        await supabase
-          .from("order_items")
-          .update({ quantity: existing.quantity + 1 })
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("order_items").insert({
-          order_id: currentOrder.id,
-          product_id: product.id,
-          product_name: product.name,
-          price: product.price,
-          quantity: 1,
-        });
-      }
+      await supabase.from("order_items").insert({
+        order_id: currentOrder.id,
+        product_id: product.id,
+        product_name: product.name,
+        price: product.price,
+        quantity: 1,
+        sent_to_kitchen: true,
+        preparation_status: "sent",
+      });
 
       const newTotal = [...orderItems, { price: product.price, quantity: 1 }].reduce(
         (s, i) => s + Number(i.price) * i.quantity, 0
