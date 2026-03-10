@@ -4,68 +4,68 @@
 
 @layer base {
   :root {
-    /* Studio Kilo — Restaurant POS Design System */
+    /* Coffee Thrones — Dark Elegant POS Design System */
     --font-display: 'Archivo Black', sans-serif;
     --font-body: 'Roboto Flex', sans-serif;
 
-    /* Base Canvas — warm parchment */
-    --background: 30 20% 96%;
-    --foreground: 0 0% 29%;
+    /* Base Canvas — deep espresso */
+    --background: 20 15% 10%;
+    --foreground: 36 15% 90%;
 
-    /* Cards & Surfaces — stony grey */
-    --card: 30 12% 88%;
-    --card-foreground: 0 0% 29%;
+    /* Cards & Surfaces — dark roast */
+    --card: 20 12% 14%;
+    --card-foreground: 36 15% 90%;
 
-    --popover: 30 20% 96%;
-    --popover-foreground: 0 0% 29%;
+    --popover: 20 12% 14%;
+    --popover-foreground: 36 15% 90%;
 
-    /* Primary — graphite interactive */
-    --primary: 0 0% 29%;
-    --primary-foreground: 30 20% 96%;
+    /* Primary — warm cream for interactive */
+    --primary: 36 20% 85%;
+    --primary-foreground: 20 15% 10%;
 
-    /* Secondary — structure grey */
-    --secondary: 30 10% 85%;
-    --secondary-foreground: 0 0% 29%;
+    /* Secondary — charcoal surface */
+    --secondary: 20 10% 18%;
+    --secondary-foreground: 36 15% 80%;
 
-    /* Muted — subtle background */
-    --muted: 30 10% 90%;
-    --muted-foreground: 0 0% 45%;
+    /* Muted — subtle dark */
+    --muted: 20 8% 18%;
+    --muted-foreground: 36 10% 55%;
 
-    /* Accent — heated amber for active states */
-    --accent: 36 90% 44%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent — Coffee Thrones gold */
+    --accent: 38 80% 52%;
+    --accent-foreground: 20 20% 8%;
 
-    /* Destructive — void/close/delete only */
-    --destructive: 0 73% 42%;
+    /* Destructive — deep red */
+    --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 10% 82%;
-    --input: 30 10% 82%;
-    --ring: 36 90% 44%;
+    --border: 20 8% 22%;
+    --input: 20 8% 22%;
+    --ring: 38 80% 52%;
 
     --radius: 0.5rem;
 
-    /* Navigation Rail */
-    --nav-bg: 0 0% 22%;
-    --nav-foreground: 30 15% 80%;
-    --nav-active: 36 90% 44%;
-    --nav-active-foreground: 0 0% 100%;
+    /* Navigation Rail — deepest dark */
+    --nav-bg: 20 18% 7%;
+    --nav-foreground: 36 12% 60%;
+    --nav-active: 38 80% 52%;
+    --nav-active-foreground: 20 20% 8%;
 
     /* Sidebar (shadcn compat) */
-    --sidebar-background: 0 0% 22%;
-    --sidebar-foreground: 30 15% 80%;
-    --sidebar-primary: 36 90% 44%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 28%;
-    --sidebar-accent-foreground: 30 15% 90%;
-    --sidebar-border: 0 0% 28%;
-    --sidebar-ring: 36 90% 44%;
+    --sidebar-background: 20 18% 7%;
+    --sidebar-foreground: 36 12% 60%;
+    --sidebar-primary: 38 80% 52%;
+    --sidebar-primary-foreground: 20 20% 8%;
+    --sidebar-accent: 20 12% 14%;
+    --sidebar-accent-foreground: 36 15% 85%;
+    --sidebar-border: 20 8% 18%;
+    --sidebar-ring: 38 80% 52%;
 
-    /* Status Colors */
-    --status-free: 142 60% 40%;
-    --status-occupied: 48 90% 50%;
-    --status-reserved: 220 60% 50%;
-    --status-bill: 28 90% 50%;
+    /* Status Colors — high contrast for POS */
+    --status-free: 145 65% 42%;
+    --status-occupied: 38 80% 52%;
+    --status-reserved: 215 65% 55%;
+    --status-bill: 25 85% 55%;
   }
 }
 
