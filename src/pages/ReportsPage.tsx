@@ -53,7 +53,8 @@ export default function ReportsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
-        .select("*, orders(status, created_at)")
+        .select("*, orders!inner(status, created_at)")
+        .eq("orders.status", "closed")
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
