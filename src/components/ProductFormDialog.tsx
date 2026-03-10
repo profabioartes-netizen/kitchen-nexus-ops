@@ -11,6 +11,7 @@ interface ProductFormData {
   station: string;
   stock: string;
   active: boolean;
+  prep_time_minutes: string;
 }
 
 const emptyForm: ProductFormData = {
@@ -20,6 +21,7 @@ const emptyForm: ProductFormData = {
   station: "Cozinha",
   stock: "-1",
   active: true,
+  prep_time_minutes: "15",
 };
 
 interface Props {

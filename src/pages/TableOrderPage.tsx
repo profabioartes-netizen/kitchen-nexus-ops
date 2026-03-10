@@ -200,7 +200,8 @@ export default function TableOrderPage() {
         notes: notes || null,
         sent_to_kitchen: true,
         preparation_status: "sent",
-      }).select().single();
+        sent_at: new Date().toISOString(),
+      } as any).select().single();
       if (itemError) throw itemError;
 
       // Insert complements for this item
