@@ -576,7 +576,7 @@ export default function TablesPage() {
             const y = isDragging ? dragPos.y : (table.position_y ?? 0);
 
                 const effectiveFloorStatus: TableStatus = order
-                  ? (order.status === "billing_in_progress" ? "bill" : "occupied")
+                  ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
                   : (table.status as TableStatus);
                 const floorInlineOccupied = effectiveFloorStatus === "occupied";
                 const floorInlineDelivered = effectiveFloorStatus === "delivered";
