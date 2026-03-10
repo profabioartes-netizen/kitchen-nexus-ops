@@ -592,6 +592,21 @@ export default function TablesPage() {
                   ...(floorInlineOccupied ? { backgroundColor: "#4915c2", borderColor: "#4915c2", color: "white" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
+                {/* Delivery toggle on floor plan */}
+                {(effectiveFloorStatus === "occupied" || effectiveFloorStatus === "delivered") && (
+                  <button
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                    }}
+                    className={`absolute top-1 right-7 rounded p-0.5 transition-opacity z-10 ${effectiveFloorStatus === "delivered" ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+                    title={effectiveFloorStatus === "delivered" ? "Desmarcar concluído" : "Marcar como concluído"}
+                  >
+                    <CheckCircle2 className="h-3 w-3" style={{ color: effectiveFloorStatus === "delivered" ? "#166534" : "white" }} />
+                  </button>
+                )}
+
                 {/* Quick edit button on floor plan */}
                 <button
                   onPointerDown={(e) => e.stopPropagation()}
