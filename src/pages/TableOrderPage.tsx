@@ -794,25 +794,43 @@ export default function TableOrderPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <input
-              type="text"
-              defaultValue={table?.name ?? "Comanda"}
-              key={table?.id}
-              onBlur={async (e) => {
-                const newName = e.target.value.trim();
-                if (table && newName && newName !== table.name) {
-                  await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
-                  queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
-                  queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-                  if (order) {
-                    await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
-                    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+            <div className="flex flex-col">
+              <input
+                type="text"
+                defaultValue={table?.name ?? "Comanda"}
+                key={`name-${table?.id}`}
+                onBlur={async (e) => {
+                  const newName = e.target.value.trim();
+                  if (table && newName && newName !== table.name) {
+                    await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
+                    queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
+                    queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+                    if (order) {
+                      await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
+                      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                    }
                   }
-                }
-              }}
-              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-              className="text-xl font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 max-w-[200px]"
-            />
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                className="text-xl font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 max-w-[200px]"
+              />
+              <input
+                type="text"
+                defaultValue={(table as any)?.sector ?? ""}
+                key={`sector-${table?.id}`}
+                placeholder="Mesa (ex: Mesa 1, Quiosque)"
+                onBlur={async (e) => {
+                  const newSector = e.target.value.trim();
+                  if (table && newSector !== ((table as any)?.sector ?? "")) {
+                    await supabase.from("restaurant_tables").update({ sector: newSector || null } as any).eq("id", table.id);
+                    queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
+                    queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+                  }
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                className="text-xs text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 max-w-[180px]"
+              />
+            </div>
             {table && (
               <span className={`table-status-${table.status} rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border`}>
                 {statusLabels[table.status as TableStatus] ?? table.status}

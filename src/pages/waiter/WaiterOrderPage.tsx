@@ -445,7 +445,7 @@ export default function WaiterOrderPage() {
           <input
             type="text"
             defaultValue={table?.name ?? "Comanda"}
-            key={table?.id}
+            key={`name-${table?.id}`}
             onBlur={async (e) => {
               const newName = e.target.value.trim();
               if (table && newName && newName !== table.name) {
@@ -460,6 +460,22 @@ export default function WaiterOrderPage() {
             }}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
             className="text-lg font-bold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 w-full truncate"
+          />
+          <input
+            type="text"
+            defaultValue={(table as any)?.sector ?? ""}
+            key={`sector-${table?.id}`}
+            placeholder="Mesa (ex: Mesa 1, Quiosque)"
+            onBlur={async (e) => {
+              const newSector = e.target.value.trim();
+              if (table && newSector !== ((table as any)?.sector ?? "")) {
+                await supabase.from("restaurant_tables").update({ sector: newSector || null } as any).eq("id", table.id);
+                queryClient.invalidateQueries({ queryKey: ["table", tableId] });
+                queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+              }
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className="text-[11px] text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 w-full truncate"
           />
         </div>
         <div className="flex flex-col items-end flex-shrink-0">
