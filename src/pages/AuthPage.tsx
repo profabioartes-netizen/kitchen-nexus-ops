@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, User, Lock, Mail } from "lucide-react";
+import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
