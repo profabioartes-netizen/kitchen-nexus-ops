@@ -266,7 +266,13 @@ export default function TablesPage() {
                 }}
               >
                 <span className="font-display text-sm">{table.name}</span>
+                {(table as any).internal_number && (
+                  <span className="text-[8px] text-muted-foreground">#{(table as any).internal_number}</span>
+                )}
                 <span className="text-[10px] text-muted-foreground mt-0.5">{table.seats} lug</span>
+                {(table as any).sector && (
+                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5 text-muted-foreground">{(table as any).sector}</span>
+                )}
                 <span className="text-[9px] font-medium uppercase tracking-wider mt-1 text-muted-foreground">
                   {statusLabels[table.status as TableStatus]}
                 </span>
