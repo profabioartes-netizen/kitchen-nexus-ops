@@ -114,9 +114,13 @@ export default function TablesPage() {
 
   const handlePointerUp = useCallback(() => {
     if (!draggingId) return;
-    updatePosition.mutate({ id: draggingId, x: dragPos.x, y: dragPos.y });
+    if (didDrag) {
+      updatePosition.mutate({ id: draggingId, x: dragPos.x, y: dragPos.y });
+    } else {
+      openTable(draggingId);
+    }
     setDraggingId(null);
-  }, [draggingId, dragPos, updatePosition]);
+  }, [draggingId, dragPos, didDrag, updatePosition]);
 
   const occupied = tables.filter((t) => t.status === "occupied").length;
   const ordersByTable = openOrders.reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
