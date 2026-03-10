@@ -330,7 +330,10 @@ export default function TablesPage() {
                   {statusLabels[table.status as TableStatus]}
                 </span>
                 {order && (
-                  <span className="text-[10px] font-semibold mt-1">R$ {Number(order.total).toFixed(2)}</span>
+                  <span className="text-[10px] font-semibold mt-0.5">R$ {Number(order.total).toFixed(2)}{(order as any).guests > 1 ? ` · ${(order as any).guests}p` : ""}</span>
+                )}
+                {(order as any)?.customer_name && (
+                  <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{(order as any).customer_name}</span>
                 )}
                 {order?.waiter_name && (
                   <span className="text-[9px] text-muted-foreground">{order.waiter_name}</span>
