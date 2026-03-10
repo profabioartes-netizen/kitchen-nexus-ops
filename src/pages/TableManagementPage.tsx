@@ -270,23 +270,46 @@ export default function TableManagementPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nome / Número</label>
+                <label className="text-sm font-medium text-muted-foreground">Nome de Exibição</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Mesa 13"
+                  placeholder="Ex: Varanda VIP, Mesa Janela 1"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">Nome personalizado exibido no mapa e comanda</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Número Interno (opcional)</label>
+                  <input
+                    type="text"
+                    value={form.internal_number}
+                    onChange={(e) => setForm({ ...form, internal_number: e.target.value })}
+                    placeholder="Ex: 13, A-5"
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Número de Lugares</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.seats}
+                    onChange={(e) => setForm({ ...form, seats: e.target.value })}
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Número de Lugares</label>
+                <label className="text-sm font-medium text-muted-foreground">Setor / Localização</label>
                 <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={form.seats}
-                  onChange={(e) => setForm({ ...form, seats: e.target.value })}
+                  type="text"
+                  value={form.sector}
+                  onChange={(e) => setForm({ ...form, sector: e.target.value })}
+                  placeholder="Ex: Salão, Varanda, Terraço, Bar"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
