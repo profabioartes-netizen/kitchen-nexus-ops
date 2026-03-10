@@ -184,7 +184,7 @@ export default function WaiterOrderPage() {
   const createOrder = useMutation({
     mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
       const waiterLabel = profile?.full_name || null;
-      const customerName = params?.customerName || null;
+      const customerName = params?.customerName || (table && table.name !== (table as any).default_name ? table.name : null);
       const guests = params?.guests || 1;
       const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
       const { data, error } = await supabase.from("orders").insert({
