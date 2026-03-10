@@ -393,52 +393,69 @@ export default function TableOrderPage() {
               Toque num produto para adicionar
             </p>
           )}
-          {orderItems.map((item) => (
-            <div
-              key={item.id}
-              className={`flex items-center justify-between rounded-md border p-2 ${
-                item.sent_to_kitchen ? "bg-muted/50 border-muted" : "bg-background"
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-medium truncate">{item.product_name}</p>
-                  {item.sent_to_kitchen && (
-                    <span className="text-[9px] bg-accent/20 text-accent rounded px-1 py-0.5 font-medium whitespace-nowrap">
-                      ENVIADO
-                    </span>
-                  )}
+          {orderItems.map((item) => {
+            const prepStatus = (item as any).preparation_status ?? "pending";
+            const prepColors: Record<string, string> = {
+              pending: "text-muted-foreground bg-muted",
+              sent: "text-[hsl(var(--status-reserved))] bg-[hsl(var(--status-reserved)/0.12)]",
+              preparing: "text-[hsl(var(--status-occupied))] bg-[hsl(var(--status-occupied)/0.12)]",
+              ready: "text-[hsl(var(--status-free))] bg-[hsl(var(--status-free)/0.12)]",
+              delivered: "text-primary bg-primary/10",
+            };
+            const prepLabels: Record<string, string> = {
+              pending: "PENDENTE",
+              sent: "ENVIADO",
+              preparing: "PREPARANDO",
+              ready: "PRONTO",
+              delivered: "ENTREGUE",
+            };
+            return (
+              <div
+                key={item.id}
+                className={`flex items-center justify-between rounded-md border p-2 ${
+                  item.sent_to_kitchen ? "bg-muted/50 border-muted" : "bg-background"
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-medium truncate">{item.product_name}</p>
+                    {item.sent_to_kitchen && (
+                      <span className={`text-[9px] rounded px-1 py-0.5 font-medium whitespace-nowrap ${prepColors[prepStatus] ?? prepColors.pending}`}>
+                        {prepLabels[prepStatus] ?? "PENDENTE"}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    R$ {Number(item.price).toFixed(2)} × {item.quantity}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  R$ {Number(item.price).toFixed(2)} × {item.quantity}
-                </p>
+                <div className="flex items-center gap-1 ml-2">
+                  <button
+                    onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
+                    disabled={item.sent_to_kitchen}
+                    className="rounded p-1 hover:bg-secondary disabled:opacity-30"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                  <button
+                    onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })}
+                    disabled={item.sent_to_kitchen}
+                    className="rounded p-1 hover:bg-secondary disabled:opacity-30"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => removeItem.mutate(item.id)}
+                    disabled={item.sent_to_kitchen}
+                    className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1 disabled:opacity-30"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-1 ml-2">
-                <button
-                  onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
-                  disabled={item.sent_to_kitchen}
-                  className="rounded p-1 hover:bg-secondary disabled:opacity-30"
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-                <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                <button
-                  onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })}
-                  disabled={item.sent_to_kitchen}
-                  className="rounded p-1 hover:bg-secondary disabled:opacity-30"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => removeItem.mutate(item.id)}
-                  disabled={item.sent_to_kitchen}
-                  className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1 disabled:opacity-30"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Footer */}

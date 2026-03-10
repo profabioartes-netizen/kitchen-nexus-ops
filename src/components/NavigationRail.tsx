@@ -11,6 +11,7 @@ import {
 
 const navItems = [
   { to: "/", icon: LayoutGrid, label: "Mesas" },
+  { to: "/cozinha", icon: Flame, label: "Cozinha" },
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
