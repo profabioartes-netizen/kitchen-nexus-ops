@@ -88,9 +88,9 @@ export default function PaymentPanel({
     if (splitMode === "items") {
       const amounts = Array(splitCount).fill(0);
       for (const item of orderItems) {
-        const idx = itemAssignment[item.id];
-        if (idx !== undefined) {
-          amounts[idx] += Number(item.price) * item.quantity;
+        const assignments = itemAssignment[item.id] || {};
+        for (const [pIdx, qty] of Object.entries(assignments)) {
+          amounts[Number(pIdx)] += Number(item.price) * qty;
         }
       }
       // Apply proportional adjustments
