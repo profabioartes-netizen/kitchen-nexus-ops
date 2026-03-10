@@ -514,7 +514,14 @@ export default function TableOrderPage() {
       await logActivity(tableId!, "payment_added", desc, order.id);
 
       await supabase.from("orders").update({ status: "closed", total: totalVal }).eq("id", order.id);
-      await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId!);
+      // Reset table name to default and set status to free
+      const { data: tableData } = await supabase
+        .from("restaurant_tables")
+        .select("default_name")
+        .eq("id", tableId!)
+        .single();
+      const resetName = (tableData as any)?.default_name || table?.name;
+      await supabase.from("restaurant_tables").update({ status: "free", name: resetName } as any).eq("id", tableId!);
       await logActivity(tableId!, "table_closed", `Mesa ${table?.name ?? ""} fechada`, order.id);
 
       // Create receipt print job
