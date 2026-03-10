@@ -46,6 +46,7 @@ async function logActivity(
 
 export default function TableOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
