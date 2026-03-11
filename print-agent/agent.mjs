@@ -200,11 +200,11 @@ function buildBillTicket(job) {
   // Table/customer info centered
   if (p.table_name) {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(p.table_name.toUpperCase()));
+    parts.push(cmd.text(upperPt(p.table_name)));
     parts.push(cmd.bold(false));
   }
   const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
-  parts.push(cmd.text(`CLIENTE : ${customerLabel.toUpperCase()}`));
+  parts.push(cmd.text(`CLIENTE : ${upperPt(customerLabel)}`));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
