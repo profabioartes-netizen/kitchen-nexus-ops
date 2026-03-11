@@ -152,83 +152,137 @@ function buildHeader() {
 function buildBillTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
-  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
   const items = p.items || [];
+
+  // Column layout: QTD(4) + ITENS(middle) + TOTAL(8)
+  const qtyCol = 6;
+  const totalCol = 10;
+  const itemsCol = COLS - qtyCol - totalCol;
 
   const parts = [
     cmd.init,
     cmd.codepage,
-    ...buildHeader(),
-    cmd.text(`CNPJ: ${CNPJ}`),
-    cmd.text("Sao Jose dos Salgados - MG"),
-    cmd.separator(),
+    // Header
     cmd.alignCenter,
+    cmd.text(""),
     cmd.bold(true),
-    cmd.text("REGISTRO DA COMANDA"),
+    cmd.text("COFFEE THRONES"),
     cmd.bold(false),
+    cmd.text(`CNPJ : ${CNPJ}`),
+    cmd.text(""),
     cmd.separator(),
-    cmd.alignLeft,
+    cmd.text(""),
+    cmd.bold(true),
+    cmd.text("RESUMO DA CONTA"),
+    cmd.bold(false),
+    cmd.text(""),
+    cmd.separator(),
+    cmd.text(""),
   ];
 
-  if (p.customer_name) parts.push(cmd.text(`Cliente: ${p.customer_name}`));
-  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
-  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`Atendente: ${p.waiter_name}`));
-  parts.push(cmd.text(`Data: ${date}  Hora: ${time}`));
+  // Table/customer info centered
+  if (p.table_name) {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text(p.table_name.toUpperCase()));
+    parts.push(cmd.bold(false));
+  }
+  const customerLabel = p.customer_name || "CONSUMIDOR NAO IDENTIFICADO";
+  parts.push(cmd.text(`CLIENTE : ${customerLabel.toUpperCase()}`));
+  parts.push(cmd.text(""));
   parts.push(cmd.separator());
+  parts.push(cmd.text(""));
 
+  // Column headers
+  parts.push(cmd.alignLeft);
   parts.push(cmd.bold(true));
-  parts.push(cmd.padRow("ITEM", "TOTAL"));
+  const headerLine = "QTD".padEnd(qtyCol) + "ITENS".padEnd(itemsCol) + "TOTAL".padStart(totalCol);
+  parts.push(cmd.text(headerLine));
   parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
   parts.push(cmd.separator());
+  parts.push(cmd.text(""));
 
+  // Items
   let subtotal = 0;
   for (const item of items) {
     const qty = item.quantity || 1;
     const itemTotal = (item.price || 0) * qty;
     subtotal += itemTotal;
-    const left = `${qty}x ${item.product_name}`;
-    const right = `R$ ${itemTotal.toFixed(2)}`;
-    parts.push(cmd.padRow(left, right));
+    const name = (item.product_name || "Item").toUpperCase();
+    const totalStr = itemTotal.toFixed(2).replace(".", ",");
 
+    const wrappedName = wordWrap(name, itemsCol);
+    // First line: qty + first name segment + total
+    const firstLine = String(qty).padEnd(qtyCol) + wrappedName[0].padEnd(itemsCol) + totalStr.padStart(totalCol);
+    parts.push(cmd.text(firstLine));
+    // Continuation lines (name only, indented)
+    for (let i = 1; i < wrappedName.length; i++) {
+      parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
+    }
+
+    // Complements with ">" prefix
     if (item.complements && item.complements.length > 0) {
       for (const c of item.complements) {
         const cName = typeof c === "string" ? c : c.name;
-        const cPrice = typeof c === "object" && c.price ? ` R$${Number(c.price).toFixed(2)}` : "";
-        parts.push(cmd.wrappedText(`  + ${cName}${cPrice}`));
+        const cQty = typeof c === "object" && c.quantity ? c.quantity : 1;
+        const cPrice = typeof c === "object" && c.price ? Number(c.price) * cQty : 0;
+        const cLabel = `> ${cQty}x ${cName}`.toLowerCase();
+        const cTotal = cPrice > 0 ? cPrice.toFixed(2).replace(".", ",") : "";
+        subtotal += cPrice;
+        const cLine = " ".repeat(qtyCol) + cLabel.padEnd(itemsCol) + cTotal.padStart(totalCol);
+        parts.push(cmd.text(cLine));
       }
     }
+
     if (item.notes) {
-      parts.push(cmd.wrappedText(`  OBS: ${item.notes}`));
+      parts.push(cmd.wrappedText(" ".repeat(qtyCol) + `OBS: ${item.notes}`));
     }
   }
 
+  parts.push(cmd.text(""));
   parts.push(cmd.separator());
-  const totalVal = Number(p.total || subtotal);
-  parts.push(cmd.bold(true));
-  parts.push(cmd.alignCenter);
-  parts.push(cmd.text(`TOTAL: R$ ${totalVal.toFixed(2)}`));
-  parts.push(cmd.bold(false));
-  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
 
+  // Subtotal & Total
+  const totalVal = Number(p.total || subtotal);
+  parts.push(cmd.alignRight);
+  parts.push(cmd.text(`SUBTOTAL : R$ ${subtotal.toFixed(2).replace(".", ",")}`));
+  parts.push(cmd.text(""));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text(`VALOR A PAGAR : R$ ${totalVal.toFixed(2).replace(".", ",")}`));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+
+  // Payment method
   if (p.payment_method) {
-    const methods = { credit: "Credito", debit: "Debito", cash: "Dinheiro", pix: "Pix" };
-    parts.push(cmd.alignLeft);
+    const methods = { credit: "CREDITO", debit: "DEBITO", cash: "DINHEIRO", pix: "PIX" };
+    parts.push(cmd.alignCenter);
     parts.push(cmd.text(`Pagamento: ${methods[p.payment_method] || p.payment_method}`));
     if (p.change && Number(p.change) > 0) {
-      parts.push(cmd.text(`Troco: R$ ${Number(p.change).toFixed(2)}`));
+      parts.push(cmd.text(`Troco: R$ ${Number(p.change).toFixed(2).replace(".", ",")}`));
     }
-    parts.push(cmd.separator());
+    parts.push(cmd.text(""));
   }
 
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
   parts.push(cmd.alignCenter);
-  parts.push(cmd.text("DOCUMENTO SEM VALOR FISCAL"));
-  parts.push(cmd.separator());
-  parts.push(cmd.text("Obrigado pela visita!"));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("* DOCUMENTO SEM VALOR FISCAL *"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+
+  // Footer
+  parts.push(cmd.text(`Data e Hora: ${date} - ${time}`));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("OBRIGADO PELA PREFERENCIA."));
+  parts.push(cmd.text("VOLTE SEMPRE!"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
   parts.push(cmd.text("@coffeethrones"));
-  parts.push(cmd.separator());
-  parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
+
   parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
 
