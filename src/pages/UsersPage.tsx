@@ -131,7 +131,6 @@ export default function UsersPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  const ADMIN_PIN = "9774";
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget || !confirmPassword) return;
