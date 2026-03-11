@@ -460,7 +460,6 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       invalidateLog();
     },
   });
