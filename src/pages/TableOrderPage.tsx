@@ -865,7 +865,7 @@ export default function TableOrderPage() {
             <div className="flex flex-col">
               <input
                 type="text"
-                defaultValue={table?.name ?? "Comanda"}
+                defaultValue={order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
                 key={`name-${table?.id}`}
                 onBlur={async (e) => {
                   const newName = e.target.value.trim();
