@@ -715,6 +715,7 @@ export default function TableOrderPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const cancelOrder = useMutation({
     mutationFn: async () => {
+      leavingRef.current = true;
       if (!order) throw new Error("Sem pedido aberto");
       // Delete complements for all order items first (FK constraint)
       const itemIds = orderItems.map((i) => i.id);
@@ -743,15 +744,14 @@ export default function TableOrderPage() {
       await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
     },
     onSuccess: () => {
-      leavingRef.current = true;
-      navigate("/");
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Pedido cancelado. Mesa liberada.");
+      navigate("/");
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => { leavingRef.current = false; toast.error((err as Error).message); },
   });
 
   // Save order — print only NEW unsent items to their station printers (Cozinha, Bebidas, Sobremesa)
