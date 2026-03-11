@@ -315,7 +315,7 @@ function buildProductionTicket(job) {
     cmd.text((p.waiter_name || "").toUpperCase()),
     cmd.bold(false),
     // "LANCADO POR" line
-    cmd.text("LANCADO POR : COFFEE THRONES"),
+    cmd.text("LANÇADO POR : COFFEE THRONES"),
     cmd.text(""),
     cmd.separator(),
     cmd.text(""),
