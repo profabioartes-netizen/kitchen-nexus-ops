@@ -131,6 +131,38 @@ export default function PrintersPage() {
         </button>
       </div>
 
+      {/* Action bar: Queue controls */}
+      <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-lg border bg-card">
+        {/* Clear queue button */}
+        <button
+          onClick={() => clearQueueMutation.mutate()}
+          disabled={pendingCount === 0 || clearQueueMutation.isPending}
+          className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          <Trash className="h-4 w-4" />
+          Limpar fila de impressão
+        </button>
+
+        {/* Queue counter */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Fila atual:</span>
+          <span className="font-semibold text-foreground">{pendingCount} pedido{pendingCount !== 1 ? "s" : ""}</span>
+        </div>
+
+        {/* Agent toggle */}
+        <button
+          onClick={() => setAgentActive(!agentActive)}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ml-auto ${
+            agentActive
+              ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
+              : "bg-destructive/10 text-destructive"
+          }`}
+        >
+          <Power className="h-4 w-4" />
+          Agente de impressão: {agentActive ? "Ativo" : "Pausado"}
+        </button>
+      </div>
+
       <p className="text-sm text-muted-foreground mb-6">
         Configure o roteamento de impressoras térmicas por estação. O agente de impressão (<code>/impressoras/agente</code>) consome a fila de jobs automaticamente.
       </p>
