@@ -167,17 +167,19 @@ export function ProductFormDialog({ productId, onClose }: Props) {
     setForm((prev) => ({ ...prev, image_url: "" }));
   };
 
-  const fetchSuggestions = async () => {
-    if (!form.name.trim() || form.name.trim().length < 2) {
-      toast.error("Digite o nome do produto primeiro.");
+  const fetchSuggestions = useCallback(async (name: string) => {
+    if (!name.trim() || name.trim().length < 3) {
+      setSuggestions([]);
       return;
     }
+    if (name.trim() === lastFetchedName.current) return;
+    lastFetchedName.current = name.trim();
 
     setLoadingSuggestions(true);
     setSuggestions([]);
     try {
       const { data, error } = await supabase.functions.invoke("product-image-suggestions", {
-        body: { productName: form.name.trim() },
+        body: { productName: name.trim() },
       });
 
       if (error) throw error;
@@ -187,16 +189,27 @@ export function ProductFormDialog({ productId, onClose }: Props) {
       }
 
       setSuggestions(data?.suggestions || []);
-      if (!data?.suggestions?.length) {
-        toast.info("Nenhuma sugestão encontrada.");
-      }
     } catch (err) {
-      toast.error("Erro ao buscar sugestões.");
       console.error(err);
     } finally {
       setLoadingSuggestions(false);
     }
-  };
+  }, []);
+
+  // Debounced auto-fetch when name changes
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (form.name.trim().length >= 3) {
+      debounceRef.current = setTimeout(() => {
+        fetchSuggestions(form.name);
+      }, 1500);
+    } else {
+      setSuggestions([]);
+    }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [form.name, fetchSuggestions]);
 
   const selectSuggestion = async (url: string) => {
     // If it's a base64 image, upload to storage first
