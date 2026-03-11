@@ -277,7 +277,7 @@ function buildBillTicket(job) {
   // Footer
   parts.push(cmd.text(`Data e Hora: ${date} - ${time}`));
   parts.push(cmd.bold(true));
-  parts.push(cmd.text("OBRIGADO PELA PREFERENCIA."));
+  parts.push(cmd.text("OBRIGADO PELA PREFERÊNCIA."));
   parts.push(cmd.text("VOLTE SEMPRE!"));
   parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
