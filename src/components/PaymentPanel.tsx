@@ -38,7 +38,7 @@ interface PaymentPanelProps {
   onPay: (result: PaymentResult) => void;
   onCancel: () => void;
   isPending: boolean;
-  onAddQuickItem?: (product: { id: string; name: string; price: number }) => void;
+  onAddQuickItem?: (product: { id: string; name: string; price: number }, quantity: number) => void;
 }
 
 const methodLabels: Record<string, string> = {
