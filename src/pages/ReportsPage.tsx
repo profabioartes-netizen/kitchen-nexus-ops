@@ -7,6 +7,7 @@ import {
   Receipt,
   Loader2,
   CalendarDays,
+  Lock,
 } from "lucide-react";
 import {
   BarChart,
@@ -24,6 +25,7 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, isAfter } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 const COLORS = [
   "hsl(36 90% 44%)",
@@ -43,9 +45,13 @@ const chartTooltipStyle = {
   fontSize: "12px",
 };
 
+const ADMIN_PIN = "9135";
+
 type Period = "7" | "14" | "30" | "all";
 
 export default function ReportsPage() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
   const [period, setPeriod] = useState<Period>("7");
 
   const { data: payments = [], isLoading: loadingPayments } = useQuery({
@@ -59,6 +65,7 @@ export default function ReportsPage() {
       if (error) throw error;
       return data;
     },
+    enabled: unlocked,
   });
 
   const { data: orderItems = [], isLoading: loadingItems } = useQuery({
@@ -71,11 +78,10 @@ export default function ReportsPage() {
       if (error) throw error;
       return data;
     },
+    enabled: unlocked,
   });
 
   const isLoading = loadingPayments || loadingItems;
-
-  // Filter by period
   const cutoff = period === "all" ? null : startOfDay(subDays(new Date(), parseInt(period)));
 
   const filteredPayments = useMemo(() => {
@@ -91,13 +97,11 @@ export default function ReportsPage() {
     });
   }, [orderItems, cutoff]);
 
-  // KPI stats
   const totalRevenue = filteredPayments.reduce((s, p) => s + Number(p.amount), 0);
   const totalOrders = filteredPayments.length;
   const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   const totalItemsSold = filteredItems.reduce((s, i) => s + i.quantity, 0);
 
-  // === Daily Revenue ===
   const dailyRevenue = useMemo(() => {
     const map = new Map<string, number>();
     filteredPayments.forEach((p) => {
@@ -107,7 +111,6 @@ export default function ReportsPage() {
     return Array.from(map.entries()).map(([day, revenue]) => ({ day, revenue }));
   }, [filteredPayments]);
 
-  // === Sales by Product ===
   const byProduct = useMemo(() => {
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
     filteredItems.forEach((i) => {
@@ -119,7 +122,6 @@ export default function ReportsPage() {
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
   }, [filteredItems]);
 
-  // === Sales by Category ===
   const byCategory = useMemo(() => {
     const map = new Map<string, { name: string; qty: number; revenue: number }>();
     filteredItems.forEach((i) => {
@@ -132,7 +134,6 @@ export default function ReportsPage() {
     return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
   }, [filteredItems]);
 
-  // === Sales by Payment Method ===
   const byMethod = useMemo(() => {
     const map = new Map<string, { method: string; amount: number; count: number }>();
     filteredPayments.forEach((p) => {
@@ -144,6 +145,38 @@ export default function ReportsPage() {
     });
     return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
   }, [filteredPayments]);
+
+  if (!unlocked) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="rounded-lg border bg-card p-6 w-full max-w-xs space-y-4 shadow-lg text-center">
+          <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+          <h2 className="font-semibold text-lg">Área Restrita</h2>
+          <p className="text-sm text-muted-foreground">Digite o PIN de administrador</p>
+          <input
+            type="password"
+            autoFocus
+            inputMode="numeric"
+            maxLength={4}
+            value={pinInput}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setPinInput(val);
+              if (val === ADMIN_PIN) setUnlocked(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (pinInput === ADMIN_PIN) setUnlocked(true);
+                else { setPinInput(""); toast.error("PIN incorreto!"); }
+              }
+            }}
+            placeholder="••••"
+            className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -212,7 +245,6 @@ export default function ReportsPage() {
 
       {hasData && (
         <>
-          {/* Daily Revenue Chart */}
           {dailyRevenue.length > 0 && (
             <div className="rounded-lg border bg-card p-4 mb-6">
               <h3 className="font-semibold mb-4">Faturamento Diário</h3>
@@ -229,22 +261,13 @@ export default function ReportsPage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Sales by Payment Method */}
             {byMethod.length > 0 && (
               <div className="rounded-lg border bg-card p-4">
                 <h3 className="font-semibold mb-4">Vendas por Método de Pagamento</h3>
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width={180} height={180}>
                     <PieChart>
-                      <Pie
-                        data={byMethod}
-                        dataKey="amount"
-                        nameKey="method"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={45}
-                      >
+                      <Pie data={byMethod} dataKey="amount" nameKey="method" cx="50%" cy="50%" outerRadius={80} innerRadius={45}>
                         {byMethod.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
@@ -270,22 +293,13 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* Sales by Category */}
             {byCategory.length > 0 && (
               <div className="rounded-lg border bg-card p-4">
                 <h3 className="font-semibold mb-4">Vendas por Categoria</h3>
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width={180} height={180}>
                     <PieChart>
-                      <Pie
-                        data={byCategory}
-                        dataKey="revenue"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={45}
-                      >
+                      <Pie data={byCategory} dataKey="revenue" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45}>
                         {byCategory.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
@@ -312,12 +326,10 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Sales by Product — Full Table */}
           {byProduct.length > 0 && (
             <div className="rounded-lg border bg-card p-4 mb-6">
               <h3 className="font-semibold mb-4">Vendas por Produto</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Bar chart top 8 */}
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={byProduct.slice(0, 8)} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(30 10% 82%)" />
@@ -328,7 +340,6 @@ export default function ReportsPage() {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* Full table */}
                 <div className="overflow-auto max-h-[280px]">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-card">
