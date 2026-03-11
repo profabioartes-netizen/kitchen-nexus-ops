@@ -320,7 +320,7 @@ function buildProductionTicket(job) {
     cmd.text(""),
     // Station centered with asterisks
     cmd.bold(true),
-    cmd.text(`* ${job.station.toUpperCase()} *`),
+    cmd.text(`* ${upperPt(job.station)} *`),
     cmd.bold(false),
     cmd.text(""),
     cmd.separator(),
