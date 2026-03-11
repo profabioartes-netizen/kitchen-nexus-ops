@@ -158,7 +158,7 @@ export default function CashierPage() {
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      normalize(p.name).includes(normalize(search))
   );
 
   const methodLabels: Record<string, string> = {

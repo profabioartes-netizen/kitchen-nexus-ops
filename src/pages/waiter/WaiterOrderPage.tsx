@@ -477,7 +477,7 @@ export default function WaiterOrderPage() {
   };
 
   const filtered = products.filter((p) => {
-    if (search) return p.name.toLowerCase().includes(search.toLowerCase());
+    if (search) return normalize(p.name).includes(normalize(search));
     return p.category_id === activeCategory;
   });
 

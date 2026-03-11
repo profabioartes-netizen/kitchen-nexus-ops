@@ -59,7 +59,7 @@ export default function ProductsPage() {
   });
 
   const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    normalize(p.name).includes(normalize(search))
   );
 
   const grouped = filtered.reduce<Record<string, typeof filtered>>((acc, p) => {

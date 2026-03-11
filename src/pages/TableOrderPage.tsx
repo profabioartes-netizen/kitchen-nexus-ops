@@ -933,7 +933,7 @@ export default function TableOrderPage() {
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      normalize(p.name).includes(normalize(search))
   );
 
   const total = orderItems.reduce((s, i) => {
