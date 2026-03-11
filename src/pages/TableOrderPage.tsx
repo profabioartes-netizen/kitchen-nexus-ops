@@ -706,15 +706,6 @@ export default function TableOrderPage() {
     mutationFn: async () => {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido aberto");
-      // Generate cancellation print jobs for all sent production items
-      const sentItems = orderItems.filter((i) => i.sent_to_kitchen);
-      for (const item of sentItems) {
-        await createCancellationPrintJob(
-          item, item.quantity, table?.name || "—",
-          order.waiter_name || profile?.full_name || null,
-          order.id, products,
-        );
-      }
       // Delete complements for all order items first (FK constraint)
       const itemIds = orderItems.map((i) => i.id);
       if (itemIds.length > 0) {
