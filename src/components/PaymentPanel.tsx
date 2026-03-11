@@ -449,7 +449,26 @@ export default function PaymentPanel({
             </tbody>
           </table>
 
-          {/* Paid items from previous sessions */}
+          {/* Quick-sale products */}
+          {onAddQuickItem && quickSaleProducts.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Zap className="h-3 w-3" /> Venda Rápida
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {quickSaleProducts.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onAddQuickItem({ id: p.id, name: p.name, price: Number(p.price) })}
+                    className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    {p.name} <span className="text-muted-foreground ml-1">R$ {Number(p.price).toFixed(2)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {orderItems.some((i) => (i.paid_quantity ?? 0) > 0) && (
             <div className="mt-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Itens pagos 🔒</h3>
