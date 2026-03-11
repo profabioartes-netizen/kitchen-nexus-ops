@@ -465,44 +465,53 @@ export function ProductFormDialog({ productId, onClose }: Props) {
 
         {/* AI Suggestions */}
         <div className="mt-4 border-t pt-4">
-          <button
-            type="button"
-            onClick={fetchSuggestions}
-            disabled={loadingSuggestions || !form.name.trim()}
-            className="flex items-center gap-2 text-sm font-medium text-accent hover:underline disabled:opacity-50 disabled:no-underline"
-          >
-            {loadingSuggestions ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Sugestões de foto
-          </button>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            <span className="text-sm font-medium text-muted-foreground">Sugestões de foto</span>
+            {loadingSuggestions && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
+          </div>
+
+          {loadingSuggestions && suggestions.length === 0 && (
+            <p className="text-xs text-muted-foreground mt-2">Gerando sugestões para "{form.name}"...</p>
+          )}
+
+          {!loadingSuggestions && suggestions.length === 0 && form.name.trim().length >= 3 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Nenhum resultado encontrado.{" "}
+              <button
+                type="button"
+                onClick={() => { lastFetchedName.current = ""; fetchSuggestions(form.name); }}
+                className="text-accent hover:underline"
+              >
+                Tentar novamente
+              </button>
+            </p>
+          )}
+
+          {!loadingSuggestions && suggestions.length === 0 && form.name.trim().length < 3 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Digite pelo menos 3 caracteres no nome do produto.
+            </p>
+          )}
 
           {suggestions.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {suggestions.map((s, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => selectSuggestion(s.url)}
-                  className="rounded-lg border overflow-hidden aspect-square bg-card hover:ring-2 hover:ring-accent transition-all"
+                  disabled={uploading}
+                  className="rounded-lg border overflow-hidden aspect-square bg-card hover:ring-2 hover:ring-accent transition-all disabled:opacity-50"
                 >
                   <img
                     src={s.url}
                     alt={s.alt}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).parentElement!.style.display = "none";
-                    }}
                   />
                 </button>
               ))}
             </div>
-          )}
-
-          {loadingSuggestions && (
-            <p className="text-xs text-muted-foreground mt-2">Buscando sugestões...</p>
           )}
         </div>
 
