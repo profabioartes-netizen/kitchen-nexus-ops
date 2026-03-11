@@ -5,6 +5,7 @@ import {
   Search, Loader2, Users, ChevronDown, ChevronUp,
   CreditCard, Clock, CalendarDays, Receipt, Package,
 } from "lucide-react";
+import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
