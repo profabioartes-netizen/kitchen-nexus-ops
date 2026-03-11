@@ -389,7 +389,7 @@ export default function WaiterOrderPage() {
         for (const item of unsent) {
           const product = products.find((p) => p.id === item.product_id);
           const station = (product as any)?.station || "";
-          if (!station || station === "Caixa") continue;
+          if (!station) continue;
           const itemComplements = complementsByItem[item.id] || [];
           printJobRows.push({
             station, status: "pending",
