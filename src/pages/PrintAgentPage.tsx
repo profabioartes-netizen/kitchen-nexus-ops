@@ -584,6 +584,12 @@ export default function PrintAgentPage() {
         </div>
       </div>
 
+      {/* Queue counter */}
+      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Fila atual:</span>
+        <span className="font-semibold text-foreground">{pendingCount} pedido{pendingCount !== 1 ? "s" : ""}</span>
+      </div>
+
       {/* Production queue (auto-print) */}
       {productionJobs.length > 0 && (
         <div className="mb-5">
