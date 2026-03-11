@@ -243,7 +243,7 @@ function buildBillTicket(job) {
         const cName = typeof c === "string" ? c : c.name;
         const cQty = typeof c === "object" && c.quantity ? c.quantity : 1;
         const cPrice = typeof c === "object" && c.price ? Number(c.price) * cQty : 0;
-        const cLabel = `> ${cQty}x ${cName}`.toLowerCase();
+        const cLabel = `> ${cQty}x ${cName}`.toLocaleLowerCase("pt-BR").normalize("NFC");
         const cTotal = cPrice > 0 ? cPrice.toFixed(2).replace(".", ",") : "";
         subtotal += cPrice;
         const cLine = " ".repeat(qtyCol) + cLabel.padEnd(itemsCol) + cTotal.padStart(totalCol);
