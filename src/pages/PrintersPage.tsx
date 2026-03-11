@@ -241,7 +241,7 @@ export default function PrintersPage() {
       )}
 
       {/* Print queue table — always visible */}
-      <div className="rounded-lg border bg-card overflow-hidden mb-6">
+      <div ref={queueRef} className="rounded-lg border bg-card overflow-hidden mb-6">
         <div className="px-4 py-3 border-b bg-secondary/30">
           <h3 className="text-sm font-semibold">Fila de Impressão</h3>
         </div>
