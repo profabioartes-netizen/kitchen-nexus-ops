@@ -197,17 +197,17 @@ function buildBillTicket(job) {
     cmd.text(""),
   ];
 
-  // Table/customer info centered
-  if (p.mesa_name) {
+  // Customer name (bold header) + Mesa/sector location
+  const customerName = p.customer_name || p.table_name || null;
+  if (customerName && customerName !== "—") {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(upperPt(p.mesa_name)));
+    parts.push(cmd.text(upperPt(customerName)));
     parts.push(cmd.bold(false));
-  }
-  if (p.table_name && p.table_name !== "—") {
-    parts.push(cmd.text(`CLIENTE : ${upperPt(p.table_name)}`));
   } else {
-    const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
-    parts.push(cmd.text(`CLIENTE : ${upperPt(customerLabel)}`));
+    parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
+  }
+  if (p.mesa_sector) {
+    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
   }
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
@@ -340,17 +340,18 @@ function buildProductionTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa / Garçom info centered — same as cashier
-  if (p.mesa_name) {
+  // Customer name (bold header) + Mesa/sector location
+  const customerName = p.customer_name || p.table_name || null;
+  if (customerName && customerName !== "—") {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(upperPt(p.mesa_name)));
+    parts.push(cmd.text(upperPt(customerName)));
     parts.push(cmd.bold(false));
   }
-  if (p.table_name && p.table_name !== "—") {
-    parts.push(cmd.text(`CLIENTE : ${upperPt(p.table_name)}`));
+  if (p.mesa_sector) {
+    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
   }
   if (p.waiter_name) {
-    parts.push(cmd.text(`LANÇADO POR : ${upperPt(p.waiter_name)}`));
+    parts.push(cmd.text("LANCADO POR : " + upperPt(p.waiter_name)));
   }
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
@@ -442,14 +443,18 @@ function buildCancellationTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa / Garçom centered
-  if (p.table_name) {
+  // Customer name (bold header) + Mesa/sector location
+  const customerName = p.customer_name || p.table_name || null;
+  if (customerName && customerName !== "—") {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(upperPt(p.table_name)));
+    parts.push(cmd.text(upperPt(customerName)));
     parts.push(cmd.bold(false));
   }
+  if (p.mesa_sector) {
+    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
+  }
   if (p.waiter_name) {
-    parts.push(cmd.text(`LANÇADO POR : ${upperPt(p.waiter_name)}`));
+    parts.push(cmd.text("LANCADO POR : " + upperPt(p.waiter_name)));
   }
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
