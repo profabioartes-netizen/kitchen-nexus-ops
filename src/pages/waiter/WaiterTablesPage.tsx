@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Users, ChefHat } from "lucide-react";
@@ -23,6 +24,24 @@ const statusColors: Record<TableStatus, string> = {
 export default function WaiterTablesPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime: sync tables and orders instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel('waiter-tables-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["active_locks"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],

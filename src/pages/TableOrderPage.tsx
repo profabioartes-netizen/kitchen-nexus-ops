@@ -81,6 +81,29 @@ export default function TableOrderPage() {
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
+  // Realtime: sync order data instantly across all screens
+  useEffect(() => {
+    const channel = supabase
+      .channel(`table-order-${tableId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["order_items"] });
+        queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["table", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient, tableId]);
+
   // Fetch table
   const { data: table, isLoading: tableLoading } = useQuery({
     queryKey: ["table", tableId],

@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Clock, ShoppingBag } from "lucide-react";
@@ -9,6 +10,21 @@ import { ptBR } from "date-fns/locale";
 export default function WaiterOrdersPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime: sync orders instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel('waiter-orders-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["waiter_open_orders"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["waiter_open_orders"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["waiter_open_orders"],
@@ -21,7 +37,6 @@ export default function WaiterOrdersPage() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 10000,
   });
 
   // Show all open orders but highlight waiter's own

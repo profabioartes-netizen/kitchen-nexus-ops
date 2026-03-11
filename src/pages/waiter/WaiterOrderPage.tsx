@@ -40,6 +40,25 @@ export default function WaiterOrderPage() {
   const autoCreatedRef = useRef(false);
   const [showOpenDialog, setShowOpenDialog] = useState(false);
 
+  // Realtime: sync order data instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel(`waiter-order-${tableId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["order_items"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["table", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient, tableId]);
+
   // ── Data queries ──
 
   const { data: table, isLoading: tableLoading } = useQuery({
