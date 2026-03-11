@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone } from "lucide-react";
+import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone, Printer } from "lucide-react";
 import { toast } from "sonner";
 
 interface OrderItem {
@@ -17,6 +17,8 @@ export default function CashierPage() {
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<"credit" | "debit" | "cash" | "pix" | null>(null);
+  const [cashGiven, setCashGiven] = useState("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -76,6 +78,12 @@ export default function CashierPage() {
 
   const subtotal = order.reduce((sum, o) => sum + o.price * o.qty, 0);
 
+  // Cash change calculation
+  const cashGivenNum = Number(cashGiven.replace(",", ".")) || 0;
+  const cashChange = selectedMethod === "cash" && cashGivenNum > subtotal
+    ? Number((cashGivenNum - subtotal).toFixed(2))
+    : 0;
+
   const payMutation = useMutation({
     mutationFn: async (method: "cash" | "credit" | "debit" | "pix") => {
       // Create order
@@ -109,6 +117,8 @@ export default function CashierPage() {
     },
     onSuccess: () => {
       setOrder([]);
+      setSelectedMethod(null);
+      setCashGiven("");
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       toast.success("Pagamento registrado com sucesso!");
     },
@@ -117,11 +127,41 @@ export default function CashierPage() {
     },
   });
 
+  // Print bill to Caixa station
+  const printBill = async () => {
+    if (order.length === 0) return;
+    await supabase.from("print_jobs").insert({
+      station: "Caixa",
+      status: "pending",
+      payload: {
+        type: "bill",
+        items: order.map((o) => ({
+          product_name: o.name,
+          quantity: o.qty,
+          price: o.price,
+          subtotal: o.price * o.qty,
+        })),
+        total: subtotal,
+        payment_method: selectedMethod || null,
+        change: selectedMethod === "cash" ? cashChange : null,
+        printed_at: new Date().toISOString(),
+      },
+    });
+    toast.success("Nota enviada para impressão!");
+  };
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
       p.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const methodLabels: Record<string, string> = {
+    credit: "Crédito",
+    debit: "Débito",
+    cash: "Dinheiro",
+    pix: "Pix",
+  };
 
   return (
     <div className="flex h-screen">
@@ -187,8 +227,17 @@ export default function CashierPage() {
 
       {/* Order panel */}
       <div className="w-80 border-l bg-card flex flex-col">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-lg">Comanda</h2>
+          <button
+            disabled={order.length === 0}
+            onClick={printBill}
+            className="flex items-center gap-1.5 rounded-md bg-blue-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+            title="Imprimir nota"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Imprimir
+          </button>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-2">
@@ -230,40 +279,67 @@ export default function CashierPage() {
             <span className="font-display text-xl">TOTAL</span>
             <span className="font-display text-xl">R$ {subtotal.toFixed(2)}</span>
           </div>
+
+          {/* Payment method selection */}
           <div className="grid grid-cols-4 gap-2">
-            <button
-              disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate("credit")}
-              className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              <CreditCard className="h-4 w-4" />
-              <span className="text-xs">Crédito</span>
-            </button>
-            <button
-              disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate("debit")}
-              className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              <CreditCard className="h-4 w-4" />
-              <span className="text-xs">Débito</span>
-            </button>
-            <button
-              disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate("cash")}
-              className="flex flex-col items-center justify-center gap-1 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              <Banknote className="h-4 w-4" />
-              <span className="text-xs">Dinheiro</span>
-            </button>
-            <button
-              disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate("pix")}
-              className="flex flex-col items-center justify-center gap-1 rounded-md bg-secondary text-secondary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              <Smartphone className="h-4 w-4" />
-              <span className="text-xs">Pix</span>
-            </button>
+            {(["credit", "debit", "cash", "pix"] as const).map((method) => {
+              const icons = { credit: CreditCard, debit: CreditCard, cash: Banknote, pix: Smartphone };
+              const Icon = icons[method];
+              const isSelected = selectedMethod === method;
+              return (
+                <button
+                  key={method}
+                  disabled={order.length === 0}
+                  onClick={() => {
+                    setSelectedMethod(method);
+                    if (method !== "cash") setCashGiven("");
+                  }}
+                  className={`flex flex-col items-center justify-center gap-1 rounded-md py-3 font-medium transition-all disabled:opacity-50 ${
+                    isSelected
+                      ? "bg-accent text-accent-foreground ring-2 ring-accent ring-offset-1 ring-offset-card"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-xs">{methodLabels[method]}</span>
+                </button>
+              );
+            })}
           </div>
+
+          {/* Cash change calculator */}
+          {selectedMethod === "cash" && (
+            <div className="space-y-2 rounded-md border bg-background p-3">
+              <label className="text-xs font-medium text-muted-foreground">Troco para:</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={cashGiven}
+                onChange={(e) => setCashGiven(e.target.value)}
+                className="w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+              />
+              {cashGivenNum > 0 && (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-muted-foreground">Troco</span>
+                  <span className={`text-sm font-bold ${cashChange > 0 ? "text-green-500" : "text-destructive"}`}>
+                    R$ {cashChange.toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Confirm payment button */}
+          {selectedMethod && (
+            <button
+              disabled={order.length === 0 || payMutation.isPending}
+              onClick={() => payMutation.mutate(selectedMethod)}
+              className="w-full rounded-md bg-accent text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {payMutation.isPending ? "Processando..." : `Finalizar — ${methodLabels[selectedMethod]}`}
+            </button>
+          )}
         </div>
       </div>
     </div>
