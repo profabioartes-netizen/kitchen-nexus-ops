@@ -107,15 +107,15 @@ function buildProductionHTML(job: any) {
     ${buildMedievalHeader(job.station.toUpperCase())}
     <div class="sep"></div>
     <div>
-      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
-      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
-      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
-      <div>Hora: ${time}  ${date}</div>
+      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
+      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      <div>HORA: ${time}  ${date}</div>
     </div>
     <div class="sep"></div>
     <div class="center item-big">${p.quantity || 1}× ${p.product_name || "Item"}</div>
     ${compHtml}
-    ${p.notes ? `<div class="notes bold" style="margin-left:0;">Obs: ${p.notes}</div>` : ""}
+    ${p.notes ? `<div class="bold" style="margin-left:0;">OBS: ${p.notes}</div>` : ""}
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
