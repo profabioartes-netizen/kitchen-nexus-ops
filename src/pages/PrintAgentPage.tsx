@@ -87,14 +87,25 @@ function buildBillHTML(job: any) {
     <div class="sep"></div>
     <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
     <div class="sep"></div>
-    <div style="margin-top:10px;"></div>
+    <div style="margin-top:12px;"></div>
+    <div class="center" style="font-size:12px;">⚜ ⚔ ⚜</div>
+    <div style="margin-top:6px;"></div>
     <div class="center" style="font-size:11px;">Obrigado por visitar o</div>
     <div class="center bold subtitle">REINO COFFEE THRONES</div>
     <div style="margin-top:6px;"></div>
-    <div class="center bold" style="font-size:12px;">⚔ Que seu café seja forte</div>
-    <div class="center bold" style="font-size:12px;">e sua jornada gloriosa! ⚔</div>
+    <div class="center" style="font-size:11px;">⚔ No Reino Coffee Thrones</div>
+    <div class="center" style="font-size:11px;">cada xícara conta</div>
+    <div class="center" style="font-size:11px;">uma nova história. ⚔</div>
     <div style="margin-top:6px;"></div>
-    <div class="center bold" style="font-size:12px;">Volte sempre!</div>
+    <div class="center bold" style="font-size:11px;">Retorne ao Reino</div>
+    <div class="center bold" style="font-size:11px;">em breve!</div>
+    <div style="margin-top:6px;"></div>
+    <div class="center" style="font-size:11px;">Compartilhe sua visita</div>
+    <div class="center bold" style="font-size:11px;">@coffeethrones</div>
+    <div style="margin-top:6px;"></div>
+    <div class="center" style="font-size:12px;">⚔ ☕ ⚔</div>
+    <div style="margin-top:4px;"></div>
+    <div class="center" style="font-size:12px;">⚜ ⚔ ⚜</div>
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
@@ -284,12 +295,19 @@ function TicketPreview({ job }: { job: any }) {
           <>
             <p className="text-center text-[10px] text-muted-foreground uppercase tracking-wide">DOCUMENTO SEM VALOR FISCAL</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
-            <div className="mt-3 mb-1 text-center space-y-0.5">
-              <p className="text-[10px] text-muted-foreground">Obrigado por visitar o</p>
+            <div className="mt-4 mb-1 text-center space-y-0.5">
+              <p className="text-xs">⚜ ⚔ ⚜</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Obrigado por visitar o</p>
               <p className="text-xs font-bold tracking-wide">REINO COFFEE THRONES</p>
-              <p className="text-[10px] font-bold mt-1">⚔ Que seu café seja forte</p>
-              <p className="text-[10px] font-bold">e sua jornada gloriosa! ⚔</p>
-              <p className="text-[10px] font-bold mt-1">Volte sempre!</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">⚔ No Reino Coffee Thrones</p>
+              <p className="text-[10px] text-muted-foreground">cada xícara conta</p>
+              <p className="text-[10px] text-muted-foreground">uma nova história. ⚔</p>
+              <p className="text-[10px] font-bold mt-1.5">Retorne ao Reino</p>
+              <p className="text-[10px] font-bold">em breve!</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">Compartilhe sua visita</p>
+              <p className="text-[10px] font-bold">@coffeethrones</p>
+              <p className="text-xs mt-1.5">⚔ ☕ ⚔</p>
+              <p className="text-xs mt-0.5">⚜ ⚔ ⚜</p>
             </div>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
