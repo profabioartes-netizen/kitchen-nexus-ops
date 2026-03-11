@@ -620,9 +620,9 @@ export default function PaymentPanel({
         </div>
 
         {/* CENTER: Current payment items + partial payments */}
-        <div className="w-80 flex flex-col border-r overflow-auto">
+        <div className="md:w-80 flex flex-col md:border-r overflow-auto border-t md:border-t-0">
           {/* Current payment items */}
-          <div className="p-4 flex-1">
+          <div className="p-3 md:p-4 flex-1">
             <div className="text-center mb-3">
               <p className="text-2xl font-bold tabular-nums">R$ {amountToPay.toFixed(2)}</p>
             </div>
