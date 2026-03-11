@@ -65,6 +65,7 @@ export default function TableOrderPage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [serviceFeeEnabled, setServiceFeeEnabled] = useState(false);
   const autoCreatedRef = useRef(false);
+  const leavingRef = useRef(false);
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
@@ -394,7 +395,7 @@ export default function TableOrderPage() {
 
   // Auto-create order for free tables (skip dialog)
   useEffect(() => {
-    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
+    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
       autoCreatedRef.current = true;
       createOrder.mutate({ customerName: navState?.customerName });
     }
@@ -699,12 +700,13 @@ export default function TableOrderPage() {
       await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
     },
     onSuccess: () => {
+      leavingRef.current = true;
+      navigate("/");
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Comanda finalizada! Dados registrados nos relatórios.");
-      navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -741,12 +743,13 @@ export default function TableOrderPage() {
       await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
     },
     onSuccess: () => {
+      leavingRef.current = true;
+      navigate("/");
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Pedido cancelado. Mesa liberada.");
-      navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
   });
