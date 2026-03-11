@@ -920,8 +920,64 @@ export default function TableOrderPage() {
 
   return (
     <div className="flex h-full flex-col md:flex-row overflow-hidden">
+      {/* Mobile header */}
+      {isMobile && (
+        <div className="flex items-center gap-2 p-3 border-b bg-card">
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-md border bg-background p-2.5 hover:bg-secondary transition-colors touch-manipulation"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold leading-tight truncate">
+              {order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+            </h1>
+            {order?.customer_name && (
+              <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
+            )}
+          </div>
+          {table && (
+            <span className={`table-status-${table.status} rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border`}>
+              {statusLabels[table.status as TableStatus] ?? table.status}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Mobile tab switcher */}
+      {isMobile && (
+        <div className="flex border-b bg-card md:hidden">
+          <button
+            onClick={() => setMobileTab("menu")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-colors touch-manipulation ${
+              mobileTab === "menu" ? "text-accent border-b-2 border-accent" : "text-muted-foreground"
+            }`}
+          >
+            <UtensilsCrossed className="h-4 w-4" />
+            Cardápio
+          </button>
+          <button
+            onClick={() => setMobileTab("order")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-colors touch-manipulation relative ${
+              mobileTab === "order" ? "text-accent border-b-2 border-accent" : "text-muted-foreground"
+            }`}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Comanda
+            {orderItemCount > 0 && (
+              <span className="absolute top-1.5 right-[calc(50%-40px)] flex h-5 min-w-5 items-center justify-center rounded-full bg-accent text-accent-foreground text-[10px] font-bold px-1">
+                {orderItemCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Left: Product selection */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden">
+      <div className={`flex-1 flex flex-col p-3 md:p-4 overflow-hidden ${isMobile && mobileTab !== "menu" ? "hidden" : ""}`}>
+        {/* Desktop header */}
+        {!isMobile && (
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate("/")}
@@ -986,6 +1042,7 @@ export default function TableOrderPage() {
             Histórico
           </button>
         </div>
+        )}
 
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
