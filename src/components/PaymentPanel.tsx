@@ -367,23 +367,22 @@ export default function PaymentPanel({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-3">
-          <button onClick={onCancel} className="rounded-md border p-2 hover:bg-secondary transition-colors">
+      <div className="flex items-center justify-between border-b px-3 md:px-6 py-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          <button onClick={onCancel} className="rounded-md border p-2 hover:bg-secondary transition-colors touch-manipulation">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-lg font-semibold">Fechamento de Conta</h1>
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <h1 className="text-base md:text-lg font-semibold">Fechamento de Conta</h1>
+            <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs text-muted-foreground flex-wrap">
               <span>{orderItems.length} itens</span>
-              <span>Itens: R$ {total.toFixed(2)}</span>
-              {serviceFeeEnabled && <span>Serviço ({serviceFeePct}%): R$ {serviceFee.toFixed(2)}</span>}
+              <span>R$ {total.toFixed(2)}</span>
               {paidTotal > 0 && <span className="text-accent">Pago: R$ {paidTotal.toFixed(2)}</span>}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="text-xl md:text-2xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
           <button onClick={onCancel} className="rounded-md p-2 hover:bg-secondary">
             <X className="h-5 w-5" />
           </button>
@@ -391,18 +390,18 @@ export default function PaymentPanel({
       </div>
 
       {/* Top action bar */}
-      <div className="flex items-center gap-3 px-6 py-2 border-b bg-card">
+      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 border-b bg-card overflow-x-auto">
         <button
           onClick={payRemaining}
           disabled={remaining <= 0.01}
-          className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+          className="rounded-md bg-accent text-accent-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation"
         >
           PAGAR RESTANTE
         </button>
         <button
           onClick={addAllItems}
           disabled={availableItems.length === 0}
-          className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+          className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation"
         >
           DIVIDIR TUDO
         </button>
