@@ -1333,15 +1333,15 @@ export default function TableOrderPage() {
                 <button
                   disabled={!order || orderItems.length === 0 || printBill.isPending}
                   onClick={() => printBill.mutate()}
-                  className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3.5 md:py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 touch-manipulation"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="text-sm">{printBill.isPending ? "Imprimindo..." : "Imprimir"}</span>
+                  <span className="text-sm">{printBill.isPending ? "..." : "Imprimir"}</span>
                 </button>
                 <button
                   disabled={unpaidItems.length === 0}
                   onClick={() => setShowPayment(true)}
-                  className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3.5 md:py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50 touch-manipulation"
                 >
                   <CreditCard className="h-4 w-4" />
                   <span className="text-sm">Fechar Conta</span>
@@ -1351,19 +1351,19 @@ export default function TableOrderPage() {
                 <button
                   onClick={() => saveOrder.mutate()}
                   disabled={!order || orderItems.length === 0 || saveOrder.isPending}
-                  className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md py-3.5 md:py-2 text-sm font-medium transition-colors disabled:opacity-50 touch-manipulation"
                   style={{ backgroundColor: "#16a34a", color: "white" }}
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  <Save className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   {saveOrder.isPending ? "Salvando..." : "Salvar"}
                 </button>
                 <button
                   onClick={() => setShowCancelConfirm(true)}
                   disabled={!order || cancelOrder.isPending}
-                  className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-3.5 md:py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50 touch-manipulation"
                 >
-                  <Ban className="h-3.5 w-3.5" />
-                  Cancelar Mesa
+                  <Ban className="h-4 w-4 md:h-3.5 md:w-3.5" />
+                  Cancelar
                 </button>
               </div>
             </>
