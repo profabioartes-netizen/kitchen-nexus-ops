@@ -504,14 +504,6 @@ export default function TableOrderPage() {
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
 
-      // Cancellation print for sent items
-      if (item?.sent_to_kitchen) {
-        await createCancellationPrintJob(
-          item, item.quantity, table?.name || "—",
-          order?.waiter_name || profile?.full_name || null,
-          order?.id || null, products,
-        );
-      }
 
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
