@@ -55,7 +55,7 @@ function buildBillHTML(job: any) {
     const compHtml = (item.complements || []).map((c: any) =>
       `<div class="complement">+ ${typeof c === "string" ? c : c.name}${c.price ? ` R$${Number(c.price).toFixed(2)}` : ""}</div>`
     ).join("");
-    const notesHtml = item.notes ? `<div class="notes">Obs: ${item.notes}</div>` : "";
+    const notesHtml = item.notes ? `<div class="notes">OBS: ${item.notes}</div>` : "";
     return `<div class="row"><span>${qty}x ${item.product_name}</span><span>R$ ${itemTotal.toFixed(2)}</span></div>${compHtml}${notesHtml}`;
   }).join("");
 
@@ -66,26 +66,28 @@ function buildBillHTML(job: any) {
     <div class="center subtitle">REGISTRO DA COMANDA</div>
     <div class="sep"></div>
     <div>
-      ${p.customer_name ? `<div>Cliente: ${p.customer_name}</div>` : ""}
-      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
-      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
-      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
-      <div>Data: ${date}  Hora: ${time}</div>
+      ${p.customer_name ? `<div>CLIENTE: ${p.customer_name}</div>` : ""}
+      ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
+      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      <div>DATA: ${date}  HORA: ${time}</div>
     </div>
     <div class="sep"></div>
     <div class="row bold"><span>ITEM</span><span>TOTAL</span></div>
     <div class="sep"></div>
     ${itemsHtml}
     <div class="sep"></div>
-    <div class="row"><span>Subtotal:</span><span>R$ ${(p.subtotal || subtotal).toFixed(2)}</span></div>
-    <div class="center total" style="margin:4px 0;">TOTAL: R$ ${Number(p.total || subtotal).toFixed(2)}</div>
-    ${p.payment_method ? `<div>Pagamento: ${methods[p.payment_method] || p.payment_method}</div>` : ""}
-    ${p.change && Number(p.change) > 0 ? `<div>Troco: R$ ${Number(p.change).toFixed(2)}</div>` : ""}
+    <div class="row"><span>SUBTOTAL:</span><span>R$ ${(p.subtotal || subtotal).toFixed(2)}</span></div>
+    <div class="sep-double"></div>
+    <div class="center total" style="margin:6px 0;"><b>TOTAL A PAGAR: R$ ${Number(p.total || subtotal).toFixed(2)}</b></div>
+    <div class="sep-double"></div>
+    ${p.payment_method ? `<div>PAGAMENTO: ${methods[p.payment_method] || p.payment_method}</div>` : ""}
+    ${p.change && Number(p.change) > 0 ? `<div>TROCO: R$ ${Number(p.change).toFixed(2)}</div>` : ""}
     <div class="sep"></div>
     <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
     <div class="sep"></div>
     <div class="center footer-msg bold">"Que seu café seja forte<br>e sua jornada gloriosa!"</div>
-    <div class="center" style="margin-top:4px;">Volte sempre!</div>
+    <div class="center bold" style="margin-top:4px;">VOLTE SEMPRE!</div>
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
