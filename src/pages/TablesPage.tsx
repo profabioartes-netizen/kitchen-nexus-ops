@@ -473,7 +473,7 @@ export default function TablesPage() {
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
           <h1 className="text-lg sm:text-2xl font-semibold">Mapa de Comandas</h1>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por © Fábio M. Júnior</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Coffee Thrones © 2026 — Sistema de Gestão de Comandas</p>
         </div>
         <div className="flex gap-2">
           <div className="hidden sm:flex rounded-md border bg-card overflow-hidden">
