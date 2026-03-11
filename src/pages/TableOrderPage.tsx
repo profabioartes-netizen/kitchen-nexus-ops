@@ -1289,7 +1289,7 @@ export default function TableOrderPage() {
         )}
 
         {/* Footer */}
-        <div className="border-t p-4 space-y-3">
+        <div className="border-t p-3 md:p-4 space-y-3">
           {order?.status === "paid_pending_finalization" ? (
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
