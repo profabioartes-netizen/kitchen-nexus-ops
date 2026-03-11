@@ -803,6 +803,7 @@ export default function TableOrderPage() {
     toast.success(`${product.name} adicionado!`);
   };
 
+  const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
       p.name.toLowerCase().includes(search.toLowerCase())
