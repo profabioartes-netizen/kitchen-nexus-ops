@@ -606,7 +606,7 @@ export default function TablesPage() {
                 layoutId={`comanda-${table.id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-3 sm:p-4 min-h-[120px] sm:min-h-[140px] cursor-pointer group ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 sm:p-4 min-h-[160px] sm:min-h-[140px] cursor-pointer group touch-manipulation ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
                 style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
