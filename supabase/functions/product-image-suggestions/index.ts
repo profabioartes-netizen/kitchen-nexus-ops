@@ -22,52 +22,60 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Generate 4 product images using AI image generation
-    const prompt = `Professional food/drink product photo of "${productName.trim()}" for a restaurant menu. Clean white or neutral background, appetizing presentation, high quality product photography, well-lit, centered composition.`;
-
-    const imagePromises = Array.from({ length: 4 }, (_, i) => {
-      const variations = [
-        prompt,
-        `${prompt} Shot from above, flat lay style.`,
-        `${prompt} Close-up macro shot showing texture and detail.`,
-        `${prompt} Side angle with soft shadows and bokeh background.`,
-      ];
-      return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3.1-flash-image-preview",
-          messages: [{ role: "user", content: variations[i] }],
-          modalities: ["image", "text"],
-        }),
-      });
-    });
-
-    const responses = await Promise.allSettled(imagePromises);
+    const name = productName.trim();
     const suggestions: { url: string; alt: string }[] = [];
 
-    for (const result of responses) {
-      if (result.status === "fulfilled" && result.value.ok) {
-        try {
-          const data = await result.value.json();
-          const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          if (imageUrl) {
-            suggestions.push({
-              url: imageUrl,
-              alt: productName.trim(),
-            });
-          }
-        } catch {
-          // skip failed parse
+    // Generate images one at a time to avoid rate limiting
+    const variations = [
+      `Generate a professional food/drink product photo of "${name}" for a restaurant menu. Appetizing presentation, high quality, well-lit.`,
+      `Generate a professional top-down flat lay photo of "${name}" for a restaurant menu card. Clean background.`,
+      `Generate a close-up appetizing photo of "${name}" as served in a Brazilian restaurant. Warm lighting.`,
+      `Generate a stylish side-angle product photo of "${name}" with soft bokeh background, restaurant menu style.`,
+    ];
+
+    for (let i = 0; i < variations.length; i++) {
+      try {
+        console.log(`Generating image ${i + 1} for "${name}"...`);
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-3.1-flash-image-preview",
+            messages: [{ role: "user", content: variations[i] }],
+            modalities: ["image", "text"],
+          }),
+        });
+
+        console.log(`Image ${i + 1} response status: ${response.status}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Image ${i + 1} error: ${errorText}`);
+          continue;
         }
+
+        const data = await response.json();
+        const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        
+        if (imageUrl) {
+          console.log(`Image ${i + 1} generated successfully (${imageUrl.substring(0, 50)}...)`);
+          suggestions.push({ url: imageUrl, alt: name });
+        } else {
+          console.log(`Image ${i + 1}: no image in response`, JSON.stringify(data).substring(0, 200));
+        }
+      } catch (err) {
+        console.error(`Image ${i + 1} exception:`, err);
       }
     }
+
+    console.log(`Total suggestions generated: ${suggestions.length}`);
 
     return new Response(
       JSON.stringify({ suggestions }),
@@ -75,14 +83,6 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("Error:", e);
-
-    if (e instanceof Error && e.message.includes("429")) {
-      return new Response(
-        JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em alguns segundos." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
