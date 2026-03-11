@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle } from "lucide-react";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
@@ -18,7 +18,14 @@ export default function PrintersPage() {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 10000, // refresh to pick up health status
   });
+
+  const isOnline = (printer: any) => {
+    if (!printer.last_seen_at) return false;
+    const lastSeen = new Date(printer.last_seen_at).getTime();
+    return Date.now() - lastSeen < 30000; // online if seen in last 30s
+  };
 
   // Fetch all non-printed jobs for queue display
   const { data: activeJobs = [] } = useQuery({
@@ -315,8 +322,10 @@ export default function PrintersPage() {
               </div>
               {stationPrinters.length > 0 ? (
                 stationPrinters.map((p) => (
-                  <div key={p.id} className="text-xs text-muted-foreground mb-1">
-                    {p.name} — {p.model} ({p.ip})
+                  <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
+                    <span>{p.name} — {p.model} ({p.ip})</span>
+                    {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
                   </div>
                 ))
               ) : (
@@ -336,12 +345,15 @@ export default function PrintersPage() {
               <th className="text-left px-4 py-2 font-medium">Estação</th>
               <th className="text-left px-4 py-2 font-medium">Modelo</th>
               <th className="text-left px-4 py-2 font-medium">IP</th>
+              <th className="text-center px-4 py-2 font-medium">Conexão</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 w-24"></th>
             </tr>
           </thead>
           <tbody>
-            {printers.map((p) => (
+            {printers.map((p) => {
+              const online = isOnline(p);
+              return (
               <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/30">
                 <td className="px-4 py-3 font-medium flex items-center gap-2">
                   <Printer className="h-4 w-4 text-muted-foreground" />
@@ -350,6 +362,16 @@ export default function PrintersPage() {
                 <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.model}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.ip}:{p.port}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    online
+                      ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+                      : "bg-destructive/10 text-destructive"
+                  }`}>
+                    <Circle className={`h-2 w-2 ${online ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
+                    {online ? "Online" : "Offline"}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => toggleActive.mutate(p)}
@@ -371,7 +393,8 @@ export default function PrintersPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

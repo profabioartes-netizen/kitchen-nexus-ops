@@ -381,6 +381,7 @@ export type Database = {
           created_at: string
           id: string
           ip: string
+          last_seen_at: string | null
           model: string
           name: string
           port: number
@@ -391,6 +392,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip?: string
+          last_seen_at?: string | null
           model?: string
           name: string
           port?: number
@@ -401,6 +403,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip?: string
+          last_seen_at?: string | null
           model?: string
           name?: string
           port?: number
