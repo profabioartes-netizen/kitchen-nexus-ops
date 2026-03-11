@@ -393,7 +393,8 @@ export default function PrintersPage() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
