@@ -518,6 +518,17 @@ export default function TableOrderPage() {
       const item = orderItems.find((i) => i.id === itemId);
       if (!item) return;
       const newQty = item.quantity + delta;
+
+      // Cancellation print for sent items being reduced/removed
+      if (delta < 0 && item.sent_to_kitchen) {
+        const cancelQty = newQty <= 0 ? item.quantity : Math.abs(delta);
+        await createCancellationPrintJob(
+          item, cancelQty, table?.name || "—",
+          order?.waiter_name || profile?.full_name || null,
+          order?.id || null, products,
+        );
+      }
+
       if (newQty <= 0) {
         await supabase.from("order_items").delete().eq("id", itemId);
         await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id);
@@ -548,6 +559,16 @@ export default function TableOrderPage() {
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
+
+      // Cancellation print for sent items
+      if (item?.sent_to_kitchen) {
+        await createCancellationPrintJob(
+          item, item.quantity, table?.name || "—",
+          order?.waiter_name || profile?.full_name || null,
+          order?.id || null, products,
+        );
+      }
+
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
