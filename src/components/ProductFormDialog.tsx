@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -47,6 +47,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   const [uploading, setUploading] = useState(false);
   const [suggestions, setSuggestions] = useState<ImageSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchedName = useRef<string>("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -165,17 +167,19 @@ export function ProductFormDialog({ productId, onClose }: Props) {
     setForm((prev) => ({ ...prev, image_url: "" }));
   };
 
-  const fetchSuggestions = async () => {
-    if (!form.name.trim() || form.name.trim().length < 2) {
-      toast.error("Digite o nome do produto primeiro.");
+  const fetchSuggestions = useCallback(async (name: string) => {
+    if (!name.trim() || name.trim().length < 3) {
+      setSuggestions([]);
       return;
     }
+    if (name.trim() === lastFetchedName.current) return;
+    lastFetchedName.current = name.trim();
 
     setLoadingSuggestions(true);
     setSuggestions([]);
     try {
       const { data, error } = await supabase.functions.invoke("product-image-suggestions", {
-        body: { productName: form.name.trim() },
+        body: { productName: name.trim() },
       });
 
       if (error) throw error;
@@ -185,16 +189,27 @@ export function ProductFormDialog({ productId, onClose }: Props) {
       }
 
       setSuggestions(data?.suggestions || []);
-      if (!data?.suggestions?.length) {
-        toast.info("Nenhuma sugestão encontrada.");
-      }
     } catch (err) {
-      toast.error("Erro ao buscar sugestões.");
       console.error(err);
     } finally {
       setLoadingSuggestions(false);
     }
-  };
+  }, []);
+
+  // Debounced auto-fetch when name changes
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (form.name.trim().length >= 3) {
+      debounceRef.current = setTimeout(() => {
+        fetchSuggestions(form.name);
+      }, 1500);
+    } else {
+      setSuggestions([]);
+    }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [form.name, fetchSuggestions]);
 
   const selectSuggestion = async (url: string) => {
     // If it's a base64 image, upload to storage first
@@ -450,44 +465,53 @@ export function ProductFormDialog({ productId, onClose }: Props) {
 
         {/* AI Suggestions */}
         <div className="mt-4 border-t pt-4">
-          <button
-            type="button"
-            onClick={fetchSuggestions}
-            disabled={loadingSuggestions || !form.name.trim()}
-            className="flex items-center gap-2 text-sm font-medium text-accent hover:underline disabled:opacity-50 disabled:no-underline"
-          >
-            {loadingSuggestions ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-            Sugestões de foto
-          </button>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            <span className="text-sm font-medium text-muted-foreground">Sugestões de foto</span>
+            {loadingSuggestions && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
+          </div>
+
+          {loadingSuggestions && suggestions.length === 0 && (
+            <p className="text-xs text-muted-foreground mt-2">Gerando sugestões para "{form.name}"...</p>
+          )}
+
+          {!loadingSuggestions && suggestions.length === 0 && form.name.trim().length >= 3 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Nenhum resultado encontrado.{" "}
+              <button
+                type="button"
+                onClick={() => { lastFetchedName.current = ""; fetchSuggestions(form.name); }}
+                className="text-accent hover:underline"
+              >
+                Tentar novamente
+              </button>
+            </p>
+          )}
+
+          {!loadingSuggestions && suggestions.length === 0 && form.name.trim().length < 3 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Digite pelo menos 3 caracteres no nome do produto.
+            </p>
+          )}
 
           {suggestions.length > 0 && (
-            <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {suggestions.map((s, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => selectSuggestion(s.url)}
-                  className="rounded-lg border overflow-hidden aspect-square bg-card hover:ring-2 hover:ring-accent transition-all"
+                  disabled={uploading}
+                  className="rounded-lg border overflow-hidden aspect-square bg-card hover:ring-2 hover:ring-accent transition-all disabled:opacity-50"
                 >
                   <img
                     src={s.url}
                     alt={s.alt}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).parentElement!.style.display = "none";
-                    }}
                   />
                 </button>
               ))}
             </div>
-          )}
-
-          {loadingSuggestions && (
-            <p className="text-xs text-muted-foreground mt-2">Buscando sugestões...</p>
           )}
         </div>
 
