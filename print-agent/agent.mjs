@@ -366,12 +366,12 @@ function buildProductionTicket(job) {
   parts.push(cmd.text(""));
 
   // Items
-  const items = p.items || [{ product_name: p.product_name || "Item", quantity: p.quantity || 1, notes: p.notes, complements: p.complements }];
+  const items = p.items || [{ product_name: p.product_name || p.name || "Item", quantity: p.quantity || 1, notes: p.notes, complements: p.complements }];
   const nameMaxCols = COLS - qtyCol;
 
   for (const item of items) {
     const qty = String(item.quantity || 1);
-    const name = upperPt(item.product_name || "Item");
+    const name = upperPt(item.product_name || item.name || "Item");
     const wrappedName = wordWrap(name, nameMaxCols);
 
     parts.push(cmd.text(qty.padEnd(qtyCol) + wrappedName[0]));
