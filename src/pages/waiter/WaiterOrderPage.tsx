@@ -23,25 +23,6 @@ async function logActivity(tableId: string, action: string, description: string,
   });
 }
 
-const PRODUCTION_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
-
-async function createCancellationPrintJob(
-  item: { product_name: string; product_id: string; quantity: number },
-  cancelledQty: number,
-  tableName: string,
-  waiterName: string | null,
-  orderId: string | null,
-  products: any[],
-) {
-  const product = products.find((p: any) => p.id === item.product_id);
-  const station = product?.station || "";
-  if (!station || !PRODUCTION_STATIONS.includes(station)) return;
-  await supabase.from("print_jobs").insert({
-    station, status: "pending",
-    payload: { type: "cancellation", product_name: item.product_name, quantity: cancelledQty, table_name: tableName, waiter_name: waiterName, order_id: orderId, notes: "Item removido do pedido" },
-  });
-}
-
 type ShortcutTab = "popular" | "recent" | "repeat";
 
 export default function WaiterOrderPage() {
