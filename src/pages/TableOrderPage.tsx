@@ -342,7 +342,7 @@ export default function TableOrderPage() {
         .select()
         .single();
       if (error) throw error;
-      const tableName = customerName ? `${defaultName} — ${customerName}` : defaultName;
+      const tableName = customerName || defaultName;
       await supabase.from("restaurant_tables").update({ status: "occupied", name: tableName }).eq("id", tableId!);
       const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
