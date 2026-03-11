@@ -461,29 +461,13 @@ export default function WaiterOrderPage() {
         <button onClick={() => navigate("/garcom")} className="rounded-xl border p-3 active:bg-secondary transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <div className="flex-1 min-w-0">
-          <input
-            type="text"
-            defaultValue={order?.customer_name || ""}
-            placeholder="Nome do cliente"
-            key={`name-${table?.id}-${order?.customer_name}`}
-            onBlur={async (e) => {
-              const newName = e.target.value.trim();
-              if (order && newName !== (order.customer_name || "")) {
-                await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
-                const defaultName = (table as any)?.default_name || "Comanda";
-                const tableName = newName || defaultName;
-                await supabase.from("restaurant_tables").update({ name: tableName }).eq("id", table!.id);
-                queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
-                queryClient.invalidateQueries({ queryKey: ["table", tableId] });
-                queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-                queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-              }
-            }}
-            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-            className="text-lg font-bold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 w-full truncate"
-          />
-          <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <h1 className="text-lg font-bold leading-tight truncate">
+              {order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+            </h1>
+            {order?.customer_name && (
+              <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
+            )}
           <input
             type="text"
             defaultValue={(table as any)?.sector ?? ""}
