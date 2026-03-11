@@ -188,7 +188,7 @@ function buildBillTicket(job) {
     parts.push(cmd.text(p.table_name.toUpperCase()));
     parts.push(cmd.bold(false));
   }
-  const customerLabel = p.customer_name || "CONSUMIDOR NAO IDENTIFICADO";
+  const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
   parts.push(cmd.text(`CLIENTE : ${customerLabel.toUpperCase()}`));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
@@ -257,7 +257,7 @@ function buildBillTicket(job) {
 
   // Payment method
   if (p.payment_method) {
-    const methods = { credit: "CREDITO", debit: "DEBITO", cash: "DINHEIRO", pix: "PIX" };
+    const methods = { credit: "CRÉDITO", debit: "DÉBITO", cash: "DINHEIRO", pix: "PIX" };
     parts.push(cmd.alignCenter);
     parts.push(cmd.text(`Pagamento: ${methods[p.payment_method] || p.payment_method}`));
     if (p.change && Number(p.change) > 0) {
@@ -277,7 +277,7 @@ function buildBillTicket(job) {
   // Footer
   parts.push(cmd.text(`Data e Hora: ${date} - ${time}`));
   parts.push(cmd.bold(true));
-  parts.push(cmd.text("OBRIGADO PELA PREFERENCIA."));
+  parts.push(cmd.text("OBRIGADO PELA PREFERÊNCIA."));
   parts.push(cmd.text("VOLTE SEMPRE!"));
   parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
@@ -315,14 +315,14 @@ function buildProductionTicket(job) {
     cmd.text((p.waiter_name || "").toUpperCase()),
     cmd.bold(false),
     // "LANCADO POR" line
-    cmd.text("LANCADO POR : COFFEE THRONES"),
+    cmd.text("LANÇADO POR : COFFEE THRONES"),
     cmd.text(""),
     cmd.separator(),
     cmd.text(""),
     // Column headers
     cmd.alignLeft,
     cmd.bold(true),
-    cmd.text("QTD   DESCRICAO"),
+    cmd.text("QTD   DESCRIÇÃO"),
     cmd.bold(false),
     cmd.text(""),
     cmd.separator(),
@@ -399,7 +399,7 @@ function buildCancellationTicket(job) {
   ];
 
   if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garçom: ${p.waiter_name}`));
   parts.push(cmd.text(`Hora: ${time}  ${date}`));
   parts.push(cmd.separator());
 
