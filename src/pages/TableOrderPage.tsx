@@ -520,24 +520,34 @@ export default function TableOrderPage() {
     },
   });
 
-  // Send to kitchen
-  const sendToKitchen = useMutation({
+  // Print full bill to Caixa station
+  const printBill = useMutation({
     mutationFn: async () => {
-      const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
-      if (unsent.length === 0) throw new Error("Nenhum item novo para enviar");
-      const ids = unsent.map((i) => i.id);
-      const { error } = await supabase
-        .from("order_items")
-        .update({ sent_to_kitchen: true, preparation_status: "sent" } as any)
-        .in("id", ids);
-      if (error) throw error;
-      const desc = unsent.map((i) => `${i.product_name} ×${i.quantity}`).join(", ");
-      await logActivity(tableId!, "sent_to_kitchen", `Enviado à cozinha: ${desc}`, order?.id);
+      if (!order || orderItems.length === 0) throw new Error("Sem itens para imprimir");
+
+      await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "full_bill",
+          table_name: table?.name || "—",
+          customer_name: order.customer_name || null,
+          waiter_name: order.waiter_name || null,
+          order_id: order.id,
+          items: orderItems.map((i) => ({
+            name: i.product_name,
+            quantity: i.quantity,
+            unit_price: Number(i.price),
+            total: Number(i.price) * i.quantity,
+          })),
+          total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
+        },
+      });
+
+      await logActivity(tableId!, "print_bill", `Conta geral impressa no Caixa`, order.id, profile?.full_name);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      toast.success("Pedido enviado à cozinha!");
-      invalidateLog();
+      toast.success("Conta enviada para impressão no Caixa!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -707,55 +717,60 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Save order — print items to their stations (does NOT change table status)
+  // Save order — print only NEW unsent items to their station printers (Cozinha, Bebidas, Sobremesa)
   const saveOrder = useMutation({
     mutationFn: async () => {
       if (!order) throw new Error("Sem pedido aberto");
 
-      // Group items by station and create print jobs
-      const itemsByStation: Record<string, typeof orderItems> = {};
-      for (const item of orderItems) {
-        const product = products.find((p) => p.id === item.product_id);
-        const station = (product as any)?.station || "";
-        if (!station) continue;
-        if (!itemsByStation[station]) itemsByStation[station] = [];
-        itemsByStation[station].push(item);
-      }
-
-      for (const [station, items] of Object.entries(itemsByStation)) {
-        await supabase.from("print_jobs").insert({
-          station,
-          status: "pending",
-          payload: {
-            type: "order_save",
-            table_name: table?.name || "—",
-            waiter_name: order.waiter_name || null,
-            order_id: order.id,
-            items: items.map((i) => ({
-              name: i.product_name,
-              quantity: i.quantity,
-              notes: i.notes || null,
-            })),
-          },
-        });
-      }
-
-      // Mark all unsent items as sent
+      // Only print unsent items
       const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
+
       if (unsent.length > 0) {
+        // Group unsent items by station and create print jobs
+        const itemsByStation: Record<string, typeof unsent> = {};
+        for (const item of unsent) {
+          const product = products.find((p) => p.id === item.product_id);
+          const station = (product as any)?.station || "";
+          if (!station || station === "Caixa") continue; // Caixa prints via "Imprimir" button
+          if (!itemsByStation[station]) itemsByStation[station] = [];
+          itemsByStation[station].push(item);
+        }
+
+        for (const [station, items] of Object.entries(itemsByStation)) {
+          await supabase.from("print_jobs").insert({
+            station,
+            status: "pending",
+            payload: {
+              type: "order_save",
+              table_name: table?.name || "—",
+              waiter_name: order.waiter_name || null,
+              order_id: order.id,
+              items: items.map((i) => ({
+                name: i.product_name,
+                quantity: i.quantity,
+                notes: i.notes || null,
+              })),
+            },
+          });
+        }
+
+        // Mark unsent items as sent
         const ids = unsent.map((i) => i.id);
         await supabase
           .from("order_items")
           .update({ sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString() } as any)
           .in("id", ids);
-      }
 
-      await logActivity(tableId!, "order_saved", `Pedido salvo e enviado para impressão — ${orderItems.length} item(ns)`, order.id, profile?.full_name);
+        await logActivity(tableId!, "order_saved", `Pedido salvo — ${unsent.length} novo(s) item(ns) enviado(s) para impressão`, order.id, profile?.full_name);
+      } else {
+        await logActivity(tableId!, "order_saved", `Pedido salvo (sem novos itens para imprimir)`, order.id, profile?.full_name);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
-      toast.success("Pedido enviado para impressão!");
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      toast.success("Pedido salvo!");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
@@ -1155,12 +1170,12 @@ export default function TableOrderPage() {
               )}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  disabled={unsentCount === 0 || sendToKitchen.isPending}
-                  onClick={() => sendToKitchen.mutate()}
+                  disabled={!order || orderItems.length === 0 || printBill.isPending}
+                  onClick={() => printBill.mutate()}
                   className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="text-sm">Imprimir ({unsentCount})</span>
+                  <span className="text-sm">{printBill.isPending ? "Imprimindo..." : "Imprimir"}</span>
                 </button>
                 <button
                   disabled={unpaidItems.length === 0}
