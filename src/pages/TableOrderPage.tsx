@@ -964,12 +964,21 @@ export default function TableOrderPage() {
               key={product.id}
               onClick={() => setSelectedProduct(product)}
               disabled={addItem.isPending}
-              className="flex flex-col items-start rounded-lg border bg-card p-3 text-left transition-all hover:border-accent active:scale-[0.97]"
+              className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden"
             >
-              <span className="font-medium text-sm">{product.name}</span>
-              <span className="text-accent font-semibold mt-1">
-                R$ {Number(product.price).toFixed(2)}
-              </span>
+              {product.image_url ? (
+                <div className="w-full aspect-[4/3] bg-secondary">
+                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-full aspect-[4/3] bg-secondary/30" />
+              )}
+              <div className="p-3">
+                <span className="font-medium text-sm">{product.name}</span>
+                <span className="text-accent font-semibold mt-1 block">
+                  R$ {Number(product.price).toFixed(2)}
+                </span>
+              </div>
             </button>
           ))}
         </div>
