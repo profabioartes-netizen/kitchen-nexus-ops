@@ -554,6 +554,7 @@ export default function TableOrderPage() {
         payload: {
           type: "bill",
           table_name: table?.name || "—",
+          mesa_name: table?.default_name || null,
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
           order_id: order.id,
