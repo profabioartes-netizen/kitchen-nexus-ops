@@ -31,8 +31,78 @@ const COLS = 48;
 const SEP_CHAR = "-";
 const CNPJ = "00.000.000/0001-00";
 
+// ── PC860 (Portuguese) codepage mapping ─────────────────────────────
+// Maps Unicode codepoints to PC860 byte values
+const PC860_MAP = {
+  0x00C7: 0x80, // Ç
+  0x00FC: 0x81, // ü
+  0x00E9: 0x82, // é
+  0x00E2: 0x83, // â
+  0x00E3: 0x84, // ã
+  0x00E0: 0x85, // à
+  0x00C1: 0x86, // Á (mapped to available slot)
+  0x00E7: 0x87, // ç
+  0x00EA: 0x88, // ê
+  0x00CA: 0x89, // Ê
+  0x00E8: 0x8A, // è
+  0x00CD: 0x8B, // Í
+  0x00D4: 0x8C, // Ô
+  0x00EC: 0x8D, // ì
+  0x00C3: 0x8E, // Ã
+  0x00C2: 0x8F, // Â
+  0x00C9: 0x90, // É
+  0x00C0: 0x91, // À
+  0x00C8: 0x92, // È
+  0x00F4: 0x93, // ô
+  0x00F5: 0x94, // õ
+  0x00F2: 0x95, // ò
+  0x00DA: 0x96, // Ú
+  0x00F9: 0x97, // ù
+  0x00CC: 0x98, // Ì
+  0x00D5: 0x99, // Õ
+  0x00DC: 0x9A, // Ü
+  0x00A2: 0x9B, // ¢
+  0x00A3: 0x9C, // £
+  0x00D9: 0x9D, // Ù
+  0x20A7: 0x9E, // ₧
+  0x00D3: 0x9F, // Ó
+  0x00E1: 0xA0, // á
+  0x00ED: 0xA1, // í
+  0x00F3: 0xA2, // ó
+  0x00FA: 0xA3, // ú
+  0x00F1: 0xA4, // ñ
+  0x00D1: 0xA5, // Ñ
+  0x00AA: 0xA6, // ª
+  0x00BA: 0xA7, // º
+  0x00BF: 0xA8, // ¿
+  0x00AE: 0xA9, // ®
+  0x00AC: 0xAA, // ¬
+  0x00BD: 0xAB, // ½
+  0x00BC: 0xAC, // ¼
+  0x00A1: 0xAD, // ¡
+  0x00AB: 0xAE, // «
+  0x00BB: 0xAF, // »
+};
+
+/** Convert a JS string to a PC860 Buffer, falling back to '?' for unmapped chars */
+function toPC860(str) {
+  const bytes = [];
+  for (const ch of str) {
+    const cp = ch.codePointAt(0);
+    if (cp < 0x80) {
+      bytes.push(cp); // ASCII passthrough
+    } else if (PC860_MAP[cp] !== undefined) {
+      bytes.push(PC860_MAP[cp]);
+    } else {
+      bytes.push(0x3F); // '?' for unmapped
+    }
+  }
+  return Buffer.from(bytes);
+}
+
 const cmd = {
   init:       Buffer.from([ESC, 0x40]),
+  codepage:   Buffer.from([ESC, 0x74, 0x03]), // ESC t 3 → PC860 Portuguese
   cut:        Buffer.from([GS, 0x56, 0x00]),
   feedLines:  (n) => Buffer.from([ESC, 0x64, n]),
   alignCenter: Buffer.from([ESC, 0x61, 0x01]),
@@ -41,12 +111,13 @@ const cmd = {
   bold:       (on) => Buffer.from([ESC, 0x45, on ? 1 : 0]),
   doubleSize: (on) => Buffer.from([GS, 0x21, on ? 0x11 : 0x00]),
   doubleW:    (on) => Buffer.from([GS, 0x21, on ? 0x10 : 0x00]),
-  separator:  () => Buffer.from(SEP_CHAR.repeat(COLS) + "\n"),
-  doubleSep:  () => Buffer.from("=".repeat(COLS) + "\n"),
-  text:       (s) => Buffer.from(s + "\n", "utf-8"),
+  separator:  () => Buffer.concat([toPC860(SEP_CHAR.repeat(COLS)), Buffer.from([0x0A])]),
+  doubleSep:  () => Buffer.concat([toPC860("=".repeat(COLS)), Buffer.from([0x0A])]),
+  text:       (s) => Buffer.concat([toPC860(s), Buffer.from([0x0A])]),
   padRow:     (left, right) => {
     const pad = COLS - left.length - right.length;
-    return Buffer.from(left + " ".repeat(Math.max(1, pad)) + right + "\n", "utf-8");
+    const line = left + " ".repeat(Math.max(1, pad)) + right;
+    return Buffer.concat([toPC860(line), Buffer.from([0x0A])]);
   },
 };
 
