@@ -465,7 +465,7 @@ export default function WaiterOrderPage() {
           <input
             type="text"
             defaultValue={order?.customer_name || ""}
-            placeholder={(table as any)?.default_name || table?.name || "Nome do cliente"}
+            placeholder="Nome do cliente"
             key={`name-${table?.id}-${order?.customer_name}`}
             onBlur={async (e) => {
               const newName = e.target.value.trim();
@@ -483,6 +483,7 @@ export default function WaiterOrderPage() {
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
             className="text-lg font-bold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 w-full truncate"
           />
+          <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
           <input
             type="text"
             defaultValue={(table as any)?.sector ?? ""}
