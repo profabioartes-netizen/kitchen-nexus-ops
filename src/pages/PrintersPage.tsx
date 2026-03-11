@@ -54,7 +54,8 @@ export default function PrintersPage() {
     if (queueOverflow && agentActive) {
       setAgentActive(false);
     }
-  }, [queueOverflow, agentActive]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueOverflow]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
