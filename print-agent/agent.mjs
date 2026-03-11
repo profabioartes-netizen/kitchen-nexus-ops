@@ -182,10 +182,10 @@ function buildProductionTicket(job) {
     cmd.alignLeft,
   ];
 
-  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
-  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
-  parts.push(cmd.text(`Hora: ${time}  ${date}`));
+  if (p.table_name) parts.push(cmd.text(`MESA: ${p.table_name}`));
+  if (p.comanda_number) parts.push(cmd.text(`COMANDA: #${p.comanda_number}`));
+  if (p.waiter_name) parts.push(cmd.text(`GARCOM: ${p.waiter_name}`));
+  parts.push(cmd.text(`HORA: ${time}  ${date}`));
   parts.push(cmd.separator());
 
   // Item(s)
@@ -203,7 +203,7 @@ function buildProductionTicket(job) {
 
   if (p.notes) {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(`Obs: ${p.notes}`));
+    parts.push(cmd.text(`OBS: ${p.notes}`));
     parts.push(cmd.bold(false));
   }
 
