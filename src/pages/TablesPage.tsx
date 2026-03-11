@@ -207,10 +207,15 @@ export default function TablesPage() {
 
   const quickEditMutation = useMutation({
     mutationFn: async (form: QuickEditForm) => {
+      // Look up default_name for this table
+      const table = tables.find((t) => t.id === form.id);
+      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
+      const customerName = form.name.trim();
+      const tableName = customerName ? `${defaultName} — ${customerName}` : defaultName;
       const { error } = await supabase
         .from("restaurant_tables")
         .update({
-          name: form.name.trim(),
+          name: tableName,
           seats: parseInt(form.seats) || 4,
           sector: form.sector.trim() || null,
         } as any)
@@ -332,7 +337,7 @@ export default function TablesPage() {
   const handleQuickEdit = (table: any) => {
     setQuickEdit({
       id: table.id,
-      name: table.name,
+      name: "",
       seats: String(table.seats),
       sector: (table as any).sector || "",
     });
@@ -849,7 +854,7 @@ export default function TablesPage() {
                 Cancelar
               </button>
               <button
-                disabled={!quickEdit.name.trim() || quickEditMutation.isPending}
+                disabled={quickEditMutation.isPending}
                 onClick={() => quickEditMutation.mutate(quickEdit)}
                 className="flex items-center gap-1.5 rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
               >
