@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus } from "lucide-react";
@@ -569,6 +570,7 @@ export default function TablesPage() {
 
       {/* Grid View */}
       {viewMode === "grid" && (
+        <LayoutGroup>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {filteredTables.map((table) => {
             const order = ordersByTable[table.id];
@@ -578,10 +580,15 @@ export default function TablesPage() {
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
             return (
-              <div
+              <motion.div
+                layout
+                layoutId={`comanda-${table.id}`}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] group`}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer group`}
                 style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
 
@@ -735,10 +742,11 @@ export default function TablesPage() {
                     {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
                   </button>
                 )}
-              </div>
+              </motion.div>
             );
           })}
         </div>
+        </LayoutGroup>
       )}
 
       {/* Floor Plan View */}
