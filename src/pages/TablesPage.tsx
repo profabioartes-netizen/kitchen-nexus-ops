@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Settings, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
@@ -456,13 +456,6 @@ export default function TablesPage() {
               Grade
             </button>
           </div>
-          <button
-            onClick={() => navigate("/mesas/gerenciar")}
-            className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors"
-          >
-            <Settings className="h-4 w-4 text-muted-foreground" />
-            Gerenciar
-          </button>
           <Popover open={tableCountOpen} onOpenChange={(open) => {
             setTableCountOpen(open);
             if (open) setTableCountValue(String(allTables.length));
