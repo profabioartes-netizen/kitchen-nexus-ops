@@ -77,7 +77,7 @@ export default function CashierPage() {
   const subtotal = order.reduce((sum, o) => sum + o.price * o.qty, 0);
 
   const payMutation = useMutation({
-    mutationFn: async (method: "cash" | "card" | "pix") => {
+    mutationFn: async (method: "cash" | "credit" | "debit" | "pix") => {
       // Create order
       const { data: newOrder, error: orderError } = await supabase
         .from("orders")
