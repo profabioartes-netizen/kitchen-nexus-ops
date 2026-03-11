@@ -255,6 +255,7 @@ function buildProductionTicket(job) {
 
   const parts = [
     cmd.init,
+    cmd.codepage,
     ...buildHeader(),
     cmd.text(""),
     cmd.doubleW(true),
