@@ -38,7 +38,7 @@ interface PaymentPanelProps {
   onPay: (result: PaymentResult) => void;
   onCancel: () => void;
   isPending: boolean;
-  onAddQuickItem?: (product: { id: string; name: string; price: number }) => void;
+  onAddQuickItem?: (product: { id: string; name: string; price: number }, quantity: number) => void;
 }
 
 const methodLabels: Record<string, string> = {
@@ -56,6 +56,40 @@ const methodColors: Record<string, string> = {
 };
 
 const METHODS = ["cash", "debit", "credit", "pix"] as const;
+
+function QuickSaleRow({ product, onAdd }: {
+  product: { id: string; name: string; price: number };
+  onAdd: (product: { id: string; name: string; price: number }, quantity: number) => void;
+}) {
+  const [qty, setQty] = useState(1);
+  return (
+    <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+      <span className="text-sm font-medium flex-1">{product.name}</span>
+      <span className="text-xs text-muted-foreground">R$ {Number(product.price).toFixed(2)}</span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setQty(Math.max(1, qty - 1))}
+          className="rounded p-0.5 hover:bg-secondary"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-sm font-bold w-6 text-center tabular-nums">{qty}</span>
+        <button
+          onClick={() => setQty(qty + 1)}
+          className="rounded p-0.5 hover:bg-secondary"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <button
+        onClick={() => { onAdd({ id: product.id, name: product.name, price: Number(product.price) }, qty); setQty(1); }}
+        className="rounded-md bg-accent text-accent-foreground px-2.5 py-1 text-[11px] font-bold hover:opacity-90 transition-opacity"
+      >
+        ADD
+      </button>
+    </div>
+  );
+}
 
 export default function PaymentPanel({
   total,
@@ -455,15 +489,9 @@ export default function PaymentPanel({
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Zap className="h-3 w-3" /> Venda Rápida
               </h3>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-1.5">
                 {quickSaleProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onAddQuickItem({ id: p.id, name: p.name, price: Number(p.price) })}
-                    className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    {p.name} <span className="text-muted-foreground ml-1">R$ {Number(p.price).toFixed(2)}</span>
-                  </button>
+                  <QuickSaleRow key={p.id} product={p} onAdd={onAddQuickItem} />
                 ))}
               </div>
             </div>
