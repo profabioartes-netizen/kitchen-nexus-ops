@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 // ── Stations that auto-print (production only) ──────────────────────
 const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
 
-const CNPJ = "00.000.000/0001-00"; // TODO: Replace with real CNPJ
+const CNPJ = "59.132.954/0001-09";
 
 const THERMAL_CSS = `
   @page { margin: 0; size: 80mm auto; }
@@ -32,7 +32,6 @@ function buildMedievalHeader(stationLine?: string) {
   return `
     <div class="center">
       <div class="sep-double"></div>
-      <div class="title">REINO</div>
       <div class="title">COFFEE THRONES</div>
       <div class="sep-double"></div>
       ${stationLine ? `<div class="subtitle">${stationLine}</div>` : ""}
@@ -92,14 +91,13 @@ function buildBillHTML(job: any) {
     <div class="center" style="font-size:12px;">⚜ ⚔ ⚜</div>
     <div style="margin-top:6px;"></div>
     <div class="center" style="font-size:11px;">Obrigado por visitar o</div>
-    <div class="center bold subtitle">REINO COFFEE THRONES</div>
+    <div class="center bold subtitle">COFFEE THRONES</div>
     <div style="margin-top:6px;"></div>
-    <div class="center" style="font-size:11px;">⚔ No Reino Coffee Thrones</div>
+    <div class="center" style="font-size:11px;">⚔ No Coffee Thrones</div>
     <div class="center" style="font-size:11px;">cada xícara conta</div>
     <div class="center" style="font-size:11px;">uma nova história. ⚔</div>
     <div style="margin-top:6px;"></div>
-    <div class="center bold" style="font-size:11px;">Retorne ao Reino</div>
-    <div class="center bold" style="font-size:11px;">em breve!</div>
+    <div class="center bold" style="font-size:11px;">Volte sempre!</div>
     <div style="margin-top:6px;"></div>
     <div class="center" style="font-size:11px;">Compartilhe sua visita</div>
     <div class="center bold" style="font-size:11px;">@coffeethrones</div>
@@ -194,7 +192,6 @@ function TicketPreview({ job }: { job: any }) {
       {/* Medieval header */}
       <div className={`px-4 py-3 text-center ${isCancellation ? "bg-destructive/10 border-b-2 border-destructive/30" : "bg-foreground/5 border-b-2 border-foreground/20"}`}>
         <p className="text-[10px] font-bold tracking-[0.3em]">═══════════════════</p>
-        <p className="text-sm font-bold tracking-[0.2em]">REINO</p>
         <p className="text-sm font-bold tracking-[0.15em]">COFFEE THRONES</p>
         <p className="text-[10px] font-bold tracking-[0.3em]">═══════════════════</p>
         {isCancellation && (
@@ -299,12 +296,11 @@ function TicketPreview({ job }: { job: any }) {
             <div className="mt-4 mb-1 text-center space-y-0.5">
               <p className="text-xs">⚜ ⚔ ⚜</p>
               <p className="text-[10px] text-muted-foreground mt-1">Obrigado por visitar o</p>
-              <p className="text-xs font-bold tracking-wide">REINO COFFEE THRONES</p>
-              <p className="text-[10px] text-muted-foreground mt-1.5">⚔ No Reino Coffee Thrones</p>
+              <p className="text-xs font-bold tracking-wide">COFFEE THRONES</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">⚔ No Coffee Thrones</p>
               <p className="text-[10px] text-muted-foreground">cada xícara conta</p>
               <p className="text-[10px] text-muted-foreground">uma nova história. ⚔</p>
-              <p className="text-[10px] font-bold mt-1.5">Retorne ao Reino</p>
-              <p className="text-[10px] font-bold">em breve!</p>
+              <p className="text-[10px] font-bold mt-1.5">Volte sempre!</p>
               <p className="text-[10px] text-muted-foreground mt-1.5">Compartilhe sua visita</p>
               <p className="text-[10px] font-bold">@coffeethrones</p>
               <p className="text-xs mt-1.5">⚔ ☕ ⚔</p>
