@@ -192,7 +192,6 @@ function TicketPreview({ job }: { job: any }) {
       {/* Medieval header */}
       <div className={`px-4 py-3 text-center ${isCancellation ? "bg-destructive/10 border-b-2 border-destructive/30" : "bg-foreground/5 border-b-2 border-foreground/20"}`}>
         <p className="text-[10px] font-bold tracking-[0.3em]">═══════════════════</p>
-        <p className="text-sm font-bold tracking-[0.2em]">REINO</p>
         <p className="text-sm font-bold tracking-[0.15em]">COFFEE THRONES</p>
         <p className="text-[10px] font-bold tracking-[0.3em]">═══════════════════</p>
         {isCancellation && (
