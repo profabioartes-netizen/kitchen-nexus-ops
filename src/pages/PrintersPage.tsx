@@ -408,7 +408,7 @@ export default function PrintersPage() {
       </div>
 
       <p className="text-sm text-muted-foreground mb-6">
-        Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir.
+        Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir. Impressoras ficam online por até 2 minutos sem novo heartbeat do agente.
       </p>
 
       {/* Routing diagram */}
