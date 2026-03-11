@@ -81,6 +81,71 @@ export default function ReportsPage() {
     enabled: unlocked,
   });
 
+  const isLoading = loadingPayments || loadingItems;
+  const cutoff = period === "all" ? null : startOfDay(subDays(new Date(), parseInt(period)));
+
+  const filteredPayments = useMemo(() => {
+    if (!cutoff) return payments;
+    return payments.filter((p) => isAfter(new Date(p.created_at), cutoff));
+  }, [payments, cutoff]);
+
+  const filteredItems = useMemo(() => {
+    if (!cutoff) return orderItems;
+    return orderItems.filter((i) => {
+      const orderDate = (i.orders as any)?.created_at;
+      return orderDate && isAfter(new Date(orderDate), cutoff);
+    });
+  }, [orderItems, cutoff]);
+
+  const totalRevenue = filteredPayments.reduce((s, p) => s + Number(p.amount), 0);
+  const totalOrders = filteredPayments.length;
+  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const totalItemsSold = filteredItems.reduce((s, i) => s + i.quantity, 0);
+
+  const dailyRevenue = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredPayments.forEach((p) => {
+      const day = format(new Date(p.created_at), "dd/MM", { locale: ptBR });
+      map.set(day, (map.get(day) || 0) + Number(p.amount));
+    });
+    return Array.from(map.entries()).map(([day, revenue]) => ({ day, revenue }));
+  }, [filteredPayments]);
+
+  const byProduct = useMemo(() => {
+    const map = new Map<string, { name: string; qty: number; revenue: number }>();
+    filteredItems.forEach((i) => {
+      const existing = map.get(i.product_name) || { name: i.product_name, qty: 0, revenue: 0 };
+      existing.qty += i.quantity;
+      existing.revenue += Number(i.price) * i.quantity;
+      map.set(i.product_name, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
+  }, [filteredItems]);
+
+  const byCategory = useMemo(() => {
+    const map = new Map<string, { name: string; qty: number; revenue: number }>();
+    filteredItems.forEach((i) => {
+      const catName = (i.products as any)?.categories?.name || "Sem categoria";
+      const existing = map.get(catName) || { name: catName, qty: 0, revenue: 0 };
+      existing.qty += i.quantity;
+      existing.revenue += Number(i.price) * i.quantity;
+      map.set(catName, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
+  }, [filteredItems]);
+
+  const byMethod = useMemo(() => {
+    const map = new Map<string, { method: string; amount: number; count: number }>();
+    filteredPayments.forEach((p) => {
+      const label = p.method === "cash" ? "Dinheiro" : p.method === "card" ? "Cartão" : "Pix";
+      const existing = map.get(label) || { method: label, amount: 0, count: 0 };
+      existing.amount += Number(p.amount);
+      existing.count += 1;
+      map.set(label, existing);
+    });
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+  }, [filteredPayments]);
+
   if (!unlocked) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -112,78 +177,6 @@ export default function ReportsPage() {
       </div>
     );
   }
-
-  const isLoading = loadingPayments || loadingItems;
-
-  // Filter by period
-  const cutoff = period === "all" ? null : startOfDay(subDays(new Date(), parseInt(period)));
-
-  const filteredPayments = useMemo(() => {
-    if (!cutoff) return payments;
-    return payments.filter((p) => isAfter(new Date(p.created_at), cutoff));
-  }, [payments, cutoff]);
-
-  const filteredItems = useMemo(() => {
-    if (!cutoff) return orderItems;
-    return orderItems.filter((i) => {
-      const orderDate = (i.orders as any)?.created_at;
-      return orderDate && isAfter(new Date(orderDate), cutoff);
-    });
-  }, [orderItems, cutoff]);
-
-  // KPI stats
-  const totalRevenue = filteredPayments.reduce((s, p) => s + Number(p.amount), 0);
-  const totalOrders = filteredPayments.length;
-  const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-  const totalItemsSold = filteredItems.reduce((s, i) => s + i.quantity, 0);
-
-  // === Daily Revenue ===
-  const dailyRevenue = useMemo(() => {
-    const map = new Map<string, number>();
-    filteredPayments.forEach((p) => {
-      const day = format(new Date(p.created_at), "dd/MM", { locale: ptBR });
-      map.set(day, (map.get(day) || 0) + Number(p.amount));
-    });
-    return Array.from(map.entries()).map(([day, revenue]) => ({ day, revenue }));
-  }, [filteredPayments]);
-
-  // === Sales by Product ===
-  const byProduct = useMemo(() => {
-    const map = new Map<string, { name: string; qty: number; revenue: number }>();
-    filteredItems.forEach((i) => {
-      const existing = map.get(i.product_name) || { name: i.product_name, qty: 0, revenue: 0 };
-      existing.qty += i.quantity;
-      existing.revenue += Number(i.price) * i.quantity;
-      map.set(i.product_name, existing);
-    });
-    return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
-  }, [filteredItems]);
-
-  // === Sales by Category ===
-  const byCategory = useMemo(() => {
-    const map = new Map<string, { name: string; qty: number; revenue: number }>();
-    filteredItems.forEach((i) => {
-      const catName = (i.products as any)?.categories?.name || "Sem categoria";
-      const existing = map.get(catName) || { name: catName, qty: 0, revenue: 0 };
-      existing.qty += i.quantity;
-      existing.revenue += Number(i.price) * i.quantity;
-      map.set(catName, existing);
-    });
-    return Array.from(map.values()).sort((a, b) => b.revenue - a.revenue);
-  }, [filteredItems]);
-
-  // === Sales by Payment Method ===
-  const byMethod = useMemo(() => {
-    const map = new Map<string, { method: string; amount: number; count: number }>();
-    filteredPayments.forEach((p) => {
-      const label = p.method === "cash" ? "Dinheiro" : p.method === "card" ? "Cartão" : "Pix";
-      const existing = map.get(label) || { method: label, amount: 0, count: 0 };
-      existing.amount += Number(p.amount);
-      existing.count += 1;
-      map.set(label, existing);
-    });
-    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
-  }, [filteredPayments]);
 
   if (isLoading) {
     return (
@@ -252,7 +245,6 @@ export default function ReportsPage() {
 
       {hasData && (
         <>
-          {/* Daily Revenue Chart */}
           {dailyRevenue.length > 0 && (
             <div className="rounded-lg border bg-card p-4 mb-6">
               <h3 className="font-semibold mb-4">Faturamento Diário</h3>
@@ -269,22 +261,13 @@ export default function ReportsPage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Sales by Payment Method */}
             {byMethod.length > 0 && (
               <div className="rounded-lg border bg-card p-4">
                 <h3 className="font-semibold mb-4">Vendas por Método de Pagamento</h3>
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width={180} height={180}>
                     <PieChart>
-                      <Pie
-                        data={byMethod}
-                        dataKey="amount"
-                        nameKey="method"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={45}
-                      >
+                      <Pie data={byMethod} dataKey="amount" nameKey="method" cx="50%" cy="50%" outerRadius={80} innerRadius={45}>
                         {byMethod.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
@@ -310,22 +293,13 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* Sales by Category */}
             {byCategory.length > 0 && (
               <div className="rounded-lg border bg-card p-4">
                 <h3 className="font-semibold mb-4">Vendas por Categoria</h3>
                 <div className="flex items-center gap-6">
                   <ResponsiveContainer width={180} height={180}>
                     <PieChart>
-                      <Pie
-                        data={byCategory}
-                        dataKey="revenue"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        innerRadius={45}
-                      >
+                      <Pie data={byCategory} dataKey="revenue" nameKey="name" cx="50%" cy="50%" outerRadius={80} innerRadius={45}>
                         {byCategory.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
@@ -352,12 +326,10 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Sales by Product — Full Table */}
           {byProduct.length > 0 && (
             <div className="rounded-lg border bg-card p-4 mb-6">
               <h3 className="font-semibold mb-4">Vendas por Produto</h3>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Bar chart top 8 */}
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={byProduct.slice(0, 8)} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(30 10% 82%)" />
@@ -368,7 +340,6 @@ export default function ReportsPage() {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* Full table */}
                 <div className="overflow-auto max-h-[280px]">
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-card">
