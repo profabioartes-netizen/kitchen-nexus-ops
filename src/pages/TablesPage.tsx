@@ -470,13 +470,13 @@ export default function TablesPage() {
   return (
     <div className="p-3 sm:p-6 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="text-2xl font-semibold">Mapa de Comandas</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por © Fábio M. Júnior</p>
+          <h1 className="text-lg sm:text-2xl font-semibold">Mapa de Comandas</h1>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por © Fábio M. Júnior</p>
         </div>
         <div className="flex gap-2">
-          <div className="flex rounded-md border bg-card overflow-hidden">
+          <div className="hidden sm:flex rounded-md border bg-card overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
               className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === "grid" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
@@ -490,9 +490,10 @@ export default function TablesPage() {
             if (open) setTableCountValue(String(allTables.length));
           }}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors">
+              <button className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors">
                 <Plus className="h-4 w-4 text-muted-foreground" />
-                Qtd. Comandas
+                <span className="hidden sm:inline">Qtd. Comandas</span>
+                <span className="sm:hidden">Qtd.</span>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-4" align="end">
