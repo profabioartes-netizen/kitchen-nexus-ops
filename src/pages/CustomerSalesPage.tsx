@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Search, Loader2, Users, ChevronDown, ChevronUp, ShoppingBag,
+  Search, Loader2, Users, ChevronDown, ChevronUp,
   CreditCard, Clock, CalendarDays, Receipt, Package,
 } from "lucide-react";
 import { format } from "date-fns";
