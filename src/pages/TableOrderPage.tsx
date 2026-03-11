@@ -335,13 +335,15 @@ export default function TableOrderPage() {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
+      const defaultName = (table as any)?.default_name || "Comanda";
       const { data, error } = await supabase
         .from("orders")
         .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
         .select()
         .single();
       if (error) throw error;
-      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+      const tableName = customerName ? `${defaultName} — ${customerName}` : defaultName;
+      await supabase.from("restaurant_tables").update({ status: "occupied", name: tableName }).eq("id", tableId!);
       const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
