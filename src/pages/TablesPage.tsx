@@ -2,11 +2,12 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -52,6 +53,7 @@ function TableDuration({ createdAt }: { createdAt: string }) {
 }
 
 export default function TablesPage() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"grid" | "floor">("grid");
@@ -83,9 +85,36 @@ export default function TablesPage() {
         queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["active_locks"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
+
+  // Active locks query
+  const { data: activeLocks = [] } = useQuery({
+    queryKey: ["active_locks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comanda_locks")
+        .select("table_id, locked_by_user_id, locked_by_user_name, lock_expires_at")
+        .gt("lock_expires_at", new Date().toISOString());
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const locksByTable = useMemo(() => {
+    const map: Record<string, { userId: string; userName: string }> = {};
+    for (const lock of activeLocks) {
+      if (new Date(lock.lock_expires_at) > new Date()) {
+        map[lock.table_id] = { userId: lock.locked_by_user_id, userName: lock.locked_by_user_name };
+      }
+    }
+    return map;
+  }, [activeLocks]);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
@@ -575,18 +604,28 @@ export default function TablesPage() {
               : (table.status as TableStatus);
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
+            const lock = locksByTable[table.id];
+            const isLockedByOther = lock && lock.userId !== user?.id;
             return (
               <motion.div
                 layout
                 layoutId={`comanda-${table.id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer group`}
-                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer group ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
+                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
+
+                {/* Lock indicator */}
+                {isLockedByOther && (
+                  <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1 rounded-full bg-orange-500 text-white px-2 py-0.5 animate-pulse">
+                    <Lock className="h-2.5 w-2.5" />
+                    <span className="text-[8px] font-bold uppercase leading-none truncate max-w-[60px]">{lock.userName}</span>
+                  </div>
+                )}
 
 
                 {/* Unviewed items badge */}
