@@ -49,6 +49,8 @@ export default function TableOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = location.state as { customerName?: string; sector?: string } | null;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
