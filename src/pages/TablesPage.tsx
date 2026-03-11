@@ -854,7 +854,7 @@ export default function TablesPage() {
                 Cancelar
               </button>
               <button
-                disabled={!quickEdit.name.trim() || quickEditMutation.isPending}
+                disabled={quickEditMutation.isPending}
                 onClick={() => quickEditMutation.mutate(quickEdit)}
                 className="flex items-center gap-1.5 rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
               >
