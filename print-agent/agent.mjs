@@ -100,6 +100,21 @@ function toPC860(str) {
   return Buffer.from(bytes);
 }
 
+/** Word-wrap a string to fit within maxCols */
+function wordWrap(str, maxCols = COLS) {
+  if (str.length <= maxCols) return [str];
+  const lines = [];
+  let remaining = str;
+  while (remaining.length > maxCols) {
+    let breakAt = remaining.lastIndexOf(" ", maxCols);
+    if (breakAt <= 0) breakAt = maxCols;
+    lines.push(remaining.slice(0, breakAt));
+    remaining = remaining.slice(breakAt).trimStart();
+  }
+  if (remaining.length > 0) lines.push(remaining);
+  return lines;
+}
+
 const cmd = {
   init:       Buffer.from([ESC, 0x40]),
   codepage:   Buffer.from([ESC, 0x74, 0x03]), // ESC t 3 → PC860 Portuguese
@@ -112,8 +127,12 @@ const cmd = {
   doubleSize: (on) => Buffer.from([GS, 0x21, on ? 0x11 : 0x00]),
   doubleW:    (on) => Buffer.from([GS, 0x21, on ? 0x10 : 0x00]),
   separator:  () => Buffer.concat([toPC860(SEP_CHAR.repeat(COLS)), Buffer.from([0x0A])]),
-  doubleSep:  () => Buffer.concat([toPC860("=".repeat(COLS)), Buffer.from([0x0A])]),
   text:       (s) => Buffer.concat([toPC860(s), Buffer.from([0x0A])]),
+  /** Print text with automatic word-wrap */
+  wrappedText: (s) => {
+    const lines = wordWrap(s, COLS);
+    return Buffer.concat(lines.map(l => Buffer.concat([toPC860(l), Buffer.from([0x0A])])));
+  },
   padRow:     (left, right) => {
     const pad = COLS - left.length - right.length;
     const line = left + " ".repeat(Math.max(1, pad)) + right;
@@ -125,7 +144,7 @@ const cmd = {
 function buildHeader() {
   return [
     cmd.alignCenter,
-    cmd.text("REINO COFFEE THRONES"),
+    cmd.text("COFFEE THRONES"),
   ];
 }
 
@@ -146,9 +165,7 @@ function buildBillTicket(job) {
     cmd.separator(),
     cmd.alignCenter,
     cmd.bold(true),
-    cmd.doubleW(true),
     cmd.text("REGISTRO DA COMANDA"),
-    cmd.doubleW(false),
     cmd.bold(false),
     cmd.separator(),
     cmd.alignLeft,
@@ -179,11 +196,11 @@ function buildBillTicket(job) {
       for (const c of item.complements) {
         const cName = typeof c === "string" ? c : c.name;
         const cPrice = typeof c === "object" && c.price ? ` R$${Number(c.price).toFixed(2)}` : "";
-        parts.push(cmd.text(`  + ${cName}${cPrice}`));
+        parts.push(cmd.wrappedText(`  + ${cName}${cPrice}`));
       }
     }
     if (item.notes) {
-      parts.push(cmd.text(`  OBS: ${item.notes}`));
+      parts.push(cmd.wrappedText(`  OBS: ${item.notes}`));
     }
   }
 
@@ -191,9 +208,7 @@ function buildBillTicket(job) {
   const totalVal = Number(p.total || subtotal);
   parts.push(cmd.bold(true));
   parts.push(cmd.alignCenter);
-  parts.push(cmd.doubleW(true));
   parts.push(cmd.text(`TOTAL: R$ ${totalVal.toFixed(2)}`));
-  parts.push(cmd.doubleW(false));
   parts.push(cmd.bold(false));
   parts.push(cmd.separator());
 
@@ -210,12 +225,7 @@ function buildBillTicket(job) {
   parts.push(cmd.alignCenter);
   parts.push(cmd.text("DOCUMENTO SEM VALOR FISCAL"));
   parts.push(cmd.separator());
-  parts.push(cmd.text("Obrigado por visitar o"));
-  parts.push(cmd.bold(true));
-  parts.push(cmd.text("REINO COFFEE THRONES"));
-  parts.push(cmd.bold(false));
-  parts.push(cmd.text("Cada xicara conta uma nova historia."));
-  parts.push(cmd.text("Retorne ao Reino em breve!"));
+  parts.push(cmd.text("Obrigado pela visita!"));
   parts.push(cmd.text("@coffeethrones"));
   parts.push(cmd.separator());
   parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
@@ -225,21 +235,19 @@ function buildBillTicket(job) {
   return Buffer.concat(parts);
 }
 
-// ── 2) Production ticket ────────────────────────────────────────────
+// ── 2) Production ticket (clean & compact) ──────────────────────────
 function buildProductionTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
+  const productName = (p.product_name || "Item").toUpperCase();
 
   const parts = [
     cmd.init,
     cmd.codepage,
     ...buildHeader(),
-    cmd.text(""),
-    cmd.doubleW(true),
     cmd.text(job.station.toUpperCase()),
-    cmd.doubleW(false),
     cmd.separator(),
     cmd.alignLeft,
   ];
@@ -249,56 +257,50 @@ function buildProductionTicket(job) {
   parts.push(cmd.text(`Hora: ${time}  ${date}`));
   parts.push(cmd.separator());
 
-  parts.push(cmd.alignCenter);
+  // Item — bold, normal size, uppercase, wrapped
+  parts.push(cmd.alignLeft);
   parts.push(cmd.bold(true));
-  parts.push(cmd.doubleSize(true));
-  parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
-  parts.push(cmd.doubleSize(false));
+  const itemLine = `${p.quantity || 1}x ${productName}`;
+  parts.push(cmd.wrappedText(itemLine));
   parts.push(cmd.bold(false));
 
   if (p.complements && p.complements.length > 0) {
-    parts.push(cmd.alignLeft);
     for (const c of p.complements) {
-      parts.push(cmd.text(`  + ${c}`));
+      parts.push(cmd.wrappedText(`  + ${c}`));
     }
   }
 
   if (p.notes) {
-    parts.push(cmd.alignLeft);
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(`OBS: ${p.notes}`));
+    parts.push(cmd.wrappedText(`OBS: ${p.notes}`));
     parts.push(cmd.bold(false));
   }
 
   parts.push(cmd.separator());
   parts.push(cmd.alignCenter);
   parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
-  parts.push(cmd.feedLines(2));
+  parts.push(cmd.feedLines(1));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
 }
 
-// ── 3) Cancellation ticket ──────────────────────────────────────────
+// ── 3) Cancellation ticket (compact) ────────────────────────────────
 function buildCancellationTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
+  const productName = (p.product_name || "Item").toUpperCase();
 
   const parts = [
     cmd.init,
     cmd.codepage,
     ...buildHeader(),
-    cmd.text(""),
     cmd.bold(true),
-    cmd.doubleSize(true),
-    cmd.text("* CANCELAMENTO *"),
-    cmd.doubleSize(false),
+    cmd.text("** CANCELAMENTO **"),
     cmd.bold(false),
-    cmd.doubleW(true),
     cmd.text(job.station.toUpperCase()),
-    cmd.doubleW(false),
     cmd.separator(),
     cmd.alignLeft,
   ];
@@ -308,22 +310,19 @@ function buildCancellationTicket(job) {
   parts.push(cmd.text(`Hora: ${time}  ${date}`));
   parts.push(cmd.separator());
 
-  parts.push(cmd.alignCenter);
-  parts.push(cmd.text("Cancelar:"));
+  parts.push(cmd.alignLeft);
   parts.push(cmd.bold(true));
-  parts.push(cmd.doubleSize(true));
-  parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
-  parts.push(cmd.doubleSize(false));
+  parts.push(cmd.wrappedText(`${p.quantity || 1}x ${productName}`));
   parts.push(cmd.bold(false));
 
   if (p.notes) {
-    parts.push(cmd.text(""));
-    parts.push(cmd.text(`Motivo: ${p.notes}`));
+    parts.push(cmd.wrappedText(`Motivo: ${p.notes}`));
   }
 
   parts.push(cmd.separator());
+  parts.push(cmd.alignCenter);
   parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
-  parts.push(cmd.feedLines(2));
+  parts.push(cmd.feedLines(1));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
