@@ -123,13 +123,17 @@ function TicketPreview({ job }: { job: any }) {
   const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const items = p.items as any[] | undefined;
   const isCaixa = job.station === "Caixa";
+  const isCancellation = p.type === "cancellation";
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden">
+    <div className={`rounded-lg border overflow-hidden ${isCancellation ? "border-destructive/50 bg-destructive/5" : "bg-card"}`}>
       {/* Thermal header */}
-      <div className="bg-foreground/5 px-4 py-3 text-center border-b">
+      <div className={`px-4 py-3 text-center border-b ${isCancellation ? "bg-destructive/10" : "bg-foreground/5"}`}>
         <p className="text-xs font-bold tracking-widest">☕ COFFEE THRONES</p>
-        {!isCaixa && <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>}
+        {isCancellation && (
+          <p className="text-xs font-bold text-destructive tracking-widest mt-1">*** CANCELAMENTO ***</p>
+        )}
+        {!isCaixa && !isCancellation && <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>}
       </div>
 
       <div className="px-4 py-3 space-y-2 text-sm font-mono">
@@ -144,8 +148,14 @@ function TicketPreview({ job }: { job: any }) {
 
         <div className="border-t border-dashed border-muted-foreground/30 my-1" />
 
-        {/* Items */}
-        {items ? (
+        {/* Cancellation content */}
+        {isCancellation ? (
+          <div className="text-center">
+            <p className="text-xs font-bold text-destructive mb-1">CANCELAR:</p>
+            <p className="font-bold text-destructive">{p.quantity || 1}× {p.product_name}</p>
+            {p.notes && <p className="text-xs italic text-muted-foreground mt-1">{p.notes}</p>}
+          </div>
+        ) : items ? (
           items.map((item: any, i: number) => (
             <div key={i} className="flex justify-between text-xs">
               <span className="font-medium">{item.quantity || 1}× {item.product_name}</span>
