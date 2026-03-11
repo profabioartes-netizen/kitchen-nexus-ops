@@ -174,6 +174,29 @@ export default function TablesPage() {
     },
   });
 
+  // Average service time for today (delivered comandas)
+  const { data: avgServiceTime = null } = useQuery({
+    queryKey: ["avg_service_time"],
+    queryFn: async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from("orders")
+        .select("created_at, delivered_at")
+        .not("delivered_at", "is", null)
+        .gte("created_at", todayStart.toISOString())
+        .not("status", "eq", "canceled");
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      const times = data
+        .filter((o: any) => o.delivered_at && o.created_at)
+        .map((o: any) => new Date(o.delivered_at).getTime() - new Date(o.created_at).getTime());
+      if (times.length === 0) return null;
+      const avgMs = times.reduce((a: number, b: number) => a + b, 0) / times.length;
+      return Math.round(avgMs / 60000);
+    },
+  });
+
   // Fetch items for the previewed order
   const { data: previewItems = [] } = useQuery({
     queryKey: ["preview_order_items", previewOrderId],
