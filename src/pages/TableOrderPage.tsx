@@ -72,6 +72,13 @@ export default function TableOrderPage() {
   const [showMerge, setShowMerge] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
 
+  // Concurrency lock
+  const { lockInfo, loading: lockLoading } = useComandaLock(
+    tableId,
+    profile?.id,
+    profile?.full_name,
+  );
+
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
   // Fetch table
