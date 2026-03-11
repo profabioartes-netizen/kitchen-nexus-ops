@@ -493,14 +493,6 @@ export default function PaymentPanel({
                         >
                           DIVIDIR
                         </button>
-                        {onRemoveItem && (
-                          <button
-                            onClick={() => onRemoveItem(item.id)}
-                            className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-destructive/15 text-destructive hover:bg-destructive/25 transition-colors"
-                          >
-                            EXCLUIR
-                          </button>
-                        )}
                         <button
                           onClick={() => addItemToPayment(item.id, 1)}
                           disabled={canAdd <= 0}
