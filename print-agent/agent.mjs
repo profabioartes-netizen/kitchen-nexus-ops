@@ -416,7 +416,7 @@ function buildCancellationTicket(job) {
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
-  const productName = upperPt(p.product_name || "Item");
+  const productName = upperPt(p.product_name || p.name || "Item");
 
   const qtyCol = 6;
 
