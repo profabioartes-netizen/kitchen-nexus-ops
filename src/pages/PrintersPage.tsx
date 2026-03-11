@@ -64,10 +64,12 @@ export default function PrintersPage() {
     refetchInterval: 10000, // refresh to pick up health status
   });
 
+  const PRINTER_ONLINE_WINDOW_MS = 120000;
+
   const isOnline = (printer: any) => {
     if (!printer.last_seen_at) return false;
     const lastSeen = new Date(printer.last_seen_at).getTime();
-    return Date.now() - lastSeen < 30000; // online if seen in last 30s
+    return Date.now() - lastSeen < PRINTER_ONLINE_WINDOW_MS;
   };
 
   // Agent is considered connected if any printer has a recent heartbeat
@@ -406,7 +408,7 @@ export default function PrintersPage() {
       </div>
 
       <p className="text-sm text-muted-foreground mb-6">
-        Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir.
+        Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir. Impressoras ficam online por até 2 minutos sem novo heartbeat do agente.
       </p>
 
       {/* Routing diagram */}
