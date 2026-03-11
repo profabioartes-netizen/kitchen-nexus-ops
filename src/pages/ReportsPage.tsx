@@ -54,6 +54,33 @@ export default function ReportsPage() {
   const [pinInput, setPinInput] = useState("");
   const [period, setPeriod] = useState<Period>("7");
 
+  const { data: payments = [], isLoading: loadingPayments } = useQuery({
+    queryKey: ["payments_report"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*, orders!inner(status, created_at)")
+        .eq("orders.status", "finalized")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: unlocked,
+  });
+
+  const { data: orderItems = [], isLoading: loadingItems } = useQuery({
+    queryKey: ["order_items_report"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("product_name, price, quantity, orders!inner(status, created_at), product_id, products(category_id, categories(name))")
+        .eq("orders.status", "finalized");
+      if (error) throw error;
+      return data;
+    },
+    enabled: unlocked,
+  });
+
   if (!unlocked) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -85,31 +112,6 @@ export default function ReportsPage() {
       </div>
     );
   }
-
-  const { data: payments = [], isLoading: loadingPayments } = useQuery({
-    queryKey: ["payments_report"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("payments")
-        .select("*, orders!inner(status, created_at)")
-        .eq("orders.status", "finalized")
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: orderItems = [], isLoading: loadingItems } = useQuery({
-    queryKey: ["order_items_report"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("product_name, price, quantity, orders!inner(status, created_at), product_id, products(category_id, categories(name))")
-        .eq("orders.status", "finalized");
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const isLoading = loadingPayments || loadingItems;
 
