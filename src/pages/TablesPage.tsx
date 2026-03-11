@@ -332,7 +332,7 @@ export default function TablesPage() {
   const handleQuickEdit = (table: any) => {
     setQuickEdit({
       id: table.id,
-      name: table.name,
+      name: "",
       seats: String(table.seats),
       sector: (table as any).sector || "",
     });
