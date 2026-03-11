@@ -336,7 +336,8 @@ export default function TableOrderPage() {
       // Use provided name, or fall back to the table's current name (if it differs from default_name, it's a customer name)
       const customerName = params?.customerName || (table && table.name !== (table as any).default_name ? table.name : null);
       const guests = params?.guests || 1;
-      const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
+      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
+      const tableLabel = customerName ? `${defaultName} — ${customerName}` : undefined;
       const { data, error } = await supabase
         .from("orders")
         .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
