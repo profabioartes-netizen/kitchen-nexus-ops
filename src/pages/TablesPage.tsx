@@ -582,7 +582,7 @@ export default function TablesPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-3 sm:gap-4 mb-3 sm:mb-4 overflow-x-auto">
         {statusCycle.map((s) => (
           <div key={s} className="flex items-center gap-2 text-xs">
             <div className={`h-3 w-3 rounded-full border-2 table-status-${s}`} />
