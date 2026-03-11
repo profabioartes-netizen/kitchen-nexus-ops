@@ -345,6 +345,7 @@ export default function PrintersPage() {
               <th className="text-left px-4 py-2 font-medium">Estação</th>
               <th className="text-left px-4 py-2 font-medium">Modelo</th>
               <th className="text-left px-4 py-2 font-medium">IP</th>
+              <th className="text-center px-4 py-2 font-medium">Conexão</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
               <th className="px-4 py-2 w-24"></th>
             </tr>
