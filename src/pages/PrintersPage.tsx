@@ -46,6 +46,13 @@ export default function PrintersPage() {
 
   const pendingCount = activeJobs.filter((j) => j.status === "pending" || j.status === "processing").length;
   const errorCount = activeJobs.filter((j) => j.status === "error").length;
+  const QUEUE_LIMIT = 30;
+  const queueOverflow = pendingCount > QUEUE_LIMIT;
+
+  // Auto-pause agent when queue overflows
+  if (queueOverflow && agentActive) {
+    setAgentActive(false);
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
