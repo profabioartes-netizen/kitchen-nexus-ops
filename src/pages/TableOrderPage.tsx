@@ -1258,6 +1258,7 @@ export default function TableOrderPage() {
               isPending={payMutation.isPending}
               onAddQuickItem={addQuickItem}
               onRemoveQuickItem={removeQuickItem}
+              onRemoveItem={(itemId) => removeItem.mutate(itemId)}
             />
           )}
         </div>
