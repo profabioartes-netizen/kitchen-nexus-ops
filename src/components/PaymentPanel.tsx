@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CreditCard, Banknote, Smartphone, ArrowLeft,
-  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins, ListChecks, ChevronDown,
+  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins, ListChecks, ChevronDown, Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -36,6 +38,7 @@ interface PaymentPanelProps {
   onPay: (result: PaymentResult) => void;
   onCancel: () => void;
   isPending: boolean;
+  onAddQuickItem?: (product: { id: string; name: string; price: number }) => void;
 }
 
 const methodLabels: Record<string, string> = {
@@ -62,6 +65,7 @@ export default function PaymentPanel({
   onPay,
   onCancel,
   isPending,
+  onAddQuickItem,
 }: PaymentPanelProps) {
   // ── Adjustments ──
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
@@ -83,6 +87,27 @@ export default function PaymentPanel({
   const [splitItemDialog, setSplitItemDialog] = useState<OrderItem | null>(null);
   const [splitMode, setSplitMode] = useState<"quantity" | "value">("quantity");
   const [splitQtyDivisor, setSplitQtyDivisor] = useState(2);
+
+  // ── Quick-sale products ──
+  const { data: quickSaleProducts = [] } = useQuery({
+    queryKey: ["quick_sale_products"],
+    queryFn: async () => {
+      // Find the "Venda Rápida" category
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("name", "Venda Rápida")
+        .limit(1);
+      if (!cats || cats.length === 0) return [];
+      const { data: prods } = await supabase
+        .from("products")
+        .select("id, name, price")
+        .eq("category_id", cats[0].id)
+        .eq("active", true)
+        .order("sort_order");
+      return prods || [];
+    },
+  });
 
   // ── Show more methods ──
   const [showAllMethods, setShowAllMethods] = useState(true);
@@ -424,7 +449,26 @@ export default function PaymentPanel({
             </tbody>
           </table>
 
-          {/* Paid items from previous sessions */}
+          {/* Quick-sale products */}
+          {onAddQuickItem && quickSaleProducts.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Zap className="h-3 w-3" /> Venda Rápida
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {quickSaleProducts.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onAddQuickItem({ id: p.id, name: p.name, price: Number(p.price) })}
+                    className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    {p.name} <span className="text-muted-foreground ml-1">R$ {Number(p.price).toFixed(2)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {orderItems.some((i) => (i.paid_quantity ?? 0) > 0) && (
             <div className="mt-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Itens pagos 🔒</h3>

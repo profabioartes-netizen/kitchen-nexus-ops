@@ -776,6 +776,33 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Quick-add item from payment screen
+  const addQuickItem = async (product: { id: string; name: string; price: number }) => {
+    if (!order) return;
+    // Check if item already exists in order
+    const existing = orderItems.find((i) => i.product_id === product.id);
+    if (existing) {
+      const newQty = existing.quantity + 1;
+      await supabase.from("order_items").update({ quantity: newQty }).eq("id", existing.id);
+    } else {
+      await supabase.from("order_items").insert({
+        order_id: order.id,
+        product_id: product.id,
+        product_name: product.name,
+        price: product.price,
+        quantity: 1,
+        sent_to_kitchen: true,
+      });
+    }
+    const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + product.price;
+    await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
+    await logActivity(tableId!, "item_added", `Venda rápida: ${product.name} (R$ ${product.price.toFixed(2)})`, order.id, profile?.full_name);
+    queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
+    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+    toast.success(`${product.name} adicionado!`);
+  };
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
@@ -1215,6 +1242,7 @@ export default function TableOrderPage() {
               onPay={(result) => payMutation.mutate(result)}
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
+              onAddQuickItem={addQuickItem}
             />
           )}
         </div>
