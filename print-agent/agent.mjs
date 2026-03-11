@@ -399,7 +399,7 @@ function buildCancellationTicket(job) {
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
-  const productName = (p.product_name || "Item").toUpperCase();
+  const productName = upperPt(p.product_name || "Item");
 
   const parts = [
     cmd.init,
