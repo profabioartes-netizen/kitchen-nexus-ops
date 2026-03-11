@@ -53,6 +53,7 @@ function TableDuration({ createdAt }: { createdAt: string }) {
 }
 
 export default function TablesPage() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"grid" | "floor">("grid");
