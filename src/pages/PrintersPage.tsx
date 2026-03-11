@@ -247,6 +247,24 @@ export default function PrintersPage() {
         </div>
       )}
 
+      {/* Queue overflow warning */}
+      {queueOverflow && (
+        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400 text-sm">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <span>
+              Fila muito grande detectada ({pendingCount} pedidos). Agente pausado para evitar desperdício de papel.
+            </span>
+          </div>
+          <button
+            onClick={() => setAgentActive(true)}
+            className="flex-shrink-0 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-medium hover:bg-yellow-500/20 transition-colors"
+          >
+            Retomar agente
+          </button>
+        </div>
+      )}
+
       {/* Print queue table — always visible */}
       <div ref={queueRef} className="rounded-lg border bg-card overflow-hidden mb-6">
         <div className="px-4 py-3 border-b bg-secondary/30">
