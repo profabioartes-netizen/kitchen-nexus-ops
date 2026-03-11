@@ -144,6 +144,7 @@ function buildBillTicket(job) {
     cmd.text(`CNPJ: ${CNPJ}`),
     cmd.text("Sao Jose dos Salgados - MG"),
     cmd.separator(),
+    cmd.alignCenter,
     cmd.bold(true),
     cmd.doubleW(true),
     cmd.text("REGISTRO DA COMANDA"),
@@ -153,11 +154,11 @@ function buildBillTicket(job) {
     cmd.alignLeft,
   ];
 
-  if (p.customer_name) parts.push(cmd.text(`CLIENTE: ${p.customer_name}`));
-  if (p.comanda_number) parts.push(cmd.text(`COMANDA: #${p.comanda_number}`));
-  if (p.table_name) parts.push(cmd.text(`MESA: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`ATENDENTE: ${p.waiter_name}`));
-  parts.push(cmd.text(`DATA: ${date}  HORA: ${time}`));
+  if (p.customer_name) parts.push(cmd.text(`Cliente: ${p.customer_name}`));
+  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
+  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`Atendente: ${p.waiter_name}`));
+  parts.push(cmd.text(`Data: ${date}  Hora: ${time}`));
   parts.push(cmd.separator());
 
   parts.push(cmd.bold(true));
@@ -178,69 +179,47 @@ function buildBillTicket(job) {
       for (const c of item.complements) {
         const cName = typeof c === "string" ? c : c.name;
         const cPrice = typeof c === "object" && c.price ? ` R$${Number(c.price).toFixed(2)}` : "";
-        parts.push(cmd.text(`   + ${cName}${cPrice}`));
+        parts.push(cmd.text(`  + ${cName}${cPrice}`));
       }
     }
     if (item.notes) {
-      parts.push(cmd.text(`   OBS: ${item.notes}`));
+      parts.push(cmd.text(`  OBS: ${item.notes}`));
     }
   }
 
   parts.push(cmd.separator());
-  parts.push(cmd.padRow("SUBTOTAL:", `R$ ${(p.subtotal || subtotal).toFixed(2)}`));
-  parts.push(cmd.doubleSep());
+  const totalVal = Number(p.total || subtotal);
   parts.push(cmd.bold(true));
-  parts.push(cmd.doubleW(true));
   parts.push(cmd.alignCenter);
-  parts.push(cmd.text(`TOTAL A PAGAR: R$ ${Number(p.total || subtotal).toFixed(2)}`));
+  parts.push(cmd.doubleW(true));
+  parts.push(cmd.text(`TOTAL: R$ ${totalVal.toFixed(2)}`));
   parts.push(cmd.doubleW(false));
   parts.push(cmd.bold(false));
-  parts.push(cmd.doubleSep());
+  parts.push(cmd.separator());
 
   if (p.payment_method) {
-    const methods = { credit: "CREDITO", debit: "DEBITO", cash: "DINHEIRO", pix: "PIX" };
+    const methods = { credit: "Credito", debit: "Debito", cash: "Dinheiro", pix: "Pix" };
     parts.push(cmd.alignLeft);
-    parts.push(cmd.text(`PAGAMENTO: ${methods[p.payment_method] || p.payment_method}`));
+    parts.push(cmd.text(`Pagamento: ${methods[p.payment_method] || p.payment_method}`));
     if (p.change && Number(p.change) > 0) {
-      parts.push(cmd.text(`TROCO: R$ ${Number(p.change).toFixed(2)}`));
+      parts.push(cmd.text(`Troco: R$ ${Number(p.change).toFixed(2)}`));
     }
+    parts.push(cmd.separator());
   }
 
-  parts.push(cmd.separator());
   parts.push(cmd.alignCenter);
   parts.push(cmd.text("DOCUMENTO SEM VALOR FISCAL"));
   parts.push(cmd.separator());
-  parts.push(cmd.text(""));
-  parts.push(cmd.text("⚜ ⚔ ⚜"));
-  parts.push(cmd.text(""));
   parts.push(cmd.text("Obrigado por visitar o"));
   parts.push(cmd.bold(true));
-  parts.push(cmd.doubleW(true));
   parts.push(cmd.text("REINO COFFEE THRONES"));
-  parts.push(cmd.doubleW(false));
   parts.push(cmd.bold(false));
-  parts.push(cmd.text(""));
-  parts.push(cmd.text("No Reino Coffee Thrones"));
-  parts.push(cmd.text("cada xicara conta"));
-  parts.push(cmd.text("uma nova historia."));
-  parts.push(cmd.text(""));
-  parts.push(cmd.bold(true));
-  parts.push(cmd.text("Retorne ao Reino"));
-  parts.push(cmd.text("em breve!"));
-  parts.push(cmd.bold(false));
-  parts.push(cmd.text(""));
-  parts.push(cmd.text("Compartilhe sua visita"));
-  parts.push(cmd.bold(true));
+  parts.push(cmd.text("Cada xicara conta uma nova historia."));
+  parts.push(cmd.text("Retorne ao Reino em breve!"));
   parts.push(cmd.text("@coffeethrones"));
-  parts.push(cmd.bold(false));
-  parts.push(cmd.text(""));
-  parts.push(cmd.text("⚔ ☕ ⚔"));
-  parts.push(cmd.text(""));
-  parts.push(cmd.text("⚜ ⚔ ⚜"));
   parts.push(cmd.separator());
-  parts.push(cmd.text(`Ticket #${job.id.slice(0, 8)}`));
-  parts.push(cmd.text(""));
-  parts.push(cmd.feedLines(3));
+  parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
+  parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
