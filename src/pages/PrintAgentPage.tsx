@@ -542,6 +542,7 @@ export default function PrintAgentPage() {
             Limpar fila
           </button>
         </div>
+      </div>
 
       {/* Printers strip */}
       <div className="flex gap-2 mb-5 flex-wrap">
