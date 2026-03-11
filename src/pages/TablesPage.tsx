@@ -760,7 +760,7 @@ export default function TablesPage() {
                       e.preventDefault();
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
-                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97]"
+                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
                     style={{
                       backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
                       color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
