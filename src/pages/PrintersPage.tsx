@@ -70,6 +70,9 @@ export default function PrintersPage() {
     return Date.now() - lastSeen < 30000; // online if seen in last 30s
   };
 
+  // Agent is considered connected if any printer has a recent heartbeat
+  const agentConnected = printers.some((p: any) => isOnline(p));
+
   // Fetch all non-printed jobs for queue display
   const { data: activeJobs = [] } = useQuery({
     queryKey: ["print_jobs_active"],
@@ -280,6 +283,15 @@ export default function PrintersPage() {
         }`}>
           {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
           {wsConnected ? "WebSocket: conectado" : "Fallback: polling ativo"}
+        </div>
+
+        <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+          agentConnected
+            ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+            : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+        }`}>
+          <Circle className={`h-2.5 w-2.5 ${agentConnected ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-yellow-500 text-yellow-500"} ${agentConnected ? "animate-pulse" : ""}`} />
+          {agentConnected ? "Agente: conectado" : "Agente: desconectado"}
         </div>
       </div>
 
