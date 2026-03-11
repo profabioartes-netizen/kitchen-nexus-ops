@@ -295,12 +295,19 @@ function TicketPreview({ job }: { job: any }) {
           <>
             <p className="text-center text-[10px] text-muted-foreground uppercase tracking-wide">DOCUMENTO SEM VALOR FISCAL</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
-            <div className="mt-3 mb-1 text-center space-y-0.5">
-              <p className="text-[10px] text-muted-foreground">Obrigado por visitar o</p>
+            <div className="mt-4 mb-1 text-center space-y-0.5">
+              <p className="text-xs">⚜ ⚔ ⚜</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Obrigado por visitar o</p>
               <p className="text-xs font-bold tracking-wide">REINO COFFEE THRONES</p>
-              <p className="text-[10px] font-bold mt-1">⚔ Que seu café seja forte</p>
-              <p className="text-[10px] font-bold">e sua jornada gloriosa! ⚔</p>
-              <p className="text-[10px] font-bold mt-1">Volte sempre!</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">⚔ No Reino Coffee Thrones</p>
+              <p className="text-[10px] text-muted-foreground">cada xícara conta</p>
+              <p className="text-[10px] text-muted-foreground">uma nova história. ⚔</p>
+              <p className="text-[10px] font-bold mt-1.5">Retorne ao Reino</p>
+              <p className="text-[10px] font-bold">em breve!</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">Compartilhe sua visita</p>
+              <p className="text-[10px] font-bold">@coffeethrones</p>
+              <p className="text-xs mt-1.5">⚔ ☕ ⚔</p>
+              <p className="text-xs mt-0.5">⚜ ⚔ ⚜</p>
             </div>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
