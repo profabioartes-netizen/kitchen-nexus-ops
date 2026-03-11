@@ -470,18 +470,16 @@ function buildCancellationTicket(job) {
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
 
-  // Item — strikethrough effect for cancelled items
+  // Item — print name then a strike-through line underneath
   const nameMaxCols = COLS - qtyCol;
-  const strikePrefix = "---";
-  const strikeSuffix = "---";
-  const strikedName = `${strikePrefix} ${productName} ${strikeSuffix}`;
-  const wrappedName = wordWrap(strikedName, nameMaxCols);
+  const wrappedName = wordWrap(productName, nameMaxCols);
+  // Print item line(s)
   parts.push(cmd.text(String(p.quantity || 1).padEnd(qtyCol) + wrappedName[0]));
   for (let i = 1; i < wrappedName.length; i++) {
     parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
   }
-  // Visual strikethrough line over the item
-  const strikeLine = "-".repeat(Math.min(strikedName.length, nameMaxCols));
+  // Horizontal line under the item to visually "cross it out"
+  const strikeLine = "-".repeat(nameMaxCols);
   parts.push(cmd.text(" ".repeat(qtyCol) + strikeLine));
 
   if (p.notes) {
