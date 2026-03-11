@@ -2,7 +2,9 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const LOCK_DURATION_SECONDS = 90;
-const RENEW_INTERVAL_MS = 60_000; // renew every 60s (before 90s expiry)
+const RENEW_INTERVAL_MS = 60_000;
+const RETRY_DELAY_MS = 3_000;
+const MAX_RETRIES = 3;
 
 interface LockInfo {
   acquired: boolean;
@@ -18,23 +20,46 @@ export function useComandaLock(
   const [lockInfo, setLockInfo] = useState<LockInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryCountRef = useRef(0);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const acquireLock = useCallback(async () => {
+  const acquireLock = useCallback(async (isRetry = false) => {
     if (!tableId || !userId) return;
-    const { data, error } = await supabase.rpc("acquire_comanda_lock", {
-      p_table_id: tableId,
-      p_user_id: userId,
-      p_user_name: userName || "Usuário",
-      p_duration_seconds: LOCK_DURATION_SECONDS,
-    });
-    if (error) {
-      console.error("Lock acquire error:", error);
-      setLockInfo({ acquired: false });
-    } else {
-      setLockInfo(data as unknown as LockInfo);
+    try {
+      const { data, error } = await supabase.rpc("acquire_comanda_lock", {
+        p_table_id: tableId,
+        p_user_id: userId,
+        p_user_name: userName || "Usuário",
+        p_duration_seconds: LOCK_DURATION_SECONDS,
+      });
+      if (error) {
+        // Network/fetch errors — don't block the user, retry silently
+        if (error.message?.includes("Failed to fetch") || error.message?.includes("NetworkError")) {
+          console.warn("Lock acquire network error, will retry...");
+          if (retryCountRef.current < MAX_RETRIES) {
+            retryCountRef.current++;
+            retryTimeoutRef.current = setTimeout(() => acquireLock(true), RETRY_DELAY_MS);
+          }
+          // Don't update lockInfo on network errors if we already have a lock
+          if (!lockInfo || lockInfo.acquired) return;
+          return;
+        }
+        console.error("Lock acquire error:", error);
+        setLockInfo({ acquired: false });
+      } else {
+        retryCountRef.current = 0;
+        setLockInfo(data as unknown as LockInfo);
+      }
+    } catch (err) {
+      // Catch unexpected errors (e.g. fetch abort)
+      console.warn("Lock acquire unexpected error:", err);
+      if (retryCountRef.current < MAX_RETRIES) {
+        retryCountRef.current++;
+        retryTimeoutRef.current = setTimeout(() => acquireLock(true), RETRY_DELAY_MS);
+      }
     }
     setLoading(false);
-  }, [tableId, userId, userName]);
+  }, [tableId, userId, userName, lockInfo]);
 
   const releaseLock = useCallback(async () => {
     if (!tableId || !userId) return;
@@ -54,14 +79,15 @@ export function useComandaLock(
     acquireLock();
 
     // Renew lock periodically
-    intervalRef.current = setInterval(acquireLock, RENEW_INTERVAL_MS);
+    intervalRef.current = setInterval(() => acquireLock(), RENEW_INTERVAL_MS);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      // Release lock on unmount (fire-and-forget)
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
       releaseLock();
     };
-  }, [tableId, userId, acquireLock, releaseLock]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableId, userId]);
 
   // Listen for realtime changes to comanda_locks for this table
   useEffect(() => {
@@ -72,7 +98,6 @@ export function useComandaLock(
         "postgres_changes",
         { event: "*", schema: "public", table: "comanda_locks", filter: `table_id=eq.${tableId}` },
         () => {
-          // Re-check lock status when lock changes
           acquireLock();
         },
       )
@@ -81,7 +106,8 @@ export function useComandaLock(
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [tableId, acquireLock]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableId]);
 
-  return { lockInfo, loading, releaseLock, retry: acquireLock };
+  return { lockInfo, loading, releaseLock, retry: () => acquireLock() };
 }
