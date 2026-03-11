@@ -602,11 +602,12 @@ async function processJob(job, printers) {
     jobsProcessed++;
     console.log(`✅ Impresso: ${(job.payload)?.product_name || "item"} → ${dest} [#${job.id.slice(0, 8)}]`);
   } catch (err) {
-    await supabase
-      .from("print_jobs")
-      .update({ status: "error" })
-      .eq("id", job.id)
-      .catch(() => {});
+    try {
+      await supabase
+        .from("print_jobs")
+        .update({ status: "error" })
+        .eq("id", job.id);
+    } catch (_) { /* ignore */ }
     console.error(`❌ Falha ao imprimir job ${job.id.slice(0, 8)} — marcado como erro.`, err.message);
   }
 }
