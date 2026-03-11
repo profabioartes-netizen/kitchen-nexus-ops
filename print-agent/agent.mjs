@@ -225,7 +225,7 @@ function buildBillTicket(job) {
     const qty = item.quantity || 1;
     const itemTotal = (item.price || 0) * qty;
     subtotal += itemTotal;
-    const name = (item.product_name || "Item").toUpperCase();
+    const name = upperPt(item.product_name || "Item");
     const totalStr = itemTotal.toFixed(2).replace(".", ",");
 
     const wrappedName = wordWrap(name, itemsCol);
