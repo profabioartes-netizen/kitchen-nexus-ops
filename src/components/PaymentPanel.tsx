@@ -645,7 +645,12 @@ export default function PaymentPanel({
                       return (
                         <tr key={id} className="border-b border-border/50">
                           <td className="py-2 text-sm tabular-nums">{qty.toFixed(qty % 1 ? 2 : 0)}</td>
-                          <td className="py-2 text-sm">{item.product_name}</td>
+                          <td className="py-2">
+                            <span className="text-sm">{item.product_name}</span>
+                            {itemComplements.filter(c => c.order_item_id === id).map(c => (
+                              <p key={c.id} className="text-[10px] text-muted-foreground">+ {c.complement_name}</p>
+                            ))}
+                          </td>
                           <td className="py-2 text-sm font-semibold text-right tabular-nums">
                             R$ {(Number(item.price) * qty).toFixed(2)}
                           </td>
