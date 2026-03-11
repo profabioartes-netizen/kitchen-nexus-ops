@@ -545,36 +545,55 @@ async function pollAndPrint() {
   }
 }
 
-// ── Health check ────────────────────────────────────────────────────
-function checkPrinterHealth(ip, port) {
+// ── Health check — detect Windows printers via spooler ──────────────
+function checkWindowsPrinterExists(printerName) {
+  try {
+    const output = execSync(
+      `powershell.exe -NoProfile -Command "if (Get-Printer -Name '${printerName}' -ErrorAction SilentlyContinue) { Write-Output 'OK' } else { Write-Output 'NOT_FOUND' }"`,
+      { timeout: 5000, windowsHide: true, stdio: "pipe" }
+    ).toString().trim();
+    return output === "OK";
+  } catch {
+    return false;
+  }
+}
+
+// TCP fallback health check
+function checkPrinterHealthTcp(ip, port) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
     socket.setTimeout(3000);
-    socket.connect(port, ip, () => {
-      socket.destroy();
-      resolve(true);
-    });
-    socket.on("error", () => {
-      socket.destroy();
-      resolve(false);
-    });
-    socket.on("timeout", () => {
-      socket.destroy();
-      resolve(false);
-    });
+    socket.connect(port, ip, () => { socket.destroy(); resolve(true); });
+    socket.on("error", () => { socket.destroy(); resolve(false); });
+    socket.on("timeout", () => { socket.destroy(); resolve(false); });
   });
 }
 
 async function healthCheckLoop() {
   try {
     const printers = await getPrinters();
+    const now = new Date().toISOString();
+
     for (const printer of printers) {
-      if (!printer.ip) continue;
-      const reachable = await checkPrinterHealth(printer.ip, printer.port);
-      if (reachable) {
+      let online = false;
+
+      // Spooler mode: check if Windows printer name exists for this station
+      if (CONFIG.printMode === "spooler") {
+        const winName = STATION_PRINTER_MAP[printer.station];
+        if (winName) {
+          online = checkWindowsPrinterExists(winName);
+        }
+      }
+
+      // TCP fallback
+      if (!online && printer.ip) {
+        online = await checkPrinterHealthTcp(printer.ip, printer.port);
+      }
+
+      if (online) {
         await supabase
           .from("printers")
-          .update({ last_seen_at: new Date().toISOString() })
+          .update({ last_seen_at: now })
           .eq("id", printer.id);
       }
     }
