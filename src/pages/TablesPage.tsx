@@ -468,7 +468,7 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="p-3 sm:p-6 h-full flex flex-col">
+    <div className="p-3 sm:p-6 h-full flex flex-col overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
@@ -590,7 +590,7 @@ export default function TablesPage() {
       {/* Grid View */}
       {viewMode === "grid" && (
         <LayoutGroup>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {filteredTables.map((table) => {
             const order = ordersByTable[table.id];
             const effectiveStatus: TableStatus = order
@@ -606,7 +606,7 @@ export default function TablesPage() {
                 layoutId={`comanda-${table.id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-3 sm:p-4 min-h-[120px] sm:min-h-[140px] cursor-pointer group ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 sm:p-4 min-h-[160px] sm:min-h-[140px] cursor-pointer group touch-manipulation ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
                 style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -760,7 +760,7 @@ export default function TablesPage() {
                       e.preventDefault();
                       toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
                     }}
-                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97]"
+                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
                     style={{
                       backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
                       color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",

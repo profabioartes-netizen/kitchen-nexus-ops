@@ -94,33 +94,7 @@ export function NavigationRail() {
         </div>
       </nav>
 
-      {/* Mobile: bottom navigation bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t border-sidebar-border flex items-center justify-around px-1 py-1.5 safe-area-bottom">
-        {navItems.slice(0, 5).map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === "/"}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 rounded-md py-1.5 px-2 text-[10px] font-medium transition-colors ${
-                isActive
-                  ? "bg-nav-active text-nav-active-foreground"
-                  : "text-nav-foreground"
-              }`
-            }
-          >
-            <item.icon className="h-4.5 w-4.5" />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-        <button
-          onClick={() => setIsDark((v) => !v)}
-          className="flex flex-col items-center gap-0.5 rounded-md py-1.5 px-2 text-[10px] font-medium text-nav-foreground"
-        >
-          {isDark ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
-          <span>{isDark ? "Claro" : "Escuro"}</span>
-        </button>
-      </nav>
+      {/* Mobile: no bottom navigation — waiter mode uses full screen for Comandas */}
     </>
   );
 }
