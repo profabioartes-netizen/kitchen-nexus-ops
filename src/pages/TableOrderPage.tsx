@@ -862,28 +862,15 @@ export default function TableOrderPage() {
           </button>
           <div className="flex items-center gap-2 flex-1">
             <div className="flex flex-col">
-              <input
-                type="text"
-                defaultValue={order?.customer_name || ""}
-                placeholder="Nome do cliente"
-                key={`name-${table?.id}-${order?.customer_name}`}
-                onBlur={async (e) => {
-                  const newName = e.target.value.trim();
-                  if (order && newName !== (order.customer_name || "")) {
-                    await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
-                    const defaultName = (table as any)?.default_name || "Comanda";
-                    const tableName = newName || defaultName;
-                    await supabase.from("restaurant_tables").update({ name: tableName }).eq("id", table!.id);
-                    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
-                    queryClient.invalidateQueries({ queryKey: ["table", tableId] });
-                    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-                    queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-                  }
-                }}
-                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                className="text-xl font-semibold bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 max-w-[200px]"
-              />
-              <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
+              <h1 className="text-xl font-semibold leading-tight">
+                {order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+              </h1>
+              {order?.customer_name && (
+                <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
+              )}
+              {(table as any)?.sector && (
+                <span className="text-[10px] text-muted-foreground">{(table as any).sector}</span>
+              )}
               <input
                 type="text"
                 defaultValue={(table as any)?.sector ?? ""}
