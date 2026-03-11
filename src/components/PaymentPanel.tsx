@@ -731,9 +731,9 @@ export default function PaymentPanel({
         </div>
 
         {/* RIGHT: Payment methods + amount */}
-        <div className="w-64 flex flex-col bg-card p-4">
+        <div className="md:w-64 flex flex-col bg-card p-3 md:p-4 border-t md:border-t-0">
           {/* Payment method buttons */}
-          <div className="space-y-2 mb-4">
+          <div className="grid grid-cols-4 md:grid-cols-1 gap-2 mb-4">
             {METHODS.map((method) => (
               <button
                 key={method}
