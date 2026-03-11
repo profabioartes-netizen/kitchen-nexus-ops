@@ -399,7 +399,7 @@ function buildCancellationTicket(job) {
   ];
 
   if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garçom: ${p.waiter_name}`));
   parts.push(cmd.text(`Hora: ${time}  ${date}`));
   parts.push(cmd.separator());
 
