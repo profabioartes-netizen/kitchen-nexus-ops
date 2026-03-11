@@ -8,7 +8,7 @@
  * Variáveis de ambiente (ou edite CONFIG abaixo):
  *   SUPABASE_URL        — URL do projeto
  *   SUPABASE_ANON_KEY   — chave anon/publishable
- *   POLL_INTERVAL_MS    — intervalo de polling (padrão 3000)
+ *   POLL_INTERVAL_MS    — intervalo de polling fallback (padrão 5000)
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -21,7 +21,7 @@ const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
 const CONFIG = {
   supabaseUrl: process.env.SUPABASE_URL || "https://hzjplccmbjvvbinaqmny.supabase.co",
   supabaseKey: process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6anBsY2NtYmp2dmJpbmFxbW55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQ1OTgsImV4cCI6MjA4ODY3MDU5OH0.oNkFASofgqJDoFFth1PNK3rKSQvllXSoysCZlo4azB0",
-  pollInterval: parseInt(process.env.POLL_INTERVAL_MS || "3000"),
+  pollInterval: parseInt(process.env.POLL_INTERVAL_MS || "5000"),
 };
 
 const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
@@ -30,9 +30,9 @@ const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
 const ESC = 0x1b;
 const GS = 0x1d;
 
-const COLS = 48; // Elgin i9 — 48 cols at font A on 80mm paper
+const COLS = 48;
 const SEP_CHAR = "-";
-const CNPJ = "00.000.000/0001-00"; // TODO: Replace with real CNPJ
+const CNPJ = "00.000.000/0001-00";
 
 const cmd = {
   init:       Buffer.from([ESC, 0x40]),
@@ -96,7 +96,6 @@ function buildBillTicket(job) {
   parts.push(cmd.text(`DATA: ${date}  HORA: ${time}`));
   parts.push(cmd.separator());
 
-  // Items
   parts.push(cmd.bold(true));
   parts.push(cmd.padRow("ITEM", "TOTAL"));
   parts.push(cmd.bold(false));
@@ -208,7 +207,6 @@ function buildProductionTicket(job) {
   parts.push(cmd.text(`HORA: ${time}  ${date}`));
   parts.push(cmd.separator());
 
-  // Item(s)
   parts.push(cmd.bold(true));
   parts.push(cmd.doubleSize(true));
   parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
@@ -291,7 +289,7 @@ function buildCancellationTicket(job) {
 }
 
 // ── Dispatcher ──────────────────────────────────────────────────────
-function buildTicket(job, printer) {
+function buildTicket(job) {
   const p = job.payload || {};
   if (p.type === "cancellation") return buildCancellationTicket(job);
   if (p.type === "bill") return buildBillTicket(job);
@@ -341,13 +339,74 @@ function findPrinterForStation(printers, station) {
   return printers.find((p) => p.station === station);
 }
 
-// ── Main loop ───────────────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────────────────
 const MAX_QUEUE_SIZE = 30;
 const processedIds = new Set();
-let running = true;
 let agentPaused = false;
 let jobsProcessed = 0;
+let realtimeConnected = false;
 
+// ── Process a single job ────────────────────────────────────────────
+async function processJob(job, printers) {
+  if (processedIds.has(job.id)) return;
+
+  // Skip Caixa — only production stations auto-print
+  if (!AUTO_PRINT_STATIONS.includes(job.station)) return;
+
+  processedIds.add(job.id);
+
+  const printer = findPrinterForStation(printers, job.station);
+  if (!printer) {
+    console.warn(`⚠️  Sem impressora para estação "${job.station}" — job ${job.id.slice(0, 8)} ignorado`);
+    return;
+  }
+
+  try {
+    // Mark as processing
+    await supabase
+      .from("print_jobs")
+      .update({ status: "processing" })
+      .eq("id", job.id);
+
+    const ticket = buildTicket(job);
+    await sendToPrinter(printer.ip, printer.port, ticket);
+
+    await supabase
+      .from("print_jobs")
+      .update({ status: "printed", printed_at: new Date().toISOString() })
+      .eq("id", job.id);
+
+    jobsProcessed++;
+    console.log(`✅ Impresso: ${(job.payload)?.product_name || "item"} → ${printer.name} (${printer.ip}:${printer.port}) [#${job.id.slice(0, 8)}]`);
+  } catch (err) {
+    await supabase
+      .from("print_jobs")
+      .update({ status: "error" })
+      .eq("id", job.id)
+      .catch(() => {});
+    console.error(`❌ Falha ao imprimir job ${job.id.slice(0, 8)} em ${printer.ip}:${printer.port} — marcado como erro.`, err.message);
+  }
+}
+
+// ── Process a single job by ID (realtime path) ──────────────────────
+async function processJobById(jobId) {
+  if (agentPaused) return;
+  if (processedIds.has(jobId)) return;
+
+  const { data: job, error } = await supabase
+    .from("print_jobs")
+    .select("*")
+    .eq("id", jobId)
+    .eq("status", "pending")
+    .single();
+
+  if (error || !job) return;
+
+  const printers = await getPrinters();
+  await processJob(job, printers);
+}
+
+// ── Poll all pending jobs (fallback) ────────────────────────────────
 async function pollAndPrint() {
   if (agentPaused) return;
 
@@ -376,47 +435,7 @@ async function pollAndPrint() {
     const printers = await getPrinters();
 
     for (const job of jobs) {
-      if (processedIds.has(job.id)) continue;
-
-      // Skip Caixa — only production stations auto-print
-      if (!AUTO_PRINT_STATIONS.includes(job.station)) {
-        continue;
-      }
-
-      processedIds.add(job.id);
-
-      const printer = findPrinterForStation(printers, job.station);
-      if (!printer) {
-        console.warn(`⚠️  Sem impressora para estação "${job.station}" — job ${job.id.slice(0, 8)} ignorado`);
-        continue;
-      }
-
-      try {
-        // Mark as processing
-        await supabase
-          .from("print_jobs")
-          .update({ status: "processing" })
-          .eq("id", job.id);
-
-        const ticket = buildTicket(job, printer);
-        await sendToPrinter(printer.ip, printer.port, ticket);
-
-        await supabase
-          .from("print_jobs")
-          .update({ status: "printed", printed_at: new Date().toISOString() })
-          .eq("id", job.id);
-
-        jobsProcessed++;
-        console.log(`✅ Impresso: ${(job.payload)?.product_name || "item"} → ${printer.name} (${printer.ip}:${printer.port}) [#${job.id.slice(0, 8)}]`);
-      } catch (err) {
-        // Mark as error — do NOT retry automatically
-        await supabase
-          .from("print_jobs")
-          .update({ status: "error" })
-          .eq("id", job.id)
-          .catch(() => {});
-        console.error(`❌ Falha ao imprimir job ${job.id.slice(0, 8)} em ${printer.ip}:${printer.port} — marcado como erro. Reimpressão requer ação manual.`, err.message);
-      }
+      await processJob(job, printers);
     }
   } catch (err) {
     console.error("❌ Erro no ciclo de polling:", err.message);
@@ -461,13 +480,76 @@ async function healthCheckLoop() {
   }
 }
 
+// ── Realtime subscription ───────────────────────────────────────────
+let fallbackInterval = null;
+
+function startFallbackPolling() {
+  if (fallbackInterval) return;
+  console.log(`  ⏱  Fallback polling ativo (${CONFIG.pollInterval}ms)`);
+  fallbackInterval = setInterval(pollAndPrint, CONFIG.pollInterval);
+}
+
+function stopFallbackPolling() {
+  if (fallbackInterval) {
+    clearInterval(fallbackInterval);
+    fallbackInterval = null;
+    console.log("  ⏱  Fallback polling desativado (Realtime conectado)");
+  }
+}
+
+function setupRealtime() {
+  const channel = supabase
+    .channel("print_jobs_realtime")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "print_jobs" },
+      (payload) => {
+        const newJob = payload.new;
+        if (newJob && newJob.status === "pending") {
+          console.log(`  ⚡ Realtime: novo job ${newJob.id.slice(0, 8)} (${newJob.station})`);
+          processJobById(newJob.id);
+        }
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "print_jobs" },
+      (payload) => {
+        const updated = payload.new;
+        // Handle reprint: status changed back to pending
+        if (updated && updated.status === "pending") {
+          processedIds.delete(updated.id);
+          console.log(`  🔄 Realtime: reimpressão job ${updated.id.slice(0, 8)}`);
+          processJobById(updated.id);
+        }
+      }
+    )
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        realtimeConnected = true;
+        console.log("  🟢 WebSocket: conectado (Realtime ativo)");
+        stopFallbackPolling();
+      } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {
+        realtimeConnected = false;
+        console.warn("  🔴 WebSocket: desconectado — ativando fallback polling");
+        startFallbackPolling();
+      } else if (status === "TIMED_OUT") {
+        realtimeConnected = false;
+        console.warn("  🟡 WebSocket: timeout — ativando fallback polling");
+        startFallbackPolling();
+      }
+    });
+
+  return channel;
+}
+
 // ── Startup ─────────────────────────────────────────────────────────
 console.log("");
 console.log("  ☕ Coffee Thrones — Agente de Impressão ESC/POS");
 console.log("  ────────────────────────────────────────────────");
-console.log(`  Supabase: ${CONFIG.supabaseUrl}`);
-console.log(`  Polling:  ${CONFIG.pollInterval}ms`);
-console.log(`  Health:   10s`);
+console.log(`  Supabase:  ${CONFIG.supabaseUrl}`);
+console.log(`  Modo:      Realtime (WebSocket) + fallback polling ${CONFIG.pollInterval}ms`);
+console.log(`  Health:    10s`);
 console.log("");
 
 // Initial printers fetch + health check
@@ -481,30 +563,28 @@ getPrinters().then((printers) => {
     }
   }
   console.log("");
-  console.log("  Aguardando jobs de impressão... (Ctrl+C para sair)");
+  console.log("  Conectando ao Realtime...");
   console.log("");
-  healthCheckLoop(); // initial check
+  healthCheckLoop();
 });
 
-// Realtime subscription for instant reaction
-supabase
-  .channel("print_jobs_agent")
-  .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_jobs" }, () => {
-    pollAndPrint();
-  })
-  .subscribe();
+// Setup realtime as primary channel
+const realtimeChannel = setupRealtime();
 
-// Fallback polling
-const interval = setInterval(pollAndPrint, CONFIG.pollInterval);
+// Start fallback polling immediately (will be stopped once Realtime connects)
+startFallbackPolling();
+
+// Also do an initial poll to catch any pending jobs from before agent started
+setTimeout(pollAndPrint, 1000);
 
 // Health check every 10 seconds
 const healthInterval = setInterval(healthCheckLoop, 10000);
 
 // Graceful shutdown
 process.on("SIGINT", () => {
-  running = false;
-  clearInterval(interval);
+  stopFallbackPolling();
   clearInterval(healthInterval);
+  supabase.removeChannel(realtimeChannel);
   console.log(`\n  🛑 Agente encerrado. ${jobsProcessed} tickets impressos nesta sessão.\n`);
   process.exit(0);
 });

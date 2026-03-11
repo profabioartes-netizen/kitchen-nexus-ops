@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff } from "lucide-react";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
@@ -10,7 +10,25 @@ export default function PrintersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
   const [agentActive, setAgentActive] = useState(true);
+  const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
+
+  // Track Realtime (WebSocket) connection status
+  useEffect(() => {
+    const channel = supabase
+      .channel("ws_status_monitor")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_jobs" }, () => {
+        // Realtime event received — connection is alive
+        queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+      })
+      .subscribe((status) => {
+        setWsConnected(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
@@ -221,7 +239,7 @@ export default function PrintersPage() {
 
         <button
           onClick={() => setAgentActive(!agentActive)}
-          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ml-auto ${
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             agentActive
               ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
               : "bg-destructive/10 text-destructive"
@@ -230,6 +248,15 @@ export default function PrintersPage() {
           <Power className="h-4 w-4" />
           Agente: {agentActive ? "Ativo" : "Pausado"}
         </button>
+
+        <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+          wsConnected
+            ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+            : "bg-destructive/10 text-destructive"
+        }`}>
+          {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+          WebSocket: {wsConnected ? "conectado" : "desconectado"}
+        </div>
       </div>
 
       {/* Error alert banner */}
