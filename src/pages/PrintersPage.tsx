@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2 } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power } from "lucide-react";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
+  const [agentActive, setAgentActive] = useState(true);
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
@@ -17,6 +18,20 @@ export default function PrintersPage() {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch pending print jobs count
+  const { data: pendingJobs = [] } = useQuery({
+    queryKey: ["print_jobs_pending_count"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("print_jobs")
+        .select("*")
+        .in("status", ["pending", "processing"]);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 3000,
   });
 
   const saveMutation = useMutation({
@@ -79,6 +94,25 @@ export default function PrintersPage() {
     if (confirm("Remover esta impressora?")) removeMutation.mutate(id);
   };
 
+  const clearQueueMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .delete()
+        .in("status", ["pending", "processing"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_pending_count"] });
+      toast.success("Fila de impressão limpa com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao limpar fila de impressão");
+    },
+  });
+
+  const pendingCount = pendingJobs.length;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
@@ -94,6 +128,38 @@ export default function PrintersPage() {
         <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
           <Plus className="h-4 w-4" />
           Nova Impressora
+        </button>
+      </div>
+
+      {/* Action bar: Queue controls */}
+      <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-lg border bg-card">
+        {/* Clear queue button */}
+        <button
+          onClick={() => clearQueueMutation.mutate()}
+          disabled={pendingCount === 0 || clearQueueMutation.isPending}
+          className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          <Trash className="h-4 w-4" />
+          Limpar fila de impressão
+        </button>
+
+        {/* Queue counter */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Fila atual:</span>
+          <span className="font-semibold text-foreground">{pendingCount} pedido{pendingCount !== 1 ? "s" : ""}</span>
+        </div>
+
+        {/* Agent toggle */}
+        <button
+          onClick={() => setAgentActive(!agentActive)}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ml-auto ${
+            agentActive
+              ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
+              : "bg-destructive/10 text-destructive"
+          }`}
+        >
+          <Power className="h-4 w-4" />
+          Agente de impressão: {agentActive ? "Ativo" : "Pausado"}
         </button>
       </div>
 
