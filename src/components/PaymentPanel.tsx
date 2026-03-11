@@ -209,9 +209,12 @@ export default function PaymentPanel({
       : remaining;
 
   // Cash change
-  const cashGivenNum = Number(cashGiven) || 0;
-  const cashChange = selectedMethod === "cash" && cashGivenNum > amountToPay
-    ? Number((cashGivenNum - amountToPay).toFixed(2))
+  const cashGivenNum = Number(cashGiven.replace(",", ".")) || 0;
+  const amountToPayNum = typeof customAmount === "string" && customAmount.includes(",")
+    ? Number(customAmount.replace(",", ".")) || amountToPay
+    : amountToPay;
+  const cashChange = selectedMethod === "cash" && cashGivenNum > amountToPayNum
+    ? Number((cashGivenNum - amountToPayNum).toFixed(2))
     : 0;
 
   // ── Actions ──
