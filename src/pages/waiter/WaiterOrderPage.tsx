@@ -192,7 +192,7 @@ export default function WaiterOrderPage() {
         customer_name: customerName, guests,
       } as any).select().single();
       if (error) throw error;
-      const tableName = customerName ? `${defaultName} — ${customerName}` : defaultName;
+      const tableName = customerName || defaultName;
       await supabase.from("restaurant_tables").update({ status: "occupied", name: tableName }).eq("id", tableId!);
       const desc = `Mesa ${table?.name ?? ""} aberta — Garçom: ${waiterLabel ?? "—"}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
@@ -472,7 +472,7 @@ export default function WaiterOrderPage() {
               if (order && newName !== (order.customer_name || "")) {
                 await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
                 const defaultName = (table as any)?.default_name || "Comanda";
-                const tableName = newName ? `${defaultName} — ${newName}` : defaultName;
+                const tableName = newName || defaultName;
                 await supabase.from("restaurant_tables").update({ name: tableName }).eq("id", table!.id);
                 queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
                 queryClient.invalidateQueries({ queryKey: ["table", tableId] });
