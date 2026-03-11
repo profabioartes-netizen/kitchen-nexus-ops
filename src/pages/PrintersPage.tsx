@@ -70,6 +70,9 @@ export default function PrintersPage() {
     return Date.now() - lastSeen < 30000; // online if seen in last 30s
   };
 
+  // Agent is considered connected if any printer has a recent heartbeat
+  const agentConnected = printers.some((p: any) => isOnline(p));
+
   // Fetch all non-printed jobs for queue display
   const { data: activeJobs = [] } = useQuery({
     queryKey: ["print_jobs_active"],
