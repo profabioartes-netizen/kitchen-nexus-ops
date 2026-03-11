@@ -1071,22 +1071,22 @@ export default function TableOrderPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto flex-1 items-start content-start">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 overflow-auto flex-1 items-start content-start">
           {filtered.map((product) => (
             <button
               key={product.id}
               onClick={() => setSelectedProduct(product)}
               disabled={addItem.isPending}
-              className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden"
+              className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden touch-manipulation"
             >
               {product.image_url && (
                 <div className="w-full aspect-[4/3] bg-secondary">
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                 </div>
               )}
-              <div className="p-3">
-                <span className="font-medium text-sm">{product.name}</span>
-                <span className="text-accent font-semibold mt-1 block">
+              <div className="p-2 md:p-3">
+                <span className="font-medium text-xs md:text-sm">{product.name}</span>
+                <span className="text-accent font-semibold mt-0.5 md:mt-1 block text-sm">
                   R$ {Number(product.price).toFixed(2)}
                 </span>
               </div>
@@ -1096,7 +1096,7 @@ export default function TableOrderPage() {
       </div>
 
       {/* Right: Order panel */}
-      <div className="w-80 border-l bg-card flex flex-col">
+      <div className={`md:w-80 md:border-l bg-card flex flex-col ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg">Comanda</h2>
           <div className="flex items-center gap-1.5 mt-1">
