@@ -336,7 +336,8 @@ export default function TableOrderPage() {
       // Use provided name, or fall back to the table's current name (if it differs from default_name, it's a customer name)
       const customerName = params?.customerName || (table && table.name !== (table as any).default_name ? table.name : null);
       const guests = params?.guests || 1;
-      const tableLabel = customerName ? `${table?.name ?? "Comanda"} — ${customerName}` : undefined;
+      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
+      const tableLabel = customerName ? `${defaultName} — ${customerName}` : undefined;
       const { data, error } = await supabase
         .from("orders")
         .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
@@ -864,12 +865,14 @@ export default function TableOrderPage() {
             <div className="flex flex-col">
               <input
                 type="text"
-                defaultValue={table?.name ?? "Comanda"}
-                key={`name-${table?.id}`}
+                defaultValue={order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+                key={`name-${table?.id}-${order?.customer_name}`}
                 onBlur={async (e) => {
                   const newName = e.target.value.trim();
                   if (table && newName && newName !== table.name) {
-                    await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
+                    const defaultName = (table as any)?.default_name || "Comanda";
+                    const tableLabel = `${defaultName} — ${newName}`;
+                    await supabase.from("restaurant_tables").update({ name: tableLabel }).eq("id", table.id);
                     queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
                     queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
                     if (order) {
