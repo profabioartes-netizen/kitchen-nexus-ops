@@ -12,6 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type OrderItemComplement = {
+  id: string;
+  order_item_id: string;
+  complement_name: string;
+  price: number;
+  quantity: number;
+};
+
 type OrderItem = {
   id: string;
   product_id?: string;
