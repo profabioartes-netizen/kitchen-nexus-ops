@@ -237,25 +237,27 @@ function buildCancellationTicket(job) {
   const parts = [
     cmd.init,
     ...buildHeader(),
+    cmd.text(""),
     cmd.bold(true),
     cmd.doubleSize(true),
-    cmd.text("*** CANCELAMENTO ***"),
+    cmd.text("* CANCELAMENTO *"),
     cmd.doubleSize(false),
     cmd.bold(false),
+    cmd.doubleW(true),
     cmd.text(job.station.toUpperCase()),
+    cmd.doubleW(false),
     cmd.separator(),
     cmd.alignLeft,
   ];
 
-  if (p.table_name) parts.push(cmd.text(`MESA: ${p.table_name}`));
-  if (p.comanda_number) parts.push(cmd.text(`COMANDA: #${p.comanda_number}`));
-  if (p.waiter_name) parts.push(cmd.text(`GARCOM: ${p.waiter_name}`));
-  parts.push(cmd.text(`HORA: ${time}  ${date}`));
-  parts.push(cmd.doubleSep());
+  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  parts.push(cmd.text(`Hora: ${time}  ${date}`));
+  parts.push(cmd.separator());
 
   parts.push(cmd.alignCenter);
+  parts.push(cmd.text("Cancelar:"));
   parts.push(cmd.bold(true));
-  parts.push(cmd.text("CANCELAR:"));
   parts.push(cmd.doubleSize(true));
   parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
   parts.push(cmd.doubleSize(false));
@@ -263,18 +265,12 @@ function buildCancellationTicket(job) {
 
   if (p.notes) {
     parts.push(cmd.text(""));
-    parts.push(cmd.bold(true));
-    parts.push(cmd.text(`MOTIVO: ${p.notes}`));
-    parts.push(cmd.bold(false));
-  } else {
-    parts.push(cmd.text(""));
-    parts.push(cmd.text("ITEM REMOVIDO DA COMANDA"));
+    parts.push(cmd.text(`Motivo: ${p.notes}`));
   }
 
-  parts.push(cmd.doubleSep());
-  parts.push(cmd.text(`Ticket #${job.id.slice(0, 8)}`));
-  parts.push(cmd.text(""));
-  parts.push(cmd.feedLines(3));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
+  parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
