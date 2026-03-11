@@ -10,6 +10,7 @@ import {
   Sun,
   Moon,
   DollarSign,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
@@ -21,6 +22,7 @@ const navItems = [
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
   { to: "/clientes", icon: DollarSign, label: "Vendas" },
+  { to: "/usuarios", icon: Users, label: "Usuários" },
 ];
 
 export function NavigationRail() {
