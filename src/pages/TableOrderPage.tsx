@@ -520,24 +520,34 @@ export default function TableOrderPage() {
     },
   });
 
-  // Send to kitchen
-  const sendToKitchen = useMutation({
+  // Print full bill to Caixa station
+  const printBill = useMutation({
     mutationFn: async () => {
-      const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
-      if (unsent.length === 0) throw new Error("Nenhum item novo para enviar");
-      const ids = unsent.map((i) => i.id);
-      const { error } = await supabase
-        .from("order_items")
-        .update({ sent_to_kitchen: true, preparation_status: "sent" } as any)
-        .in("id", ids);
-      if (error) throw error;
-      const desc = unsent.map((i) => `${i.product_name} ×${i.quantity}`).join(", ");
-      await logActivity(tableId!, "sent_to_kitchen", `Enviado à cozinha: ${desc}`, order?.id);
+      if (!order || orderItems.length === 0) throw new Error("Sem itens para imprimir");
+
+      await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "full_bill",
+          table_name: table?.name || "—",
+          customer_name: order.customer_name || null,
+          waiter_name: order.waiter_name || null,
+          order_id: order.id,
+          items: orderItems.map((i) => ({
+            name: i.product_name,
+            quantity: i.quantity,
+            unit_price: Number(i.price),
+            total: Number(i.price) * i.quantity,
+          })),
+          total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
+        },
+      });
+
+      await logActivity(tableId!, "print_bill", `Conta geral impressa no Caixa`, order.id, profile?.full_name);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      toast.success("Pedido enviado à cozinha!");
-      invalidateLog();
+      toast.success("Conta enviada para impressão no Caixa!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
