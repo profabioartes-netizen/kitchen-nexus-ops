@@ -10,6 +10,7 @@ export default function PrintersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
   const [agentActive, setAgentActive] = useState(true);
+  const queueRef = useRef<HTMLDivElement>(null);
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
