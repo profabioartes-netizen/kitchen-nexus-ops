@@ -94,6 +94,25 @@ export default function PrintersPage() {
     if (confirm("Remover esta impressora?")) removeMutation.mutate(id);
   };
 
+  const clearQueueMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .delete()
+        .in("status", ["pending", "processing"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_pending_count"] });
+      toast.success("Fila de impressão limpa com sucesso");
+    },
+    onError: () => {
+      toast.error("Erro ao limpar fila de impressão");
+    },
+  });
+
+  const pendingCount = pendingJobs.length;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
