@@ -381,6 +381,12 @@ async function pollAndPrint() {
       }
 
       try {
+        // Mark as processing
+        await supabase
+          .from("print_jobs")
+          .update({ status: "processing" })
+          .eq("id", job.id);
+
         const ticket = buildTicket(job, printer);
         await sendToPrinter(printer.ip, printer.port, ticket);
 
@@ -392,8 +398,13 @@ async function pollAndPrint() {
         jobsProcessed++;
         console.log(`✅ Impresso: ${(job.payload)?.product_name || "item"} → ${printer.name} (${printer.ip}:${printer.port}) [#${job.id.slice(0, 8)}]`);
       } catch (err) {
-        processedIds.delete(job.id); // retry next cycle
-        console.error(`❌ Falha ao imprimir job ${job.id.slice(0, 8)} em ${printer.ip}:${printer.port} —`, err.message);
+        // Mark as error — do NOT retry automatically
+        await supabase
+          .from("print_jobs")
+          .update({ status: "error" })
+          .eq("id", job.id)
+          .catch(() => {});
+        console.error(`❌ Falha ao imprimir job ${job.id.slice(0, 8)} em ${printer.ip}:${printer.port} — marcado como erro. Reimpressão requer ação manual.`, err.message);
       }
     }
   } catch (err) {
