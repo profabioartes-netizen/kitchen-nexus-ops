@@ -24,7 +24,7 @@ export default function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*, categories(name)")
+        .select("*, categories(name, sort_order)")
         .order("sort_order", { ascending: true })
         .order("name");
       if (error) throw error;
@@ -171,7 +171,15 @@ export default function ProductsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            Object.entries(grouped).map(([cat, items]) => (
+            Object.entries(grouped)
+              .sort(([catA, itemsA], [catB, itemsB]) => {
+                if (catA === "Sem categoria") return 1;
+                if (catB === "Sem categoria") return -1;
+                const orderA = (itemsA[0] as any)?.categories?.sort_order ?? 999;
+                const orderB = (itemsB[0] as any)?.categories?.sort_order ?? 999;
+                return orderA - orderB;
+              })
+              .map(([cat, items]) => (
               <div key={cat} className="mb-6">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                   {cat}
