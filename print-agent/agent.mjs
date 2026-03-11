@@ -412,15 +412,54 @@ async function pollAndPrint() {
   }
 }
 
+// ── Health check ────────────────────────────────────────────────────
+function checkPrinterHealth(ip, port) {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(3000);
+    socket.connect(port, ip, () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on("error", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function healthCheckLoop() {
+  try {
+    const printers = await getPrinters();
+    for (const printer of printers) {
+      if (!printer.ip) continue;
+      const reachable = await checkPrinterHealth(printer.ip, printer.port);
+      if (reachable) {
+        await supabase
+          .from("printers")
+          .update({ last_seen_at: new Date().toISOString() })
+          .eq("id", printer.id);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Erro no health check:", err.message);
+  }
+}
+
 // ── Startup ─────────────────────────────────────────────────────────
 console.log("");
 console.log("  ☕ Coffee Thrones — Agente de Impressão ESC/POS");
 console.log("  ────────────────────────────────────────────────");
 console.log(`  Supabase: ${CONFIG.supabaseUrl}`);
 console.log(`  Polling:  ${CONFIG.pollInterval}ms`);
+console.log(`  Health:   10s`);
 console.log("");
 
-// Initial printers fetch
+// Initial printers fetch + health check
 getPrinters().then((printers) => {
   if (printers.length === 0) {
     console.warn("⚠️  Nenhuma impressora ativa encontrada. Configure em /impressoras");
@@ -433,13 +472,13 @@ getPrinters().then((printers) => {
   console.log("");
   console.log("  Aguardando jobs de impressão... (Ctrl+C para sair)");
   console.log("");
+  healthCheckLoop(); // initial check
 });
 
 // Realtime subscription for instant reaction
 supabase
   .channel("print_jobs_agent")
   .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_jobs" }, () => {
-    // Trigger immediate poll on new job
     pollAndPrint();
   })
   .subscribe();
@@ -447,10 +486,14 @@ supabase
 // Fallback polling
 const interval = setInterval(pollAndPrint, CONFIG.pollInterval);
 
+// Health check every 10 seconds
+const healthInterval = setInterval(healthCheckLoop, 10000);
+
 // Graceful shutdown
 process.on("SIGINT", () => {
   running = false;
   clearInterval(interval);
+  clearInterval(healthInterval);
   console.log(`\n  🛑 Agente encerrado. ${jobsProcessed} tickets impressos nesta sessão.\n`);
   process.exit(0);
 });
