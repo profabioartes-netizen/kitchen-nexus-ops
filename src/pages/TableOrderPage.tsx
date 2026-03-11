@@ -808,42 +808,48 @@ export default function TableOrderPage() {
       const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
 
       if (unsent.length > 0) {
-        // Group unsent items by station and create print jobs
-        const itemsByStation: Record<string, typeof unsent> = {};
+        // Fetch complements for unsent items
+        const unsentIds = unsent.map((i) => i.id);
+        const { data: complementsData } = await supabase
+          .from("order_item_complements")
+          .select("order_item_id, complement_name, price")
+          .in("order_item_id", unsentIds);
+        const complementsByItem: Record<string, { name: string; price: number }[]> = {};
+        for (const c of complementsData || []) {
+          if (!complementsByItem[c.order_item_id]) complementsByItem[c.order_item_id] = [];
+          complementsByItem[c.order_item_id].push({ name: c.complement_name, price: Number(c.price) });
+        }
+
+        // Create individual print jobs per item (matching agent's expected format)
+        const printJobRows: any[] = [];
         for (const item of unsent) {
           const product = products.find((p) => p.id === item.product_id);
           const station = (product as any)?.station || "";
-          if (!station || station === "Caixa") continue; // Caixa prints via "Imprimir" button
-          if (!itemsByStation[station]) itemsByStation[station] = [];
-          itemsByStation[station].push(item);
+          if (!station || station === "Caixa") continue;
+          const itemComplements = complementsByItem[item.id] || [];
+          printJobRows.push({
+            station,
+            status: "pending",
+            payload: {
+              product_name: item.product_name,
+              quantity: item.quantity,
+              table_name: table?.name || "—",
+              waiter_name: order.waiter_name || null,
+              order_id: order.id,
+              notes: item.notes || null,
+              complements: itemComplements.map((c) => c.name),
+            },
+          });
         }
-
-        // Batch all station print jobs in a single insert
-        const printJobRows = Object.entries(itemsByStation).map(([station, items]) => ({
-          station,
-          status: "pending",
-          payload: {
-            type: "order_save",
-            table_name: table?.name || "—",
-            waiter_name: order.waiter_name || null,
-            order_id: order.id,
-            items: items.map((i) => ({
-              name: i.product_name,
-              quantity: i.quantity,
-              notes: i.notes || null,
-            })),
-          },
-        }));
         if (printJobRows.length > 0) {
           await supabase.from("print_jobs").insert(printJobRows);
         }
 
         // Mark unsent items as sent
-        const ids = unsent.map((i) => i.id);
         await supabase
           .from("order_items")
           .update({ sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString() } as any)
-          .in("id", ids);
+          .in("id", unsentIds);
 
         await logActivity(tableId!, "order_saved", `Pedido salvo — ${unsent.length} novo(s) item(ns) enviado(s) para impressão`, order.id, profile?.full_name);
       } else {
