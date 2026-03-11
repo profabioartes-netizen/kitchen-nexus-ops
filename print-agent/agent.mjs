@@ -362,11 +362,12 @@ async function processJob(job, printers) {
   }
 
   try {
-    // Mark as processing
-    await supabase
+    // Fire-and-forget status update (don't wait for DB round-trip before printing)
+    supabase
       .from("print_jobs")
       .update({ status: "processing" })
-      .eq("id", job.id);
+      .eq("id", job.id)
+      .then(() => {});
 
     const ticket = buildTicket(job);
     await sendToPrinter(printer.ip, printer.port, ticket);
@@ -388,21 +389,14 @@ async function processJob(job, printers) {
   }
 }
 
-// ── Process a single job by ID (realtime path) ──────────────────────
-async function processJobById(jobId) {
+// ── Process job directly from Realtime payload (zero re-fetch) ──────
+async function processJobDirect(job) {
   if (agentPaused) return;
-  if (processedIds.has(jobId)) return;
+  if (processedIds.has(job.id)) return;
+  if (job.status !== "pending") return;
 
-  const { data: job, error } = await supabase
-    .from("print_jobs")
-    .select("*")
-    .eq("id", jobId)
-    .eq("status", "pending")
-    .single();
-
-  if (error || !job) return;
-
-  const printers = await getPrinters();
+  // Use pre-warmed cache (no DB round-trip for printers)
+  const printers = printersCache.length > 0 ? printersCache : await getPrinters();
   await processJob(job, printers);
 }
 
