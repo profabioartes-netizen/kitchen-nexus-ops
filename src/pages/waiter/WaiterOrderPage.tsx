@@ -269,17 +269,9 @@ export default function WaiterOrderPage() {
       const unitPrice = Number(product.price);
       const { error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity: 1,
-        sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString(),
+        sent_to_kitchen: false, preparation_status: "pending",
       } as any);
       if (itemError) throw itemError;
-
-      const station = (product as any).station || "";
-      if (station) {
-        await supabase.from("print_jobs").insert({
-          station, status: "pending",
-          payload: { product_name: product.name, quantity: 1, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
-        });
-      }
 
       const newTotal = [...orderItems, { price: unitPrice, quantity: 1 }].reduce((s, i) => s + Number(i.price) * i.quantity, 0);
       await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
@@ -294,7 +286,6 @@ export default function WaiterOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       toast.success("Adicionado!", { duration: 1500 });
     },
   });
