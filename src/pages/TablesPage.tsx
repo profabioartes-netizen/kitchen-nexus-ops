@@ -581,18 +581,11 @@ export default function TablesPage() {
         )}
       </div>
 
-      {/* Legend */}
-      <div className="flex gap-3 sm:gap-4 mb-3 sm:mb-4 overflow-x-auto">
-        {statusCycle.map((s) => (
-          <div key={s} className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-shrink-0">
-            <div className={`h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border-2 table-status-${s}`} />
-            <span className="text-muted-foreground">{statusLabels[s]}</span>
-          </div>
-        ))}
-        {viewMode === "floor" && (
-          <span className="text-xs text-muted-foreground ml-auto italic">Arraste as comandas para reorganizar o layout</span>
-        )}
-      </div>
+      {viewMode === "floor" && (
+        <div className="mb-3 sm:mb-4">
+          <span className="text-xs text-muted-foreground italic">Arraste as comandas para reorganizar o layout</span>
+        </div>
+      )}
 
       {/* Grid View */}
       {viewMode === "grid" && (
