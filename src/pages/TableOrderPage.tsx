@@ -771,6 +771,15 @@ export default function TableOrderPage() {
     mutationFn: async () => {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido aberto");
+      // Generate cancellation print jobs for all sent production items
+      const sentItems = orderItems.filter((i) => i.sent_to_kitchen);
+      for (const item of sentItems) {
+        await createCancellationPrintJob(
+          item, item.quantity, table?.name || "—",
+          order.waiter_name || profile?.full_name || null,
+          order.id, products,
+        );
+      }
       // Delete complements for all order items first (FK constraint)
       const itemIds = orderItems.map((i) => i.id);
       if (itemIds.length > 0) {
@@ -898,6 +907,16 @@ export default function TableOrderPage() {
     if (!order) return;
     const item = orderItems.find((i) => i.product_id === productId);
     if (!item) return;
+
+    // Cancellation print for sent items
+    if (item.sent_to_kitchen) {
+      await createCancellationPrintJob(
+        item, item.quantity, table?.name || "—",
+        order.waiter_name || profile?.full_name || null,
+        order.id, products,
+      );
+    }
+
     await supabase.from("order_items").delete().eq("id", item.id);
     const newTotal = orderItems.filter((i) => i.id !== item.id).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
     await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
