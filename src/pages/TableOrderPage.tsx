@@ -644,30 +644,7 @@ export default function TableOrderPage() {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
 
-      // Create receipt print job
-      await supabase.from("print_jobs").insert({
-        station: "Caixa",
-        status: "pending",
-        payload: {
-          type: "receipt",
-          table_name: table?.name || "—",
-          mesa_name: table?.default_name || null,
-          waiter_name: order.waiter_name || null,
-          order_id: order.id,
-          items: orderItems.map((i) => ({
-            product_name: i.product_name,
-            quantity: i.quantity,
-            price: Number(i.price),
-          })),
-          subtotal: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
-          total: totalVal,
-          payments: payments.map((p) => ({
-            method: methodLabels[p.method] ?? p.method,
-            amount: p.amount,
-          })),
-          closed_at: new Date().toISOString(),
-        },
-      });
+      // Receipt printing removed — only the "Imprimir" button triggers Caixa prints
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
