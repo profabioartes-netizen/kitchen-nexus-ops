@@ -259,6 +259,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_name: string | null
+          delivered_at: string | null
           guests: number | null
           id: string
           merged_from: string[] | null
@@ -271,6 +272,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_name?: string | null
+          delivered_at?: string | null
           guests?: number | null
           id?: string
           merged_from?: string[] | null
@@ -283,6 +285,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_name?: string | null
+          delivered_at?: string | null
           guests?: number | null
           id?: string
           merged_from?: string[] | null
