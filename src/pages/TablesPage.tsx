@@ -651,7 +651,7 @@ export default function TablesPage() {
 
                 {/* Table header */}
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-display text-lg leading-tight">{table.name}</span>
+                  <span className="font-display text-lg leading-tight">{(table as any).default_name || table.name}</span>
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
 
