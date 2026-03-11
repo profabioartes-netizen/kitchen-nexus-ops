@@ -13,20 +13,44 @@ export default function PrintersPage() {
   const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
 
-  // Track Realtime (WebSocket) connection status
+  // Track Realtime (WebSocket) connection status with reconnection
   useEffect(() => {
-    const channel = supabase
-      .channel("ws_status_monitor")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_jobs" }, () => {
-        // Realtime event received — connection is alive
-        queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-      })
-      .subscribe((status) => {
-        setWsConnected(status === "SUBSCRIBED");
-      });
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
+    let currentChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    function connect() {
+      // Remove previous channel if exists
+      if (currentChannel) {
+        supabase.removeChannel(currentChannel);
+      }
+
+      currentChannel = supabase
+        .channel("ws_status_monitor_" + Date.now())
+        .on("postgres_changes", { event: "*", schema: "public", table: "print_jobs" }, () => {
+          queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            setWsConnected(true);
+            if (retryTimeout) { clearTimeout(retryTimeout); retryTimeout = null; }
+          } else if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            setWsConnected(false);
+            // Auto-reconnect after 5s
+            if (!retryTimeout) {
+              retryTimeout = setTimeout(() => {
+                retryTimeout = null;
+                connect();
+              }, 5000);
+            }
+          }
+        });
+    }
+
+    connect();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (currentChannel) supabase.removeChannel(currentChannel);
     };
   }, [queryClient]);
 
@@ -255,7 +279,7 @@ export default function PrintersPage() {
             : "bg-destructive/10 text-destructive"
         }`}>
           {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-          WebSocket: {wsConnected ? "conectado" : "desconectado"}
+          {wsConnected ? "WebSocket: conectado" : "Fallback: polling ativo"}
         </div>
       </div>
 
