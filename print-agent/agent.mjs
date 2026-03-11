@@ -349,7 +349,7 @@ function buildProductionTicket(job) {
 
   for (const item of items) {
     const qty = String(item.quantity || 1);
-    const name = (item.product_name || "Item").toUpperCase();
+    const name = upperPt(item.product_name || "Item");
     const qtyCol = 6; // "QTD   " = 6 chars
     const nameMaxCols = COLS - qtyCol;
     const wrappedName = wordWrap(name, nameMaxCols);
