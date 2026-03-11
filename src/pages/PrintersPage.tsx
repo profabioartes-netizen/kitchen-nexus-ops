@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ export default function PrintersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
   const [agentActive, setAgentActive] = useState(true);
+  const queueRef = useRef<HTMLDivElement>(null);
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
@@ -223,17 +224,24 @@ export default function PrintersPage() {
 
       {/* Error alert banner */}
       {errorCount > 0 && (
-        <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <span>
-            ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
-            Verifique a impressora e use <strong>Reimprimir</strong> para reenviar manualmente.
-          </span>
+        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <span>
+              ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
+            </span>
+          </div>
+          <button
+            onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="flex-shrink-0 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-medium hover:bg-destructive/20 transition-colors"
+          >
+            Ver fila
+          </button>
         </div>
       )}
 
       {/* Print queue table — always visible */}
-      <div className="rounded-lg border bg-card overflow-hidden mb-6">
+      <div ref={queueRef} className="rounded-lg border bg-card overflow-hidden mb-6">
         <div className="px-4 py-3 border-b bg-secondary/30">
           <h3 className="text-sm font-semibold">Fila de Impressão</h3>
         </div>
