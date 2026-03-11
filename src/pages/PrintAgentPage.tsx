@@ -541,7 +541,7 @@ export default function PrintAgentPage() {
             <Trash2 className="h-4 w-4" />
             Limpar fila
           </button>
-      </div>
+        </div>
 
       {/* Printers strip */}
       <div className="flex gap-2 mb-5 flex-wrap">
