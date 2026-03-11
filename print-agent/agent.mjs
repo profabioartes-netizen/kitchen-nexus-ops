@@ -257,7 +257,7 @@ function buildBillTicket(job) {
 
   // Payment method
   if (p.payment_method) {
-    const methods = { credit: "CREDITO", debit: "DEBITO", cash: "DINHEIRO", pix: "PIX" };
+    const methods = { credit: "CRÉDITO", debit: "DÉBITO", cash: "DINHEIRO", pix: "PIX" };
     parts.push(cmd.alignCenter);
     parts.push(cmd.text(`Pagamento: ${methods[p.payment_method] || p.payment_method}`));
     if (p.change && Number(p.change) > 0) {
