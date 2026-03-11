@@ -506,9 +506,18 @@ export default function PaymentPanel({
                 <Zap className="h-3 w-3" /> Venda Rápida
               </h3>
               <div className="space-y-1.5">
-                {quickSaleProducts.map((p) => (
-                  <QuickSaleRow key={p.id} product={p} onAdd={onAddQuickItem} />
-                ))}
+                {quickSaleProducts.map((p) => {
+                  const added = orderItems.find((i) => i.product_id === p.id);
+                  return (
+                    <QuickSaleRow
+                      key={p.id}
+                      product={p}
+                      onAdd={onAddQuickItem}
+                      onRemove={onRemoveQuickItem}
+                      addedQty={added ? added.quantity : 0}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
