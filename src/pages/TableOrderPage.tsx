@@ -49,35 +49,6 @@ async function logActivity(
   });
 }
 
-// Helper: generate cancellation print job for production stations
-const PRODUCTION_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
-
-async function createCancellationPrintJob(
-  item: { product_name: string; product_id: string; quantity: number },
-  cancelledQty: number,
-  tableName: string,
-  waiterName: string | null,
-  orderId: string | null,
-  products: any[],
-) {
-  const product = products.find((p: any) => p.id === item.product_id);
-  const station = product?.station || "";
-  if (!station || !PRODUCTION_STATIONS.includes(station)) return;
-
-  await supabase.from("print_jobs").insert({
-    station,
-    status: "pending",
-    payload: {
-      type: "cancellation",
-      product_name: item.product_name,
-      quantity: cancelledQty,
-      table_name: tableName,
-      waiter_name: waiterName,
-      order_id: orderId,
-      notes: "Item removido do pedido",
-    },
-  });
-}
 
 export default function TableOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
@@ -501,15 +472,6 @@ export default function TableOrderPage() {
       if (!item) return;
       const newQty = item.quantity + delta;
 
-      // Cancellation print for sent items being reduced/removed
-      if (delta < 0 && item.sent_to_kitchen) {
-        const cancelQty = newQty <= 0 ? item.quantity : Math.abs(delta);
-        await createCancellationPrintJob(
-          item, cancelQty, table?.name || "—",
-          order?.waiter_name || profile?.full_name || null,
-          order?.id || null, products,
-        );
-      }
 
       if (newQty <= 0) {
         await supabase.from("order_items").delete().eq("id", itemId);
@@ -542,14 +504,6 @@ export default function TableOrderPage() {
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
 
-      // Cancellation print for sent items
-      if (item?.sent_to_kitchen) {
-        await createCancellationPrintJob(
-          item, item.quantity, table?.name || "—",
-          order?.waiter_name || profile?.full_name || null,
-          order?.id || null, products,
-        );
-      }
 
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
@@ -752,15 +706,6 @@ export default function TableOrderPage() {
     mutationFn: async () => {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido aberto");
-      // Generate cancellation print jobs for all sent production items
-      const sentItems = orderItems.filter((i) => i.sent_to_kitchen);
-      for (const item of sentItems) {
-        await createCancellationPrintJob(
-          item, item.quantity, table?.name || "—",
-          order.waiter_name || profile?.full_name || null,
-          order.id, products,
-        );
-      }
       // Delete complements for all order items first (FK constraint)
       const itemIds = orderItems.map((i) => i.id);
       if (itemIds.length > 0) {
@@ -897,14 +842,6 @@ export default function TableOrderPage() {
     const item = orderItems.find((i) => i.product_id === productId);
     if (!item) return;
 
-    // Cancellation print for sent items
-    if (item.sent_to_kitchen) {
-      await createCancellationPrintJob(
-        item, item.quantity, table?.name || "—",
-        order.waiter_name || profile?.full_name || null,
-        order.id, products,
-      );
-    }
 
     await supabase.from("order_items").delete().eq("id", item.id);
     const newTotal = orderItems.filter((i) => i.id !== item.id).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
