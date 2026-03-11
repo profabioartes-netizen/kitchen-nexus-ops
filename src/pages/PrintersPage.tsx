@@ -239,7 +239,7 @@ export default function PrintersPage() {
 
         <button
           onClick={() => setAgentActive(!agentActive)}
-          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ml-auto ${
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             agentActive
               ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
               : "bg-destructive/10 text-destructive"
@@ -248,25 +248,16 @@ export default function PrintersPage() {
           <Power className="h-4 w-4" />
           Agente: {agentActive ? "Ativo" : "Pausado"}
         </button>
-      </div>
 
-      {/* Error alert banner */}
-      {errorCount > 0 && (
-        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-            <span>
-              ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
-            </span>
-          </div>
-          <button
-            onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="flex-shrink-0 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-medium hover:bg-destructive/20 transition-colors"
-          >
-            Ver fila
-          </button>
+        <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+          wsConnected
+            ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+            : "bg-destructive/10 text-destructive"
+        }`}>
+          {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+          WebSocket: {wsConnected ? "conectado" : "desconectado"}
         </div>
-      )}
+      </div>
 
       {/* Queue overflow warning */}
       {queueOverflow && (
