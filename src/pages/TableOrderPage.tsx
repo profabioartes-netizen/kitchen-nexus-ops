@@ -1157,7 +1157,7 @@ export default function TableOrderPage() {
                 <button
                   disabled={unsentCount === 0 || sendToKitchen.isPending}
                   onClick={() => sendToKitchen.mutate()}
-                  className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   <Printer className="h-4 w-4" />
                   <span className="text-sm">Imprimir ({unsentCount})</span>
