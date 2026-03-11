@@ -184,21 +184,20 @@ function buildProductionTicket(job) {
   const parts = [
     cmd.init,
     ...buildHeader(),
-    cmd.bold(true),
+    cmd.text(""),
     cmd.doubleW(true),
     cmd.text(job.station.toUpperCase()),
     cmd.doubleW(false),
-    cmd.bold(false),
     cmd.separator(),
     cmd.alignLeft,
   ];
 
-  if (p.table_name) parts.push(cmd.text(`MESA: ${p.table_name}`));
-  if (p.comanda_number) parts.push(cmd.text(`COMANDA: #${p.comanda_number}`));
-  if (p.waiter_name) parts.push(cmd.text(`GARCOM: ${p.waiter_name}`));
-  parts.push(cmd.text(`HORA: ${time}  ${date}`));
+  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  parts.push(cmd.text(`Hora: ${time}  ${date}`));
   parts.push(cmd.separator());
 
+  parts.push(cmd.alignCenter);
   parts.push(cmd.bold(true));
   parts.push(cmd.doubleSize(true));
   parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
@@ -206,12 +205,14 @@ function buildProductionTicket(job) {
   parts.push(cmd.bold(false));
 
   if (p.complements && p.complements.length > 0) {
+    parts.push(cmd.alignLeft);
     for (const c of p.complements) {
       parts.push(cmd.text(`  + ${c}`));
     }
   }
 
   if (p.notes) {
+    parts.push(cmd.alignLeft);
     parts.push(cmd.bold(true));
     parts.push(cmd.text(`OBS: ${p.notes}`));
     parts.push(cmd.bold(false));
@@ -219,9 +220,8 @@ function buildProductionTicket(job) {
 
   parts.push(cmd.separator());
   parts.push(cmd.alignCenter);
-  parts.push(cmd.text(`Ticket #${job.id.slice(0, 8)}`));
-  parts.push(cmd.text(""));
-  parts.push(cmd.feedLines(3));
+  parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
+  parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
