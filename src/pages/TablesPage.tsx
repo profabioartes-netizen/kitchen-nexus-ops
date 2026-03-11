@@ -442,7 +442,10 @@ export default function TablesPage() {
     <div className="p-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Mapa de Comandas</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Mapa de Comandas</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">Desenvolvido por Fábio M. Júnior</p>
+        </div>
         <div className="flex gap-2">
           <div className="flex rounded-md border bg-card overflow-hidden">
             <button
