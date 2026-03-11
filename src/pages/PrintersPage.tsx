@@ -20,7 +20,7 @@ export default function PrintersPage() {
     },
   });
 
-  // Fetch active print jobs (pending, processing, error)
+  // Fetch all non-printed jobs for queue display
   const { data: activeJobs = [] } = useQuery({
     queryKey: ["print_jobs_active"],
     queryFn: async () => {
@@ -29,7 +29,7 @@ export default function PrintersPage() {
         .select("*")
         .in("status", ["pending", "processing", "error"])
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
       if (error) throw error;
       return data;
     },
