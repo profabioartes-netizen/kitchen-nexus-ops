@@ -224,12 +224,19 @@ export default function PrintersPage() {
 
       {/* Error alert banner */}
       {errorCount > 0 && (
-        <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <span>
-            ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
-            Verifique a impressora e use <strong>Reimprimir</strong> para reenviar manualmente.
-          </span>
+        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <span>
+              ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
+            </span>
+          </div>
+          <button
+            onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="flex-shrink-0 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-medium hover:bg-destructive/20 transition-colors"
+          >
+            Ver fila
+          </button>
         </div>
       )}
 
