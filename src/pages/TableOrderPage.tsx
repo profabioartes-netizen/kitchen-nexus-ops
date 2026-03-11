@@ -916,8 +916,10 @@ export default function TableOrderPage() {
     );
   }
 
+  const orderItemCount = orderItems.reduce((s, i) => s + i.quantity, 0);
+
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row overflow-hidden">
       {/* Left: Product selection */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
         <div className="flex items-center gap-3 mb-4">
