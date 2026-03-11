@@ -561,6 +561,7 @@ export default function TableOrderPage() {
           type: "bill",
           table_name: table?.name || "—",
           mesa_name: table?.default_name || null,
+          mesa_sector: table?.sector || null,
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
           order_id: order.id,
