@@ -468,15 +468,15 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-3 sm:p-6 h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
-          <h1 className="text-2xl font-semibold">Mapa de Comandas</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por © Fábio M. Júnior</p>
+          <h1 className="text-lg sm:text-2xl font-semibold">Mapa de Comandas</h1>
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por © Fábio M. Júnior</p>
         </div>
         <div className="flex gap-2">
-          <div className="flex rounded-md border bg-card overflow-hidden">
+          <div className="hidden sm:flex rounded-md border bg-card overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
               className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === "grid" ? "bg-accent text-accent-foreground" : "hover:bg-secondary"}`}
@@ -490,9 +490,10 @@ export default function TablesPage() {
             if (open) setTableCountValue(String(allTables.length));
           }}>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm font-medium hover:bg-secondary transition-colors">
+              <button className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors">
                 <Plus className="h-4 w-4 text-muted-foreground" />
-                Qtd. Comandas
+                <span className="hidden sm:inline">Qtd. Comandas</span>
+                <span className="sm:hidden">Qtd.</span>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-4" align="end">
@@ -531,38 +532,38 @@ export default function TablesPage() {
       </div>
 
       {/* Summary Bar */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-occupied/15">
-            <Users className="h-4.5 w-4.5 text-status-occupied" />
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
+          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-occupied/15">
+            <Users className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-status-occupied" />
           </div>
           <div>
-            <p className="text-xl font-bold leading-none">{occupied}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Ocupadas</p>
+            <p className="text-lg sm:text-xl font-bold leading-none">{occupied}</p>
+            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Ocupadas</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-status-free/15">
-            <UtensilsCrossed className="h-4.5 w-4.5 text-status-free" />
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
+          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-free/15">
+            <UtensilsCrossed className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-status-free" />
           </div>
           <div>
-            <p className="text-xl font-bold leading-none">{free}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Livres</p>
+            <p className="text-lg sm:text-xl font-bold leading-none">{free}</p>
+            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Livres</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15">
-            <CheckCircle2 className="h-4.5 w-4.5 text-accent" />
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
+          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-accent/15">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-accent" />
           </div>
           <div>
-            <p className="text-xl font-bold leading-none">{todayStats.clients}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Atendidos hoje</p>
+            <p className="text-lg sm:text-xl font-bold leading-none">{todayStats.clients}</p>
+            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Atendidos hoje</p>
           </div>
         </div>
       </div>
 
       {/* Search bar */}
-      <div className="relative mb-4">
+      <div className="relative mb-3 sm:mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Buscar por nome do cliente..."
@@ -581,10 +582,10 @@ export default function TablesPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex gap-3 sm:gap-4 mb-3 sm:mb-4 overflow-x-auto">
         {statusCycle.map((s) => (
-          <div key={s} className="flex items-center gap-2 text-xs">
-            <div className={`h-3 w-3 rounded-full border-2 table-status-${s}`} />
+          <div key={s} className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs flex-shrink-0">
+            <div className={`h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border-2 table-status-${s}`} />
             <span className="text-muted-foreground">{statusLabels[s]}</span>
           </div>
         ))}
@@ -596,7 +597,7 @@ export default function TablesPage() {
       {/* Grid View */}
       {viewMode === "grid" && (
         <LayoutGroup>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
           {filteredTables.map((table) => {
             const order = ordersByTable[table.id];
             const effectiveStatus: TableStatus = order
@@ -612,7 +613,7 @@ export default function TablesPage() {
                 layoutId={`comanda-${table.id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer group ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-3 sm:p-4 min-h-[120px] sm:min-h-[140px] cursor-pointer group ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
                 style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -717,7 +718,7 @@ export default function TablesPage() {
 
                 {/* Table header */}
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-display text-lg leading-tight">
+                  <span className="font-display text-base sm:text-lg leading-tight truncate">
                     {order?.customer_name || (table as any).default_name || table.name}
                   </span>
                   {order && <TableDuration createdAt={order.created_at} />}
