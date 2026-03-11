@@ -568,12 +568,34 @@ let realtimeConnected = false;
 
 // ── All stations auto-print ─────────────────────────────────────────
 const AUTO_PRINT_STATIONS = ["Caixa", "Cozinha", "Bebidas", "Sobremesa"];
+const PRODUCTION_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
+
+function isGroupedProductionJob(job) {
+  if (!PRODUCTION_STATIONS.includes(job.station)) return true;
+  const payload = job.payload || {};
+  if (payload.type === "cancellation") return true;
+  return Array.isArray(payload.items) && payload.items.length > 0;
+}
 
 // ── Process a single job ────────────────────────────────────────────
 async function processJob(job, printers) {
   if (processedIds.has(job.id)) return;
 
   if (!AUTO_PRINT_STATIONS.includes(job.station)) return;
+
+  if (!isGroupedProductionJob(job)) {
+    processedIds.add(job.id);
+    console.warn(`⚠️  Job ignorado (fora da regra de impressão no salvar): ${job.id.slice(0, 8)} (${job.station})`);
+    try {
+      await supabase
+        .from("print_jobs")
+        .update({ status: "canceled" })
+        .eq("id", job.id);
+    } catch (_) {
+      // ignore
+    }
+    return;
+  }
 
   processedIds.add(job.id);
 
