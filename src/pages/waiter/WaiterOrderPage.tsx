@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { normalize } from "@/lib/normalize";
 import {
   ArrowLeft, Search, Plus, Minus, Trash2, Loader2, StickyNote, X, ShoppingBag,
   ChevronUp, ChevronDown, Zap, RotateCcw, Star, Clock, Repeat,
@@ -476,7 +477,7 @@ export default function WaiterOrderPage() {
   };
 
   const filtered = products.filter((p) => {
-    if (search) return p.name.toLowerCase().includes(search.toLowerCase());
+    if (search) return normalize(p.name).includes(normalize(search));
     return p.category_id === activeCategory;
   });
 

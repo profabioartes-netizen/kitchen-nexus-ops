@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { normalize } from "@/lib/normalize";
 import {
   Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save, ShoppingBag, UtensilsCrossed,
 } from "lucide-react";
@@ -932,7 +933,7 @@ export default function TableOrderPage() {
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      normalize(p.name).includes(normalize(search))
   );
 
   const total = orderItems.reduce((s, i) => {

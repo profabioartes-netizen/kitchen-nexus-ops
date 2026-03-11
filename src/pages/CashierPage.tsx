@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone, Printer } from "lucide-react";
+import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 
 interface OrderItem {
@@ -157,7 +158,7 @@ export default function CashierPage() {
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
-      p.name.toLowerCase().includes(search.toLowerCase())
+      normalize(p.name).includes(normalize(search))
   );
 
   const methodLabels: Record<string, string> = {

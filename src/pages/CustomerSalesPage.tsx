@@ -5,6 +5,7 @@ import {
   Search, Loader2, Users, ChevronDown, ChevronUp,
   CreditCard, Clock, CalendarDays, Receipt, Package,
 } from "lucide-react";
+import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -159,7 +160,7 @@ export default function CustomerSalesPage() {
   }, [orders]);
 
   const filtered = customerData.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    normalize(c.name).includes(normalize(search))
   );
 
   if (loadingOrders) {

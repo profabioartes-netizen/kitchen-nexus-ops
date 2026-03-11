@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Plus, Edit2, Trash2, Package, Loader2, GripVertical } from "lucide-react";
+import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 import { ProductFormDialog } from "@/components/ProductFormDialog";
 import { CategoriesManager } from "@/components/CategoriesManager";
@@ -58,7 +59,7 @@ export default function ProductsPage() {
   });
 
   const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    normalize(p.name).includes(normalize(search))
   );
 
   const grouped = filtered.reduce<Record<string, typeof filtered>>((acc, p) => {
