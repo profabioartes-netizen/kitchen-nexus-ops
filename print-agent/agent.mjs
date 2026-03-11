@@ -84,21 +84,36 @@ const PC860_MAP = {
   0x00BB: 0xAF, // »
 };
 
-/** Convert a JS string to a PC860 Buffer, falling back to '?' for unmapped chars */
-function toPC860(str) {
+/** Convert a JS string to a PC860 Buffer, with pt-BR normalization and ASCII fallback */
+function toPC860(input) {
+  const text = String(input ?? "")
+    .normalize("NFC")
+    .replace(/\u00A0/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, "-");
+
   const bytes = [];
-  for (const ch of str) {
+  for (const ch of text) {
     const cp = ch.codePointAt(0);
     if (cp < 0x80) {
       bytes.push(cp); // ASCII passthrough
     } else if (PC860_MAP[cp] !== undefined) {
       bytes.push(PC860_MAP[cp]);
     } else {
-      bytes.push(0x3F); // '?' for unmapped
+      // Fallback: remove diacritics and keep base ASCII char when possible
+      const base = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (base.length === 1 && base.charCodeAt(0) < 0x80) {
+        bytes.push(base.charCodeAt(0));
+      } else {
+        bytes.push(0x3F); // '?' for truly unmapped chars
+      }
     }
   }
   return Buffer.from(bytes);
 }
+
+const upperPt = (value) => String(value ?? "").toLocaleUpperCase("pt-BR").normalize("NFC");
 
 /** Word-wrap a string to fit within maxCols */
 function wordWrap(str, maxCols = COLS) {
@@ -185,11 +200,11 @@ function buildBillTicket(job) {
   // Table/customer info centered
   if (p.table_name) {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(p.table_name.toUpperCase()));
+    parts.push(cmd.text(upperPt(p.table_name)));
     parts.push(cmd.bold(false));
   }
   const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
-  parts.push(cmd.text(`CLIENTE : ${customerLabel.toUpperCase()}`));
+  parts.push(cmd.text(`CLIENTE : ${upperPt(customerLabel)}`));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
@@ -210,7 +225,7 @@ function buildBillTicket(job) {
     const qty = item.quantity || 1;
     const itemTotal = (item.price || 0) * qty;
     subtotal += itemTotal;
-    const name = (item.product_name || "Item").toUpperCase();
+    const name = upperPt(item.product_name || "Item");
     const totalStr = itemTotal.toFixed(2).replace(".", ",");
 
     const wrappedName = wordWrap(name, itemsCol);
@@ -228,7 +243,7 @@ function buildBillTicket(job) {
         const cName = typeof c === "string" ? c : c.name;
         const cQty = typeof c === "object" && c.quantity ? c.quantity : 1;
         const cPrice = typeof c === "object" && c.price ? Number(c.price) * cQty : 0;
-        const cLabel = `> ${cQty}x ${cName}`.toLowerCase();
+        const cLabel = `> ${cQty}x ${cName}`.toLocaleLowerCase("pt-BR").normalize("NFC");
         const cTotal = cPrice > 0 ? cPrice.toFixed(2).replace(".", ",") : "";
         subtotal += cPrice;
         const cLine = " ".repeat(qtyCol) + cLabel.padEnd(itemsCol) + cTotal.padStart(totalCol);
@@ -305,14 +320,14 @@ function buildProductionTicket(job) {
     cmd.text(""),
     // Station centered with asterisks
     cmd.bold(true),
-    cmd.text(`* ${job.station.toUpperCase()} *`),
+    cmd.text(`* ${upperPt(job.station)} *`),
     cmd.bold(false),
     cmd.text(""),
     cmd.separator(),
     cmd.text(""),
     // Waiter name centered and bold
     cmd.bold(true),
-    cmd.text((p.waiter_name || "").toUpperCase()),
+    cmd.text(upperPt(p.waiter_name || "")),
     cmd.bold(false),
     // "LANCADO POR" line
     cmd.text("LANÇADO POR : COFFEE THRONES"),
@@ -334,7 +349,7 @@ function buildProductionTicket(job) {
 
   for (const item of items) {
     const qty = String(item.quantity || 1);
-    const name = (item.product_name || "Item").toUpperCase();
+    const name = upperPt(item.product_name || "Item");
     const qtyCol = 6; // "QTD   " = 6 chars
     const nameMaxCols = COLS - qtyCol;
     const wrappedName = wordWrap(name, nameMaxCols);
@@ -384,7 +399,7 @@ function buildCancellationTicket(job) {
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
-  const productName = (p.product_name || "Item").toUpperCase();
+  const productName = upperPt(p.product_name || "Item");
 
   const parts = [
     cmd.init,
@@ -393,7 +408,7 @@ function buildCancellationTicket(job) {
     cmd.bold(true),
     cmd.text("** CANCELAMENTO **"),
     cmd.bold(false),
-    cmd.text(job.station.toUpperCase()),
+    cmd.text(upperPt(job.station)),
     cmd.separator(),
     cmd.alignLeft,
   ];
