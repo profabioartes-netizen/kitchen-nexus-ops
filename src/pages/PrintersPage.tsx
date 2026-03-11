@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff } from "lucide-react";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
@@ -10,7 +10,25 @@ export default function PrintersPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
   const [agentActive, setAgentActive] = useState(true);
+  const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
+
+  // Track Realtime (WebSocket) connection status
+  useEffect(() => {
+    const channel = supabase
+      .channel("ws_status_monitor")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "print_jobs" }, () => {
+        // Realtime event received — connection is alive
+        queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+      })
+      .subscribe((status) => {
+        setWsConnected(status === "SUBSCRIBED");
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
