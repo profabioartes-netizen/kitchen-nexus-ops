@@ -14,6 +14,9 @@
 import { createClient } from "@supabase/supabase-js";
 import net from "node:net";
 
+// ── Stations that auto-print (production only, NOT Caixa) ───────────
+const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
+
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
   supabaseUrl: process.env.SUPABASE_URL || "https://hzjplccmbjvvbinaqmny.supabase.co",
@@ -157,6 +160,12 @@ async function pollAndPrint() {
 
     for (const job of jobs) {
       if (processedIds.has(job.id)) continue;
+
+      // Skip Caixa — only production stations auto-print
+      if (!AUTO_PRINT_STATIONS.includes(job.station)) {
+        continue;
+      }
+
       processedIds.add(job.id);
 
       const printer = findPrinterForStation(printers, job.station);
