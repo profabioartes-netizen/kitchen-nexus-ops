@@ -284,6 +284,15 @@ export default function PrintersPage() {
           {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
           {wsConnected ? "WebSocket: conectado" : "Fallback: polling ativo"}
         </div>
+
+        <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+          agentConnected
+            ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+            : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+        }`}>
+          <Circle className={`h-2.5 w-2.5 ${agentConnected ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-yellow-500 text-yellow-500"} ${agentConnected ? "animate-pulse" : ""}`} />
+          {agentConnected ? "Agente: conectado" : "Agente: desconectado"}
+        </div>
       </div>
 
       {/* Error alert banner */}
