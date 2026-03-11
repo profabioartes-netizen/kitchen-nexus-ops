@@ -92,7 +92,7 @@ function buildBillTicket(job) {
   if (p.customer_name) parts.push(cmd.text(`CLIENTE: ${p.customer_name}`));
   if (p.comanda_number) parts.push(cmd.text(`COMANDA: #${p.comanda_number}`));
   if (p.table_name) parts.push(cmd.text(`MESA: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`GARCOM: ${p.waiter_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`ATENDENTE: ${p.waiter_name}`));
   parts.push(cmd.text(`DATA: ${date}  HORA: ${time}`));
   parts.push(cmd.separator());
 

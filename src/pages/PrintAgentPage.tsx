@@ -213,7 +213,7 @@ function TicketPreview({ job }: { job: any }) {
           <span>MESA: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
           <span className="normal-case">{time}</span>
         </div>
-        {p.waiter_name && <p className="text-muted-foreground uppercase">GARÇOM: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
+        {p.waiter_name && <p className="text-muted-foreground uppercase">ATENDENTE: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
         <p className="text-muted-foreground text-[10px]">{date}</p>
 
         <div className="border-t border-dashed border-muted-foreground/30" />
