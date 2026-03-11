@@ -28,7 +28,7 @@ const ESC = 0x1b;
 const GS = 0x1d;
 
 const COLS = 42;
-const SEP_CHAR = "-";
+const SEP_CHAR = ".";
 const CNPJ = "00.000.000/0001-00";
 
 // ── PC860 (Portuguese) codepage mapping ─────────────────────────────
@@ -239,47 +239,86 @@ function buildBillTicket(job) {
 function buildProductionTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
-  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
-  const productName = (p.product_name || "Item").toUpperCase();
 
   const parts = [
     cmd.init,
     cmd.codepage,
-    ...buildHeader(),
-    cmd.text(job.station.toUpperCase()),
+    // Brand centered
+    cmd.alignCenter,
+    cmd.text("COFFEE THRONES"),
+    cmd.text(""),
+    // Station centered with asterisks
+    cmd.bold(true),
+    cmd.text(`* ${job.station.toUpperCase()} *`),
+    cmd.bold(false),
+    cmd.text(""),
     cmd.separator(),
+    cmd.text(""),
+    // Waiter name centered and bold
+    cmd.bold(true),
+    cmd.text((p.waiter_name || "").toUpperCase()),
+    cmd.bold(false),
+    // "LANCADO POR" line
+    cmd.text("LANCADO POR : COFFEE THRONES"),
+    cmd.text(""),
+    cmd.separator(),
+    cmd.text(""),
+    // Column headers
     cmd.alignLeft,
+    cmd.bold(true),
+    cmd.text("QTD   DESCRICAO"),
+    cmd.bold(false),
+    cmd.text(""),
+    cmd.separator(),
+    cmd.text(""),
   ];
 
-  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
-  parts.push(cmd.text(`Hora: ${time}  ${date}`));
-  parts.push(cmd.separator());
+  // Items — format as table: qty left-aligned, name right with wrap
+  const items = p.items || [{ product_name: p.product_name || "Item", quantity: p.quantity || 1, notes: p.notes, complements: p.complements }];
 
-  // Item — bold, normal size, uppercase, wrapped
-  parts.push(cmd.alignLeft);
+  for (const item of items) {
+    const qty = String(item.quantity || 1);
+    const name = (item.product_name || "Item").toUpperCase();
+    const qtyCol = 6; // "QTD   " = 6 chars
+    const nameMaxCols = COLS - qtyCol;
+    const wrappedName = wordWrap(name, nameMaxCols);
+
+    // First line: qty + first part of name
+    const firstLine = qty.padEnd(qtyCol) + wrappedName[0];
+    parts.push(cmd.text(firstLine));
+    // Continuation lines indented
+    for (let i = 1; i < wrappedName.length; i++) {
+      parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
+    }
+
+    if (item.complements && item.complements.length > 0) {
+      for (const c of item.complements) {
+        const cName = typeof c === "string" ? c : c.name;
+        parts.push(cmd.wrappedText(" ".repeat(qtyCol) + `+ ${cName}`));
+      }
+    }
+
+    if (item.notes) {
+      parts.push(cmd.bold(true));
+      parts.push(cmd.wrappedText(" ".repeat(qtyCol) + `OBS: ${item.notes}`));
+      parts.push(cmd.bold(false));
+    }
+
+    parts.push(cmd.text("")); // spacing between items
+  }
+
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Footer: DATA E HORA centered
+  parts.push(cmd.alignCenter);
   parts.push(cmd.bold(true));
-  const itemLine = `${p.quantity || 1}x ${productName}`;
-  parts.push(cmd.wrappedText(itemLine));
+  parts.push(cmd.text(`DATA E HORA : ${date} - ${time}`));
   parts.push(cmd.bold(false));
 
-  if (p.complements && p.complements.length > 0) {
-    for (const c of p.complements) {
-      parts.push(cmd.wrappedText(`  + ${c}`));
-    }
-  }
-
-  if (p.notes) {
-    parts.push(cmd.bold(true));
-    parts.push(cmd.wrappedText(`OBS: ${p.notes}`));
-    parts.push(cmd.bold(false));
-  }
-
-  parts.push(cmd.separator());
-  parts.push(cmd.alignCenter);
-  parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
-  parts.push(cmd.feedLines(1));
+  parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
