@@ -414,15 +414,6 @@ export default function WaiterOrderPage() {
       if (!item) return;
       const newQty = item.quantity + delta;
 
-      // Cancellation print for sent items being reduced/removed
-      if (delta < 0 && item.sent_to_kitchen) {
-        const cancelQty = newQty <= 0 ? item.quantity : Math.abs(delta);
-        await createCancellationPrintJob(
-          item, cancelQty, table?.name || "—",
-          order?.waiter_name || profile?.full_name || null,
-          order?.id || null, products,
-        );
-      }
 
       if (newQty <= 0) {
         await supabase.from("order_items").delete().eq("id", itemId);
