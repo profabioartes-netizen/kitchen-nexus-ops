@@ -342,9 +342,13 @@ export default function PaymentPanel({
       const newTotal = Number((existingAmount + fractionedValue).toFixed(2));
       setCustomAmount(newTotal.toFixed(2));
       // Add all remaining qty of this item to payment tracking
+      // NOTE: directly update paymentItems to avoid double-counting in customAmount
       const canAdd = item.remainingQty - (paymentItems[item.id] ?? 0);
       if (canAdd > 0) {
-        addItemToPayment(item.id, canAdd);
+        setPaymentItems((prev) => ({
+          ...prev,
+          [item.id]: (prev[item.id] ?? 0) + canAdd,
+        }));
       }
     }
     setSplitItemDialog(null);
