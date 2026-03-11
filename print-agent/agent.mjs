@@ -501,7 +501,8 @@ function setupRealtime() {
         const newJob = payload.new;
         if (newJob && newJob.status === "pending") {
           console.log(`  ⚡ Realtime: novo job ${newJob.id.slice(0, 8)} (${newJob.station})`);
-          processJobById(newJob.id);
+          // Direct processing — no DB re-fetch needed
+          processJobDirect(newJob);
         }
       }
     )
