@@ -479,10 +479,10 @@ export default function PaymentPanel({
         </div>
       )}
 
-      {/* 3-column body */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* 3-column body (stacks on mobile) */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* LEFT: Items list */}
-        <div className="flex-1 overflow-auto p-4 border-r">
+        <div className="flex-1 overflow-auto p-3 md:p-4 md:border-r">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do Pedido</h2>
           </div>
