@@ -14,6 +14,9 @@
 import { createClient } from "@supabase/supabase-js";
 import net from "node:net";
 
+// ── Stations that auto-print (production only, NOT Caixa) ───────────
+const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
+
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
   supabaseUrl: process.env.SUPABASE_URL || "https://hzjplccmbjvvbinaqmny.supabase.co",
