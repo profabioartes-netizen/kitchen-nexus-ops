@@ -125,6 +125,7 @@ export default function PaymentPanel({
   onPay,
   onCancel,
   isPending,
+  itemComplements = [],
   onAddQuickItem,
   onRemoveQuickItem,
   onRemoveItem,
