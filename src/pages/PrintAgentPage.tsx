@@ -341,6 +341,7 @@ function RecentJobRow({ job }: { job: any }) {
 // ── Main Page ───────────────────────────────────────────────────────
 export default function PrintAgentPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [autoprint, setAutoprint] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
