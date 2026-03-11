@@ -29,7 +29,7 @@ const GS = 0x1d;
 
 const COLS = 42;
 const SEP_CHAR = ".";
-const CNPJ = "00.000.000/0001-00";
+const CNPJ = "59.132.954/0001-09";
 
 // ── PC860 (Portuguese) codepage mapping ─────────────────────────────
 // Maps Unicode codepoints to PC860 byte values
