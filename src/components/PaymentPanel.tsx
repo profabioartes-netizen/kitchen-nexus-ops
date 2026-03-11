@@ -305,8 +305,12 @@ export default function PaymentPanel({
       // Calculate the fractioned value: total item value / divisor
       const totalItemValue = Number(item.price) * item.remainingQty;
       const fractionedValue = Number((totalItemValue / splitQtyDivisor).toFixed(2));
-      // Set as custom amount so the user pays only the fraction
-      setCustomAmount(fractionedValue.toFixed(2));
+      // Accumulate with existing custom amount instead of overwriting
+      const existingAmount = customAmount
+        ? Number(customAmount.replace(",", ".")) || 0
+        : 0;
+      const newTotal = Number((existingAmount + fractionedValue).toFixed(2));
+      setCustomAmount(newTotal.toFixed(2));
       // Add all remaining qty of this item to payment tracking
       const canAdd = item.remainingQty - (paymentItems[item.id] ?? 0);
       if (canAdd > 0) {
