@@ -296,12 +296,11 @@ function TicketPreview({ job }: { job: any }) {
             <div className="mt-4 mb-1 text-center space-y-0.5">
               <p className="text-xs">⚜ ⚔ ⚜</p>
               <p className="text-[10px] text-muted-foreground mt-1">Obrigado por visitar o</p>
-              <p className="text-xs font-bold tracking-wide">REINO COFFEE THRONES</p>
-              <p className="text-[10px] text-muted-foreground mt-1.5">⚔ No Reino Coffee Thrones</p>
+              <p className="text-xs font-bold tracking-wide">COFFEE THRONES</p>
+              <p className="text-[10px] text-muted-foreground mt-1.5">⚔ No Coffee Thrones</p>
               <p className="text-[10px] text-muted-foreground">cada xícara conta</p>
               <p className="text-[10px] text-muted-foreground">uma nova história. ⚔</p>
-              <p className="text-[10px] font-bold mt-1.5">Retorne ao Reino</p>
-              <p className="text-[10px] font-bold">em breve!</p>
+              <p className="text-[10px] font-bold mt-1.5">Volte sempre!</p>
               <p className="text-[10px] text-muted-foreground mt-1.5">Compartilhe sua visita</p>
               <p className="text-[10px] font-bold">@coffeethrones</p>
               <p className="text-xs mt-1.5">⚔ ☕ ⚔</p>
