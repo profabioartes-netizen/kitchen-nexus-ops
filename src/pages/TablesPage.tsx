@@ -604,18 +604,28 @@ export default function TablesPage() {
               : (table.status as TableStatus);
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
+            const lock = locksByTable[table.id];
+            const isLockedByOther = lock && lock.userId !== user?.id;
             return (
               <motion.div
                 layout
                 layoutId={`comanda-${table.id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer group`}
-                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : undefined}
+                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 min-h-[140px] cursor-pointer group ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
+                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
+
+                {/* Lock indicator */}
+                {isLockedByOther && (
+                  <div className="absolute top-1.5 right-1.5 z-20 flex items-center gap-1 rounded-full bg-orange-500 text-white px-2 py-0.5 animate-pulse">
+                    <Lock className="h-2.5 w-2.5" />
+                    <span className="text-[8px] font-bold uppercase leading-none truncate max-w-[60px]">{lock.userName}</span>
+                  </div>
+                )}
 
 
                 {/* Unviewed items badge */}
