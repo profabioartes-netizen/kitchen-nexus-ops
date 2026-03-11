@@ -278,8 +278,13 @@ function TicketPreview({ job }: { job: any }) {
           <>
             <p className="text-center text-[10px] text-muted-foreground uppercase tracking-wide">DOCUMENTO SEM VALOR FISCAL</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
-            <p className="text-center text-[10px] italic text-muted-foreground">"Que seu café seja forte<br/>e sua jornada gloriosa!"</p>
-            <p className="text-center text-[10px] font-bold mt-0.5 uppercase">VOLTE SEMPRE!</p>
+            <div className="mt-3 mb-1 text-center space-y-0.5">
+              <p className="text-[10px] text-muted-foreground">Obrigado por visitar o</p>
+              <p className="text-xs font-bold tracking-wide">REINO COFFEE THRONES</p>
+              <p className="text-[10px] font-bold mt-1">⚔ Que seu café seja forte</p>
+              <p className="text-[10px] font-bold">e sua jornada gloriosa! ⚔</p>
+              <p className="text-[10px] font-bold mt-1">Volte sempre!</p>
+            </div>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
         )}
