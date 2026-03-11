@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Loader2, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock } from "lucide-react";
+import { Users, CircleDollarSign, Loader2, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
@@ -78,6 +78,7 @@ export default function TablesPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         queryClient.invalidateQueries({ queryKey: ["open_orders"] });
         queryClient.invalidateQueries({ queryKey: ["today_revenue"] });
+        queryClient.invalidateQueries({ queryKey: ["avg_service_time"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
@@ -171,6 +172,29 @@ export default function TablesPage() {
         revenue: data.reduce((sum, o) => sum + Number(o.total), 0),
         clients: data.reduce((sum, o) => sum + (o.guests || 1), 0),
       };
+    },
+  });
+
+  // Average service time for today (delivered comandas)
+  const { data: avgServiceTime = null } = useQuery({
+    queryKey: ["avg_service_time"],
+    queryFn: async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { data, error } = await supabase
+        .from("orders")
+        .select("created_at, delivered_at")
+        .not("delivered_at", "is", null)
+        .gte("created_at", todayStart.toISOString())
+        .not("status", "eq", "canceled");
+      if (error) throw error;
+      if (!data || data.length === 0) return null;
+      const times = data
+        .filter((o: any) => o.delivered_at && o.created_at)
+        .map((o: any) => new Date(o.delivered_at).getTime() - new Date(o.created_at).getTime());
+      if (times.length === 0) return null;
+      const avgMs = times.reduce((a: number, b: number) => a + b, 0) / times.length;
+      return Math.round(avgMs / 60000);
     },
   });
 
@@ -270,6 +294,18 @@ export default function TablesPage() {
         .update({ status: newStatus })
         .eq("id", id);
       if (error) throw error;
+
+      // Track delivered_at on the order for service time metrics
+      const tableOrder = ordersByTable[id];
+      if (tableOrder) {
+        if (newStatus === "delivered") {
+          await supabase.from("orders").update({ delivered_at: new Date().toISOString() } as any).eq("id", tableOrder.id);
+        } else {
+          // Reverted from delivered — clear delivered_at
+          await supabase.from("orders").update({ delivered_at: null } as any).eq("id", tableOrder.id);
+        }
+      }
+
       return newStatus;
     },
     onMutate: async ({ id, currentStatus }) => {
@@ -532,7 +568,7 @@ export default function TablesPage() {
       </div>
 
       {/* Summary Bar */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
         <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
           <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-occupied/15">
             <Users className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-status-occupied" />
@@ -558,6 +594,15 @@ export default function TablesPage() {
           <div>
             <p className="text-lg sm:text-xl font-bold leading-none">{todayStats.clients}</p>
             <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Atendidos hoje</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
+          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/15">
+            <Clock className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-primary" />
+          </div>
+          <div>
+            <p className="text-lg sm:text-xl font-bold leading-none">{avgServiceTime !== null ? `${avgServiceTime}` : "--"}</p>
+            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Tempo médio <span className="hidden sm:inline">(min)</span></p>
           </div>
         </div>
       </div>
