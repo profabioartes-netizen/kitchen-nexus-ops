@@ -37,7 +37,6 @@ export default function WaiterOrdersPage() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 10000,
   });
 
   // Show all open orders but highlight waiter's own
