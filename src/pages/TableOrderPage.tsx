@@ -868,9 +868,6 @@ export default function TableOrderPage() {
               {order?.customer_name && (
                 <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
               )}
-              {(table as any)?.sector && (
-                <span className="text-[10px] text-muted-foreground">{(table as any).sector}</span>
-              )}
               <input
                 type="text"
                 defaultValue={(table as any)?.sector ?? ""}
