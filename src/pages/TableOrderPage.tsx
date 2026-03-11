@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +49,8 @@ export default function TableOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = location.state as { customerName?: string; sector?: string } | null;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -362,9 +364,9 @@ export default function TableOrderPage() {
   useEffect(() => {
     if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
       autoCreatedRef.current = true;
-      createOrder.mutate({});
+      createOrder.mutate({ customerName: navState?.customerName });
     }
-  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
+  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending, navState]);
 
 
   const addItem = useMutation({

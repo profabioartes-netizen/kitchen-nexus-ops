@@ -207,21 +207,27 @@ export default function TablesPage() {
 
   const quickEditMutation = useMutation({
     mutationFn: async (form: QuickEditForm) => {
+      const table = tables.find((t) => t.id === form.id);
+      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
+      const customerName = form.name.trim();
+      const tableName = customerName || defaultName;
       const { error } = await supabase
         .from("restaurant_tables")
         .update({
+          name: tableName,
           seats: parseInt(form.seats) || 4,
           sector: form.sector.trim() || null,
         } as any)
         .eq("id", form.id);
       if (error) throw error;
+      return customerName;
     },
-    onSuccess: (_data, variables) => {
+    onSuccess: (customerName, variables) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
       setQuickEdit(null);
       toast.success("Comanda atualizada!");
-      navigate(`/mesas/${variables.id}/pedido`);
+      navigate(`/mesas/${variables.id}/pedido`, { state: { customerName: customerName || undefined, sector: variables.sector.trim() || undefined } });
     },
     onError: (err) => toast.error((err as Error).message),
   });
