@@ -655,10 +655,9 @@ export default function TableOrderPage() {
           waiter_name: order.waiter_name || null,
           order_id: order.id,
           items: orderItems.map((i) => ({
-            name: i.product_name,
+            product_name: i.product_name,
             quantity: i.quantity,
-            unit_price: Number(i.price),
-            total: Number(i.price) * i.quantity,
+            price: Number(i.price),
           })),
           subtotal: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
           total: totalVal,

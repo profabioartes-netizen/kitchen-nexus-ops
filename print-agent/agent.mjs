@@ -227,9 +227,10 @@ function buildBillTicket(job) {
   let subtotal = 0;
   for (const item of items) {
     const qty = item.quantity || 1;
-    const itemTotal = (item.price || 0) * qty;
+    const itemPrice = item.price ?? item.unit_price ?? 0;
+    const itemTotal = item.total != null ? item.total : itemPrice * qty;
     subtotal += itemTotal;
-    const name = upperPt(item.product_name || "Item");
+    const name = upperPt(item.product_name || item.name || "Item");
     const totalStr = itemTotal.toFixed(2).replace(".", ",");
 
     const wrappedName = wordWrap(name, itemsCol);
@@ -365,12 +366,12 @@ function buildProductionTicket(job) {
   parts.push(cmd.text(""));
 
   // Items
-  const items = p.items || [{ product_name: p.product_name || "Item", quantity: p.quantity || 1, notes: p.notes, complements: p.complements }];
+  const items = p.items || [{ product_name: p.product_name || p.name || "Item", quantity: p.quantity || 1, notes: p.notes, complements: p.complements }];
   const nameMaxCols = COLS - qtyCol;
 
   for (const item of items) {
     const qty = String(item.quantity || 1);
-    const name = upperPt(item.product_name || "Item");
+    const name = upperPt(item.product_name || item.name || "Item");
     const wrappedName = wordWrap(name, nameMaxCols);
 
     parts.push(cmd.text(qty.padEnd(qtyCol) + wrappedName[0]));
@@ -415,7 +416,7 @@ function buildCancellationTicket(job) {
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
-  const productName = upperPt(p.product_name || "Item");
+  const productName = upperPt(p.product_name || p.name || "Item");
 
   const qtyCol = 6;
 
