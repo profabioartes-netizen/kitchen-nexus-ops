@@ -1218,35 +1218,35 @@ export default function TableOrderPage() {
                     <p className="text-[10px] text-muted-foreground italic mt-0.5 truncate">📝 {item.notes}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-1 ml-2">
+                <div className="flex items-center gap-1.5 ml-2">
                   <button
                     onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }}
-                    className="rounded p-1 hover:bg-secondary"
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation"
                     title="Observação"
                   >
-                    <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                    <StickyNote className="h-4 w-4 md:h-3.5 md:w-3.5 text-muted-foreground" />
                   </button>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
                     disabled={item.sent_to_kitchen}
-                    className="rounded p-1 hover:bg-secondary disabled:opacity-30"
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary disabled:opacity-30 touch-manipulation"
                   >
-                    <Minus className="h-3.5 w-3.5" />
+                    <Minus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
-                  <span className="w-6 text-center text-sm font-medium">{remainingQty}</span>
+                  <span className="w-7 text-center text-sm font-bold">{remainingQty}</span>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })}
                     disabled={item.sent_to_kitchen}
-                    className="rounded p-1 hover:bg-secondary disabled:opacity-30"
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary disabled:opacity-30 touch-manipulation"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
                   <button
                     onClick={() => removeItem.mutate(item.id)}
                     disabled={item.sent_to_kitchen}
-                    className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1 disabled:opacity-30"
+                    className="rounded p-1.5 md:p-1 hover:bg-destructive/10 text-destructive ml-0.5 disabled:opacity-30 touch-manipulation"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
                 </div>
               </div>
