@@ -450,9 +450,8 @@ export default function TableOrderPage() {
         price: unitPrice,
         quantity,
         notes: notes || null,
-        sent_to_kitchen: true,
-        preparation_status: "sent",
-        sent_at: new Date().toISOString(),
+        sent_to_kitchen: false,
+        preparation_status: "pending",
       } as any).select().single();
       if (itemError) throw itemError;
 
@@ -467,24 +466,6 @@ export default function TableOrderPage() {
             quantity: c.quantity,
           }))
         );
-      }
-
-      // Create print job for the product's station (skip if no station)
-      const station = (product as any).station || "";
-      if (station) {
-        await supabase.from("print_jobs").insert({
-          station,
-          status: "pending",
-          payload: {
-            product_name: product.name,
-            quantity,
-            table_name: table?.name || "—",
-            waiter_name: currentOrder.waiter_name || waiterName || null,
-            notes: notes || null,
-            complements: complements.map((c) => c.name),
-            order_id: currentOrder.id,
-          },
-        });
       }
 
       const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce(
