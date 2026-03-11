@@ -42,8 +42,8 @@ export function NavigationRail() {
 
   return (
     <nav className="nav-rail flex-shrink-0 flex flex-col">
-      <div className="mb-4 flex flex-col items-center px-2 pt-1">
-        <img src={coffeeLogo} alt="Coffee Thrones" className="h-10 w-auto object-contain" />
+      <div className="mb-6 flex flex-col items-center px-2 pt-2">
+        <img src={coffeeLogo} alt="Coffee Thrones" className="h-16 w-auto object-contain" />
       </div>
 
       <div className="flex flex-col gap-1 w-full px-2 flex-1">
