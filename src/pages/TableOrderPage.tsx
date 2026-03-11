@@ -860,20 +860,15 @@ export default function TableOrderPage() {
             <div className="flex flex-col">
               <input
                 type="text"
-                defaultValue={order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+                defaultValue={order?.customer_name || ""}
+                placeholder={(table as any)?.default_name || table?.name || "Nome do cliente"}
                 key={`name-${table?.id}-${order?.customer_name}`}
                 onBlur={async (e) => {
                   const newName = e.target.value.trim();
-                  if (table && newName && newName !== table.name) {
-                    const defaultName = (table as any)?.default_name || "Comanda";
-                    const tableLabel = `${defaultName} — ${newName}`;
-                    await supabase.from("restaurant_tables").update({ name: tableLabel }).eq("id", table.id);
-                    queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
-                    queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-                    if (order) {
-                      await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
-                      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
-                    }
+                  if (order && newName !== (order.customer_name || "")) {
+                    await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
+                    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
                   }
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}

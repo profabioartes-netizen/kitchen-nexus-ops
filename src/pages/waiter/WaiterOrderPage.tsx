@@ -462,18 +462,15 @@ export default function WaiterOrderPage() {
         <div className="flex-1 min-w-0">
           <input
             type="text"
-            defaultValue={table?.name ?? "Comanda"}
-            key={`name-${table?.id}`}
+            defaultValue={order?.customer_name || ""}
+            placeholder={(table as any)?.default_name || table?.name || "Nome do cliente"}
+            key={`name-${table?.id}-${order?.customer_name}`}
             onBlur={async (e) => {
               const newName = e.target.value.trim();
-              if (table && newName && newName !== table.name) {
-                await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
-                queryClient.invalidateQueries({ queryKey: ["table", tableId] });
-                queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-                if (order) {
-                  await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
-                  queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
-                }
+              if (order && newName !== (order.customer_name || "")) {
+                await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
+                queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                queryClient.invalidateQueries({ queryKey: ["open_orders"] });
               }
             }}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}

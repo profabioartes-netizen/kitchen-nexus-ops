@@ -207,15 +207,9 @@ export default function TablesPage() {
 
   const quickEditMutation = useMutation({
     mutationFn: async (form: QuickEditForm) => {
-      // Look up default_name for this table
-      const table = tables.find((t) => t.id === form.id);
-      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
-      const customerName = form.name.trim();
-      const tableName = customerName ? `${defaultName} — ${customerName}` : defaultName;
       const { error } = await supabase
         .from("restaurant_tables")
         .update({
-          name: tableName,
           seats: parseInt(form.seats) || 4,
           sector: form.sector.trim() || null,
         } as any)
