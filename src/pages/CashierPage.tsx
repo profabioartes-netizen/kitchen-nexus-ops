@@ -135,16 +135,20 @@ export default function CashierPage() {
       status: "pending",
       payload: {
         type: "bill",
+        customer_name: null,
+        comanda_number: null,
+        table_name: "Balcão",
+        waiter_name: null,
         items: order.map((o) => ({
           product_name: o.name,
           quantity: o.qty,
           price: o.price,
           subtotal: o.price * o.qty,
         })),
+        subtotal,
         total: subtotal,
         payment_method: selectedMethod || null,
         change: selectedMethod === "cash" ? cashChange : null,
-        printed_at: new Date().toISOString(),
       },
     });
     toast.success("Nota enviada para impressão!");
