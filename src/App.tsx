@@ -16,6 +16,7 @@ import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
 import CustomerSalesPage from "@/pages/CustomerSalesPage";
+import UsersPage from "@/pages/UsersPage";
 import NotFound from "@/pages/NotFound";
 import WaiterLayout from "@/pages/waiter/WaiterLayout";
 import WaiterLoginPage from "@/pages/waiter/WaiterLoginPage";
