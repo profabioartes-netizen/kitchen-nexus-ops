@@ -455,15 +455,9 @@ export default function PaymentPanel({
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
                 <Zap className="h-3 w-3" /> Venda Rápida
               </h3>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-1.5">
                 {quickSaleProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onAddQuickItem({ id: p.id, name: p.name, price: Number(p.price) })}
-                    className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-                  >
-                    {p.name} <span className="text-muted-foreground ml-1">R$ {Number(p.price).toFixed(2)}</span>
-                  </button>
+                  <QuickSaleRow key={p.id} product={p} onAdd={onAddQuickItem} />
                 ))}
               </div>
             </div>
