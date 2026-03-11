@@ -163,6 +163,8 @@ export function ComplementsManager() {
     },
     onError: (err) => toast.error((err as Error).message),
   });
+
+  const reorderMutation = useMutation({
     mutationFn: async (items: { id: string; sort_order: number }[]) => {
       for (const item of items) {
         await supabase.from("complements").update({ sort_order: item.sort_order } as any).eq("id", item.id);
