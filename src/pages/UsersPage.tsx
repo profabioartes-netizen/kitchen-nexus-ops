@@ -15,6 +15,8 @@ interface UserProfile {
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,6 +27,42 @@ export default function UsersPage() {
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const ADMIN_PIN = "9774";
+
+  if (!unlocked) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="rounded-lg border bg-card p-6 w-full max-w-xs space-y-4 shadow-lg text-center">
+          <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+          <h2 className="font-semibold text-lg">Área Restrita</h2>
+          <p className="text-sm text-muted-foreground">Digite o PIN de administrador</p>
+          <input
+            type="password"
+            autoFocus
+            inputMode="numeric"
+            maxLength={4}
+            value={pinInput}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setPinInput(val);
+              if (val === ADMIN_PIN) {
+                setUnlocked(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (pinInput === ADMIN_PIN) setUnlocked(true);
+                else { setPinInput(""); toast.error("PIN incorreto!"); }
+              }
+            }}
+            placeholder="••••"
+            className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+      </div>
+    );
+  }
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users_profiles"],
