@@ -50,9 +50,11 @@ export default function PrintersPage() {
   const queueOverflow = pendingCount > QUEUE_LIMIT;
 
   // Auto-pause agent when queue overflows
-  if (queueOverflow && agentActive) {
-    setAgentActive(false);
-  }
+  useEffect(() => {
+    if (queueOverflow && agentActive) {
+      setAgentActive(false);
+    }
+  }, [queueOverflow, agentActive]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
