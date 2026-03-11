@@ -62,6 +62,7 @@ function buildBillHTML(job: any) {
   return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
     ${buildMedievalHeader()}
     <div class="center small">CNPJ: ${CNPJ}</div>
+    <div class="center small">São José dos Salgados - MG</div>
     <div class="sep"></div>
     <div class="center subtitle">REGISTRO DA COMANDA</div>
     <div class="sep"></div>
