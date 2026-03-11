@@ -313,10 +313,15 @@ export default function CashierPage() {
               <label className="text-xs font-medium text-muted-foreground">Troco para:</label>
               <input
                 type="text"
-                inputMode="decimal"
+                inputMode="numeric"
                 placeholder="0,00"
                 value={cashGiven}
-                onChange={(e) => setCashGiven(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const cents = parseInt(digits, 10) || 0;
+                  const formatted = (cents / 100).toFixed(2).replace(".", ",");
+                  setCashGiven(formatted);
+                }}
                 className="w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
               {cashGivenNum > 0 && (
