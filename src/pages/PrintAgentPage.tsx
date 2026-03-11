@@ -416,6 +416,31 @@ export default function PrintAgentPage() {
     },
   });
 
+  const clearQueue = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .delete()
+        .in("status", ["pending", "processing"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_pending"] });
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_recent"] });
+      toast({
+        title: "Fila de impressão limpa com sucesso",
+        description: "Todos os pedidos pendentes foram removidos.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao limpar fila",
+        description: "Não foi possível limpar a fila de impressão.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const doPrint = useCallback((job: any) => {
     const html = buildTicketHTML(job);
     const iframe = printFrameRef.current;
