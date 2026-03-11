@@ -184,9 +184,13 @@ export default function WaiterOrderPage() {
   const createOrder = useMutation({
     mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
       const waiterLabel = profile?.full_name || null;
-      const customerName = params?.customerName || (table && table.name !== (table as any).default_name ? table.name : null);
+      const defaultName = (table as any)?.default_name || "Comanda";
+      let customerName = params?.customerName || null;
+      if (!customerName && table && table.name !== defaultName) {
+        const dashIdx = table.name.indexOf(" — ");
+        customerName = dashIdx >= 0 ? table.name.substring(dashIdx + 3) : table.name;
+      }
       const guests = params?.guests || 1;
-      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
       const tableLabel = customerName ? `${defaultName} — ${customerName}` : undefined;
       const { data, error } = await supabase.from("orders").insert({
         table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel,
