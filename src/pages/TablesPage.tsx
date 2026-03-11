@@ -78,6 +78,7 @@ export default function TablesPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         queryClient.invalidateQueries({ queryKey: ["open_orders"] });
         queryClient.invalidateQueries({ queryKey: ["today_revenue"] });
+        queryClient.invalidateQueries({ queryKey: ["avg_service_time"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
