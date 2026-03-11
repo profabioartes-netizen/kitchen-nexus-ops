@@ -1257,6 +1257,7 @@ export default function TableOrderPage() {
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
               onAddQuickItem={addQuickItem}
+              onRemoveQuickItem={removeQuickItem}
             />
           )}
         </div>
