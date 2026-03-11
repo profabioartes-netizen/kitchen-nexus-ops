@@ -707,55 +707,60 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Save order — print items to their stations (does NOT change table status)
+  // Save order — print only NEW unsent items to their station printers (Cozinha, Bebidas, Sobremesa)
   const saveOrder = useMutation({
     mutationFn: async () => {
       if (!order) throw new Error("Sem pedido aberto");
 
-      // Group items by station and create print jobs
-      const itemsByStation: Record<string, typeof orderItems> = {};
-      for (const item of orderItems) {
-        const product = products.find((p) => p.id === item.product_id);
-        const station = (product as any)?.station || "";
-        if (!station) continue;
-        if (!itemsByStation[station]) itemsByStation[station] = [];
-        itemsByStation[station].push(item);
-      }
-
-      for (const [station, items] of Object.entries(itemsByStation)) {
-        await supabase.from("print_jobs").insert({
-          station,
-          status: "pending",
-          payload: {
-            type: "order_save",
-            table_name: table?.name || "—",
-            waiter_name: order.waiter_name || null,
-            order_id: order.id,
-            items: items.map((i) => ({
-              name: i.product_name,
-              quantity: i.quantity,
-              notes: i.notes || null,
-            })),
-          },
-        });
-      }
-
-      // Mark all unsent items as sent
+      // Only print unsent items
       const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
+
       if (unsent.length > 0) {
+        // Group unsent items by station and create print jobs
+        const itemsByStation: Record<string, typeof unsent> = {};
+        for (const item of unsent) {
+          const product = products.find((p) => p.id === item.product_id);
+          const station = (product as any)?.station || "";
+          if (!station || station === "Caixa") continue; // Caixa prints via "Imprimir" button
+          if (!itemsByStation[station]) itemsByStation[station] = [];
+          itemsByStation[station].push(item);
+        }
+
+        for (const [station, items] of Object.entries(itemsByStation)) {
+          await supabase.from("print_jobs").insert({
+            station,
+            status: "pending",
+            payload: {
+              type: "order_save",
+              table_name: table?.name || "—",
+              waiter_name: order.waiter_name || null,
+              order_id: order.id,
+              items: items.map((i) => ({
+                name: i.product_name,
+                quantity: i.quantity,
+                notes: i.notes || null,
+              })),
+            },
+          });
+        }
+
+        // Mark unsent items as sent
         const ids = unsent.map((i) => i.id);
         await supabase
           .from("order_items")
           .update({ sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString() } as any)
           .in("id", ids);
-      }
 
-      await logActivity(tableId!, "order_saved", `Pedido salvo e enviado para impressão — ${orderItems.length} item(ns)`, order.id, profile?.full_name);
+        await logActivity(tableId!, "order_saved", `Pedido salvo — ${unsent.length} novo(s) item(ns) enviado(s) para impressão`, order.id, profile?.full_name);
+      } else {
+        await logActivity(tableId!, "order_saved", `Pedido salvo (sem novos itens para imprimir)`, order.id, profile?.full_name);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
-      toast.success("Pedido enviado para impressão!");
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      toast.success("Pedido salvo!");
       navigate("/");
     },
     onError: (err) => toast.error((err as Error).message),
