@@ -151,7 +151,18 @@ export function ComplementsManager() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  const reorderMutation = useMutation({
+  const updateComplement = useMutation({
+    mutationFn: async ({ id, name, price }: { id: string; name: string; price: number }) => {
+      const { error } = await supabase.from("complements").update({ name, price }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditingCompId(null);
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+      toast.success("Complemento atualizado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
     mutationFn: async (items: { id: string; sort_order: number }[]) => {
       for (const item of items) {
         await supabase.from("complements").update({ sort_order: item.sort_order } as any).eq("id", item.id);
