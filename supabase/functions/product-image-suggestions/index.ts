@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function generateImage(prompt: string, apiKey: string): Promise<string | null> {
+async function generateImage(prompt: string, apiKey: string): Promise<{ url: string | null; error?: string }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25000);
 
@@ -28,14 +28,17 @@ async function generateImage(prompt: string, apiKey: string): Promise<string | n
     if (!response.ok) {
       const t = await response.text();
       console.error("AI response error:", response.status, t);
-      return null;
+      if (response.status === 402) {
+        return { url: null, error: "credits" };
+      }
+      return { url: null };
     }
 
     const data = await response.json();
-    return data.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null;
+    return { url: data.choices?.[0]?.message?.images?.[0]?.image_url?.url ?? null };
   } catch (err) {
     console.error("generateImage error:", err);
-    return null;
+    return { url: null };
   } finally {
     clearTimeout(timeout);
   }
@@ -62,7 +65,6 @@ serve(async (req) => {
 
     const name = productName.trim();
 
-    // Generate 2 images in parallel to stay within timeout
     const prompts = [
       `Generate a professional appetizing photo of "${name}" for a restaurant menu. Well-lit, clean presentation.`,
       `Generate a top-down photo of "${name}" as served in a restaurant. Warm lighting, appetizing.`,
@@ -75,16 +77,28 @@ serve(async (req) => {
     );
 
     const suggestions: { url: string; alt: string }[] = [];
+    let creditsError = false;
+
     for (const r of results) {
-      if (r.status === "fulfilled" && r.value) {
-        suggestions.push({ url: r.value, alt: name });
+      if (r.status === "fulfilled") {
+        if (r.value.url) {
+          suggestions.push({ url: r.value.url, alt: name });
+        }
+        if (r.value.error === "credits") {
+          creditsError = true;
+        }
       }
     }
 
     console.log(`Generated ${suggestions.length} suggestions for "${name}"`);
 
+    const response: Record<string, unknown> = { suggestions };
+    if (creditsError && suggestions.length === 0) {
+      response.error = "Créditos de IA esgotados. Tente novamente mais tarde ou faça upload manual.";
+    }
+
     return new Response(
-      JSON.stringify({ suggestions }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
