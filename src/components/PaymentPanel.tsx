@@ -480,6 +480,10 @@ export default function PaymentPanel({
                         </span>
                       )}
                     </td>
+                    <td className="py-3 text-sm font-medium">{item.product_name}</td>
+                    <td className="py-3 text-sm font-semibold text-right tabular-nums">
+                      R$ {(Number(item.price) * item.remainingQty).toFixed(2)}
+                    </td>
                     <td className="py-3 pl-3">
                       <div className="flex items-center gap-1.5 justify-end">
                         <button
