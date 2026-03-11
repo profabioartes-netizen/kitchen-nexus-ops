@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff } from "lucide-react";
+import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // ── Stations that auto-print (production only) ──────────────────────
 const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
@@ -340,6 +341,7 @@ function RecentJobRow({ job }: { job: any }) {
 // ── Main Page ───────────────────────────────────────────────────────
 export default function PrintAgentPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [autoprint, setAutoprint] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [realtimeConnected, setRealtimeConnected] = useState(false);
@@ -414,6 +416,31 @@ export default function PrintAgentPage() {
     },
   });
 
+  const clearQueue = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .delete()
+        .in("status", ["pending", "processing"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_pending"] });
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_recent"] });
+      toast({
+        title: "Fila de impressão limpa com sucesso",
+        description: "Todos os pedidos pendentes foram removidos.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao limpar fila",
+        description: "Não foi possível limpar a fila de impressão.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const doPrint = useCallback((job: any) => {
     const html = buildTicketHTML(job);
     const iframe = printFrameRef.current;
@@ -460,6 +487,7 @@ export default function PrintAgentPage() {
   // Split jobs
   const productionJobs = jobs.filter((j) => AUTO_PRINT_STATIONS.includes(j.station));
   const caixaJobs = jobs.filter((j) => j.station === "Caixa");
+  const pendingCount = jobs.length;
 
   return (
     <div className="p-6 h-full flex flex-col overflow-auto">
@@ -504,6 +532,15 @@ export default function PrintAgentPage() {
             <span className={`h-2 w-2 rounded-full ${autoprint ? "bg-[hsl(var(--status-free))] animate-pulse" : "bg-destructive"}`} />
             {autoprint ? "Auto (Produção)" : "Pausado"}
           </button>
+          <button
+            onClick={() => clearQueue.mutate()}
+            disabled={pendingCount === 0 || clearQueue.isPending}
+            className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+            title="Limpar fila de impressão"
+          >
+            <Trash2 className="h-4 w-4" />
+            Limpar fila
+          </button>
         </div>
       </div>
 
@@ -546,6 +583,12 @@ export default function PrintAgentPage() {
           <p className="text-2xl font-bold">{printers.length}</p>
           <p className="text-xs text-muted-foreground">Impressoras</p>
         </div>
+      </div>
+
+      {/* Queue counter */}
+      <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Fila atual:</span>
+        <span className="font-semibold text-foreground">{pendingCount} pedido{pendingCount !== 1 ? "s" : ""}</span>
       </div>
 
       {/* Production queue (auto-print) */}
