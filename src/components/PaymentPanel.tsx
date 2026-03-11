@@ -88,6 +88,27 @@ export default function PaymentPanel({
   const [splitMode, setSplitMode] = useState<"quantity" | "value">("quantity");
   const [splitQtyDivisor, setSplitQtyDivisor] = useState(2);
 
+  // ── Quick-sale products ──
+  const { data: quickSaleProducts = [] } = useQuery({
+    queryKey: ["quick_sale_products"],
+    queryFn: async () => {
+      // Find the "Venda Rápida" category
+      const { data: cats } = await supabase
+        .from("categories")
+        .select("id")
+        .eq("name", "Venda Rápida")
+        .limit(1);
+      if (!cats || cats.length === 0) return [];
+      const { data: prods } = await supabase
+        .from("products")
+        .select("id, name, price")
+        .eq("category_id", cats[0].id)
+        .eq("active", true)
+        .order("sort_order");
+      return prods || [];
+    },
+  });
+
   // ── Show more methods ──
   const [showAllMethods, setShowAllMethods] = useState(true);
 
