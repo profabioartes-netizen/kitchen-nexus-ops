@@ -15,6 +15,7 @@ import { useComandaLock } from "@/hooks/useComandaLock";
 import { Lock } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { printCancellationIfNeeded } from "@/lib/printCancellation";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
