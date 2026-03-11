@@ -225,34 +225,46 @@ export default function PrintersPage() {
         </div>
       )}
 
-      {/* Active print queue */}
-      {activeJobs.length > 0 && (
-        <div className="rounded-lg border bg-card overflow-hidden mb-6">
-          <div className="px-4 py-3 border-b bg-secondary/30">
-            <h3 className="text-sm font-semibold">Fila de Impressão</h3>
+      {/* Print queue table — always visible */}
+      <div className="rounded-lg border bg-card overflow-hidden mb-6">
+        <div className="px-4 py-3 border-b bg-secondary/30">
+          <h3 className="text-sm font-semibold">Fila de Impressão</h3>
+        </div>
+        {activeJobs.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            Nenhum job na fila. Todos os pedidos foram processados.
           </div>
+        ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-secondary/20">
-                <th className="text-left px-4 py-2 font-medium">Ticket</th>
+                <th className="text-left px-4 py-2 font-medium">ID</th>
                 <th className="text-left px-4 py-2 font-medium">Estação</th>
-                <th className="text-left px-4 py-2 font-medium">Item</th>
+                <th className="text-left px-4 py-2 font-medium">Pedido / Mesa</th>
                 <th className="text-center px-4 py-2 font-medium">Status</th>
                 <th className="text-left px-4 py-2 font-medium">Criado em</th>
-                <th className="px-4 py-2 w-28"></th>
+                <th className="px-4 py-2 w-28 text-right font-medium">Ações</th>
               </tr>
             </thead>
             <tbody>
               {activeJobs.map((job) => {
                 const payload = job.payload as any;
-                const createdAt = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                const createdAt = new Date(job.created_at).toLocaleString("pt-BR", {
+                  day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+                });
+                const orderInfo = [
+                  payload?.product_name,
+                  payload?.table_name ? `Mesa ${payload.table_name}` : null,
+                  payload?.comanda_number ? `#${payload.comanda_number}` : null,
+                ].filter(Boolean).join(" · ") || "—";
+
                 return (
                   <tr key={job.id} className={`border-b last:border-0 ${job.status === "error" ? "bg-destructive/5" : "hover:bg-secondary/30"}`}>
                     <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{job.id.slice(0, 8)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{job.station}</td>
-                    <td className="px-4 py-3">{payload?.product_name || payload?.type || "—"}</td>
+                    <td className="px-4 py-3">{orderInfo}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[job.status] || ""}`}>
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[job.status] || ""}`}>
                         {statusLabel[job.status] || job.status}
                       </span>
                     </td>
@@ -261,7 +273,9 @@ export default function PrintersPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           title="Reimprimir"
-                          onClick={() => reprintMutation.mutate(job.id)}
+                          onClick={() => {
+                            if (confirm("Reimprimir este job?")) reprintMutation.mutate(job.id);
+                          }}
                           disabled={reprintMutation.isPending}
                           className="rounded p-1.5 hover:bg-accent/10 text-accent"
                         >
@@ -282,8 +296,8 @@ export default function PrintersPage() {
               })}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       <p className="text-sm text-muted-foreground mb-6">
         Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir.
