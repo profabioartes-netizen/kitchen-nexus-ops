@@ -966,12 +966,10 @@ export default function TableOrderPage() {
               disabled={addItem.isPending}
               className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden"
             >
-              {product.image_url ? (
+              {product.image_url && (
                 <div className="w-full aspect-[4/3] bg-secondary">
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                 </div>
-              ) : (
-                <div className="w-full aspect-[4/3] bg-secondary/30" />
               )}
               <div className="p-3">
                 <span className="font-medium text-sm">{product.name}</span>
