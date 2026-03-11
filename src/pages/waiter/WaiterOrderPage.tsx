@@ -845,6 +845,16 @@ export default function WaiterOrderPage() {
                   );
                 })}
               </div>
+              {/* Save button */}
+              {orderItems.some((i) => !i.sent_to_kitchen) && (
+                <button
+                  onClick={() => saveOrder.mutate()}
+                  disabled={saveOrder.isPending}
+                  className="w-full mt-3 rounded-xl bg-accent text-accent-foreground py-4 text-base font-semibold active:opacity-90 disabled:opacity-50"
+                >
+                  {saveOrder.isPending ? "Enviando..." : `Salvar Pedido (${orderItems.filter((i) => !i.sent_to_kitchen).length} novo${orderItems.filter((i) => !i.sent_to_kitchen).length > 1 ? "s" : ""})`}
+                </button>
+              )}
             </div>
           )}
         </div>
