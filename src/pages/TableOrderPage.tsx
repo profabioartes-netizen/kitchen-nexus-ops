@@ -688,6 +688,7 @@ export default function TableOrderPage() {
   // Finalize — moves order to finalized (appears in reports) and frees table
   const finalizeMutation = useMutation({
     mutationFn: async () => {
+      leavingRef.current = true;
       if (!order) throw new Error("Sem pedido");
       await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
       const { data: tableData } = await supabase
@@ -700,15 +701,14 @@ export default function TableOrderPage() {
       await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
     },
     onSuccess: () => {
-      leavingRef.current = true;
-      navigate("/");
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success("Comanda finalizada! Dados registrados nos relatórios.");
+      navigate("/");
     },
-    onError: (err) => toast.error((err as Error).message),
+    onError: (err) => { leavingRef.current = false; toast.error((err as Error).message); },
   });
 
   // Cancel / delete order without sending to reports
