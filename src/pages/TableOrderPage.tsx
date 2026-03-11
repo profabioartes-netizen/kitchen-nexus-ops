@@ -506,6 +506,9 @@ export default function TableOrderPage() {
       const item = orderItems.find((i) => i.id === itemId);
 
 
+      if (item) {
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+      }
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
