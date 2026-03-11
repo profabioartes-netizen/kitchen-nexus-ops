@@ -326,10 +326,10 @@ export default function WaiterOrderPage() {
 
       // Batch insert items + print jobs in parallel
       const promises: Promise<any>[] = [
-        supabase.from("order_items").insert(orderItemRows as any),
+        supabase.from("order_items").insert(orderItemRows as any).then(),
       ];
       if (printJobRows.length > 0) {
-        promises.push(supabase.from("print_jobs").insert(printJobRows));
+        promises.push(supabase.from("print_jobs").insert(printJobRows).then());
       }
       await Promise.all(promises);
 
