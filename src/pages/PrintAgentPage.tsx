@@ -188,7 +188,12 @@ function TicketPreview({ job }: { job: any }) {
         {isCancellation && (
           <p className="text-xs font-bold text-destructive tracking-widest mt-1">*** CANCELAMENTO ***</p>
         )}
-        {isBill && <p className="text-[10px] text-muted-foreground mt-0.5">CNPJ: {CNPJ}</p>}
+        {isBill && (
+          <>
+            <p className="text-[10px] text-muted-foreground mt-0.5">CNPJ: {CNPJ}</p>
+            <p className="text-[10px] text-muted-foreground">São José dos Salgados - MG</p>
+          </>
+        )}
         {!isCaixa && !isCancellation && !isBill && (
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>
         )}
