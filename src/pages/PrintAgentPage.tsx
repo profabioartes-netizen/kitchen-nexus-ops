@@ -91,14 +91,13 @@ function buildBillHTML(job: any) {
     <div class="center" style="font-size:12px;">⚜ ⚔ ⚜</div>
     <div style="margin-top:6px;"></div>
     <div class="center" style="font-size:11px;">Obrigado por visitar o</div>
-    <div class="center bold subtitle">REINO COFFEE THRONES</div>
+    <div class="center bold subtitle">COFFEE THRONES</div>
     <div style="margin-top:6px;"></div>
-    <div class="center" style="font-size:11px;">⚔ No Reino Coffee Thrones</div>
+    <div class="center" style="font-size:11px;">⚔ No Coffee Thrones</div>
     <div class="center" style="font-size:11px;">cada xícara conta</div>
     <div class="center" style="font-size:11px;">uma nova história. ⚔</div>
     <div style="margin-top:6px;"></div>
-    <div class="center bold" style="font-size:11px;">Retorne ao Reino</div>
-    <div class="center bold" style="font-size:11px;">em breve!</div>
+    <div class="center bold" style="font-size:11px;">Volte sempre!</div>
     <div style="margin-top:6px;"></div>
     <div class="center" style="font-size:11px;">Compartilhe sua visita</div>
     <div class="center bold" style="font-size:11px;">@coffeethrones</div>
