@@ -487,6 +487,7 @@ export default function PrintAgentPage() {
   // Split jobs
   const productionJobs = jobs.filter((j) => AUTO_PRINT_STATIONS.includes(j.station));
   const caixaJobs = jobs.filter((j) => j.station === "Caixa");
+  const pendingCount = jobs.length;
 
   return (
     <div className="p-6 h-full flex flex-col overflow-auto">
