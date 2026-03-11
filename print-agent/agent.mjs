@@ -50,16 +50,11 @@ const cmd = {
   },
 };
 
-// ── Medieval header shared by all templates ─────────────────────────
+// ── Compact header — brand small and centered ───────────────────────
 function buildHeader() {
   return [
     cmd.alignCenter,
-    cmd.doubleSep(),
-    cmd.doubleSize(true),
-    cmd.text("REINO"),
-    cmd.text("COFFEE THRONES"),
-    cmd.doubleSize(false),
-    cmd.doubleSep(),
+    cmd.text("REINO COFFEE THRONES"),
   ];
 }
 
