@@ -160,6 +160,12 @@ async function pollAndPrint() {
 
     for (const job of jobs) {
       if (processedIds.has(job.id)) continue;
+
+      // Skip Caixa — only production stations auto-print
+      if (!AUTO_PRINT_STATIONS.includes(job.station)) {
+        continue;
+      }
+
       processedIds.add(job.id);
 
       const printer = findPrinterForStation(printers, job.station);
