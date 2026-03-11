@@ -139,6 +139,7 @@ function buildBillTicket(job) {
 
   const parts = [
     cmd.init,
+    cmd.codepage,
     ...buildHeader(),
     cmd.text(`CNPJ: ${CNPJ}`),
     cmd.text("Sao Jose dos Salgados - MG"),
