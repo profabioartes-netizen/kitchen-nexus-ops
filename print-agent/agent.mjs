@@ -139,6 +139,7 @@ const cmd = {
   alignLeft:  Buffer.from([ESC, 0x61, 0x00]),
   alignRight: Buffer.from([ESC, 0x61, 0x02]),
   bold:       (on) => Buffer.from([ESC, 0x45, on ? 1 : 0]),
+  strikethrough: (on) => Buffer.from([ESC, 0x2D, on ? 1 : 0]), // ESC '-' 1/0 underline-style strike
   doubleSize: (on) => Buffer.from([GS, 0x21, on ? 0x11 : 0x00]),
   doubleW:    (on) => Buffer.from([GS, 0x21, on ? 0x10 : 0x00]),
   separator:  () => Buffer.concat([toPC860(SEP_CHAR.repeat(COLS)), Buffer.from([0x0A])]),
