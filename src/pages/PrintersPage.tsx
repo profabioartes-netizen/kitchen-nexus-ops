@@ -322,8 +322,10 @@ export default function PrintersPage() {
               </div>
               {stationPrinters.length > 0 ? (
                 stationPrinters.map((p) => (
-                  <div key={p.id} className="text-xs text-muted-foreground mb-1">
-                    {p.name} — {p.model} ({p.ip})
+                  <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
+                    <span>{p.name} — {p.model} ({p.ip})</span>
+                    {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
                   </div>
                 ))
               ) : (
