@@ -354,7 +354,7 @@ function buildCancellationTicket(job) {
 function buildTicket(job) {
   const p = job.payload || {};
   if (p.type === "cancellation") return buildCancellationTicket(job);
-  if (p.type === "bill") return buildBillTicket(job);
+  if (p.type === "bill" || p.type === "full_bill") return buildBillTicket(job);
   return buildProductionTicket(job);
 }
 
