@@ -322,7 +322,7 @@ function buildProductionTicket(job) {
     // Column headers
     cmd.alignLeft,
     cmd.bold(true),
-    cmd.text("QTD   DESCRICAO"),
+    cmd.text("QTD   DESCRIÇÃO"),
     cmd.bold(false),
     cmd.text(""),
     cmd.separator(),
