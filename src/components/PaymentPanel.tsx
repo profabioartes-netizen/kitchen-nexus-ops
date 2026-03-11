@@ -47,6 +47,7 @@ interface PaymentPanelProps {
   onPay: (result: PaymentResult) => void;
   onCancel: () => void;
   isPending: boolean;
+  itemComplements?: OrderItemComplement[];
   onAddQuickItem?: (product: { id: string; name: string; price: number }, quantity: number) => void;
   onRemoveQuickItem?: (productId: string) => void;
   onRemoveItem?: (itemId: string) => void;
