@@ -390,17 +390,35 @@ export default function TablesPage() {
     return acc;
   }, {});
 
+  const sortedTables = useMemo(() => {
+    const activeStatuses = ["occupied", "delivered", "bill"];
+    return [...tables].sort((a, b) => {
+      const aActive = activeStatuses.includes(a.status);
+      const bActive = activeStatuses.includes(b.status);
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+      if (aActive && bActive) {
+        const aOrder = ordersByTable[a.id];
+        const bOrder = ordersByTable[b.id];
+        const aTime = aOrder ? new Date(aOrder.created_at).getTime() : 0;
+        const bTime = bOrder ? new Date(bOrder.created_at).getTime() : 0;
+        return aTime - bTime;
+      }
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
+  }, [tables, ordersByTable]);
+
   const filteredTables = useMemo(() => {
-    if (!searchQuery.trim()) return tables;
+    if (!searchQuery.trim()) return sortedTables;
     const q = searchQuery.toLowerCase().trim();
-    return tables.filter((t) => {
+    return sortedTables.filter((t) => {
       const order = ordersByTable[t.id];
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
       const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
       return customerMatch || tableNameMatch || waiterMatch;
     });
-  }, [tables, ordersByTable, searchQuery]);
+  }, [sortedTables, ordersByTable, searchQuery]);
 
   const tablesWithPositions = filteredTables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
