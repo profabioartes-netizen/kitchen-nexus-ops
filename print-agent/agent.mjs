@@ -342,8 +342,10 @@ function findPrinterForStation(printers, station) {
 }
 
 // ── Main loop ───────────────────────────────────────────────────────
+const MAX_QUEUE_SIZE = 30;
 const processedIds = new Set();
 let running = true;
+let agentPaused = false;
 let jobsProcessed = 0;
 
 async function pollAndPrint() {
