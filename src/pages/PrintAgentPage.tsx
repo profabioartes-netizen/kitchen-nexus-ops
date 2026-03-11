@@ -6,115 +6,156 @@ import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff
 // ── Stations that auto-print (production only) ──────────────────────
 const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
 
-// ── Ticket HTML Builder (thermal 80mm format) ───────────────────────
+const CNPJ = "00.000.000/0001-00"; // TODO: Replace with real CNPJ
+
+const THERMAL_CSS = `
+  @page { margin: 0; size: 80mm auto; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; margin: 4mm; color: #000; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .sep { border-top: 1px dashed #000; margin: 6px 0; }
+  .sep-double { border-top: 2px solid #000; margin: 6px 0; }
+  .title { font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+  .subtitle { font-size: 14px; font-weight: bold; letter-spacing: 1px; }
+  .item-big { font-size: 16px; font-weight: bold; }
+  .row { display: flex; justify-content: space-between; font-size: 12px; }
+  .complement { font-size: 11px; margin-left: 12px; }
+  .notes { font-style: italic; font-size: 11px; margin-left: 12px; }
+  .total { font-size: 16px; font-weight: bold; }
+  .footer-msg { font-size: 11px; font-style: italic; margin-top: 4px; }
+  .small { font-size: 10px; color: #555; }
+`;
+
+function buildMedievalHeader(stationLine?: string) {
+  return `
+    <div class="center">
+      <div class="sep-double"></div>
+      <div class="title">REINO</div>
+      <div class="title">COFFEE THRONES</div>
+      <div class="sep-double"></div>
+      ${stationLine ? `<div class="subtitle">${stationLine}</div>` : ""}
+    </div>`;
+}
+
+// ── 1) Cashier receipt (bill) ───────────────────────────────────────
+function buildBillHTML(job: any) {
+  const p = job.payload as any;
+  const now = new Date(job.created_at);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString("pt-BR");
+  const items = (p.items || []) as any[];
+  const methods: Record<string, string> = { credit: "Crédito", debit: "Débito", cash: "Dinheiro", pix: "Pix" };
+
+  let subtotal = 0;
+  const itemsHtml = items.map((item: any) => {
+    const qty = item.quantity || 1;
+    const itemTotal = (item.price || 0) * qty;
+    subtotal += itemTotal;
+    const compHtml = (item.complements || []).map((c: any) =>
+      `<div class="complement">+ ${typeof c === "string" ? c : c.name}${c.price ? ` R$${Number(c.price).toFixed(2)}` : ""}</div>`
+    ).join("");
+    const notesHtml = item.notes ? `<div class="notes">Obs: ${item.notes}</div>` : "";
+    return `<div class="row"><span>${qty}x ${item.product_name}</span><span>R$ ${itemTotal.toFixed(2)}</span></div>${compHtml}${notesHtml}`;
+  }).join("");
+
+  return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
+    ${buildMedievalHeader()}
+    <div class="center small">CNPJ: ${CNPJ}</div>
+    <div class="sep"></div>
+    <div class="center subtitle">REGISTRO DA COMANDA</div>
+    <div class="sep"></div>
+    <div>
+      ${p.customer_name ? `<div>Cliente: ${p.customer_name}</div>` : ""}
+      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
+      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
+      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
+      <div>Data: ${date}  Hora: ${time}</div>
+    </div>
+    <div class="sep"></div>
+    <div class="row bold"><span>ITEM</span><span>TOTAL</span></div>
+    <div class="sep"></div>
+    ${itemsHtml}
+    <div class="sep"></div>
+    <div class="row"><span>Subtotal:</span><span>R$ ${(p.subtotal || subtotal).toFixed(2)}</span></div>
+    <div class="center total" style="margin:4px 0;">TOTAL: R$ ${Number(p.total || subtotal).toFixed(2)}</div>
+    ${p.payment_method ? `<div>Pagamento: ${methods[p.payment_method] || p.payment_method}</div>` : ""}
+    ${p.change && Number(p.change) > 0 ? `<div>Troco: R$ ${Number(p.change).toFixed(2)}</div>` : ""}
+    <div class="sep"></div>
+    <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
+    <div class="sep"></div>
+    <div class="center footer-msg bold">"Que seu café seja forte<br>e sua jornada gloriosa!"</div>
+    <div class="center" style="margin-top:4px;">Volte sempre!</div>
+    <div class="sep"></div>
+    <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
+    <div style="height:16px;"></div>
+  </body></html>`;
+}
+
+// ── 2) Production ticket ────────────────────────────────────────────
+function buildProductionHTML(job: any) {
+  const p = job.payload as any;
+  const now = new Date(job.created_at);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString("pt-BR");
+
+  const compHtml = (p.complements || []).map((c: string) => `<div class="complement">+ ${c}</div>`).join("");
+
+  return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
+    ${buildMedievalHeader(job.station.toUpperCase())}
+    <div class="sep"></div>
+    <div>
+      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
+      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
+      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
+      <div>Hora: ${time}  ${date}</div>
+    </div>
+    <div class="sep"></div>
+    <div class="center item-big">${p.quantity || 1}× ${p.product_name || "Item"}</div>
+    ${compHtml}
+    ${p.notes ? `<div class="notes bold" style="margin-left:0;">Obs: ${p.notes}</div>` : ""}
+    <div class="sep"></div>
+    <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
+    <div style="height:16px;"></div>
+  </body></html>`;
+}
+
+// ── 3) Cancellation ticket ──────────────────────────────────────────
+function buildCancellationHTML(job: any) {
+  const p = job.payload as any;
+  const now = new Date(job.created_at);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString("pt-BR");
+
+  return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
+    ${buildMedievalHeader(job.station.toUpperCase())}
+    <div class="sep"></div>
+    <div class="center" style="margin:4px 0;">
+      <div class="title" style="color:#000;letter-spacing:3px;">*** CANCELAMENTO ***</div>
+    </div>
+    <div class="sep"></div>
+    <div>
+      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
+      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
+      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
+      <div>Hora: ${time}  ${date}</div>
+    </div>
+    <div class="sep-double"></div>
+    <div class="center bold">CANCELAR:</div>
+    <div class="center item-big">${p.quantity || 1}× ${p.product_name || "Item"}</div>
+    ${p.notes ? `<div class="center notes">Motivo: ${p.notes}</div>` : `<div class="center notes">Item removido da comanda</div>`}
+    <div class="sep-double"></div>
+    <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
+    <div style="height:16px;"></div>
+  </body></html>`;
+}
+
+// ── HTML Dispatcher ─────────────────────────────────────────────────
 function buildTicketHTML(job: any) {
   const p = job.payload as any;
-  const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const date = new Date(job.created_at).toLocaleDateString("pt-BR");
-  const isCaixa = job.station === "Caixa";
-  const isCancellation = p.type === "cancellation";
-
-  if (isCancellation) {
-    return `<!DOCTYPE html>
-<html><head><style>
-  @page { margin: 0; size: 80mm auto; }
-  * { box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; margin: 4mm; padding: 0; color: #000; }
-  .center { text-align: center; }
-  .bold { font-weight: bold; }
-  .separator { border-top: 1px dashed #000; margin: 6px 0; }
-  .cancel-header { font-size: 16px; font-weight: bold; margin: 6px 0; letter-spacing: 2px; }
-  .item-name { font-size: 16px; font-weight: bold; }
-  .notes { font-style: italic; font-size: 11px; margin-top: 2px; }
-  h2 { font-size: 16px; margin: 0 0 2px 0; }
-</style></head><body>
-  <div class="center">
-    <h2>☕ COFFEE THRONES</h2>
-    <div class="separator"></div>
-    <div class="cancel-header">*** CANCELAMENTO ***</div>
-    <div class="separator"></div>
-  </div>
-  <div>
-    <div><span class="bold">Mesa:</span> ${p.table_name || "—"}</div>
-    ${p.waiter_name ? `<div><span class="bold">Garçom:</span> ${p.waiter_name}</div>` : ""}
-    <div><span class="bold">Hora:</span> ${date} ${time}</div>
-  </div>
-  <div class="separator"></div>
-  <div class="center" style="font-size:13px; font-weight:bold; margin:4px 0;">CANCELAR:</div>
-  <div class="item-name" style="text-align:center;">${p.quantity || 1}× ${p.product_name}</div>
-  ${p.notes ? `<div class="notes center">Obs: ${p.notes}</div>` : ""}
-  <div class="separator"></div>
-  <div class="center" style="font-size:10px; margin-top:4px;">Ticket #${job.id?.slice(0, 8)}</div>
-  <div style="height:16px;"></div>
-</body></html>`;
-  }
-
-  // Regular ticket (production or Caixa)
-  const items = p.items as any[] | undefined;
-  const singleItem = !items;
-
-  const complementsHtml = (complements: string[]) =>
-    complements?.length ? complements.map((c: string) => `<div class="complement">  + ${c}</div>`).join("") : "";
-
-  const itemsHtml = singleItem
-    ? `<div class="item">
-         <div class="item-name">${p.quantity || 1}× ${p.product_name}</div>
-         ${complementsHtml(p.complements || [])}
-         ${p.notes ? `<div class="notes">Obs: ${p.notes}</div>` : ""}
-       </div>`
-    : (items || []).map((item: any) =>
-        `<div class="item">
-           <div class="item-row">
-             <span>${item.quantity || 1}× ${item.product_name}</span>
-             <span>R$ ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
-           </div>
-           ${item.complements?.length ? item.complements.map((c: any) =>
-             `<div class="complement">  + ${typeof c === "string" ? c : c.name}${c.price ? ` R$${c.price.toFixed(2)}` : ""}</div>`
-           ).join("") : ""}
-           ${item.notes ? `<div class="notes">Obs: ${item.notes}</div>` : ""}
-         </div>`
-      ).join("");
-
-  const totalHtml = p.total != null
-    ? `<div class="separator"></div>
-       <div class="total-row"><span class="bold">TOTAL</span><span class="bold">R$ ${Number(p.total).toFixed(2)}</span></div>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html><head><style>
-  @page { margin: 0; size: 80mm auto; }
-  * { box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; margin: 4mm; padding: 0; color: #000; }
-  .center { text-align: center; }
-  .bold { font-weight: bold; }
-  .separator { border-top: 1px dashed #000; margin: 6px 0; }
-  .item { margin: 4px 0; }
-  .item-name { font-size: 14px; font-weight: bold; }
-  .item-row { display: flex; justify-content: space-between; font-size: 12px; }
-  .notes { font-style: italic; font-size: 11px; margin-top: 1px; color: #333; }
-  .complement { font-size: 11px; margin-top: 1px; }
-  .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
-  h2 { font-size: 16px; margin: 0 0 2px 0; }
-  h3 { font-size: 13px; margin: 0; font-weight: normal; letter-spacing: 1px; }
-</style></head><body>
-  <div class="center">
-    <h2>☕ COFFEE THRONES</h2>
-    ${isCaixa ? "" : `<h3>${job.station.toUpperCase()}</h3>`}
-    <div class="separator"></div>
-  </div>
-  <div>
-    <div><span class="bold">Mesa:</span> ${p.table_name || "Balcão"}</div>
-    ${p.waiter_name ? `<div><span class="bold">Garçom:</span> ${p.waiter_name}</div>` : ""}
-    ${p.customer_name ? `<div><span class="bold">Cliente:</span> ${p.customer_name}</div>` : ""}
-    <div><span class="bold">Data:</span> ${date}  ${time}</div>
-  </div>
-  <div class="separator"></div>
-  ${itemsHtml}
-  ${totalHtml}
-  <div class="separator"></div>
-  <div class="center" style="font-size:10px; margin-top:4px;">Ticket #${job.id?.slice(0, 8)}</div>
-  <div style="height:16px;"></div>
-</body></html>`;
+  if (p.type === "cancellation") return buildCancellationHTML(job);
+  if (p.type === "bill") return buildBillHTML(job);
+  return buildProductionHTML(job);
 }
 
 // ── Ticket Preview (thermal-style card) ─────────────────────────────
