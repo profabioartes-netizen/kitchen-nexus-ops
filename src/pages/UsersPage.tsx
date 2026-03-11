@@ -93,16 +93,13 @@ export default function UsersPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const ADMIN_PIN = "9774";
+
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget || !confirmPassword || !user?.email) return;
+    if (!deleteTarget || !confirmPassword) return;
     setConfirmingDelete(true);
     try {
-      // Re-authenticate the current admin by signing in with their password
-      const { error } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: confirmPassword,
-      });
-      if (error) {
+      if (confirmPassword !== ADMIN_PIN) {
         toast.error("Senha incorreta!");
         return;
       }
