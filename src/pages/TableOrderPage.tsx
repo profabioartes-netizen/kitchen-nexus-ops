@@ -1170,12 +1170,12 @@ export default function TableOrderPage() {
               )}
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  disabled={unsentCount === 0 || sendToKitchen.isPending}
-                  onClick={() => sendToKitchen.mutate()}
+                  disabled={!order || orderItems.length === 0 || printBill.isPending}
+                  onClick={() => printBill.mutate()}
                   className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="text-sm">Imprimir ({unsentCount})</span>
+                  <span className="text-sm">{printBill.isPending ? "Imprimindo..." : "Imprimir"}</span>
                 </button>
                 <button
                   disabled={unpaidItems.length === 0}
