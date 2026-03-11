@@ -279,7 +279,7 @@ export default function PrintersPage() {
             : "bg-destructive/10 text-destructive"
         }`}>
           {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-          WebSocket: {wsConnected ? "conectado" : "desconectado"}
+          {wsConnected ? "WebSocket: conectado" : "Fallback: polling ativo"}
         </div>
       </div>
 
