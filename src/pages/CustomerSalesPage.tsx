@@ -20,7 +20,7 @@ export default function CustomerSalesPage() {
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
 
-  // Fetch finalized orders with customer_name
+  // Fetch all finalized orders (including cashier/anonymous sales)
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
     queryKey: ["customer_sales_orders"],
     queryFn: async () => {
@@ -28,10 +28,13 @@ export default function CustomerSalesPage() {
         .from("orders")
         .select("*")
         .eq("status", "finalized")
-        .not("customer_name", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data.filter((o) => o.customer_name && o.customer_name.trim() !== "");
+      // Assign "Venda Balcão" to orders without customer_name
+      return data.map((o) => ({
+        ...o,
+        customer_name: o.customer_name && o.customer_name.trim() !== "" ? o.customer_name : "Venda Balcão",
+      }));
     },
   });
 
