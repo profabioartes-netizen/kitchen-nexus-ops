@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ☕ Coffee Thrones — Agente Local de Impressão ESC/POS
+ * ☕ Coffee Thrones — Agente Local de Impressão ESC/POS (TCP)
  *
  * Rode este script no notebook do caixa:
  *   cd print-agent && npm install && npm start
@@ -9,34 +9,16 @@
  *   SUPABASE_URL        — URL do projeto
  *   SUPABASE_ANON_KEY   — chave anon/publishable
  *   POLL_INTERVAL_MS    — intervalo de polling fallback (padrão 5000)
- *   PRINT_MODE          — "spooler" (Windows, padrão) ou "tcp" (rede direta)
  */
 
 import { createClient } from "@supabase/supabase-js";
 import net from "node:net";
-import { execSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { randomBytes } from "node:crypto";
-
-// ── Station → Windows Printer Name mapping ──────────────────────────
-const STATION_PRINTER_MAP = {
-  "Caixa":     process.env.PRINTER_CAIXA     || "ELGIN i9 CAIXA",
-  "Cozinha":   process.env.PRINTER_COZINHA   || "ELGIN i9 COZINHAOFC",
-  "Bebidas":   process.env.PRINTER_BEBIDAS   || "ELGIN i9 BEBIDAS",
-  "Sobremesa": process.env.PRINTER_SOBREMESA || "ELGIN i9 SOBREMESAS",
-};
-
-// ── All stations auto-print ─────────────────────────────────────────
-const AUTO_PRINT_STATIONS = Object.keys(STATION_PRINTER_MAP);
 
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
   supabaseUrl: process.env.SUPABASE_URL || "https://hzjplccmbjvvbinaqmny.supabase.co",
   supabaseKey: process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6anBsY2NtYmp2dmJpbmFxbW55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQ1OTgsImV4cCI6MjA4ODY3MDU5OH0.oNkFASofgqJDoFFth1PNK3rKSQvllXSoysCZlo4azB0",
   pollInterval: parseInt(process.env.POLL_INTERVAL_MS || "5000"),
-  printMode: process.env.PRINT_MODE || "spooler", // "spooler" or "tcp"
 };
 
 const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
@@ -311,84 +293,7 @@ function buildTicket(job) {
   return buildProductionTicket(job);
 }
 
-// ── Windows Spooler: send raw ESC/POS to named printer ──────────────
-// Uses PowerShell + winspool.drv to bypass the driver and send raw bytes
-const RAW_PRINT_PS1 = `
-param([string]$PrinterName, [string]$FilePath)
-Add-Type -TypeDefinition @"
-using System;
-using System.IO;
-using System.Runtime.InteropServices;
-public class RawPrint {
-    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
-    public struct DOCINFOW {
-        [MarshalAs(UnmanagedType.LPWStr)] public string pDocName;
-        [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile;
-        [MarshalAs(UnmanagedType.LPWStr)] public string pDatatype;
-    }
-    [DllImport("winspool.drv", CharSet=CharSet.Unicode, SetLastError=true)]
-    public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
-    [DllImport("winspool.drv", CharSet=CharSet.Unicode, SetLastError=true)]
-    public static extern bool StartDocPrinter(IntPtr hPrinter, int Level, ref DOCINFOW pDocInfo);
-    [DllImport("winspool.drv", SetLastError=true)]
-    public static extern bool StartPagePrinter(IntPtr hPrinter);
-    [DllImport("winspool.drv", SetLastError=true)]
-    public static extern bool WritePrinter(IntPtr hPrinter, byte[] pBuf, int cbBuf, out int pcWritten);
-    [DllImport("winspool.drv", SetLastError=true)]
-    public static extern bool EndPagePrinter(IntPtr hPrinter);
-    [DllImport("winspool.drv", SetLastError=true)]
-    public static extern bool EndDocPrinter(IntPtr hPrinter);
-    [DllImport("winspool.drv", SetLastError=true)]
-    public static extern bool ClosePrinter(IntPtr hPrinter);
-
-    public static void SendRaw(string printerName, byte[] data) {
-        IntPtr hPrinter;
-        if (!OpenPrinter(printerName, out hPrinter, IntPtr.Zero))
-            throw new Exception("OpenPrinter failed for: " + printerName);
-        try {
-            var di = new DOCINFOW { pDocName = "CoffeeThrones", pDatatype = "RAW" };
-            if (!StartDocPrinter(hPrinter, 1, ref di))
-                throw new Exception("StartDocPrinter failed");
-            try {
-                StartPagePrinter(hPrinter);
-                int written;
-                WritePrinter(hPrinter, data, data.Length, out written);
-                EndPagePrinter(hPrinter);
-            } finally { EndDocPrinter(hPrinter); }
-        } finally { ClosePrinter(hPrinter); }
-    }
-}
-"@
-[RawPrint]::SendRaw($PrinterName, [System.IO.File]::ReadAllBytes($FilePath))
-`;
-
-function sendToWindowsSpooler(printerName, data) {
-  const id = randomBytes(6).toString("hex");
-  const tempFile = join(tmpdir(), `ct_print_${id}.bin`);
-  const ps1File = join(tmpdir(), `ct_rawprint_${id}.ps1`);
-
-  return new Promise((resolve, reject) => {
-    try {
-      writeFileSync(tempFile, data);
-      writeFileSync(ps1File, RAW_PRINT_PS1, "utf-8");
-
-      execSync(
-        `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${ps1File}" -PrinterName "${printerName}" -FilePath "${tempFile}"`,
-        { timeout: 15000, windowsHide: true, stdio: "pipe" }
-      );
-
-      resolve();
-    } catch (err) {
-      const msg = err.stderr ? err.stderr.toString().trim() : err.message;
-      reject(new Error(`Windows spooler error (${printerName}): ${msg}`));
-    } finally {
-      try { unlinkSync(tempFile); } catch {}
-      try { unlinkSync(ps1File); } catch {}
-    }
-  });
-}
-
-// ── TCP send (fallback for network printers) ────────────────────────
+// ── TCP send: direct ESC/POS to printer via socket ──────────────────
 function sendToPrinterTcp(ip, port, data) {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket();
@@ -409,22 +314,13 @@ function sendToPrinterTcp(ip, port, data) {
   });
 }
 
-// ── Unified send: Windows spooler first, TCP fallback ───────────────
-async function sendToPrinter(station, printer, data) {
-  const windowsPrinterName = STATION_PRINTER_MAP[station];
-
-  if (CONFIG.printMode === "spooler" && windowsPrinterName) {
-    await sendToWindowsSpooler(windowsPrinterName, data);
-    return windowsPrinterName;
+// ── Send to printer using IP from DB ────────────────────────────────
+async function sendToPrinter(printer, data) {
+  if (!printer?.ip) {
+    throw new Error(`Impressora "${printer?.name || "?"}" sem IP configurado`);
   }
-
-  // TCP fallback
-  if (printer?.ip) {
-    await sendToPrinterTcp(printer.ip, printer.port, data);
-    return `${printer.ip}:${printer.port}`;
-  }
-
-  throw new Error(`Sem destino de impressão para estação "${station}" (sem nome Windows nem IP configurado)`);
+  await sendToPrinterTcp(printer.ip, printer.port || 9100, data);
+  return `${printer.ip}:${printer.port || 9100}`;
 }
 
 // ── Printers cache ──────────────────────────────────────────────────
@@ -456,6 +352,9 @@ let agentPaused = false;
 let jobsProcessed = 0;
 let realtimeConnected = false;
 
+// ── All stations auto-print ─────────────────────────────────────────
+const AUTO_PRINT_STATIONS = ["Caixa", "Cozinha", "Bebidas", "Sobremesa"];
+
 // ── Process a single job ────────────────────────────────────────────
 async function processJob(job, printers) {
   if (processedIds.has(job.id)) return;
@@ -466,9 +365,13 @@ async function processJob(job, printers) {
 
   const printer = findPrinterForStation(printers, job.station);
 
-  // For spooler mode, we don't strictly need a DB printer record
-  if (CONFIG.printMode === "tcp" && !printer) {
+  if (!printer) {
     console.warn(`⚠️  Sem impressora para estação "${job.station}" — job ${job.id.slice(0, 8)} ignorado`);
+    return;
+  }
+
+  if (!printer.ip) {
+    console.warn(`⚠️  Impressora "${printer.name}" sem IP — job ${job.id.slice(0, 8)} ignorado`);
     return;
   }
 
@@ -481,7 +384,7 @@ async function processJob(job, printers) {
       .then(() => {});
 
     const ticket = buildTicket(job);
-    const dest = await sendToPrinter(job.station, printer, ticket);
+    const dest = await sendToPrinter(printer, ticket);
 
     await supabase
       .from("print_jobs")
@@ -545,8 +448,7 @@ async function pollAndPrint() {
   }
 }
 
-// ── Health check ────────────────────────────────────────────────────
-// TCP health check (used only in tcp mode)
+// ── Health check: TCP probe to each printer ─────────────────────────
 function checkPrinterHealthTcp(ip, port) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
@@ -563,20 +465,9 @@ async function healthCheckLoop() {
     const now = new Date().toISOString();
 
     for (const printer of printers) {
-      let online = false;
+      if (!printer.ip) continue;
 
-      // Spooler mode: assume printer is online if a mapping exists for its station
-      if (CONFIG.printMode === "spooler") {
-        const winName = STATION_PRINTER_MAP[printer.station];
-        if (winName) {
-          online = true;
-        }
-      }
-
-      // TCP mode: actually probe the printer
-      if (!online && printer.ip) {
-        online = await checkPrinterHealthTcp(printer.ip, printer.port);
-      }
+      const online = await checkPrinterHealthTcp(printer.ip, printer.port || 9100);
 
       if (online) {
         await supabase
@@ -654,25 +545,20 @@ function setupRealtime() {
 
 // ── Startup ─────────────────────────────────────────────────────────
 console.log("");
-console.log("  ☕ Coffee Thrones — Agente de Impressão ESC/POS");
+console.log("  ☕ Coffee Thrones — Agente de Impressão ESC/POS (TCP)");
 console.log("  ────────────────────────────────────────────────");
 console.log(`  Supabase:  ${CONFIG.supabaseUrl}`);
-console.log(`  Modo:      ${CONFIG.printMode === "spooler" ? "Windows Spooler (RAW)" : "TCP direto"}`);
+console.log(`  Modo:      TCP direto (ESC/POS via socket)`);
 console.log(`  Realtime:  WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
-console.log(`  Health:    10s`);
-console.log("");
-console.log("  Mapeamento estação → impressora Windows:");
-for (const [station, name] of Object.entries(STATION_PRINTER_MAP)) {
-  console.log(`    ${station.padEnd(10)} → ${name}`);
-}
+console.log(`  Health:    TCP probe a cada 10s`);
 console.log("");
 
 // Initial printers fetch + health check
 getPrinters().then((printers) => {
-  if (printers.length === 0 && CONFIG.printMode === "tcp") {
+  if (printers.length === 0) {
     console.warn("⚠️  Nenhuma impressora ativa encontrada. Configure em /impressoras");
-  } else if (printers.length > 0) {
-    console.log("  Impressoras no banco:");
+  } else {
+    console.log("  Impressoras configuradas:");
     for (const p of printers) {
       console.log(`    → ${p.station}: ${p.name} (${p.ip}:${p.port})`);
     }
