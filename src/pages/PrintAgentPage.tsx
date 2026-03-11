@@ -62,6 +62,7 @@ function buildBillHTML(job: any) {
   return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
     ${buildMedievalHeader()}
     <div class="center small">CNPJ: ${CNPJ}</div>
+    <div class="center small">São José dos Salgados - MG</div>
     <div class="sep"></div>
     <div class="center subtitle">REGISTRO DA COMANDA</div>
     <div class="sep"></div>
@@ -69,7 +70,7 @@ function buildBillHTML(job: any) {
       ${p.customer_name ? `<div>CLIENTE: ${p.customer_name}</div>` : ""}
       ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
       ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
-      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      ${p.waiter_name ? `<div>ATENDENTE: ${p.waiter_name}</div>` : ""}
       <div>DATA: ${date}  HORA: ${time}</div>
     </div>
     <div class="sep"></div>
@@ -187,7 +188,12 @@ function TicketPreview({ job }: { job: any }) {
         {isCancellation && (
           <p className="text-xs font-bold text-destructive tracking-widest mt-1">*** CANCELAMENTO ***</p>
         )}
-        {isBill && <p className="text-[10px] text-muted-foreground mt-0.5">CNPJ: {CNPJ}</p>}
+        {isBill && (
+          <>
+            <p className="text-[10px] text-muted-foreground mt-0.5">CNPJ: {CNPJ}</p>
+            <p className="text-[10px] text-muted-foreground">São José dos Salgados - MG</p>
+          </>
+        )}
         {!isCaixa && !isCancellation && !isBill && (
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>
         )}
@@ -212,7 +218,7 @@ function TicketPreview({ job }: { job: any }) {
           <span>MESA: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
           <span className="normal-case">{time}</span>
         </div>
-        {p.waiter_name && <p className="text-muted-foreground uppercase">GARÇOM: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
+        {p.waiter_name && <p className="text-muted-foreground uppercase">ATENDENTE: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
         <p className="text-muted-foreground text-[10px]">{date}</p>
 
         <div className="border-t border-dashed border-muted-foreground/30" />
