@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Send, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save,
 } from "lucide-react";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -1159,8 +1159,8 @@ export default function TableOrderPage() {
                   onClick={() => sendToKitchen.mutate()}
                   className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4" />
-                  <span className="text-sm">Enviar ({unsentCount})</span>
+                  <Printer className="h-4 w-4" />
+                  <span className="text-sm">Imprimir ({unsentCount})</span>
                 </button>
                 <button
                   disabled={unpaidItems.length === 0}
