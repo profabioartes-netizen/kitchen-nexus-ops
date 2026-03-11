@@ -47,6 +47,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   const [uploading, setUploading] = useState(false);
   const [suggestions, setSuggestions] = useState<ImageSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchedName = useRef<string>("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
