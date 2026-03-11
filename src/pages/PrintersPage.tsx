@@ -18,7 +18,14 @@ export default function PrintersPage() {
       if (error) throw error;
       return data;
     },
+    refetchInterval: 10000, // refresh to pick up health status
   });
+
+  const isOnline = (printer: any) => {
+    if (!printer.last_seen_at) return false;
+    const lastSeen = new Date(printer.last_seen_at).getTime();
+    return Date.now() - lastSeen < 30000; // online if seen in last 30s
+  };
 
   // Fetch all non-printed jobs for queue display
   const { data: activeJobs = [] } = useQuery({
