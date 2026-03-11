@@ -515,7 +515,7 @@ function setupRealtime() {
         if (updated && updated.status === "pending") {
           processedIds.delete(updated.id);
           console.log(`  🔄 Realtime: reimpressão job ${updated.id.slice(0, 8)}`);
-          processJobById(updated.id);
+          processJobDirect(updated);
         }
       }
     )
