@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle } from "lucide-react";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
@@ -20,19 +20,24 @@ export default function PrintersPage() {
     },
   });
 
-  // Fetch pending print jobs count
-  const { data: pendingJobs = [] } = useQuery({
-    queryKey: ["print_jobs_pending_count"],
+  // Fetch active print jobs (pending, processing, error)
+  const { data: activeJobs = [] } = useQuery({
+    queryKey: ["print_jobs_active"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("print_jobs")
         .select("*")
-        .in("status", ["pending", "processing"]);
+        .in("status", ["pending", "processing", "error"])
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return data;
     },
     refetchInterval: 3000,
   });
+
+  const pendingCount = activeJobs.filter((j) => j.status === "pending" || j.status === "processing").length;
+  const errorCount = activeJobs.filter((j) => j.status === "error").length;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -78,6 +83,51 @@ export default function PrintersPage() {
     },
   });
 
+  const clearQueueMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .delete()
+        .in("status", ["pending", "processing", "error"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+      toast.success("Fila de impressão limpa com sucesso");
+    },
+    onError: () => toast.error("Erro ao limpar fila de impressão"),
+  });
+
+  const reprintMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .update({ status: "pending", printed_at: null })
+        .eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+      toast.success("Job reenviado para impressão");
+    },
+    onError: () => toast.error("Erro ao reenviar job"),
+  });
+
+  const cancelJobMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      const { error } = await supabase
+        .from("print_jobs")
+        .update({ status: "canceled" })
+        .eq("id", jobId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+      toast.success("Job cancelado");
+    },
+    onError: () => toast.error("Erro ao cancelar job"),
+  });
+
   const openNew = () => {
     setForm({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
     setEditing(null);
@@ -94,24 +144,17 @@ export default function PrintersPage() {
     if (confirm("Remover esta impressora?")) removeMutation.mutate(id);
   };
 
-  const clearQueueMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("print_jobs")
-        .delete()
-        .in("status", ["pending", "processing"]);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["print_jobs_pending_count"] });
-      toast.success("Fila de impressão limpa com sucesso");
-    },
-    onError: () => {
-      toast.error("Erro ao limpar fila de impressão");
-    },
-  });
+  const statusLabel: Record<string, string> = {
+    pending: "Pendente",
+    processing: "Processando",
+    error: "Erro",
+  };
 
-  const pendingCount = pendingJobs.length;
+  const statusColor: Record<string, string> = {
+    pending: "bg-accent/15 text-accent",
+    processing: "bg-accent/15 text-accent",
+    error: "bg-destructive/15 text-destructive",
+  };
 
   if (isLoading) {
     return (
@@ -132,24 +175,28 @@ export default function PrintersPage() {
       </div>
 
       {/* Action bar: Queue controls */}
-      <div className="flex flex-wrap items-center gap-4 mb-6 p-4 rounded-lg border bg-card">
-        {/* Clear queue button */}
+      <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
         <button
           onClick={() => clearQueueMutation.mutate()}
-          disabled={pendingCount === 0 || clearQueueMutation.isPending}
+          disabled={(pendingCount + errorCount) === 0 || clearQueueMutation.isPending}
           className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
         >
           <Trash className="h-4 w-4" />
           Limpar fila de impressão
         </button>
 
-        {/* Queue counter */}
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Fila atual:</span>
           <span className="font-semibold text-foreground">{pendingCount} pedido{pendingCount !== 1 ? "s" : ""}</span>
         </div>
 
-        {/* Agent toggle */}
+        {errorCount > 0 && (
+          <div className="flex items-center gap-2 text-sm text-destructive font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            {errorCount} com erro
+          </div>
+        )}
+
         <button
           onClick={() => setAgentActive(!agentActive)}
           className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ml-auto ${
@@ -159,12 +206,83 @@ export default function PrintersPage() {
           }`}
         >
           <Power className="h-4 w-4" />
-          Agente de impressão: {agentActive ? "Ativo" : "Pausado"}
+          Agente: {agentActive ? "Ativo" : "Pausado"}
         </button>
       </div>
 
+      {/* Error alert banner */}
+      {errorCount > 0 && (
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <span>
+            <strong>{errorCount} job{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
+            Verifique a impressora e use <strong>Reimprimir</strong> para reenviar manualmente.
+          </span>
+        </div>
+      )}
+
+      {/* Active print queue */}
+      {activeJobs.length > 0 && (
+        <div className="rounded-lg border bg-card overflow-hidden mb-6">
+          <div className="px-4 py-3 border-b bg-secondary/30">
+            <h3 className="text-sm font-semibold">Fila de Impressão</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-secondary/20">
+                <th className="text-left px-4 py-2 font-medium">Ticket</th>
+                <th className="text-left px-4 py-2 font-medium">Estação</th>
+                <th className="text-left px-4 py-2 font-medium">Item</th>
+                <th className="text-center px-4 py-2 font-medium">Status</th>
+                <th className="text-left px-4 py-2 font-medium">Criado em</th>
+                <th className="px-4 py-2 w-28"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeJobs.map((job) => {
+                const payload = job.payload as any;
+                const createdAt = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                return (
+                  <tr key={job.id} className={`border-b last:border-0 ${job.status === "error" ? "bg-destructive/5" : "hover:bg-secondary/30"}`}>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{job.id.slice(0, 8)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{job.station}</td>
+                    <td className="px-4 py-3">{payload?.product_name || payload?.type || "—"}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColor[job.status] || ""}`}>
+                        {statusLabel[job.status] || job.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{createdAt}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          title="Reimprimir"
+                          onClick={() => reprintMutation.mutate(job.id)}
+                          disabled={reprintMutation.isPending}
+                          className="rounded p-1.5 hover:bg-accent/10 text-accent"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </button>
+                        <button
+                          title="Cancelar job"
+                          onClick={() => cancelJobMutation.mutate(job.id)}
+                          disabled={cancelJobMutation.isPending}
+                          className="rounded p-1.5 hover:bg-destructive/10 text-destructive"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <p className="text-sm text-muted-foreground mb-6">
-        Configure o roteamento de impressoras térmicas por estação. O agente de impressão (<code>/impressoras/agente</code>) consome a fila de jobs automaticamente.
+        Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir.
       </p>
 
       {/* Routing diagram */}
