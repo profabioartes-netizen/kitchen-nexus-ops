@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Loader2, Shield, Coffee } from "lucide-react";
+import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserProfile {
   id: string;
@@ -13,11 +14,17 @@ interface UserProfile {
 
 export default function UsersPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "waiter">("waiter");
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users_profiles"],
@@ -79,14 +86,33 @@ export default function UsersPage() {
     },
     onSuccess: () => {
       toast.success("Usuário removido!");
+      setDeleteTarget(null);
+      setConfirmPassword("");
       queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
     },
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || !confirmPassword || !user?.email) return;
+    setConfirmingDelete(true);
+    try {
+      // Re-authenticate the current admin by signing in with their password
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: confirmPassword,
+      });
+      if (error) {
+        toast.error("Senha incorreta!");
+        return;
+      }
+      deleteMutation.mutate(deleteTarget.id);
+    } finally {
+      setConfirmingDelete(false);
+    }
+  };
+
   const roleLabel = (r: string) => (r === "admin" ? "Administrador" : "Garçom");
-  const RoleIcon = ({ r }: { r: string }) =>
-    r === "admin" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />;
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
@@ -162,7 +188,7 @@ export default function UsersPage() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    <RoleIcon r={r} />
+                    {r === "admin" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
                     {roleLabel(r)}
                   </button>
                 ))}
@@ -189,6 +215,60 @@ export default function UsersPage() {
         </form>
       )}
 
+      {/* Delete confirmation dialog */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg border bg-card p-6 w-full max-w-sm mx-4 space-y-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-destructive/15 text-destructive">
+                <Lock className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Confirmar exclusão</h3>
+                <p className="text-xs text-muted-foreground">
+                  Remover <strong>{deleteTarget.full_name}</strong>
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Digite sua senha de administrador para confirmar:
+            </p>
+
+            <input
+              type="password"
+              autoFocus
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && confirmPassword.length >= 6) handleDeleteConfirm();
+              }}
+              placeholder="Sua senha"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setConfirmPassword("");
+                }}
+                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={confirmPassword.length < 6 || confirmingDelete || deleteMutation.isPending}
+                onClick={handleDeleteConfirm}
+                className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {confirmingDelete || deleteMutation.isPending ? "Verificando..." : "Confirmar Exclusão"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Users list */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
@@ -211,7 +291,7 @@ export default function UsersPage() {
                       : "bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  <RoleIcon r={u.role} />
+                  {u.role === "admin" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
@@ -231,11 +311,7 @@ export default function UsersPage() {
                   <option value="waiter">Garçom</option>
                 </select>
                 <button
-                  onClick={() => {
-                    if (confirm(`Remover ${u.full_name}?`)) {
-                      deleteMutation.mutate(u.id);
-                    }
-                  }}
+                  onClick={() => setDeleteTarget(u)}
                   className="rounded p-1.5 hover:bg-destructive/10 text-destructive transition-colors"
                   title="Remover usuário"
                 >
