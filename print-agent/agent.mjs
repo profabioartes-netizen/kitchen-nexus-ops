@@ -28,7 +28,7 @@ const ESC = 0x1b;
 const GS = 0x1d;
 
 const COLS = 42;
-const SEP_CHAR = "-";
+const SEP_CHAR = ".";
 const CNPJ = "00.000.000/0001-00";
 
 // ── PC860 (Portuguese) codepage mapping ─────────────────────────────
