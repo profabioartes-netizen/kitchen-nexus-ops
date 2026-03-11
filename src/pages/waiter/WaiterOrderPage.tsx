@@ -325,13 +325,12 @@ export default function WaiterOrderPage() {
       }
 
       // Batch insert items + print jobs in parallel
-      const promises: Promise<any>[] = [
-        supabase.from("order_items").insert(orderItemRows as any).then(),
-      ];
-      if (printJobRows.length > 0) {
-        promises.push(supabase.from("print_jobs").insert(printJobRows).then());
-      }
-      await Promise.all(promises);
+      const insertItemsP = supabase.from("order_items").insert(orderItemRows as any);
+      const insertPrintP = printJobRows.length > 0
+        ? supabase.from("print_jobs").insert(printJobRows)
+        : null;
+      await insertItemsP;
+      if (insertPrintP) await insertPrintP;
 
       const addedTotal = previousOrder.items.reduce((s: number, i: any) => s + Number(i.price) * i.quantity, 0);
       const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + addedTotal;
