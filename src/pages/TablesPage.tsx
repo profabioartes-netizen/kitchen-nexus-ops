@@ -85,9 +85,36 @@ export default function TablesPage() {
         queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["active_locks"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
+
+  // Active locks query
+  const { data: activeLocks = [] } = useQuery({
+    queryKey: ["active_locks"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comanda_locks")
+        .select("table_id, locked_by_user_id, locked_by_user_name, lock_expires_at")
+        .gt("lock_expires_at", new Date().toISOString());
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 30000,
+  });
+
+  const locksByTable = useMemo(() => {
+    const map: Record<string, { userId: string; userName: string }> = {};
+    for (const lock of activeLocks) {
+      if (new Date(lock.lock_expires_at) > new Date()) {
+        map[lock.table_id] = { userId: lock.locked_by_user_id, userName: lock.locked_by_user_name };
+      }
+    }
+    return map;
+  }, [activeLocks]);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables"],
