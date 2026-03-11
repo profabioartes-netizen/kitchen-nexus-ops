@@ -468,7 +468,7 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-3 sm:p-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
