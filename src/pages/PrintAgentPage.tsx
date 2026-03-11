@@ -32,7 +32,6 @@ function buildMedievalHeader(stationLine?: string) {
   return `
     <div class="center">
       <div class="sep-double"></div>
-      <div class="title">REINO</div>
       <div class="title">COFFEE THRONES</div>
       <div class="sep-double"></div>
       ${stationLine ? `<div class="subtitle">${stationLine}</div>` : ""}
