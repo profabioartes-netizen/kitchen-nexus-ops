@@ -198,13 +198,17 @@ function buildBillTicket(job) {
   ];
 
   // Table/customer info centered
-  if (p.table_name) {
+  if (p.mesa_name) {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(upperPt(p.table_name)));
+    parts.push(cmd.text(upperPt(p.mesa_name)));
     parts.push(cmd.bold(false));
   }
-  const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
-  parts.push(cmd.text(`CLIENTE : ${upperPt(customerLabel)}`));
+  if (p.table_name && p.table_name !== "—") {
+    parts.push(cmd.text(`CLIENTE : ${upperPt(p.table_name)}`));
+  } else {
+    const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
+    parts.push(cmd.text(`CLIENTE : ${upperPt(customerLabel)}`));
+  }
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
@@ -336,10 +340,13 @@ function buildProductionTicket(job) {
   ];
 
   // Mesa / Garçom info centered — same as cashier
-  if (p.table_name) {
+  if (p.mesa_name) {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(upperPt(p.table_name)));
+    parts.push(cmd.text(upperPt(p.mesa_name)));
     parts.push(cmd.bold(false));
+  }
+  if (p.table_name && p.table_name !== "—") {
+    parts.push(cmd.text(`CLIENTE : ${upperPt(p.table_name)}`));
   }
   if (p.waiter_name) {
     parts.push(cmd.text(`LANÇADO POR : ${upperPt(p.waiter_name)}`));

@@ -554,6 +554,7 @@ export default function TableOrderPage() {
         payload: {
           type: "bill",
           table_name: table?.name || "—",
+          mesa_name: table?.default_name || null,
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
           order_id: order.id,
@@ -643,6 +644,7 @@ export default function TableOrderPage() {
         payload: {
           type: "receipt",
           table_name: table?.name || "—",
+          mesa_name: table?.default_name || null,
           waiter_name: order.waiter_name || null,
           order_id: order.id,
           items: orderItems.map((i) => ({
@@ -788,6 +790,7 @@ export default function TableOrderPage() {
             payload: {
               items: stationItems,
               table_name: table?.name || "—",
+              mesa_name: table?.default_name || null,
               waiter_name: order.waiter_name || null,
               order_id: order.id,
             },
