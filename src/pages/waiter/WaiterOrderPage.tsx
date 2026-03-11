@@ -365,20 +365,32 @@ export default function WaiterOrderPage() {
           complementsByItem[c.order_item_id].push({ name: c.complement_name, price: Number(c.price) });
         }
 
-        // Create individual print jobs per item
-        const printJobRows: any[] = [];
+        // Group unsent items by station into one print job per station
+        const itemsByStation: Record<string, any[]> = {};
         for (const item of unsent) {
           const product = products.find((p) => p.id === item.product_id);
           const station = (product as any)?.station || "";
           if (!station) continue;
+          if (!itemsByStation[station]) itemsByStation[station] = [];
           const itemComplements = complementsByItem[item.id] || [];
+          itemsByStation[station].push({
+            product_name: item.product_name,
+            quantity: item.quantity,
+            notes: item.notes || null,
+            complements: itemComplements.map((c) => c.name),
+          });
+        }
+
+        const printJobRows: any[] = [];
+        for (const [station, stationItems] of Object.entries(itemsByStation)) {
           printJobRows.push({
-            station, status: "pending",
+            station,
+            status: "pending",
             payload: {
-              product_name: item.product_name, quantity: item.quantity,
-              table_name: table?.name || "—", waiter_name: order.waiter_name || profile?.full_name || null,
-              order_id: order.id, notes: item.notes || null,
-              complements: itemComplements.map((c) => c.name),
+              items: stationItems,
+              table_name: table?.name || "—",
+              waiter_name: order.waiter_name || profile?.full_name || null,
+              order_id: order.id,
             },
           });
         }
