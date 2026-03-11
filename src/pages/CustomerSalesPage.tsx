@@ -160,7 +160,7 @@ export default function CustomerSalesPage() {
   }, [orders]);
 
   const filtered = customerData.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    normalize(c.name).includes(normalize(search))
   );
 
   if (loadingOrders) {
