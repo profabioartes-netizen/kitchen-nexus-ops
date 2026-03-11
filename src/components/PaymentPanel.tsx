@@ -14,6 +14,7 @@ import {
 
 type OrderItem = {
   id: string;
+  product_id?: string;
   product_name: string;
   price: number;
   quantity: number;
@@ -39,6 +40,7 @@ interface PaymentPanelProps {
   onCancel: () => void;
   isPending: boolean;
   onAddQuickItem?: (product: { id: string; name: string; price: number }, quantity: number) => void;
+  onRemoveQuickItem?: (productId: string) => void;
 }
 
 const methodLabels: Record<string, string> = {
@@ -57,15 +59,20 @@ const methodColors: Record<string, string> = {
 
 const METHODS = ["cash", "debit", "credit", "pix"] as const;
 
-function QuickSaleRow({ product, onAdd }: {
+function QuickSaleRow({ product, onAdd, onRemove, addedQty }: {
   product: { id: string; name: string; price: number };
   onAdd: (product: { id: string; name: string; price: number }, quantity: number) => void;
+  onRemove?: (productId: string) => void;
+  addedQty: number;
 }) {
   const [qty, setQty] = useState(1);
   return (
     <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
       <span className="text-sm font-medium flex-1">{product.name}</span>
       <span className="text-xs text-muted-foreground">R$ {Number(product.price).toFixed(2)}</span>
+      {addedQty > 0 && (
+        <span className="text-[10px] bg-accent/15 text-accent rounded-full px-1.5 py-0.5 font-bold">{addedQty}×</span>
+      )}
       <div className="flex items-center gap-1">
         <button
           onClick={() => setQty(Math.max(1, qty - 1))}
@@ -87,6 +94,14 @@ function QuickSaleRow({ product, onAdd }: {
       >
         ADD
       </button>
+      {addedQty > 0 && onRemove && (
+        <button
+          onClick={() => onRemove(product.id)}
+          className="rounded-md bg-destructive/15 text-destructive px-2 py-1 text-[11px] font-bold hover:bg-destructive/25 transition-colors"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -100,6 +115,7 @@ export default function PaymentPanel({
   onCancel,
   isPending,
   onAddQuickItem,
+  onRemoveQuickItem,
 }: PaymentPanelProps) {
   // ── Adjustments ──
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
@@ -490,9 +506,18 @@ export default function PaymentPanel({
                 <Zap className="h-3 w-3" /> Venda Rápida
               </h3>
               <div className="space-y-1.5">
-                {quickSaleProducts.map((p) => (
-                  <QuickSaleRow key={p.id} product={p} onAdd={onAddQuickItem} />
-                ))}
+                {quickSaleProducts.map((p) => {
+                  const added = orderItems.find((i) => i.product_id === p.id);
+                  return (
+                    <QuickSaleRow
+                      key={p.id}
+                      product={p}
+                      onAdd={onAddQuickItem}
+                      onRemove={onRemoveQuickItem}
+                      addedQty={added ? added.quantity : 0}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}

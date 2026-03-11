@@ -802,6 +802,21 @@ export default function TableOrderPage() {
     toast.success(`${product.name} ×${quantity} adicionado!`);
   };
 
+  // Remove quick-sale item from order
+  const removeQuickItem = async (productId: string) => {
+    if (!order) return;
+    const item = orderItems.find((i) => i.product_id === productId);
+    if (!item) return;
+    await supabase.from("order_items").delete().eq("id", item.id);
+    const newTotal = orderItems.filter((i) => i.id !== item.id).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+    await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
+    await logActivity(tableId!, "item_removed", `Removido (venda rápida): ${item.product_name}`, order.id, profile?.full_name);
+    queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
+    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+    toast.success(`${item.product_name} removido!`);
+  };
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
@@ -1242,6 +1257,7 @@ export default function TableOrderPage() {
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
               onAddQuickItem={addQuickItem}
+              onRemoveQuickItem={removeQuickItem}
             />
           )}
         </div>
