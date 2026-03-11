@@ -333,25 +333,15 @@ export default function TableOrderPage() {
   const createOrder = useMutation({
     mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
       const waiterLabel = profile?.full_name || null;
-      const defaultName = (table as any)?.default_name || "Comanda";
-      // Extract customer name: from params, or from table.name if it differs from default
-      let customerName = params?.customerName || null;
-      if (!customerName && table && table.name !== defaultName) {
-        // table.name may be "DefaultName — CustomerName" or just "CustomerName"
-        const dashIdx = table.name.indexOf(" — ");
-        customerName = dashIdx >= 0 ? table.name.substring(dashIdx + 3) : table.name;
-      }
+      const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
-      const tableLabel = customerName ? `${defaultName} — ${customerName}` : undefined;
       const { data, error } = await supabase
         .from("orders")
         .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
         .select()
         .single();
       if (error) throw error;
-      const updatePayload: any = { status: "occupied" };
-      if (tableLabel) updatePayload.name = tableLabel;
-      await supabase.from("restaurant_tables").update(updatePayload).eq("id", tableId!);
+      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
@@ -870,20 +860,15 @@ export default function TableOrderPage() {
             <div className="flex flex-col">
               <input
                 type="text"
-                defaultValue={order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+                defaultValue={order?.customer_name || ""}
+                placeholder={(table as any)?.default_name || table?.name || "Nome do cliente"}
                 key={`name-${table?.id}-${order?.customer_name}`}
                 onBlur={async (e) => {
                   const newName = e.target.value.trim();
-                  if (table && newName && newName !== table.name) {
-                    const defaultName = (table as any)?.default_name || "Comanda";
-                    const tableLabel = `${defaultName} — ${newName}`;
-                    await supabase.from("restaurant_tables").update({ name: tableLabel }).eq("id", table.id);
-                    queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
-                    queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-                    if (order) {
-                      await supabase.from("orders").update({ customer_name: newName }).eq("id", order.id);
-                      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
-                    }
+                  if (order && newName !== (order.customer_name || "")) {
+                    await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
+                    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
                   }
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
