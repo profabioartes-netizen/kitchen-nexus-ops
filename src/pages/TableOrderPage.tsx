@@ -449,7 +449,7 @@ export default function TableOrderPage() {
             table_name: table?.name || "—",
             waiter_name: currentOrder.waiter_name || waiterName || null,
             notes: notes || null,
-            complements: complements.map((c) => `${c.name}${c.price > 0 ? ` (+R$${c.price.toFixed(2)})` : ""}`),
+            complements: complements.map((c) => c.name),
             order_id: currentOrder.id,
           },
         });
