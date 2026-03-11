@@ -28,7 +28,7 @@ export default function UsersPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const ADMIN_PIN = "9774";
+  const ADMIN_PIN = "9135";
 
   if (!unlocked) {
     return (
