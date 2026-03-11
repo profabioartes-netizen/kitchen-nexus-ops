@@ -1386,8 +1386,8 @@ export default function TableOrderPage() {
         </div>
       </div>
 
-      {/* Timeline panel */}
-      {showTimeline && tableId && (
+      {/* Timeline panel - desktop only */}
+      {showTimeline && tableId && !isMobile && (
         <div className="w-72 border-l bg-background flex flex-col">
           <div className="p-4 border-b">
             <h2 className="font-semibold text-sm">Histórico de Atividades</h2>
