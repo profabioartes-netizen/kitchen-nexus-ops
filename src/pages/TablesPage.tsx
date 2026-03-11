@@ -742,10 +742,11 @@ export default function TablesPage() {
                     {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
                   </button>
                 )}
-              </div>
+              </motion.div>
             );
           })}
         </div>
+        </LayoutGroup>
       )}
 
       {/* Floor Plan View */}
