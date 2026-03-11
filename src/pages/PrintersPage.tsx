@@ -20,6 +20,20 @@ export default function PrintersPage() {
     },
   });
 
+  // Fetch pending print jobs count
+  const { data: pendingJobs = [] } = useQuery({
+    queryKey: ["print_jobs_pending_count"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("print_jobs")
+        .select("*")
+        .in("status", ["pending", "processing"]);
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 3000,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
