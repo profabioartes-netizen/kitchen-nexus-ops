@@ -65,6 +65,7 @@ export default function PaymentPanel({
   onPay,
   onCancel,
   isPending,
+  onAddQuickItem,
 }: PaymentPanelProps) {
   // ── Adjustments ──
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
