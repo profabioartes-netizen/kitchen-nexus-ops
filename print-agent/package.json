@@ -1,0 +1,14 @@
+{
+  "name": "coffee-thrones-print-agent",
+  "version": "1.0.0",
+  "description": "Agente local de impressão ESC/POS para Coffee Thrones",
+  "main": "agent.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node agent.mjs",
+    "dev": "node --watch agent.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0"
+  }
+}
