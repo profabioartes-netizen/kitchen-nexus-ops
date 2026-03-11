@@ -33,6 +33,11 @@ export function ComplementsManager() {
   const [newCompName, setNewCompName] = useState("");
   const [newCompPrice, setNewCompPrice] = useState("0,00");
 
+  // Edit complement state
+  const [editingCompId, setEditingCompId] = useState<string | null>(null);
+  const [editCompName, setEditCompName] = useState("");
+  const [editCompPrice, setEditCompPrice] = useState("0,00");
+
   // Drag state
   const [dragItem, setDragItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
