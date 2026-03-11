@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,6 +46,15 @@ export default function PrintersPage() {
 
   const pendingCount = activeJobs.filter((j) => j.status === "pending" || j.status === "processing").length;
   const errorCount = activeJobs.filter((j) => j.status === "error").length;
+  const QUEUE_LIMIT = 30;
+  const queueOverflow = pendingCount > QUEUE_LIMIT;
+
+  // Auto-pause agent when queue overflows
+  useEffect(() => {
+    if (queueOverflow && agentActive) {
+      setAgentActive(false);
+    }
+  }, [queueOverflow, agentActive]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -236,6 +245,24 @@ export default function PrintersPage() {
             className="flex-shrink-0 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-medium hover:bg-destructive/20 transition-colors"
           >
             Ver fila
+          </button>
+        </div>
+      )}
+
+      {/* Queue overflow warning */}
+      {queueOverflow && (
+        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400 text-sm">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <span>
+              Fila muito grande detectada ({pendingCount} pedidos). Agente pausado para evitar desperdício de papel.
+            </span>
+          </div>
+          <button
+            onClick={() => setAgentActive(true)}
+            className="flex-shrink-0 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-medium hover:bg-yellow-500/20 transition-colors"
+          >
+            Retomar agente
           </button>
         </div>
       )}

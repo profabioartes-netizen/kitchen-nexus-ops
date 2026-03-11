@@ -342,18 +342,22 @@ function findPrinterForStation(printers, station) {
 }
 
 // ── Main loop ───────────────────────────────────────────────────────
+const MAX_QUEUE_SIZE = 30;
 const processedIds = new Set();
 let running = true;
+let agentPaused = false;
 let jobsProcessed = 0;
 
 async function pollAndPrint() {
+  if (agentPaused) return;
+
   try {
     const { data: jobs, error } = await supabase
       .from("print_jobs")
       .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
-      .limit(10);
+      .limit(50);
 
     if (error) {
       console.error("❌ Erro ao buscar jobs:", error.message);
@@ -361,6 +365,13 @@ async function pollAndPrint() {
     }
 
     if (!jobs || jobs.length === 0) return;
+
+    // Queue safety: auto-pause if too many pending jobs
+    if (jobs.length > MAX_QUEUE_SIZE) {
+      agentPaused = true;
+      console.warn(`⚠️  Fila muito grande detectada (${jobs.length} jobs). Agente pausado para evitar desperdício de papel. Retome manualmente.`);
+      return;
+    }
 
     const printers = await getPrinters();
 
