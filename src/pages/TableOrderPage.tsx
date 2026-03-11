@@ -1159,8 +1159,8 @@ export default function TableOrderPage() {
                   onClick={() => sendToKitchen.mutate()}
                   className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4" />
-                  <span className="text-sm">Enviar ({unsentCount})</span>
+                  <Printer className="h-4 w-4" />
+                  <span className="text-sm">Imprimir ({unsentCount})</span>
                 </button>
                 <button
                   disabled={unpaidItems.length === 0}
