@@ -9,7 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
-  TrendingUp,
+  UserRound,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
@@ -20,7 +20,7 @@ const navItems = [
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
-  { to: "/clientes", icon: TrendingUp, label: "Vendas" },
+  { to: "/clientes", icon: UserRound, label: "Vendas" },
 ];
 
 export function NavigationRail() {
