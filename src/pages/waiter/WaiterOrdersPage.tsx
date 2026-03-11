@@ -10,6 +10,21 @@ import { ptBR } from "date-fns/locale";
 export default function WaiterOrdersPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Realtime: sync orders instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel('waiter-orders-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["waiter_open_orders"] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        queryClient.invalidateQueries({ queryKey: ["waiter_open_orders"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["waiter_open_orders"],
