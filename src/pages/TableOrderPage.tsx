@@ -364,9 +364,9 @@ export default function TableOrderPage() {
   useEffect(() => {
     if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
       autoCreatedRef.current = true;
-      createOrder.mutate({});
+      createOrder.mutate({ customerName: navState?.customerName });
     }
-  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending]);
+  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending, navState]);
 
 
   const addItem = useMutation({
