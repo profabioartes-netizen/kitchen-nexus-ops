@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save,
+  Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save, ShoppingBag, UtensilsCrossed,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
@@ -713,6 +714,8 @@ export default function TableOrderPage() {
 
   // Cancel / delete order without sending to reports
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
   const cancelOrder = useMutation({
     mutationFn: async () => {
       leavingRef.current = true;
@@ -913,10 +916,68 @@ export default function TableOrderPage() {
     );
   }
 
+  const orderItemCount = orderItems.reduce((s, i) => s + i.quantity, 0);
+
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row overflow-hidden">
+      {/* Mobile header */}
+      {isMobile && (
+        <div className="flex items-center gap-2 p-3 border-b bg-card">
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-md border bg-background p-2.5 hover:bg-secondary transition-colors touch-manipulation"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-semibold leading-tight truncate">
+              {order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
+            </h1>
+            {order?.customer_name && (
+              <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
+            )}
+          </div>
+          {table && (
+            <span className={`table-status-${table.status} rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border`}>
+              {statusLabels[table.status as TableStatus] ?? table.status}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Mobile tab switcher */}
+      {isMobile && (
+        <div className="flex border-b bg-card md:hidden">
+          <button
+            onClick={() => setMobileTab("menu")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-colors touch-manipulation ${
+              mobileTab === "menu" ? "text-accent border-b-2 border-accent" : "text-muted-foreground"
+            }`}
+          >
+            <UtensilsCrossed className="h-4 w-4" />
+            Cardápio
+          </button>
+          <button
+            onClick={() => setMobileTab("order")}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition-colors touch-manipulation relative ${
+              mobileTab === "order" ? "text-accent border-b-2 border-accent" : "text-muted-foreground"
+            }`}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Comanda
+            {orderItemCount > 0 && (
+              <span className="absolute top-1.5 right-[calc(50%-40px)] flex h-5 min-w-5 items-center justify-center rounded-full bg-accent text-accent-foreground text-[10px] font-bold px-1">
+                {orderItemCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Left: Product selection */}
-      <div className="flex-1 flex flex-col p-4 overflow-hidden">
+      <div className={`flex-1 flex flex-col p-3 md:p-4 overflow-hidden ${isMobile && mobileTab !== "menu" ? "hidden" : ""}`}>
+        {/* Desktop header */}
+        {!isMobile && (
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate("/")}
@@ -981,6 +1042,7 @@ export default function TableOrderPage() {
             Histórico
           </button>
         </div>
+        )}
 
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -993,12 +1055,12 @@ export default function TableOrderPage() {
           />
         </div>
 
-        <div className="flex gap-2 mb-3 flex-wrap">
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-hide">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap touch-manipulation ${
                 activeCategory === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-card text-foreground hover:bg-secondary"
@@ -1009,22 +1071,22 @@ export default function TableOrderPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto flex-1 items-start content-start">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 overflow-auto flex-1 items-start content-start">
           {filtered.map((product) => (
             <button
               key={product.id}
               onClick={() => setSelectedProduct(product)}
               disabled={addItem.isPending}
-              className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden"
+              className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden touch-manipulation"
             >
               {product.image_url && (
                 <div className="w-full aspect-[4/3] bg-secondary">
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                 </div>
               )}
-              <div className="p-3">
-                <span className="font-medium text-sm">{product.name}</span>
-                <span className="text-accent font-semibold mt-1 block">
+              <div className="p-2 md:p-3">
+                <span className="font-medium text-xs md:text-sm">{product.name}</span>
+                <span className="text-accent font-semibold mt-0.5 md:mt-1 block text-sm">
                   R$ {Number(product.price).toFixed(2)}
                 </span>
               </div>
@@ -1034,7 +1096,7 @@ export default function TableOrderPage() {
       </div>
 
       {/* Right: Order panel */}
-      <div className="w-80 border-l bg-card flex flex-col">
+      <div className={`md:w-80 md:border-l bg-card flex flex-col ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
         <div className="p-4 border-b">
           <h2 className="font-semibold text-lg">Comanda</h2>
           <div className="flex items-center gap-1.5 mt-1">
@@ -1156,35 +1218,35 @@ export default function TableOrderPage() {
                     <p className="text-[10px] text-muted-foreground italic mt-0.5 truncate">📝 {item.notes}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-1 ml-2">
+                <div className="flex items-center gap-1.5 ml-2">
                   <button
                     onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }}
-                    className="rounded p-1 hover:bg-secondary"
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation"
                     title="Observação"
                   >
-                    <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                    <StickyNote className="h-4 w-4 md:h-3.5 md:w-3.5 text-muted-foreground" />
                   </button>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
                     disabled={item.sent_to_kitchen}
-                    className="rounded p-1 hover:bg-secondary disabled:opacity-30"
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary disabled:opacity-30 touch-manipulation"
                   >
-                    <Minus className="h-3.5 w-3.5" />
+                    <Minus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
-                  <span className="w-6 text-center text-sm font-medium">{remainingQty}</span>
+                  <span className="w-7 text-center text-sm font-bold">{remainingQty}</span>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })}
                     disabled={item.sent_to_kitchen}
-                    className="rounded p-1 hover:bg-secondary disabled:opacity-30"
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary disabled:opacity-30 touch-manipulation"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
                   <button
                     onClick={() => removeItem.mutate(item.id)}
                     disabled={item.sent_to_kitchen}
-                    className="rounded p-1 hover:bg-destructive/10 text-destructive ml-1 disabled:opacity-30"
+                    className="rounded p-1.5 md:p-1 hover:bg-destructive/10 text-destructive ml-0.5 disabled:opacity-30 touch-manipulation"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
                 </div>
               </div>
@@ -1227,7 +1289,7 @@ export default function TableOrderPage() {
         )}
 
         {/* Footer */}
-        <div className="border-t p-4 space-y-3">
+        <div className="border-t p-3 md:p-4 space-y-3">
           {order?.status === "paid_pending_finalization" ? (
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
@@ -1271,15 +1333,15 @@ export default function TableOrderPage() {
                 <button
                   disabled={!order || orderItems.length === 0 || printBill.isPending}
                   onClick={() => printBill.mutate()}
-                  className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md bg-blue-600 text-white py-3.5 md:py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 touch-manipulation"
                 >
                   <Printer className="h-4 w-4" />
-                  <span className="text-sm">{printBill.isPending ? "Imprimindo..." : "Imprimir"}</span>
+                  <span className="text-sm">{printBill.isPending ? "..." : "Imprimir"}</span>
                 </button>
                 <button
                   disabled={unpaidItems.length === 0}
                   onClick={() => setShowPayment(true)}
-                  className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground py-3.5 md:py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50 touch-manipulation"
                 >
                   <CreditCard className="h-4 w-4" />
                   <span className="text-sm">Fechar Conta</span>
@@ -1289,19 +1351,19 @@ export default function TableOrderPage() {
                 <button
                   onClick={() => saveOrder.mutate()}
                   disabled={!order || orderItems.length === 0 || saveOrder.isPending}
-                  className="flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md py-3.5 md:py-2 text-sm font-medium transition-colors disabled:opacity-50 touch-manipulation"
                   style={{ backgroundColor: "#16a34a", color: "white" }}
                 >
-                  <Save className="h-3.5 w-3.5" />
+                  <Save className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   {saveOrder.isPending ? "Salvando..." : "Salvar"}
                 </button>
                 <button
                   onClick={() => setShowCancelConfirm(true)}
                   disabled={!order || cancelOrder.isPending}
-                  className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 rounded-md border border-destructive/30 text-destructive py-3.5 md:py-2 text-sm font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50 touch-manipulation"
                 >
-                  <Ban className="h-3.5 w-3.5" />
-                  Cancelar Mesa
+                  <Ban className="h-4 w-4 md:h-3.5 md:w-3.5" />
+                  Cancelar
                 </button>
               </div>
             </>
@@ -1324,8 +1386,8 @@ export default function TableOrderPage() {
         </div>
       </div>
 
-      {/* Timeline panel */}
-      {showTimeline && tableId && (
+      {/* Timeline panel - desktop only */}
+      {showTimeline && tableId && !isMobile && (
         <div className="w-72 border-l bg-background flex flex-col">
           <div className="p-4 border-b">
             <h2 className="font-semibold text-sm">Histórico de Atividades</h2>
