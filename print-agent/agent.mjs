@@ -237,10 +237,10 @@ function buildCancellationTicket(job) {
     cmd.alignLeft,
   ];
 
-  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
-  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
-  parts.push(cmd.text(`Hora: ${time}  ${date}`));
+  if (p.table_name) parts.push(cmd.text(`MESA: ${p.table_name}`));
+  if (p.comanda_number) parts.push(cmd.text(`COMANDA: #${p.comanda_number}`));
+  if (p.waiter_name) parts.push(cmd.text(`GARCOM: ${p.waiter_name}`));
+  parts.push(cmd.text(`HORA: ${time}  ${date}`));
   parts.push(cmd.doubleSep());
 
   parts.push(cmd.alignCenter);
@@ -253,10 +253,12 @@ function buildCancellationTicket(job) {
 
   if (p.notes) {
     parts.push(cmd.text(""));
-    parts.push(cmd.text(`Motivo: ${p.notes}`));
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text(`MOTIVO: ${p.notes}`));
+    parts.push(cmd.bold(false));
   } else {
     parts.push(cmd.text(""));
-    parts.push(cmd.text("Item removido da comanda"));
+    parts.push(cmd.text("ITEM REMOVIDO DA COMANDA"));
   }
 
   parts.push(cmd.doubleSep());
