@@ -236,125 +236,101 @@ export default function CustomerSalesPage() {
                     const items = itemsByOrder[order.id] || [];
                     const payments = paymentsByOrder[order.id] || [];
                     const logs = logsByOrder[order.id] || [];
-                    const isOrderExpanded = expandedOrder === order.id;
 
                     return (
-                      <div key={order.id} className="rounded-lg border bg-secondary/20 overflow-hidden">
+                      <div key={order.id} className="rounded-lg border bg-secondary/20 overflow-hidden p-3 space-y-3">
                         {/* Order header */}
-                        <button
-                          onClick={() => setExpandedOrder(isOrderExpanded ? null : order.id)}
-                          className="w-full flex items-center gap-3 p-3 text-left hover:bg-secondary/40 transition-colors"
-                        >
-                          <Receipt className="h-4 w-4 text-accent flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">
-                                {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Receipt className="h-4 w-4 text-accent flex-shrink-0" />
+                            <span className="text-sm font-medium">
+                              {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                            {order.waiter_name && (
+                              <span className="text-[10px] bg-secondary rounded-full px-2 py-0.5 text-muted-foreground">
+                                {order.waiter_name}
                               </span>
-                              {order.waiter_name && (
-                                <span className="text-[10px] bg-secondary rounded-full px-2 py-0.5 text-muted-foreground">
-                                  {order.waiter_name}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-xs text-muted-foreground">{items.length} {items.length === 1 ? "item" : "itens"}</span>
-                              <span className="text-xs text-muted-foreground">•</span>
-                              <span className="text-xs text-muted-foreground">
-                                {payments.map((p) => methodLabels[p.method] || p.method).join(", ") || "—"}
-                              </span>
-                            </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
-                            {isOrderExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
-                          </div>
-                        </button>
+                          <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
+                        </div>
 
-                        {/* Expanded order details */}
-                        {isOrderExpanded && (
-                          <div className="border-t px-3 pb-3 pt-2 space-y-4">
-                            {/* Products */}
-                            <div>
-                              <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                                <Package className="h-3 w-3" />
-                                Produtos
-                              </h4>
-                              <div className="space-y-1">
-                                {items.map((item) => (
-                                  <div key={item.id} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <span className="text-accent font-semibold text-xs">×{item.quantity}</span>
-                                      <span className="truncate">{item.product_name}</span>
-                                    </div>
-                                    <span className="text-muted-foreground flex-shrink-0 ml-2">
-                                      R$ {(Number(item.price) * item.quantity).toFixed(2)}
+                        {/* Products */}
+                        <div>
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                            <Package className="h-3 w-3" /> Produtos
+                          </h4>
+                          <div className="space-y-1">
+                            {items.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="text-accent font-semibold text-xs">×{item.quantity}</span>
+                                  <span className="truncate">{item.product_name}</span>
+                                </div>
+                                <span className="text-muted-foreground flex-shrink-0 ml-2">
+                                  R$ {(Number(item.price) * item.quantity).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                            {items.length === 0 && (
+                              <p className="text-xs text-muted-foreground italic">Sem itens registrados</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Payments */}
+                        {payments.length > 0 && (
+                          <div>
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                              <CreditCard className="h-3 w-3" /> Pagamentos
+                            </h4>
+                            <div className="space-y-1">
+                              {payments.map((payment) => (
+                                <div key={payment.id} className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="bg-accent/10 text-accent rounded-full px-2 py-0.5 text-[10px] font-medium">
+                                      {methodLabels[payment.method] || payment.method}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {format(new Date(payment.created_at), "HH:mm", { locale: ptBR })}
                                     </span>
                                   </div>
-                                ))}
-                                {items.length === 0 && (
-                                  <p className="text-xs text-muted-foreground italic">Sem itens registrados</p>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Payments */}
-                            {payments.length > 0 && (
-                              <div>
-                                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                                  <CreditCard className="h-3 w-3" />
-                                  Pagamentos
-                                </h4>
-                                <div className="space-y-1">
-                                  {payments.map((payment) => (
-                                    <div key={payment.id} className="flex items-center justify-between text-sm">
-                                      <div className="flex items-center gap-2">
-                                        <span className="bg-accent/10 text-accent rounded-full px-2 py-0.5 text-[10px] font-medium">
-                                          {methodLabels[payment.method] || payment.method}
-                                        </span>
-                                        <span className="text-[10px] text-muted-foreground">
-                                          {format(new Date(payment.created_at), "HH:mm", { locale: ptBR })}
-                                        </span>
-                                      </div>
-                                      <span className="font-medium">R$ {Number(payment.amount).toFixed(2)}</span>
-                                    </div>
-                                  ))}
+                                  <span className="font-medium">R$ {Number(payment.amount).toFixed(2)}</span>
                                 </div>
-                              </div>
-                            )}
-
-                            {/* Activity log */}
-                            {logs.length > 0 && (
-                              <div>
-                                <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                                  <Clock className="h-3 w-3" />
-                                  Histórico
-                                </h4>
-                                <div className="space-y-1.5">
-                                  {logs.map((log) => (
-                                    <div key={log.id} className="flex gap-2 text-xs">
-                                      <span className="text-muted-foreground flex-shrink-0 tabular-nums">
-                                        {format(new Date(log.created_at), "HH:mm")}
-                                      </span>
-                                      <span className="text-foreground/80">{log.description}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Order metadata */}
-                            <div className="flex items-center gap-4 text-[10px] text-muted-foreground pt-1 border-t border-border/50">
-                              <span className="flex items-center gap-1">
-                                <CalendarDays className="h-3 w-3" />
-                                {format(new Date(order.created_at), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                              </span>
-                              {(order as any).guests && (order as any).guests > 1 && (
-                                <span>{(order as any).guests} pessoas</span>
-                              )}
+                              ))}
                             </div>
                           </div>
                         )}
+
+                        {/* Activity log */}
+                        {logs.length > 0 && (
+                          <div>
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                              <Clock className="h-3 w-3" /> Histórico
+                            </h4>
+                            <div className="space-y-1">
+                              {logs.map((log) => (
+                                <div key={log.id} className="flex gap-2 text-xs">
+                                  <span className="text-muted-foreground flex-shrink-0 tabular-nums">
+                                    {format(new Date(log.created_at), "HH:mm")}
+                                  </span>
+                                  <span className="text-foreground/80">{log.description}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Order metadata */}
+                        <div className="flex items-center gap-4 text-[10px] text-muted-foreground pt-1 border-t border-border/50">
+                          <span className="flex items-center gap-1">
+                            <CalendarDays className="h-3 w-3" />
+                            {format(new Date(order.created_at), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                          </span>
+                          {order.guests && order.guests > 1 && (
+                            <span>{order.guests} pessoas</span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
