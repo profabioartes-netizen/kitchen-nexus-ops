@@ -12,8 +12,44 @@ function buildTicketHTML(job: any) {
   const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = new Date(job.created_at).toLocaleDateString("pt-BR");
   const isCaixa = job.station === "Caixa";
+  const isCancellation = p.type === "cancellation";
 
-  // For Caixa, payload may contain multiple items (full bill)
+  if (isCancellation) {
+    return `<!DOCTYPE html>
+<html><head><style>
+  @page { margin: 0; size: 80mm auto; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; margin: 4mm; padding: 0; color: #000; }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .separator { border-top: 1px dashed #000; margin: 6px 0; }
+  .cancel-header { font-size: 16px; font-weight: bold; margin: 6px 0; letter-spacing: 2px; }
+  .item-name { font-size: 16px; font-weight: bold; }
+  .notes { font-style: italic; font-size: 11px; margin-top: 2px; }
+  h2 { font-size: 16px; margin: 0 0 2px 0; }
+</style></head><body>
+  <div class="center">
+    <h2>☕ COFFEE THRONES</h2>
+    <div class="separator"></div>
+    <div class="cancel-header">*** CANCELAMENTO ***</div>
+    <div class="separator"></div>
+  </div>
+  <div>
+    <div><span class="bold">Mesa:</span> ${p.table_name || "—"}</div>
+    ${p.waiter_name ? `<div><span class="bold">Garçom:</span> ${p.waiter_name}</div>` : ""}
+    <div><span class="bold">Hora:</span> ${date} ${time}</div>
+  </div>
+  <div class="separator"></div>
+  <div class="center" style="font-size:13px; font-weight:bold; margin:4px 0;">CANCELAR:</div>
+  <div class="item-name" style="text-align:center;">${p.quantity || 1}× ${p.product_name}</div>
+  ${p.notes ? `<div class="notes center">Obs: ${p.notes}</div>` : ""}
+  <div class="separator"></div>
+  <div class="center" style="font-size:10px; margin-top:4px;">Ticket #${job.id?.slice(0, 8)}</div>
+  <div style="height:16px;"></div>
+</body></html>`;
+  }
+
+  // Regular ticket (production or Caixa)
   const items = p.items as any[] | undefined;
   const singleItem = !items;
 
@@ -76,9 +112,7 @@ function buildTicketHTML(job: any) {
   ${itemsHtml}
   ${totalHtml}
   <div class="separator"></div>
-  <div class="center" style="font-size:10px; margin-top:4px;">
-    Ticket #${job.id?.slice(0, 8)}
-  </div>
+  <div class="center" style="font-size:10px; margin-top:4px;">Ticket #${job.id?.slice(0, 8)}</div>
   <div style="height:16px;"></div>
 </body></html>`;
 }
@@ -89,13 +123,17 @@ function TicketPreview({ job }: { job: any }) {
   const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const items = p.items as any[] | undefined;
   const isCaixa = job.station === "Caixa";
+  const isCancellation = p.type === "cancellation";
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden">
+    <div className={`rounded-lg border overflow-hidden ${isCancellation ? "border-destructive/50 bg-destructive/5" : "bg-card"}`}>
       {/* Thermal header */}
-      <div className="bg-foreground/5 px-4 py-3 text-center border-b">
+      <div className={`px-4 py-3 text-center border-b ${isCancellation ? "bg-destructive/10" : "bg-foreground/5"}`}>
         <p className="text-xs font-bold tracking-widest">☕ COFFEE THRONES</p>
-        {!isCaixa && <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>}
+        {isCancellation && (
+          <p className="text-xs font-bold text-destructive tracking-widest mt-1">*** CANCELAMENTO ***</p>
+        )}
+        {!isCaixa && !isCancellation && <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>}
       </div>
 
       <div className="px-4 py-3 space-y-2 text-sm font-mono">
@@ -110,8 +148,14 @@ function TicketPreview({ job }: { job: any }) {
 
         <div className="border-t border-dashed border-muted-foreground/30 my-1" />
 
-        {/* Items */}
-        {items ? (
+        {/* Cancellation content */}
+        {isCancellation ? (
+          <div className="text-center">
+            <p className="text-xs font-bold text-destructive mb-1">CANCELAR:</p>
+            <p className="font-bold text-destructive">{p.quantity || 1}× {p.product_name}</p>
+            {p.notes && <p className="text-xs italic text-muted-foreground mt-1">{p.notes}</p>}
+          </div>
+        ) : items ? (
           items.map((item: any, i: number) => (
             <div key={i} className="flex justify-between text-xs">
               <span className="font-medium">{item.quantity || 1}× {item.product_name}</span>

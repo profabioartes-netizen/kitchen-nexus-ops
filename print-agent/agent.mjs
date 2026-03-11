@@ -47,6 +47,42 @@ function buildTicket(job, printer) {
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
+  const isCancellation = p.type === "cancellation";
+
+  if (isCancellation) {
+    return Buffer.concat([
+      cmd.init,
+      cmd.alignCenter,
+      cmd.doubleSize(true),
+      cmd.text("COFFEE THRONES"),
+      cmd.doubleSize(false),
+      cmd.separator(),
+      cmd.bold(true),
+      cmd.doubleSize(true),
+      cmd.text("*** CANCELAMENTO ***"),
+      cmd.doubleSize(false),
+      cmd.bold(false),
+      cmd.separator(),
+      cmd.alignLeft,
+      cmd.text(`Mesa: ${p.table_name || "---"}`),
+      cmd.text(`Garcom: ${p.waiter_name || "---"}`),
+      cmd.text(`Hora: ${date}  ${time}`),
+      cmd.separator(),
+      cmd.alignCenter,
+      cmd.bold(true),
+      cmd.text("CANCELAR:"),
+      cmd.doubleSize(true),
+      cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`),
+      cmd.doubleSize(false),
+      cmd.bold(false),
+      ...(p.notes ? [cmd.text(`${p.notes}`)] : []),
+      cmd.separator(),
+      cmd.text(`Ticket #${job.id.slice(0, 8)}`),
+      cmd.text(""),
+      cmd.feedLines(3),
+      cmd.cut,
+    ]);
+  }
 
   const parts = [
     cmd.init,
@@ -68,14 +104,12 @@ function buildTicket(job, printer) {
     cmd.bold(false),
   ];
 
-  // Complements
   if (p.complements && p.complements.length > 0) {
     for (const c of p.complements) {
       parts.push(cmd.text(`  + ${c}`));
     }
   }
 
-  // Notes
   if (p.notes) {
     parts.push(cmd.text(`Obs: ${p.notes}`));
   }
