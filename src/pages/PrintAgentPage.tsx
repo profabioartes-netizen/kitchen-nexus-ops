@@ -1,78 +1,146 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff } from "lucide-react";
 
-// ── Ticket Builder ──────────────────────────────────────────────────
+// ── Stations that auto-print (production only) ──────────────────────
+const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
+
+// ── Ticket HTML Builder (thermal 80mm format) ───────────────────────
 function buildTicketHTML(job: any) {
   const p = job.payload as any;
   const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = new Date(job.created_at).toLocaleDateString("pt-BR");
-  const complements = p.complements?.length
-    ? p.complements.map((c: string) => `<div class="complement">  + ${c}</div>`).join("")
+  const isCaixa = job.station === "Caixa";
+
+  // For Caixa, payload may contain multiple items (full bill)
+  const items = p.items as any[] | undefined;
+  const singleItem = !items;
+
+  const complementsHtml = (complements: string[]) =>
+    complements?.length ? complements.map((c: string) => `<div class="complement">  + ${c}</div>`).join("") : "";
+
+  const itemsHtml = singleItem
+    ? `<div class="item">
+         <div class="item-name">${p.quantity || 1}× ${p.product_name}</div>
+         ${complementsHtml(p.complements || [])}
+         ${p.notes ? `<div class="notes">Obs: ${p.notes}</div>` : ""}
+       </div>`
+    : (items || []).map((item: any) =>
+        `<div class="item">
+           <div class="item-row">
+             <span>${item.quantity || 1}× ${item.product_name}</span>
+             <span>R$ ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
+           </div>
+           ${item.complements?.length ? item.complements.map((c: any) =>
+             `<div class="complement">  + ${typeof c === "string" ? c : c.name}${c.price ? ` R$${c.price.toFixed(2)}` : ""}</div>`
+           ).join("") : ""}
+           ${item.notes ? `<div class="notes">Obs: ${item.notes}</div>` : ""}
+         </div>`
+      ).join("");
+
+  const totalHtml = p.total != null
+    ? `<div class="separator"></div>
+       <div class="total-row"><span class="bold">TOTAL</span><span class="bold">R$ ${Number(p.total).toFixed(2)}</span></div>`
     : "";
 
   return `<!DOCTYPE html>
 <html><head><style>
   @page { margin: 0; size: 80mm auto; }
+  * { box-sizing: border-box; }
   body { font-family: 'Courier New', monospace; font-size: 12px; width: 72mm; margin: 4mm; padding: 0; color: #000; }
   .center { text-align: center; }
   .bold { font-weight: bold; }
   .separator { border-top: 1px dashed #000; margin: 6px 0; }
+  .item { margin: 4px 0; }
   .item-name { font-size: 14px; font-weight: bold; }
-  .notes { font-style: italic; font-size: 11px; margin-top: 2px; }
+  .item-row { display: flex; justify-content: space-between; font-size: 12px; }
+  .notes { font-style: italic; font-size: 11px; margin-top: 1px; color: #333; }
   .complement { font-size: 11px; margin-top: 1px; }
+  .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
   h2 { font-size: 16px; margin: 0 0 2px 0; }
-  h3 { font-size: 13px; margin: 0; font-weight: normal; }
+  h3 { font-size: 13px; margin: 0; font-weight: normal; letter-spacing: 1px; }
 </style></head><body>
   <div class="center">
     <h2>☕ COFFEE THRONES</h2>
-    <h3>${job.station.toUpperCase()}</h3>
+    ${isCaixa ? "" : `<h3>${job.station.toUpperCase()}</h3>`}
     <div class="separator"></div>
   </div>
   <div>
-    <div><span class="bold">Mesa:</span> ${p.table_name || "—"}</div>
-    <div><span class="bold">Garçom:</span> ${p.waiter_name || "—"}</div>
-    <div><span class="bold">Data:</span> ${date} ${time}</div>
+    <div><span class="bold">Mesa:</span> ${p.table_name || "Balcão"}</div>
+    ${p.waiter_name ? `<div><span class="bold">Garçom:</span> ${p.waiter_name}</div>` : ""}
+    ${p.customer_name ? `<div><span class="bold">Cliente:</span> ${p.customer_name}</div>` : ""}
+    <div><span class="bold">Data:</span> ${date}  ${time}</div>
   </div>
   <div class="separator"></div>
-  <div>
-    <div class="item-name">${p.quantity || 1}× ${p.product_name}</div>
-    ${complements}
-    ${p.notes ? `<div class="notes">Obs: ${p.notes}</div>` : ""}
-  </div>
+  ${itemsHtml}
+  ${totalHtml}
   <div class="separator"></div>
-  <div class="center" style="font-size:10px; margin-top:4px;">Ticket #${job.id?.slice(0, 8)}</div>
+  <div class="center" style="font-size:10px; margin-top:4px;">
+    Ticket #${job.id?.slice(0, 8)}
+  </div>
+  <div style="height:16px;"></div>
 </body></html>`;
 }
 
-// ── Pending Job Card ────────────────────────────────────────────────
-function PendingJobCard({ job, printerName, onPrint }: { job: any; printerName: string; onPrint: () => void }) {
+// ── Ticket Preview (thermal-style card) ─────────────────────────────
+function TicketPreview({ job }: { job: any }) {
   const p = job.payload as any;
+  const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const items = p.items as any[] | undefined;
+  const isCaixa = job.station === "Caixa";
+
   return (
-    <div className="rounded-lg border bg-card p-4 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-accent">{job.station}</span>
-        <span className="text-[10px] text-muted-foreground">
-          {new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-        </span>
+    <div className="rounded-lg border bg-card overflow-hidden">
+      {/* Thermal header */}
+      <div className="bg-foreground/5 px-4 py-3 text-center border-b">
+        <p className="text-xs font-bold tracking-widest">☕ COFFEE THRONES</p>
+        {!isCaixa && <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>}
       </div>
-      <p className="font-medium text-sm">{p?.quantity || 1}× {p?.product_name}</p>
-      {p?.complements?.length > 0 && (
-        <div className="text-xs text-muted-foreground">
-          {p.complements.map((c: string, i: number) => <div key={i}>+ {c}</div>)}
+
+      <div className="px-4 py-3 space-y-2 text-sm font-mono">
+        {/* Meta */}
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Mesa: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
+          <span>{time}</span>
         </div>
-      )}
-      <p className="text-xs text-muted-foreground">Mesa: {p?.table_name || "—"}</p>
-      {p?.notes && <p className="text-xs italic text-muted-foreground">Obs: {p.notes}</p>}
-      <div className="text-[10px] text-muted-foreground">→ {printerName}</div>
-      <button
-        onClick={onPrint}
-        className="mt-auto flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90"
-      >
-        <Printer className="h-4 w-4" />
-        Imprimir
-      </button>
+        {p.waiter_name && (
+          <p className="text-xs text-muted-foreground">Garçom: <span className="text-foreground">{p.waiter_name}</span></p>
+        )}
+
+        <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+
+        {/* Items */}
+        {items ? (
+          items.map((item: any, i: number) => (
+            <div key={i} className="flex justify-between text-xs">
+              <span className="font-medium">{item.quantity || 1}× {item.product_name}</span>
+              <span className="text-muted-foreground">R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
+            </div>
+          ))
+        ) : (
+          <div>
+            <p className="font-semibold">{p.quantity || 1}× {p.product_name}</p>
+            {p.complements?.length > 0 && p.complements.map((c: string, i: number) => (
+              <p key={i} className="text-xs text-muted-foreground ml-2">+ {c}</p>
+            ))}
+            {p.notes && <p className="text-xs italic text-muted-foreground">Obs: {p.notes}</p>}
+          </div>
+        )}
+
+        {p.total != null && (
+          <>
+            <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+            <div className="flex justify-between font-bold text-sm">
+              <span>TOTAL</span>
+              <span>R$ {Number(p.total).toFixed(2)}</span>
+            </div>
+          </>
+        )}
+
+        <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+        <p className="text-center text-[10px] text-muted-foreground">#{job.id?.slice(0, 8)}</p>
+      </div>
     </div>
   );
 }
@@ -80,11 +148,14 @@ function PendingJobCard({ job, printerName, onPrint }: { job: any; printerName: 
 // ── Recent Job Row ──────────────────────────────────────────────────
 function RecentJobRow({ job }: { job: any }) {
   const p = job.payload as any;
+  const isCaixa = job.station === "Caixa";
   return (
     <div className="flex items-center gap-3 rounded-md bg-card px-3 py-2 text-sm">
       <CheckCircle2 className="h-4 w-4 text-[hsl(var(--status-free))] shrink-0" />
-      <span className="font-medium">{p?.product_name}</span>
-      <span className="text-muted-foreground">— {job.station}</span>
+      <span className="font-medium">{isCaixa ? (p.table_name || "Balcão") : (p?.product_name || "Ticket")}</span>
+      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+        isCaixa ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+      }`}>{job.station}</span>
       <span className="text-xs text-muted-foreground ml-auto">
         {job.printed_at && new Date(job.printed_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </span>
@@ -135,7 +206,7 @@ export default function PrintAgentPage() {
         .select("*")
         .eq("status", "printed")
         .order("printed_at", { ascending: false })
-        .limit(20);
+        .limit(30);
       if (error) throw error;
       return data;
     },
@@ -169,7 +240,7 @@ export default function PrintAgentPage() {
     },
   });
 
-  const printJob = useCallback((job: any) => {
+  const doPrint = useCallback((job: any) => {
     const html = buildTicketHTML(job);
     const iframe = printFrameRef.current;
     if (!iframe) return;
@@ -184,11 +255,15 @@ export default function PrintAgentPage() {
     }, 300);
   }, [markPrinted]);
 
-  // Auto-print
+  // Auto-print: ONLY production stations (not Caixa)
   useEffect(() => {
     if (!autoprint || jobs.length === 0) return;
     for (const job of jobs) {
       if (!processedIds.current.has(job.id)) {
+        // Skip Caixa — it requires manual action
+        if (!AUTO_PRINT_STATIONS.includes(job.station)) {
+          continue;
+        }
         processedIds.current.add(job.id);
         if (soundEnabled) {
           try {
@@ -197,23 +272,25 @@ export default function PrintAgentPage() {
             audio.play().catch(() => {});
           } catch {}
         }
-        printJob(job);
+        doPrint(job);
         break;
       }
     }
-  }, [jobs, autoprint, soundEnabled, printJob]);
+  }, [jobs, autoprint, soundEnabled, doPrint]);
 
   const getPrinterName = (station: string) => {
     const printer = printers.find((p) => p.station === station);
-    return printer ? `${printer.name} (${printer.ip})` : "Sem impressora";
+    return printer ? printer.name : "Sem impressora";
   };
 
-  const todayPrintedCount = recentJobs.length;
+  // Split jobs
+  const productionJobs = jobs.filter((j) => AUTO_PRINT_STATIONS.includes(j.station));
+  const caixaJobs = jobs.filter((j) => j.station === "Caixa");
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-6 h-full flex flex-col overflow-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center">
             <Coffee className="h-5 w-5 text-accent" />
@@ -230,7 +307,7 @@ export default function PrintAgentPage() {
               </span>
             </h1>
             <p className="text-sm text-muted-foreground">
-              Mantenha esta página aberta no computador conectado às impressoras térmicas.
+              Produção imprime automaticamente · Caixa imprime sob demanda
             </p>
           </div>
         </div>
@@ -240,6 +317,7 @@ export default function PrintAgentPage() {
             className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
               soundEnabled ? "bg-accent/10 text-accent" : "bg-card text-muted-foreground"
             }`}
+            title={soundEnabled ? "Som ligado" : "Som desligado"}
           >
             {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
@@ -250,74 +328,122 @@ export default function PrintAgentPage() {
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${autoprint ? "bg-[hsl(var(--status-free))] animate-pulse" : "bg-destructive"}`} />
-            {autoprint ? "Ativo" : "Pausado"}
+            {autoprint ? "Auto (Produção)" : "Pausado"}
           </button>
         </div>
       </div>
 
+      {/* Printers strip */}
+      <div className="flex gap-2 mb-5 flex-wrap">
+        {printers.map((p) => {
+          const isProduction = AUTO_PRINT_STATIONS.includes(p.station);
+          return (
+            <div key={p.id} className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs bg-card">
+              <Printer className="h-3 w-3 text-accent" />
+              <span className="font-medium">{p.station}</span>
+              <span className="text-muted-foreground">— {p.name}</span>
+              <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
+                isProduction
+                  ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+                  : "bg-accent/10 text-accent"
+              }`}>
+                {isProduction ? "Auto" : "Manual"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-5">
         <div className="rounded-lg border bg-card p-3 text-center">
-          <p className="text-2xl font-bold">{jobs.length}</p>
-          <p className="text-xs text-muted-foreground">Na fila</p>
+          <p className="text-2xl font-bold">{productionJobs.length}</p>
+          <p className="text-xs text-muted-foreground">Produção</p>
         </div>
         <div className="rounded-lg border bg-card p-3 text-center">
-          <p className="text-2xl font-bold text-[hsl(var(--status-free))]">{todayPrintedCount}</p>
-          <p className="text-xs text-muted-foreground">Impressos recentes</p>
+          <p className="text-2xl font-bold text-accent">{caixaJobs.length}</p>
+          <p className="text-xs text-muted-foreground">Caixa (manual)</p>
+        </div>
+        <div className="rounded-lg border bg-card p-3 text-center">
+          <p className="text-2xl font-bold text-[hsl(var(--status-free))]">{recentJobs.length}</p>
+          <p className="text-xs text-muted-foreground">Impressos</p>
         </div>
         <div className="rounded-lg border bg-card p-3 text-center">
           <p className="text-2xl font-bold">{printers.length}</p>
           <p className="text-xs text-muted-foreground">Impressoras</p>
         </div>
-        <div className="rounded-lg border bg-card p-3 text-center">
-          <p className="text-2xl font-bold">
-            {printers.map((p) => p.station).filter((v, i, a) => a.indexOf(v) === i).length}
-          </p>
-          <p className="text-xs text-muted-foreground">Estações</p>
-        </div>
       </div>
 
-      {/* Printers status */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {printers.map((p) => (
-          <div key={p.id} className="flex items-center gap-1.5 rounded-full bg-card border px-3 py-1 text-xs">
-            <Printer className="h-3 w-3 text-accent" />
-            <span className="font-medium">{p.station}</span>
-            <span className="text-muted-foreground">— {p.name} ({p.ip})</span>
+      {/* Production queue (auto-print) */}
+      {productionJobs.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
+            🔥 Produção — {productionJobs.length} pendente{productionJobs.length !== 1 ? "s" : ""}
+            {autoprint && <span className="text-[10px] text-[hsl(var(--status-free))] font-normal">(auto-imprimindo)</span>}
+            {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {productionJobs.map((job) => (
+              <div key={job.id} className="relative">
+                <TicketPreview job={job} />
+                <div className="px-4 pb-3">
+                  <div className="text-[10px] text-muted-foreground mb-2">→ {getPrinterName(job.station)}</div>
+                  <button
+                    onClick={() => doPrint(job)}
+                    className="w-full flex items-center justify-center gap-2 rounded-md bg-secondary text-secondary-foreground py-1.5 text-xs font-medium hover:opacity-90"
+                  >
+                    <Printer className="h-3 w-3" />
+                    Reimprimir
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-        {printers.length === 0 && (
-          <p className="text-xs text-muted-foreground italic">Nenhuma impressora ativa. Configure em /impressoras</p>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Pending jobs */}
-      <div className="mb-6">
+      {/* Caixa queue (manual only) */}
+      <div className="mb-5">
         <h2 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
-          Fila ({jobs.length} pendente{jobs.length !== 1 ? "s" : ""})
-          {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+          🧾 Caixa — {caixaJobs.length} pendente{caixaJobs.length !== 1 ? "s" : ""}
+          <span className="text-[10px] text-accent font-normal">(impressão manual)</span>
         </h2>
-        {jobs.length === 0 ? (
-          <div className="rounded-lg border bg-card p-8 flex flex-col items-center gap-2">
-            <CheckCircle2 className="h-8 w-8 text-[hsl(var(--status-free))]" />
-            <p className="text-sm text-muted-foreground">Nenhum ticket pendente</p>
+        {caixaJobs.length === 0 ? (
+          <div className="rounded-lg border bg-card p-6 flex flex-col items-center gap-2">
+            <CheckCircle2 className="h-6 w-6 text-[hsl(var(--status-free))]" />
+            <p className="text-sm text-muted-foreground">Nenhum recibo pendente</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {jobs.map((job) => (
-              <PendingJobCard
-                key={job.id}
-                job={job}
-                printerName={getPrinterName(job.station)}
-                onPrint={() => printJob(job)}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {caixaJobs.map((job) => (
+              <div key={job.id}>
+                <TicketPreview job={job} />
+                <div className="px-4 pb-3 pt-2">
+                  <div className="text-[10px] text-muted-foreground mb-2">→ {getPrinterName(job.station)}</div>
+                  <button
+                    onClick={() => doPrint(job)}
+                    className="w-full flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir Recibo
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </div>
 
+      {/* Empty production state */}
+      {productionJobs.length === 0 && (
+        <div className="rounded-lg border bg-card p-6 flex flex-col items-center gap-2 mb-5">
+          <CheckCircle2 className="h-6 w-6 text-[hsl(var(--status-free))]" />
+          <p className="text-sm text-muted-foreground">Nenhum ticket de produção pendente</p>
+        </div>
+      )}
+
       {/* Recent printed */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0">
         <h2 className="text-sm font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
           Impressos recentes
         </h2>
@@ -329,15 +455,6 @@ export default function PrintAgentPage() {
             <p className="text-xs text-muted-foreground italic py-4 text-center">Nenhum ticket impresso ainda</p>
           )}
         </div>
-      </div>
-
-      {/* Desktop agent info */}
-      <div className="mt-4 rounded-lg border border-dashed border-muted-foreground/30 p-4">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-1">Agente Desktop (ESC/POS)</h3>
-        <p className="text-xs text-muted-foreground">
-          Para impressão direta via rede TCP, instale o agente Node.js no notebook do caixa:{" "}
-          <code className="bg-secondary px-1 py-0.5 rounded text-[11px]">cd print-agent && npm install && npm start</code>
-        </p>
       </div>
 
       <iframe ref={printFrameRef} className="hidden" title="print-frame" />
