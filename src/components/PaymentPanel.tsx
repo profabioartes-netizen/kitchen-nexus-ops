@@ -39,6 +39,7 @@ interface PaymentPanelProps {
   onCancel: () => void;
   isPending: boolean;
   onAddQuickItem?: (product: { id: string; name: string; price: number }, quantity: number) => void;
+  onRemoveQuickItem?: (productId: string) => void;
 }
 
 const methodLabels: Record<string, string> = {
