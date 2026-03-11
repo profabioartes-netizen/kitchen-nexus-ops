@@ -192,34 +192,38 @@ function TicketPreview({ job }: { job: any }) {
         {/* Bill subtitle */}
         {isBill && (
           <>
-            <p className="text-center font-bold text-xs tracking-wide">REGISTRO DA COMANDA</p>
+            <p className="text-center font-bold text-xs tracking-wide uppercase">REGISTRO DA COMANDA</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
         )}
 
-        {/* Meta info */}
-        {p.customer_name && <p className="text-muted-foreground">Cliente: <span className="text-foreground">{p.customer_name}</span></p>}
-        {p.comanda_number && <p className="text-muted-foreground">Comanda: <span className="text-foreground">#{p.comanda_number}</span></p>}
-        <div className="flex justify-between text-muted-foreground">
-          <span>Mesa: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
-          <span>{time}</span>
+        {/* Meta info — uppercase labels */}
+        {p.customer_name && <p className="text-muted-foreground uppercase">CLIENTE: <span className="text-foreground font-medium">{p.customer_name}</span></p>}
+        {p.comanda_number && <p className="text-muted-foreground uppercase">COMANDA: <span className="text-foreground font-medium">#{p.comanda_number}</span></p>}
+        <div className="flex justify-between text-muted-foreground uppercase">
+          <span>MESA: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
+          <span className="normal-case">{time}</span>
         </div>
-        {p.waiter_name && <p className="text-muted-foreground">Garçom: <span className="text-foreground">{p.waiter_name}</span></p>}
+        {p.waiter_name && <p className="text-muted-foreground uppercase">GARÇOM: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
         <p className="text-muted-foreground text-[10px]">{date}</p>
 
         <div className="border-t border-dashed border-muted-foreground/30" />
 
         {/* Cancellation content */}
         {isCancellation ? (
-          <div className="text-center py-1">
-            <p className="font-bold text-destructive mb-1">CANCELAR:</p>
-            <p className="font-bold text-destructive text-sm">{p.quantity || 1}× {p.product_name}</p>
-            <p className="text-[10px] italic text-muted-foreground mt-1">{p.notes || "Item removido da comanda"}</p>
+          <div className="text-center py-2">
+            <div className="border-b-2 border-destructive/40 pb-1 mb-2">
+              <p className="font-bold text-destructive text-sm uppercase tracking-wider">CANCELAR:</p>
+            </div>
+            <p className="font-bold text-destructive text-base">{p.quantity || 1}× {p.product_name?.toUpperCase()}</p>
+            <div className="border-t border-dashed border-destructive/30 mt-2 pt-1">
+              <p className="text-[10px] italic text-muted-foreground">{p.notes || "ITEM REMOVIDO DA COMANDA"}</p>
+            </div>
           </div>
         ) : items ? (
           /* Bill items list */
           <>
-            <div className="flex justify-between font-bold">
+            <div className="flex justify-between font-bold uppercase">
               <span>ITEM</span><span>TOTAL</span>
             </div>
             <div className="border-t border-dashed border-muted-foreground/30" />
@@ -232,29 +236,30 @@ function TicketPreview({ job }: { job: any }) {
                 {item.complements?.map((c: any, ci: number) => (
                   <p key={ci} className="text-[10px] text-muted-foreground ml-2">+ {typeof c === "string" ? c : c.name}</p>
                 ))}
-                {item.notes && <p className="text-[10px] italic text-muted-foreground ml-2">Obs: {item.notes}</p>}
+                {item.notes && <p className="text-[10px] italic text-muted-foreground ml-2 uppercase">OBS: {item.notes}</p>}
               </div>
             ))}
           </>
         ) : (
           /* Production single item */
           <div className="text-center py-1">
-            <p className="font-bold text-sm">{p.quantity || 1}× {p.product_name}</p>
+            <p className="font-bold text-sm uppercase">{p.quantity || 1}× {p.product_name}</p>
             {p.complements?.length > 0 && p.complements.map((c: string, i: number) => (
               <p key={i} className="text-[10px] text-muted-foreground">+ {c}</p>
             ))}
-            {p.notes && <p className="text-[10px] italic text-muted-foreground font-bold">Obs: {p.notes}</p>}
+            {p.notes && <p className="text-[10px] italic text-muted-foreground font-bold uppercase">OBS: {p.notes}</p>}
           </div>
         )}
 
-        {/* Totals for bills */}
+        {/* Totals for bills — bold emphasis */}
         {p.total != null && (
           <>
-            <div className="border-t border-dashed border-muted-foreground/30" />
-            <div className="flex justify-between font-bold text-sm">
-              <span>TOTAL</span>
-              <span>R$ {Number(p.total).toFixed(2)}</span>
+            <div className="border-t-2 border-foreground/30" />
+            <div className="flex justify-between font-bold text-sm py-1">
+              <span className="uppercase">TOTAL A PAGAR</span>
+              <span className="text-base">R$ {Number(p.total).toFixed(2)}</span>
             </div>
+            <div className="border-t-2 border-foreground/30" />
           </>
         )}
 
@@ -263,10 +268,10 @@ function TicketPreview({ job }: { job: any }) {
         {/* Bill footer */}
         {isBill && (
           <>
-            <p className="text-center text-[10px] text-muted-foreground">DOCUMENTO SEM VALOR FISCAL</p>
+            <p className="text-center text-[10px] text-muted-foreground uppercase tracking-wide">DOCUMENTO SEM VALOR FISCAL</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
             <p className="text-center text-[10px] italic text-muted-foreground">"Que seu café seja forte<br/>e sua jornada gloriosa!"</p>
-            <p className="text-center text-[10px] font-medium mt-0.5">Volte sempre!</p>
+            <p className="text-center text-[10px] font-bold mt-0.5 uppercase">VOLTE SEMPRE!</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
         )}
