@@ -408,7 +408,7 @@ function buildCancellationTicket(job) {
     cmd.bold(true),
     cmd.text("** CANCELAMENTO **"),
     cmd.bold(false),
-    cmd.text(job.station.toUpperCase()),
+    cmd.text(upperPt(job.station)),
     cmd.separator(),
     cmd.alignLeft,
   ];
