@@ -84,21 +84,36 @@ const PC860_MAP = {
   0x00BB: 0xAF, // »
 };
 
-/** Convert a JS string to a PC860 Buffer, falling back to '?' for unmapped chars */
-function toPC860(str) {
+/** Convert a JS string to a PC860 Buffer, with pt-BR normalization and ASCII fallback */
+function toPC860(input) {
+  const text = String(input ?? "")
+    .normalize("NFC")
+    .replace(/\u00A0/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[–—]/g, "-");
+
   const bytes = [];
-  for (const ch of str) {
+  for (const ch of text) {
     const cp = ch.codePointAt(0);
     if (cp < 0x80) {
       bytes.push(cp); // ASCII passthrough
     } else if (PC860_MAP[cp] !== undefined) {
       bytes.push(PC860_MAP[cp]);
     } else {
-      bytes.push(0x3F); // '?' for unmapped
+      // Fallback: remove diacritics and keep base ASCII char when possible
+      const base = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (base.length === 1 && base.charCodeAt(0) < 0x80) {
+        bytes.push(base.charCodeAt(0));
+      } else {
+        bytes.push(0x3F); // '?' for truly unmapped chars
+      }
     }
   }
   return Buffer.from(bytes);
 }
+
+const upperPt = (value) => String(value ?? "").toLocaleUpperCase("pt-BR").normalize("NFC");
 
 /** Word-wrap a string to fit within maxCols */
 function wordWrap(str, maxCols = COLS) {
