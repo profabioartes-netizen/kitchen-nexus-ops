@@ -870,7 +870,7 @@ export default function TableOrderPage() {
                   if (order && newName !== (order.customer_name || "")) {
                     await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
                     const defaultName = (table as any)?.default_name || "Comanda";
-                    const tableName = newName ? `${defaultName} — ${newName}` : defaultName;
+                    const tableName = newName || defaultName;
                     await supabase.from("restaurant_tables").update({ name: tableName }).eq("id", table!.id);
                     queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
                     queryClient.invalidateQueries({ queryKey: ["table", tableId] });
