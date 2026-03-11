@@ -9,6 +9,7 @@ import {
   ChevronUp, ChevronDown, Zap, RotateCcw, Star, Clock, Repeat,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import TableOpenDialog from "@/components/TableOpenDialog";
 
@@ -431,6 +432,7 @@ export default function WaiterOrderPage() {
 
 
       if (newQty <= 0) {
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
         await supabase.from("order_items").delete().eq("id", itemId);
         await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id, profile?.full_name);
       } else {
@@ -450,7 +452,9 @@ export default function WaiterOrderPage() {
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
 
-
+      if (item) {
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+      }
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);

@@ -15,6 +15,7 @@ import { useComandaLock } from "@/hooks/useComandaLock";
 import { Lock } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { printCancellationIfNeeded } from "@/lib/printCancellation";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -473,6 +474,7 @@ export default function TableOrderPage() {
 
 
       if (newQty <= 0) {
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
         await supabase.from("order_items").delete().eq("id", itemId);
         await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id);
       } else {
@@ -504,6 +506,9 @@ export default function TableOrderPage() {
       const item = orderItems.find((i) => i.id === itemId);
 
 
+      if (item) {
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+      }
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
@@ -840,6 +845,7 @@ export default function TableOrderPage() {
     if (!item) return;
 
 
+    await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
     await supabase.from("order_items").delete().eq("id", item.id);
     const newTotal = orderItems.filter((i) => i.id !== item.id).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
     await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
