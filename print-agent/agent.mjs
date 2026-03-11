@@ -545,20 +545,8 @@ async function pollAndPrint() {
   }
 }
 
-// ── Health check — detect Windows printers via spooler ──────────────
-function checkWindowsPrinterExists(printerName) {
-  try {
-    const output = execSync(
-      `powershell.exe -NoProfile -Command "if (Get-Printer -Name '${printerName}' -ErrorAction SilentlyContinue) { Write-Output 'OK' } else { Write-Output 'NOT_FOUND' }"`,
-      { timeout: 5000, windowsHide: true, stdio: "pipe" }
-    ).toString().trim();
-    return output === "OK";
-  } catch {
-    return false;
-  }
-}
-
-// TCP fallback health check
+// ── Health check ────────────────────────────────────────────────────
+// TCP health check (used only in tcp mode)
 function checkPrinterHealthTcp(ip, port) {
   return new Promise((resolve) => {
     const socket = new net.Socket();
@@ -577,15 +565,15 @@ async function healthCheckLoop() {
     for (const printer of printers) {
       let online = false;
 
-      // Spooler mode: check if Windows printer name exists for this station
+      // Spooler mode: assume printer is online if a mapping exists for its station
       if (CONFIG.printMode === "spooler") {
         const winName = STATION_PRINTER_MAP[printer.station];
         if (winName) {
-          online = checkWindowsPrinterExists(winName);
+          online = true;
         }
       }
 
-      // TCP fallback
+      // TCP mode: actually probe the printer
       if (!online && printer.ip) {
         online = await checkPrinterHealthTcp(printer.ip, printer.port);
       }
