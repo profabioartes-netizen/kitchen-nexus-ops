@@ -450,7 +450,7 @@ export default function TableOrderPage() {
       }
 
       const compDesc = complements.length > 0 ? ` [${complements.map(c => c.name).join(", ")}]` : "";
-      await logActivity(tableId!, "item_added", `Adicionado e enviado à produção: ${product.name} ×${quantity}${compDesc} (R$ ${(unitPrice * quantity).toFixed(2)})`, currentOrder.id);
+      await logActivity(tableId!, "item_added", `Item adicionado: ${product.name} ×${quantity}${compDesc} (R$ ${(unitPrice * quantity).toFixed(2)}) — pendente envio`, currentOrder.id);
     },
     onSuccess: () => {
       setSelectedProduct(null);
