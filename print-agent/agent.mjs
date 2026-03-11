@@ -78,6 +78,7 @@ function buildBillTicket(job) {
     cmd.init,
     ...buildHeader(),
     cmd.text(`CNPJ: ${CNPJ}`),
+    cmd.text("Sao Jose dos Salgados - MG"),
     cmd.separator(),
     cmd.bold(true),
     cmd.doubleW(true),
