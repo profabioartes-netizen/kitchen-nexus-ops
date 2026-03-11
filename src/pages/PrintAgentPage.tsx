@@ -162,60 +162,95 @@ function buildTicketHTML(job: any) {
 function TicketPreview({ job }: { job: any }) {
   const p = job.payload as any;
   const time = new Date(job.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  const items = p.items as any[] | undefined;
+  const date = new Date(job.created_at).toLocaleDateString("pt-BR");
   const isCaixa = job.station === "Caixa";
   const isCancellation = p.type === "cancellation";
+  const isBill = p.type === "bill";
+  const items = p.items as any[] | undefined;
 
   return (
-    <div className={`rounded-lg border overflow-hidden ${isCancellation ? "border-destructive/50 bg-destructive/5" : "bg-card"}`}>
-      {/* Thermal header */}
-      <div className={`px-4 py-3 text-center border-b ${isCancellation ? "bg-destructive/10" : "bg-foreground/5"}`}>
-        <p className="text-xs font-bold tracking-widest">☕ COFFEE THRONES</p>
+    <div className={`rounded-lg border overflow-hidden font-mono text-xs ${isCancellation ? "border-destructive/50 bg-destructive/5" : "bg-card"}`}>
+      {/* Medieval header */}
+      <div className={`px-4 py-3 text-center ${isCancellation ? "bg-destructive/10 border-b-2 border-destructive/30" : "bg-foreground/5 border-b-2 border-foreground/20"}`}>
+        <p className="text-[10px] font-bold tracking-[0.3em]">═══════════════════</p>
+        <p className="text-sm font-bold tracking-[0.2em]">REINO</p>
+        <p className="text-sm font-bold tracking-[0.15em]">COFFEE THRONES</p>
+        <p className="text-[10px] font-bold tracking-[0.3em]">═══════════════════</p>
         {isCancellation && (
           <p className="text-xs font-bold text-destructive tracking-widest mt-1">*** CANCELAMENTO ***</p>
         )}
-        {!isCaixa && !isCancellation && <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>}
+        {isBill && <p className="text-[10px] text-muted-foreground mt-0.5">CNPJ: {CNPJ}</p>}
+        {!isCaixa && !isCancellation && !isBill && (
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{job.station}</p>
+        )}
+        {isCancellation && (
+          <p className="text-[10px] text-destructive uppercase tracking-wider mt-0.5">{job.station}</p>
+        )}
       </div>
 
-      <div className="px-4 py-3 space-y-2 text-sm font-mono">
-        {/* Meta */}
-        <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="px-4 py-3 space-y-1.5">
+        {/* Bill subtitle */}
+        {isBill && (
+          <>
+            <p className="text-center font-bold text-xs tracking-wide">REGISTRO DA COMANDA</p>
+            <div className="border-t border-dashed border-muted-foreground/30" />
+          </>
+        )}
+
+        {/* Meta info */}
+        {p.customer_name && <p className="text-muted-foreground">Cliente: <span className="text-foreground">{p.customer_name}</span></p>}
+        {p.comanda_number && <p className="text-muted-foreground">Comanda: <span className="text-foreground">#{p.comanda_number}</span></p>}
+        <div className="flex justify-between text-muted-foreground">
           <span>Mesa: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
           <span>{time}</span>
         </div>
-        {p.waiter_name && (
-          <p className="text-xs text-muted-foreground">Garçom: <span className="text-foreground">{p.waiter_name}</span></p>
-        )}
+        {p.waiter_name && <p className="text-muted-foreground">Garçom: <span className="text-foreground">{p.waiter_name}</span></p>}
+        <p className="text-muted-foreground text-[10px]">{date}</p>
 
-        <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+        <div className="border-t border-dashed border-muted-foreground/30" />
 
         {/* Cancellation content */}
         {isCancellation ? (
-          <div className="text-center">
-            <p className="text-xs font-bold text-destructive mb-1">CANCELAR:</p>
-            <p className="font-bold text-destructive">{p.quantity || 1}× {p.product_name}</p>
-            {p.notes && <p className="text-xs italic text-muted-foreground mt-1">{p.notes}</p>}
+          <div className="text-center py-1">
+            <p className="font-bold text-destructive mb-1">CANCELAR:</p>
+            <p className="font-bold text-destructive text-sm">{p.quantity || 1}× {p.product_name}</p>
+            <p className="text-[10px] italic text-muted-foreground mt-1">{p.notes || "Item removido da comanda"}</p>
           </div>
         ) : items ? (
-          items.map((item: any, i: number) => (
-            <div key={i} className="flex justify-between text-xs">
-              <span className="font-medium">{item.quantity || 1}× {item.product_name}</span>
-              <span className="text-muted-foreground">R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
+          /* Bill items list */
+          <>
+            <div className="flex justify-between font-bold">
+              <span>ITEM</span><span>TOTAL</span>
             </div>
-          ))
-        ) : (
-          <div>
-            <p className="font-semibold">{p.quantity || 1}× {p.product_name}</p>
-            {p.complements?.length > 0 && p.complements.map((c: string, i: number) => (
-              <p key={i} className="text-xs text-muted-foreground ml-2">+ {c}</p>
+            <div className="border-t border-dashed border-muted-foreground/30" />
+            {items.map((item: any, i: number) => (
+              <div key={i}>
+                <div className="flex justify-between">
+                  <span className="font-medium">{item.quantity || 1}× {item.product_name}</span>
+                  <span className="text-muted-foreground">R$ {((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
+                </div>
+                {item.complements?.map((c: any, ci: number) => (
+                  <p key={ci} className="text-[10px] text-muted-foreground ml-2">+ {typeof c === "string" ? c : c.name}</p>
+                ))}
+                {item.notes && <p className="text-[10px] italic text-muted-foreground ml-2">Obs: {item.notes}</p>}
+              </div>
             ))}
-            {p.notes && <p className="text-xs italic text-muted-foreground">Obs: {p.notes}</p>}
+          </>
+        ) : (
+          /* Production single item */
+          <div className="text-center py-1">
+            <p className="font-bold text-sm">{p.quantity || 1}× {p.product_name}</p>
+            {p.complements?.length > 0 && p.complements.map((c: string, i: number) => (
+              <p key={i} className="text-[10px] text-muted-foreground">+ {c}</p>
+            ))}
+            {p.notes && <p className="text-[10px] italic text-muted-foreground font-bold">Obs: {p.notes}</p>}
           </div>
         )}
 
+        {/* Totals for bills */}
         {p.total != null && (
           <>
-            <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+            <div className="border-t border-dashed border-muted-foreground/30" />
             <div className="flex justify-between font-bold text-sm">
               <span>TOTAL</span>
               <span>R$ {Number(p.total).toFixed(2)}</span>
@@ -223,7 +258,19 @@ function TicketPreview({ job }: { job: any }) {
           </>
         )}
 
-        <div className="border-t border-dashed border-muted-foreground/30 my-1" />
+        <div className="border-t border-dashed border-muted-foreground/30" />
+
+        {/* Bill footer */}
+        {isBill && (
+          <>
+            <p className="text-center text-[10px] text-muted-foreground">DOCUMENTO SEM VALOR FISCAL</p>
+            <div className="border-t border-dashed border-muted-foreground/30" />
+            <p className="text-center text-[10px] italic text-muted-foreground">"Que seu café seja forte<br/>e sua jornada gloriosa!"</p>
+            <p className="text-center text-[10px] font-medium mt-0.5">Volte sempre!</p>
+            <div className="border-t border-dashed border-muted-foreground/30" />
+          </>
+        )}
+
         <p className="text-center text-[10px] text-muted-foreground">#{job.id?.slice(0, 8)}</p>
       </div>
     </div>

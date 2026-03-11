@@ -30,79 +30,167 @@ const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
 const ESC = 0x1b;
 const GS = 0x1d;
 
+const COLS = 48; // Elgin i9 — 48 cols at font A on 80mm paper
+const SEP_CHAR = "-";
+const CNPJ = "00.000.000/0001-00"; // TODO: Replace with real CNPJ
+
 const cmd = {
-  init:       Buffer.from([ESC, 0x40]),                    // Initialize printer
-  cut:        Buffer.from([GS, 0x56, 0x00]),               // Full cut
-  feedLines:  (n) => Buffer.from([ESC, 0x64, n]),          // Feed n lines
+  init:       Buffer.from([ESC, 0x40]),
+  cut:        Buffer.from([GS, 0x56, 0x00]),
+  feedLines:  (n) => Buffer.from([ESC, 0x64, n]),
   alignCenter: Buffer.from([ESC, 0x61, 0x01]),
   alignLeft:  Buffer.from([ESC, 0x61, 0x00]),
+  alignRight: Buffer.from([ESC, 0x61, 0x02]),
   bold:       (on) => Buffer.from([ESC, 0x45, on ? 1 : 0]),
   doubleSize: (on) => Buffer.from([GS, 0x21, on ? 0x11 : 0x00]),
-  separator:  () => Buffer.from("-".repeat(32) + "\n"),
+  doubleW:    (on) => Buffer.from([GS, 0x21, on ? 0x10 : 0x00]),
+  separator:  () => Buffer.from(SEP_CHAR.repeat(COLS) + "\n"),
+  doubleSep:  () => Buffer.from("=".repeat(COLS) + "\n"),
   text:       (s) => Buffer.from(s + "\n", "utf-8"),
+  padRow:     (left, right) => {
+    const pad = COLS - left.length - right.length;
+    return Buffer.from(left + " ".repeat(Math.max(1, pad)) + right + "\n", "utf-8");
+  },
 };
 
-function buildTicket(job, printer) {
+// ── Medieval header shared by all templates ─────────────────────────
+function buildHeader() {
+  return [
+    cmd.alignCenter,
+    cmd.doubleSep(),
+    cmd.doubleSize(true),
+    cmd.text("REINO"),
+    cmd.text("COFFEE THRONES"),
+    cmd.doubleSize(false),
+    cmd.doubleSep(),
+  ];
+}
+
+// ── 1) Cashier receipt (bill) ───────────────────────────────────────
+function buildBillTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
-  const isCancellation = p.type === "cancellation";
-
-  if (isCancellation) {
-    return Buffer.concat([
-      cmd.init,
-      cmd.alignCenter,
-      cmd.doubleSize(true),
-      cmd.text("COFFEE THRONES"),
-      cmd.doubleSize(false),
-      cmd.separator(),
-      cmd.bold(true),
-      cmd.doubleSize(true),
-      cmd.text("*** CANCELAMENTO ***"),
-      cmd.doubleSize(false),
-      cmd.bold(false),
-      cmd.separator(),
-      cmd.alignLeft,
-      cmd.text(`Mesa: ${p.table_name || "---"}`),
-      cmd.text(`Garcom: ${p.waiter_name || "---"}`),
-      cmd.text(`Hora: ${date}  ${time}`),
-      cmd.separator(),
-      cmd.alignCenter,
-      cmd.bold(true),
-      cmd.text("CANCELAR:"),
-      cmd.doubleSize(true),
-      cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`),
-      cmd.doubleSize(false),
-      cmd.bold(false),
-      ...(p.notes ? [cmd.text(`${p.notes}`)] : []),
-      cmd.separator(),
-      cmd.text(`Ticket #${job.id.slice(0, 8)}`),
-      cmd.text(""),
-      cmd.feedLines(3),
-      cmd.cut,
-    ]);
-  }
+  const items = p.items || [];
 
   const parts = [
     cmd.init,
-    cmd.alignCenter,
-    cmd.doubleSize(true),
-    cmd.text("COFFEE THRONES"),
-    cmd.doubleSize(false),
-    cmd.text(job.station.toUpperCase()),
-    cmd.separator(),
-    cmd.alignLeft,
-    cmd.text(`Mesa: ${p.table_name || "---"}`),
-    cmd.text(`Garcom: ${p.waiter_name || "---"}`),
-    cmd.text(`Data: ${date}  ${time}`),
+    ...buildHeader(),
+    cmd.text(`CNPJ: ${CNPJ}`),
     cmd.separator(),
     cmd.bold(true),
-    cmd.doubleSize(true),
-    cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`),
-    cmd.doubleSize(false),
+    cmd.doubleW(true),
+    cmd.text("REGISTRO DA COMANDA"),
+    cmd.doubleW(false),
     cmd.bold(false),
+    cmd.separator(),
+    cmd.alignLeft,
   ];
+
+  if (p.customer_name) parts.push(cmd.text(`Cliente: ${p.customer_name}`));
+  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
+  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  parts.push(cmd.text(`Data: ${date}  Hora: ${time}`));
+  parts.push(cmd.separator());
+
+  // Items
+  parts.push(cmd.bold(true));
+  parts.push(cmd.padRow("ITEM", "TOTAL"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.separator());
+
+  let subtotal = 0;
+  for (const item of items) {
+    const qty = item.quantity || 1;
+    const itemTotal = (item.price || 0) * qty;
+    subtotal += itemTotal;
+    const left = `${qty}x ${item.product_name}`;
+    const right = `R$ ${itemTotal.toFixed(2)}`;
+    parts.push(cmd.padRow(left, right));
+
+    // Complements below parent
+    if (item.complements && item.complements.length > 0) {
+      for (const c of item.complements) {
+        const cName = typeof c === "string" ? c : c.name;
+        const cPrice = typeof c === "object" && c.price ? ` R$${Number(c.price).toFixed(2)}` : "";
+        parts.push(cmd.text(`   + ${cName}${cPrice}`));
+      }
+    }
+    if (item.notes) {
+      parts.push(cmd.text(`   Obs: ${item.notes}`));
+    }
+  }
+
+  parts.push(cmd.separator());
+  parts.push(cmd.padRow("Subtotal:", `R$ ${(p.subtotal || subtotal).toFixed(2)}`));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.doubleW(true));
+  parts.push(cmd.alignCenter);
+  parts.push(cmd.text(`TOTAL: R$ ${Number(p.total || subtotal).toFixed(2)}`));
+  parts.push(cmd.doubleW(false));
+  parts.push(cmd.bold(false));
+
+  if (p.payment_method) {
+    const methods = { credit: "Credito", debit: "Debito", cash: "Dinheiro", pix: "Pix" };
+    parts.push(cmd.alignLeft);
+    parts.push(cmd.text(`Pagamento: ${methods[p.payment_method] || p.payment_method}`));
+    if (p.change && Number(p.change) > 0) {
+      parts.push(cmd.text(`Troco: R$ ${Number(p.change).toFixed(2)}`));
+    }
+  }
+
+  parts.push(cmd.separator());
+  parts.push(cmd.alignCenter);
+  parts.push(cmd.text("DOCUMENTO SEM VALOR FISCAL"));
+  parts.push(cmd.separator());
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("Que seu cafe seja forte"));
+  parts.push(cmd.text("e sua jornada gloriosa!"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+  parts.push(cmd.text("Volte sempre!"));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(`Ticket #${job.id.slice(0, 8)}`));
+  parts.push(cmd.text(""));
+  parts.push(cmd.feedLines(3));
+  parts.push(cmd.cut);
+
+  return Buffer.concat(parts);
+}
+
+// ── 2) Production ticket ────────────────────────────────────────────
+function buildProductionTicket(job) {
+  const p = job.payload || {};
+  const now = new Date(job.created_at);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString("pt-BR");
+
+  const parts = [
+    cmd.init,
+    ...buildHeader(),
+    cmd.bold(true),
+    cmd.doubleW(true),
+    cmd.text(job.station.toUpperCase()),
+    cmd.doubleW(false),
+    cmd.bold(false),
+    cmd.separator(),
+    cmd.alignLeft,
+  ];
+
+  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
+  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  parts.push(cmd.text(`Hora: ${time}  ${date}`));
+  parts.push(cmd.separator());
+
+  // Item(s)
+  parts.push(cmd.bold(true));
+  parts.push(cmd.doubleSize(true));
+  parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
+  parts.push(cmd.doubleSize(false));
+  parts.push(cmd.bold(false));
 
   if (p.complements && p.complements.length > 0) {
     for (const c of p.complements) {
@@ -111,19 +199,78 @@ function buildTicket(job, printer) {
   }
 
   if (p.notes) {
+    parts.push(cmd.bold(true));
     parts.push(cmd.text(`Obs: ${p.notes}`));
+    parts.push(cmd.bold(false));
   }
 
-  parts.push(
-    cmd.separator(),
-    cmd.alignCenter,
-    cmd.text(`Ticket #${job.id.slice(0, 8)}`),
-    cmd.text(""),
-    cmd.feedLines(3),
-    cmd.cut,
-  );
+  parts.push(cmd.separator());
+  parts.push(cmd.alignCenter);
+  parts.push(cmd.text(`Ticket #${job.id.slice(0, 8)}`));
+  parts.push(cmd.text(""));
+  parts.push(cmd.feedLines(3));
+  parts.push(cmd.cut);
 
   return Buffer.concat(parts);
+}
+
+// ── 3) Cancellation ticket ──────────────────────────────────────────
+function buildCancellationTicket(job) {
+  const p = job.payload || {};
+  const now = new Date(job.created_at);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const date = now.toLocaleDateString("pt-BR");
+
+  const parts = [
+    cmd.init,
+    ...buildHeader(),
+    cmd.bold(true),
+    cmd.doubleSize(true),
+    cmd.text("*** CANCELAMENTO ***"),
+    cmd.doubleSize(false),
+    cmd.bold(false),
+    cmd.text(job.station.toUpperCase()),
+    cmd.separator(),
+    cmd.alignLeft,
+  ];
+
+  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
+  if (p.comanda_number) parts.push(cmd.text(`Comanda: #${p.comanda_number}`));
+  if (p.waiter_name) parts.push(cmd.text(`Garcom: ${p.waiter_name}`));
+  parts.push(cmd.text(`Hora: ${time}  ${date}`));
+  parts.push(cmd.doubleSep());
+
+  parts.push(cmd.alignCenter);
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("CANCELAR:"));
+  parts.push(cmd.doubleSize(true));
+  parts.push(cmd.text(`${p.quantity || 1}x ${p.product_name || "Item"}`));
+  parts.push(cmd.doubleSize(false));
+  parts.push(cmd.bold(false));
+
+  if (p.notes) {
+    parts.push(cmd.text(""));
+    parts.push(cmd.text(`Motivo: ${p.notes}`));
+  } else {
+    parts.push(cmd.text(""));
+    parts.push(cmd.text("Item removido da comanda"));
+  }
+
+  parts.push(cmd.doubleSep());
+  parts.push(cmd.text(`Ticket #${job.id.slice(0, 8)}`));
+  parts.push(cmd.text(""));
+  parts.push(cmd.feedLines(3));
+  parts.push(cmd.cut);
+
+  return Buffer.concat(parts);
+}
+
+// ── Dispatcher ──────────────────────────────────────────────────────
+function buildTicket(job, printer) {
+  const p = job.payload || {};
+  if (p.type === "cancellation") return buildCancellationTicket(job);
+  if (p.type === "bill") return buildBillTicket(job);
+  return buildProductionTicket(job);
 }
 
 // ── TCP send ────────────────────────────────────────────────────────
