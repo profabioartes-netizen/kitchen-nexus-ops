@@ -451,15 +451,34 @@ export default function PaymentPanel({
                 const canAdd = item.remainingQty - inPayment;
                 return (
                   <tr key={item.id} className="border-b border-border/50">
-                    <td className="py-3 text-sm tabular-nums">
-                      {item.remainingQty < item.quantity
-                        ? `${item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0)}`
-                        : `${item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}`
-                      }
-                    </td>
-                    <td className="py-3 text-sm font-medium">{item.product_name}</td>
-                    <td className="py-3 text-sm font-semibold text-right tabular-nums">
-                      R$ {(Number(item.price) * item.remainingQty).toFixed(2)}
+                    <td className="py-3">
+                      {onUpdateItemQty ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => onUpdateItemQty(item.id, -1)}
+                            className="rounded p-0.5 hover:bg-secondary text-destructive"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="text-sm font-bold w-6 text-center tabular-nums">
+                            {item.remainingQty < item.quantity
+                              ? item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0)
+                              : item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}
+                          </span>
+                          <button
+                            onClick={() => onUpdateItemQty(item.id, 1)}
+                            className="rounded p-0.5 hover:bg-secondary text-accent"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-sm tabular-nums">
+                          {item.remainingQty < item.quantity
+                            ? item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0)
+                            : item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 pl-3">
                       <div className="flex items-center gap-1.5 justify-end">
