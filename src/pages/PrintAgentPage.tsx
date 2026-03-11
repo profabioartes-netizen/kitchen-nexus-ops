@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 // ── Stations that auto-print (production only) ──────────────────────
 const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
 
-const CNPJ = "00.000.000/0001-00"; // TODO: Replace with real CNPJ
+const CNPJ = "59.132.954/0001-09";
 
 const THERMAL_CSS = `
   @page { margin: 0; size: 80mm auto; }
