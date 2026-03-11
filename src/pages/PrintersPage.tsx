@@ -147,13 +147,17 @@ export default function PrintersPage() {
   const statusLabel: Record<string, string> = {
     pending: "Pendente",
     processing: "Processando",
+    printed: "Impresso",
     error: "Erro",
+    canceled: "Cancelado",
   };
 
   const statusColor: Record<string, string> = {
-    pending: "bg-accent/15 text-accent",
-    processing: "bg-accent/15 text-accent",
+    pending: "bg-yellow-500/15 text-yellow-600",
+    processing: "bg-blue-500/15 text-blue-600",
+    printed: "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]",
     error: "bg-destructive/15 text-destructive",
+    canceled: "bg-muted text-muted-foreground",
   };
 
   if (isLoading) {
