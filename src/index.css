@@ -158,7 +158,7 @@
   }
 
   .nav-rail {
-    @apply flex flex-col items-center py-4 gap-1;
+    @apply items-center py-4 gap-1;
     background: hsl(var(--nav-bg));
     color: hsl(var(--nav-foreground));
     width: 88px;
