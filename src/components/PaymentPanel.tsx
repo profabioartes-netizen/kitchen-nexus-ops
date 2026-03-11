@@ -219,6 +219,15 @@ export default function PaymentPanel({
 
   // ── Actions ──
   const addItemToPayment = (itemId: string, qty: number) => {
+    // If customAmount is set (e.g. from a split), accumulate the item price
+    if (customAmount) {
+      const item = orderItems.find((i) => i.id === itemId);
+      if (item) {
+        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
+        const addedValue = Number(item.price) * qty;
+        setCustomAmount(Number((existingAmount + addedValue).toFixed(2)).toFixed(2));
+      }
+    }
     setPaymentItems((prev) => ({
       ...prev,
       [itemId]: (prev[itemId] ?? 0) + qty,
