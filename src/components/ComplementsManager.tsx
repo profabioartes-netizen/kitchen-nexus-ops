@@ -33,6 +33,11 @@ export function ComplementsManager() {
   const [newCompName, setNewCompName] = useState("");
   const [newCompPrice, setNewCompPrice] = useState("0,00");
 
+  // Edit complement state
+  const [editingCompId, setEditingCompId] = useState<string | null>(null);
+  const [editCompName, setEditCompName] = useState("");
+  const [editCompPrice, setEditCompPrice] = useState("0,00");
+
   // Drag state
   const [dragItem, setDragItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
@@ -142,6 +147,19 @@ export function ComplementsManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
       toast.success("Complemento removido!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const updateComplement = useMutation({
+    mutationFn: async ({ id, name, price }: { id: string; name: string; price: number }) => {
+      const { error } = await supabase.from("complements").update({ name, price }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setEditingCompId(null);
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+      toast.success("Complemento atualizado!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -326,7 +344,7 @@ export function ComplementsManager() {
                   {complements.map((comp) => (
                     <div
                       key={comp.id}
-                      draggable
+                      draggable={editingCompId !== comp.id}
                       onDragStart={() => handleDragStart(comp.id, group.id)}
                       onDragOver={(e) => handleDragOver(e, comp.id, group.id)}
                       onDrop={() => handleDrop(group.id)}
@@ -337,18 +355,40 @@ export function ComplementsManager() {
                         dragOverItem === comp.id && dragItem !== comp.id ? "border-t-2 border-t-accent" : ""
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing flex-shrink-0" />
-                        <span className="font-medium">{comp.name}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-muted-foreground">
-                          {Number(comp.price) > 0 ? `+R$ ${Number(comp.price).toFixed(2).replace(".", ",")}` : "Grátis"}
-                        </span>
-                        <button onClick={() => { if (confirm(`Remover "${comp.name}"?`)) deleteComplement.mutate(comp.id); }} className="rounded p-1 hover:bg-destructive/10 text-destructive">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
+                      {editingCompId === comp.id ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0 opacity-30" />
+                          <input autoFocus value={editCompName} onChange={(e) => setEditCompName(e.target.value)} className="flex-1 rounded-md border bg-background px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                          <div className="relative w-28">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                            <input inputMode="numeric" value={editCompPrice} onChange={(e) => setEditCompPrice(formatCurrency(e.target.value))} className="w-full rounded-md border bg-background pl-8 pr-2 py-1 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                          </div>
+                          <button disabled={!editCompName.trim() || updateComplement.isPending} onClick={() => updateComplement.mutate({ id: comp.id, name: editCompName.trim(), price: parseCurrency(editCompPrice) })} className="rounded p-1 hover:bg-accent/10 text-accent">
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button onClick={() => setEditingCompId(null)} className="rounded p-1 hover:bg-secondary text-muted-foreground">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing flex-shrink-0" />
+                            <span className="font-medium">{comp.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">
+                              {Number(comp.price) > 0 ? `+R$ ${Number(comp.price).toFixed(2).replace(".", ",")}` : "Grátis"}
+                            </span>
+                            <button onClick={() => { setEditingCompId(comp.id); setEditCompName(comp.name); setEditCompPrice(Number(comp.price).toFixed(2).replace(".", ",")); }} className="rounded p-1 hover:bg-secondary text-muted-foreground">
+                              <Edit2 className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => { if (confirm(`Remover "${comp.name}"?`)) deleteComplement.mutate(comp.id); }} className="rounded p-1 hover:bg-destructive/10 text-destructive">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
 
