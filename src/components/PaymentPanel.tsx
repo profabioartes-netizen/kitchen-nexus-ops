@@ -57,6 +57,40 @@ const methodColors: Record<string, string> = {
 
 const METHODS = ["cash", "debit", "credit", "pix"] as const;
 
+function QuickSaleRow({ product, onAdd }: {
+  product: { id: string; name: string; price: number };
+  onAdd: (product: { id: string; name: string; price: number }, quantity: number) => void;
+}) {
+  const [qty, setQty] = useState(1);
+  return (
+    <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
+      <span className="text-sm font-medium flex-1">{product.name}</span>
+      <span className="text-xs text-muted-foreground">R$ {Number(product.price).toFixed(2)}</span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setQty(Math.max(1, qty - 1))}
+          className="rounded p-0.5 hover:bg-secondary"
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-sm font-bold w-6 text-center tabular-nums">{qty}</span>
+        <button
+          onClick={() => setQty(qty + 1)}
+          className="rounded p-0.5 hover:bg-secondary"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <button
+        onClick={() => { onAdd({ id: product.id, name: product.name, price: Number(product.price) }, qty); setQty(1); }}
+        className="rounded-md bg-accent text-accent-foreground px-2.5 py-1 text-[11px] font-bold hover:opacity-90 transition-opacity"
+      >
+        ADD
+      </button>
+    </div>
+  );
+}
+
 export default function PaymentPanel({
   total,
   orderItems,
