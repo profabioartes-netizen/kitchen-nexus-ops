@@ -20,7 +20,7 @@ const navItems = [
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
-  { to: "/clientes", icon: UserRound, label: "Vendas" },
+  { to: "/clientes", icon: Banknote, label: "Vendas" },
 ];
 
 export function NavigationRail() {
