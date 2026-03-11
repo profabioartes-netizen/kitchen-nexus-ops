@@ -474,6 +474,7 @@ export default function TableOrderPage() {
 
 
       if (newQty <= 0) {
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
         await supabase.from("order_items").delete().eq("id", itemId);
         await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id);
       } else {
