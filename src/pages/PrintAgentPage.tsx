@@ -532,7 +532,15 @@ export default function PrintAgentPage() {
             <span className={`h-2 w-2 rounded-full ${autoprint ? "bg-[hsl(var(--status-free))] animate-pulse" : "bg-destructive"}`} />
             {autoprint ? "Auto (Produção)" : "Pausado"}
           </button>
-        </div>
+          <button
+            onClick={() => clearQueue.mutate()}
+            disabled={pendingCount === 0 || clearQueue.isPending}
+            className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors bg-destructive/10 text-destructive hover:bg-destructive/20 disabled:opacity-50"
+            title="Limpar fila de impressão"
+          >
+            <Trash2 className="h-4 w-4" />
+            Limpar fila
+          </button>
       </div>
 
       {/* Printers strip */}
