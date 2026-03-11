@@ -866,7 +866,7 @@ export default function TableOrderPage() {
               <input
                 type="text"
                 defaultValue={order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
-                key={`name-${table?.id}`}
+                key={`name-${table?.id}-${order?.customer_name}`}
                 onBlur={async (e) => {
                   const newName = e.target.value.trim();
                   if (table && newName && newName !== table.name) {
