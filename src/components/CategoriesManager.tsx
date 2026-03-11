@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,6 +9,9 @@ export function CategoriesManager() {
   const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+
+  const [dragItem, setDragItem] = useState<string | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<string | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -61,6 +64,51 @@ export function CategoriesManager() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (items: { id: string; sort_order: number }[]) => {
+      for (const item of items) {
+        await supabase.from("categories").update({ sort_order: item.sort_order }).eq("id", item.id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
+  const handleDragStart = (id: string) => {
+    setDragItem(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    setDragOverItem(id);
+  };
+
+  const handleDrop = () => {
+    if (!dragItem || !dragOverItem || dragItem === dragOverItem) {
+      setDragItem(null);
+      setDragOverItem(null);
+      return;
+    }
+
+    const items = [...categories];
+    const fromIdx = items.findIndex((c) => c.id === dragItem);
+    const toIdx = items.findIndex((c) => c.id === dragOverItem);
+    if (fromIdx === -1 || toIdx === -1) return;
+
+    const [moved] = items.splice(fromIdx, 1);
+    items.splice(toIdx, 0, moved);
+
+    const updates = items.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }));
+
+    // Optimistic update
+    queryClient.setQueryData(["categories"], items.map((item, idx) => ({ ...item, sort_order: idx + 1 })));
+    reorderMutation.mutate(updates);
+
+    setDragItem(null);
+    setDragOverItem(null);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -92,9 +140,18 @@ export function CategoriesManager() {
         {categories.map((cat) => (
           <div
             key={cat.id}
-            className="flex items-center gap-3 rounded-md border bg-card px-4 py-3"
+            draggable
+            onDragStart={() => handleDragStart(cat.id)}
+            onDragOver={(e) => handleDragOver(e, cat.id)}
+            onDrop={handleDrop}
+            onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
+            className={`flex items-center gap-3 rounded-md border bg-card px-4 py-3 transition-all ${
+              dragItem === cat.id ? "opacity-40" : ""
+            } ${
+              dragOverItem === cat.id && dragItem !== cat.id ? "border-t-2 border-t-accent" : ""
+            }`}
           >
-            <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+            <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab active:cursor-grabbing" />
             {editingId === cat.id ? (
               <input
                 autoFocus
