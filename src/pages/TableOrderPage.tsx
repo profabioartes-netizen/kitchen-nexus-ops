@@ -548,6 +548,13 @@ export default function TableOrderPage() {
     mutationFn: async () => {
       if (!order || orderItems.length === 0) throw new Error("Sem itens para imprimir");
 
+      // Build complements map for all items
+      const complementsByItem: Record<string, { name: string }[]> = {};
+      for (const c of itemComplements) {
+        if (!complementsByItem[c.order_item_id]) complementsByItem[c.order_item_id] = [];
+        complementsByItem[c.order_item_id].push({ name: c.complement_name });
+      }
+
       await supabase.from("print_jobs").insert({
         station: "Caixa",
         status: "pending",
@@ -562,6 +569,7 @@ export default function TableOrderPage() {
             product_name: i.product_name,
             quantity: i.quantity,
             price: Number(i.price),
+            complements: (complementsByItem[i.id] || []).map((c) => c.name),
           })),
           total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
         },
