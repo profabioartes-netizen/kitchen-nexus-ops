@@ -55,7 +55,7 @@ function buildBillHTML(job: any) {
     const compHtml = (item.complements || []).map((c: any) =>
       `<div class="complement">+ ${typeof c === "string" ? c : c.name}${c.price ? ` R$${Number(c.price).toFixed(2)}` : ""}</div>`
     ).join("");
-    const notesHtml = item.notes ? `<div class="notes">Obs: ${item.notes}</div>` : "";
+    const notesHtml = item.notes ? `<div class="notes">OBS: ${item.notes}</div>` : "";
     return `<div class="row"><span>${qty}x ${item.product_name}</span><span>R$ ${itemTotal.toFixed(2)}</span></div>${compHtml}${notesHtml}`;
   }).join("");
 
@@ -66,26 +66,28 @@ function buildBillHTML(job: any) {
     <div class="center subtitle">REGISTRO DA COMANDA</div>
     <div class="sep"></div>
     <div>
-      ${p.customer_name ? `<div>Cliente: ${p.customer_name}</div>` : ""}
-      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
-      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
-      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
-      <div>Data: ${date}  Hora: ${time}</div>
+      ${p.customer_name ? `<div>CLIENTE: ${p.customer_name}</div>` : ""}
+      ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
+      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      <div>DATA: ${date}  HORA: ${time}</div>
     </div>
     <div class="sep"></div>
     <div class="row bold"><span>ITEM</span><span>TOTAL</span></div>
     <div class="sep"></div>
     ${itemsHtml}
     <div class="sep"></div>
-    <div class="row"><span>Subtotal:</span><span>R$ ${(p.subtotal || subtotal).toFixed(2)}</span></div>
-    <div class="center total" style="margin:4px 0;">TOTAL: R$ ${Number(p.total || subtotal).toFixed(2)}</div>
-    ${p.payment_method ? `<div>Pagamento: ${methods[p.payment_method] || p.payment_method}</div>` : ""}
-    ${p.change && Number(p.change) > 0 ? `<div>Troco: R$ ${Number(p.change).toFixed(2)}</div>` : ""}
+    <div class="row"><span>SUBTOTAL:</span><span>R$ ${(p.subtotal || subtotal).toFixed(2)}</span></div>
+    <div class="sep-double"></div>
+    <div class="center total" style="margin:6px 0;"><b>TOTAL A PAGAR: R$ ${Number(p.total || subtotal).toFixed(2)}</b></div>
+    <div class="sep-double"></div>
+    ${p.payment_method ? `<div>PAGAMENTO: ${methods[p.payment_method] || p.payment_method}</div>` : ""}
+    ${p.change && Number(p.change) > 0 ? `<div>TROCO: R$ ${Number(p.change).toFixed(2)}</div>` : ""}
     <div class="sep"></div>
     <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
     <div class="sep"></div>
     <div class="center footer-msg bold">"Que seu café seja forte<br>e sua jornada gloriosa!"</div>
-    <div class="center" style="margin-top:4px;">Volte sempre!</div>
+    <div class="center bold" style="margin-top:4px;">VOLTE SEMPRE!</div>
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
@@ -105,15 +107,15 @@ function buildProductionHTML(job: any) {
     ${buildMedievalHeader(job.station.toUpperCase())}
     <div class="sep"></div>
     <div>
-      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
-      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
-      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
-      <div>Hora: ${time}  ${date}</div>
+      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
+      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      <div>HORA: ${time}  ${date}</div>
     </div>
     <div class="sep"></div>
     <div class="center item-big">${p.quantity || 1}× ${p.product_name || "Item"}</div>
     ${compHtml}
-    ${p.notes ? `<div class="notes bold" style="margin-left:0;">Obs: ${p.notes}</div>` : ""}
+    ${p.notes ? `<div class="bold" style="margin-left:0;">OBS: ${p.notes}</div>` : ""}
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
@@ -129,21 +131,21 @@ function buildCancellationHTML(job: any) {
 
   return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
     ${buildMedievalHeader(job.station.toUpperCase())}
-    <div class="sep"></div>
-    <div class="center" style="margin:4px 0;">
-      <div class="title" style="color:#000;letter-spacing:3px;">*** CANCELAMENTO ***</div>
-    </div>
-    <div class="sep"></div>
-    <div>
-      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
-      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
-      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
-      <div>Hora: ${time}  ${date}</div>
+    <div class="sep-double"></div>
+    <div class="center" style="margin:6px 0;">
+      <div class="title" style="letter-spacing:3px;"><b>*** CANCELAMENTO ***</b></div>
     </div>
     <div class="sep-double"></div>
-    <div class="center bold">CANCELAR:</div>
+    <div>
+      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
+      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      <div>HORA: ${time}  ${date}</div>
+    </div>
+    <div class="sep-double"></div>
+    <div class="center bold" style="font-size:14px;">CANCELAR:</div>
     <div class="center item-big">${p.quantity || 1}× ${p.product_name || "Item"}</div>
-    ${p.notes ? `<div class="center notes">Motivo: ${p.notes}</div>` : `<div class="center notes">Item removido da comanda</div>`}
+    ${p.notes ? `<div class="center" style="margin-top:4px;">MOTIVO: ${p.notes}</div>` : `<div class="center" style="margin-top:4px;">ITEM REMOVIDO DA COMANDA</div>`}
     <div class="sep-double"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
@@ -192,34 +194,38 @@ function TicketPreview({ job }: { job: any }) {
         {/* Bill subtitle */}
         {isBill && (
           <>
-            <p className="text-center font-bold text-xs tracking-wide">REGISTRO DA COMANDA</p>
+            <p className="text-center font-bold text-xs tracking-wide uppercase">REGISTRO DA COMANDA</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
         )}
 
-        {/* Meta info */}
-        {p.customer_name && <p className="text-muted-foreground">Cliente: <span className="text-foreground">{p.customer_name}</span></p>}
-        {p.comanda_number && <p className="text-muted-foreground">Comanda: <span className="text-foreground">#{p.comanda_number}</span></p>}
-        <div className="flex justify-between text-muted-foreground">
-          <span>Mesa: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
-          <span>{time}</span>
+        {/* Meta info — uppercase labels */}
+        {p.customer_name && <p className="text-muted-foreground uppercase">CLIENTE: <span className="text-foreground font-medium">{p.customer_name}</span></p>}
+        {p.comanda_number && <p className="text-muted-foreground uppercase">COMANDA: <span className="text-foreground font-medium">#{p.comanda_number}</span></p>}
+        <div className="flex justify-between text-muted-foreground uppercase">
+          <span>MESA: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
+          <span className="normal-case">{time}</span>
         </div>
-        {p.waiter_name && <p className="text-muted-foreground">Garçom: <span className="text-foreground">{p.waiter_name}</span></p>}
+        {p.waiter_name && <p className="text-muted-foreground uppercase">GARÇOM: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
         <p className="text-muted-foreground text-[10px]">{date}</p>
 
         <div className="border-t border-dashed border-muted-foreground/30" />
 
         {/* Cancellation content */}
         {isCancellation ? (
-          <div className="text-center py-1">
-            <p className="font-bold text-destructive mb-1">CANCELAR:</p>
-            <p className="font-bold text-destructive text-sm">{p.quantity || 1}× {p.product_name}</p>
-            <p className="text-[10px] italic text-muted-foreground mt-1">{p.notes || "Item removido da comanda"}</p>
+          <div className="text-center py-2">
+            <div className="border-b-2 border-destructive/40 pb-1 mb-2">
+              <p className="font-bold text-destructive text-sm uppercase tracking-wider">CANCELAR:</p>
+            </div>
+            <p className="font-bold text-destructive text-base">{p.quantity || 1}× {p.product_name?.toUpperCase()}</p>
+            <div className="border-t border-dashed border-destructive/30 mt-2 pt-1">
+              <p className="text-[10px] italic text-muted-foreground">{p.notes || "ITEM REMOVIDO DA COMANDA"}</p>
+            </div>
           </div>
         ) : items ? (
           /* Bill items list */
           <>
-            <div className="flex justify-between font-bold">
+            <div className="flex justify-between font-bold uppercase">
               <span>ITEM</span><span>TOTAL</span>
             </div>
             <div className="border-t border-dashed border-muted-foreground/30" />
@@ -232,29 +238,30 @@ function TicketPreview({ job }: { job: any }) {
                 {item.complements?.map((c: any, ci: number) => (
                   <p key={ci} className="text-[10px] text-muted-foreground ml-2">+ {typeof c === "string" ? c : c.name}</p>
                 ))}
-                {item.notes && <p className="text-[10px] italic text-muted-foreground ml-2">Obs: {item.notes}</p>}
+                {item.notes && <p className="text-[10px] italic text-muted-foreground ml-2 uppercase">OBS: {item.notes}</p>}
               </div>
             ))}
           </>
         ) : (
           /* Production single item */
           <div className="text-center py-1">
-            <p className="font-bold text-sm">{p.quantity || 1}× {p.product_name}</p>
+            <p className="font-bold text-sm uppercase">{p.quantity || 1}× {p.product_name}</p>
             {p.complements?.length > 0 && p.complements.map((c: string, i: number) => (
               <p key={i} className="text-[10px] text-muted-foreground">+ {c}</p>
             ))}
-            {p.notes && <p className="text-[10px] italic text-muted-foreground font-bold">Obs: {p.notes}</p>}
+            {p.notes && <p className="text-[10px] italic text-muted-foreground font-bold uppercase">OBS: {p.notes}</p>}
           </div>
         )}
 
-        {/* Totals for bills */}
+        {/* Totals for bills — bold emphasis */}
         {p.total != null && (
           <>
-            <div className="border-t border-dashed border-muted-foreground/30" />
-            <div className="flex justify-between font-bold text-sm">
-              <span>TOTAL</span>
-              <span>R$ {Number(p.total).toFixed(2)}</span>
+            <div className="border-t-2 border-foreground/30" />
+            <div className="flex justify-between font-bold text-sm py-1">
+              <span className="uppercase">TOTAL A PAGAR</span>
+              <span className="text-base">R$ {Number(p.total).toFixed(2)}</span>
             </div>
+            <div className="border-t-2 border-foreground/30" />
           </>
         )}
 
@@ -263,10 +270,10 @@ function TicketPreview({ job }: { job: any }) {
         {/* Bill footer */}
         {isBill && (
           <>
-            <p className="text-center text-[10px] text-muted-foreground">DOCUMENTO SEM VALOR FISCAL</p>
+            <p className="text-center text-[10px] text-muted-foreground uppercase tracking-wide">DOCUMENTO SEM VALOR FISCAL</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
             <p className="text-center text-[10px] italic text-muted-foreground">"Que seu café seja forte<br/>e sua jornada gloriosa!"</p>
-            <p className="text-center text-[10px] font-medium mt-0.5">Volte sempre!</p>
+            <p className="text-center text-[10px] font-bold mt-0.5 uppercase">VOLTE SEMPRE!</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
         )}
