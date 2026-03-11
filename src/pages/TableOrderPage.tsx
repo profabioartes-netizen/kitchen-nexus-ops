@@ -836,22 +836,24 @@ export default function TableOrderPage() {
           itemsByStation[station].push(item);
         }
 
-        for (const [station, items] of Object.entries(itemsByStation)) {
-          await supabase.from("print_jobs").insert({
-            station,
-            status: "pending",
-            payload: {
-              type: "order_save",
-              table_name: table?.name || "—",
-              waiter_name: order.waiter_name || null,
-              order_id: order.id,
-              items: items.map((i) => ({
-                name: i.product_name,
-                quantity: i.quantity,
-                notes: i.notes || null,
-              })),
-            },
-          });
+        // Batch all station print jobs in a single insert
+        const printJobRows = Object.entries(itemsByStation).map(([station, items]) => ({
+          station,
+          status: "pending",
+          payload: {
+            type: "order_save",
+            table_name: table?.name || "—",
+            waiter_name: order.waiter_name || null,
+            order_id: order.id,
+            items: items.map((i) => ({
+              name: i.product_name,
+              quantity: i.quantity,
+              notes: i.notes || null,
+            })),
+          },
+        }));
+        if (printJobRows.length > 0) {
+          await supabase.from("print_jobs").insert(printJobRows);
         }
 
         // Mark unsent items as sent

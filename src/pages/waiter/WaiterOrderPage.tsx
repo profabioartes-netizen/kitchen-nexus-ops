@@ -305,23 +305,32 @@ export default function WaiterOrderPage() {
       let currentOrder = order;
       if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
 
+      const orderItemRows = [];
+      const printJobRows = [];
       for (const prevItem of previousOrder.items) {
         const product = products.find((p) => p.id === prevItem.product_id);
         if (!product) continue;
-        await supabase.from("order_items").insert({
+        orderItemRows.push({
           order_id: currentOrder.id, product_id: prevItem.product_id, product_name: prevItem.product_name,
           price: Number(prevItem.price), quantity: prevItem.quantity,
           sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString(),
-        } as any);
-
+        });
         const station = (product as any).station || "";
         if (station) {
-          await supabase.from("print_jobs").insert({
+          printJobRows.push({
             station, status: "pending",
             payload: { product_name: prevItem.product_name, quantity: prevItem.quantity, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
           });
         }
       }
+
+      // Batch insert items + print jobs in parallel
+      const insertItemsP = supabase.from("order_items").insert(orderItemRows as any);
+      const insertPrintP = printJobRows.length > 0
+        ? supabase.from("print_jobs").insert(printJobRows)
+        : null;
+      await insertItemsP;
+      if (insertPrintP) await insertPrintP;
 
       const addedTotal = previousOrder.items.reduce((s: number, i: any) => s + Number(i.price) * i.quantity, 0);
       const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + addedTotal;
