@@ -196,10 +196,40 @@ export function ProductFormDialog({ productId, onClose }: Props) {
     }
   };
 
-  const selectSuggestion = (url: string) => {
-    setForm((prev) => ({ ...prev, image_url: url }));
-    setSuggestions([]);
-    toast.success("Imagem selecionada!");
+  const selectSuggestion = async (url: string) => {
+    // If it's a base64 image, upload to storage first
+    if (url.startsWith("data:image")) {
+      setUploading(true);
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const ext = blob.type.includes("png") ? "png" : "jpg";
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const filePath = `products/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(filePath, blob);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(filePath);
+
+        setForm((prev) => ({ ...prev, image_url: urlData.publicUrl }));
+        setSuggestions([]);
+        toast.success("Imagem selecionada e salva!");
+      } catch (err) {
+        toast.error("Erro ao salvar imagem: " + (err as Error).message);
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      setForm((prev) => ({ ...prev, image_url: url }));
+      setSuggestions([]);
+      toast.success("Imagem selecionada!");
+    }
   };
 
   const saveMutation = useMutation({
