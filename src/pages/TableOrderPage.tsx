@@ -714,6 +714,8 @@ export default function TableOrderPage() {
 
   // Cancel / delete order without sending to reports
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useState<"menu" | "order">("menu");
   const cancelOrder = useMutation({
     mutationFn: async () => {
       leavingRef.current = true;
