@@ -870,7 +870,9 @@ export default function TableOrderPage() {
                 onBlur={async (e) => {
                   const newName = e.target.value.trim();
                   if (table && newName && newName !== table.name) {
-                    await supabase.from("restaurant_tables").update({ name: newName }).eq("id", table.id);
+                    const defaultName = (table as any)?.default_name || "Comanda";
+                    const tableLabel = `${defaultName} — ${newName}`;
+                    await supabase.from("restaurant_tables").update({ name: tableLabel }).eq("id", table.id);
                     queryClient.invalidateQueries({ queryKey: ["restaurant_table", tableId] });
                     queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
                     if (order) {
