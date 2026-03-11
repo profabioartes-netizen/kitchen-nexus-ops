@@ -131,21 +131,21 @@ function buildCancellationHTML(job: any) {
 
   return `<!DOCTYPE html><html><head><style>${THERMAL_CSS}</style></head><body>
     ${buildMedievalHeader(job.station.toUpperCase())}
-    <div class="sep"></div>
-    <div class="center" style="margin:4px 0;">
-      <div class="title" style="color:#000;letter-spacing:3px;">*** CANCELAMENTO ***</div>
-    </div>
-    <div class="sep"></div>
-    <div>
-      ${p.table_name ? `<div>Mesa: ${p.table_name}</div>` : ""}
-      ${p.comanda_number ? `<div>Comanda: #${p.comanda_number}</div>` : ""}
-      ${p.waiter_name ? `<div>Garçom: ${p.waiter_name}</div>` : ""}
-      <div>Hora: ${time}  ${date}</div>
+    <div class="sep-double"></div>
+    <div class="center" style="margin:6px 0;">
+      <div class="title" style="letter-spacing:3px;"><b>*** CANCELAMENTO ***</b></div>
     </div>
     <div class="sep-double"></div>
-    <div class="center bold">CANCELAR:</div>
+    <div>
+      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
+      ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
+      <div>HORA: ${time}  ${date}</div>
+    </div>
+    <div class="sep-double"></div>
+    <div class="center bold" style="font-size:14px;">CANCELAR:</div>
     <div class="center item-big">${p.quantity || 1}× ${p.product_name || "Item"}</div>
-    ${p.notes ? `<div class="center notes">Motivo: ${p.notes}</div>` : `<div class="center notes">Item removido da comanda</div>`}
+    ${p.notes ? `<div class="center" style="margin-top:4px;">MOTIVO: ${p.notes}</div>` : `<div class="center" style="margin-top:4px;">ITEM REMOVIDO DA COMANDA</div>`}
     <div class="sep-double"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
