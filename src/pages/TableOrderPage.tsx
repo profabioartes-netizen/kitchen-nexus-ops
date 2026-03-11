@@ -1362,12 +1362,12 @@ export default function TableOrderPage() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => saveOrder.mutate()}
-                  disabled={!order || orderItems.length === 0 || saveOrder.isPending}
+                  disabled={!order || orderItems.length === 0 || saveOrder.isPending || !orderItems.some((i) => !i.sent_to_kitchen)}
                   className="flex items-center justify-center gap-2 rounded-md py-3.5 md:py-2 text-sm font-medium transition-colors disabled:opacity-50 touch-manipulation"
                   style={{ backgroundColor: "#16a34a", color: "white" }}
                 >
                   <Save className="h-4 w-4 md:h-3.5 md:w-3.5" />
-                  {saveOrder.isPending ? "Salvando..." : "Salvar"}
+                  {saveOrder.isPending ? "Salvando..." : orderItems.some((i) => !i.sent_to_kitchen) ? "Salvar" : "Salvo ✓"}
                 </button>
                 <button
                   onClick={() => setShowCancelConfirm(true)}
