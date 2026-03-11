@@ -304,60 +304,69 @@ function buildBillTicket(job) {
   return Buffer.concat(parts);
 }
 
-// ── 2) Production ticket (clean & compact) ──────────────────────────
+// ── 2) Production ticket (same style as cashier) ────────────────────
 function buildProductionTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
   const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
 
+  const qtyCol = 6;
+
   const parts = [
     cmd.init,
     cmd.codepage,
-    // Brand centered
+    // Header — same as cashier
     cmd.alignCenter,
-    cmd.text("COFFEE THRONES"),
     cmd.text(""),
-    // Station centered with asterisks
+    cmd.bold(true),
+    cmd.text("COFFEE THRONES"),
+    cmd.bold(false),
+    cmd.text(`CNPJ : ${CNPJ}`),
+    cmd.text(""),
+    cmd.separator(),
+    cmd.text(""),
+    // Station name instead of "RESUMO DA CONTA"
     cmd.bold(true),
     cmd.text(`* ${upperPt(job.station)} *`),
     cmd.bold(false),
     cmd.text(""),
     cmd.separator(),
     cmd.text(""),
-    // Waiter name centered and bold
-    cmd.bold(true),
-    cmd.text(upperPt(p.waiter_name || "")),
-    cmd.bold(false),
-    // "LANCADO POR" line
-    cmd.text("LANÇADO POR : COFFEE THRONES"),
-    cmd.text(""),
-    cmd.separator(),
-    cmd.text(""),
-    // Column headers
-    cmd.alignLeft,
-    cmd.bold(true),
-    cmd.text("QTD   DESCRIÇÃO"),
-    cmd.bold(false),
-    cmd.text(""),
-    cmd.separator(),
-    cmd.text(""),
   ];
 
-  // Items — format as table: qty left-aligned, name right with wrap
+  // Mesa / Garçom info centered — same as cashier
+  if (p.table_name) {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text(upperPt(p.table_name)));
+    parts.push(cmd.bold(false));
+  }
+  if (p.waiter_name) {
+    parts.push(cmd.text(`LANÇADO POR : ${upperPt(p.waiter_name)}`));
+  }
+  parts.push(cmd.text(""));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Column headers — same as cashier
+  parts.push(cmd.alignLeft);
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("QTD".padEnd(qtyCol) + "DESCRIÇÃO"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Items
   const items = p.items || [{ product_name: p.product_name || "Item", quantity: p.quantity || 1, notes: p.notes, complements: p.complements }];
+  const nameMaxCols = COLS - qtyCol;
 
   for (const item of items) {
     const qty = String(item.quantity || 1);
     const name = upperPt(item.product_name || "Item");
-    const qtyCol = 6; // "QTD   " = 6 chars
-    const nameMaxCols = COLS - qtyCol;
     const wrappedName = wordWrap(name, nameMaxCols);
 
-    // First line: qty + first part of name
-    const firstLine = qty.padEnd(qtyCol) + wrappedName[0];
-    parts.push(cmd.text(firstLine));
-    // Continuation lines indented
+    parts.push(cmd.text(qty.padEnd(qtyCol) + wrappedName[0]));
     for (let i = 1; i < wrappedName.length; i++) {
       parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
     }
@@ -365,7 +374,7 @@ function buildProductionTicket(job) {
     if (item.complements && item.complements.length > 0) {
       for (const c of item.complements) {
         const cName = typeof c === "string" ? c : c.name;
-        parts.push(cmd.wrappedText(" ".repeat(qtyCol) + `+ ${cName}`));
+        parts.push(cmd.wrappedText(" ".repeat(qtyCol) + `> ${cName}`));
       }
     }
 
@@ -375,13 +384,13 @@ function buildProductionTicket(job) {
       parts.push(cmd.bold(false));
     }
 
-    parts.push(cmd.text("")); // spacing between items
+    parts.push(cmd.text(""));
   }
 
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
 
-  // Footer: DATA E HORA centered
+  // Footer — same style as cashier
   parts.push(cmd.alignCenter);
   parts.push(cmd.bold(true));
   parts.push(cmd.text(`DATA E HORA : ${date} - ${time}`));
@@ -393,44 +402,85 @@ function buildProductionTicket(job) {
   return Buffer.concat(parts);
 }
 
-// ── 3) Cancellation ticket (compact) ────────────────────────────────
+// ── 3) Cancellation ticket (same style as cashier) ──────────────────
 function buildCancellationTicket(job) {
   const p = job.payload || {};
   const now = new Date(job.created_at);
-  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const date = now.toLocaleDateString("pt-BR");
   const productName = upperPt(p.product_name || "Item");
+
+  const qtyCol = 6;
 
   const parts = [
     cmd.init,
     cmd.codepage,
-    ...buildHeader(),
+    // Header — same as cashier
+    cmd.alignCenter,
+    cmd.text(""),
+    cmd.bold(true),
+    cmd.text("COFFEE THRONES"),
+    cmd.bold(false),
+    cmd.text(`CNPJ : ${CNPJ}`),
+    cmd.text(""),
+    cmd.separator(),
+    cmd.text(""),
     cmd.bold(true),
     cmd.text("** CANCELAMENTO **"),
     cmd.bold(false),
     cmd.text(upperPt(job.station)),
+    cmd.text(""),
     cmd.separator(),
-    cmd.alignLeft,
+    cmd.text(""),
   ];
 
-  if (p.table_name) parts.push(cmd.text(`Mesa: ${p.table_name}`));
-  if (p.waiter_name) parts.push(cmd.text(`Garçom: ${p.waiter_name}`));
-  parts.push(cmd.text(`Hora: ${time}  ${date}`));
+  // Mesa / Garçom centered
+  if (p.table_name) {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text(upperPt(p.table_name)));
+    parts.push(cmd.bold(false));
+  }
+  if (p.waiter_name) {
+    parts.push(cmd.text(`LANÇADO POR : ${upperPt(p.waiter_name)}`));
+  }
+  parts.push(cmd.text(""));
   parts.push(cmd.separator());
+  parts.push(cmd.text(""));
 
+  // Column headers
   parts.push(cmd.alignLeft);
   parts.push(cmd.bold(true));
-  parts.push(cmd.wrappedText(`${p.quantity || 1}x ${productName}`));
+  parts.push(cmd.text("QTD".padEnd(qtyCol) + "DESCRIÇÃO"));
   parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
 
-  if (p.notes) {
-    parts.push(cmd.wrappedText(`Motivo: ${p.notes}`));
+  // Item
+  const wrappedName = wordWrap(productName, COLS - qtyCol);
+  parts.push(cmd.text(String(p.quantity || 1).padEnd(qtyCol) + wrappedName[0]));
+  for (let i = 1; i < wrappedName.length; i++) {
+    parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
   }
 
+  if (p.notes) {
+    parts.push(cmd.text(""));
+    parts.push(cmd.bold(true));
+    parts.push(cmd.wrappedText(" ".repeat(qtyCol) + `MOTIVO: ${p.notes}`));
+    parts.push(cmd.bold(false));
+  }
+
+  parts.push(cmd.text(""));
   parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Footer
   parts.push(cmd.alignCenter);
-  parts.push(cmd.text(`#${job.id.slice(0, 8)}`));
-  parts.push(cmd.feedLines(1));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text(`DATA E HORA : ${date} - ${time}`));
+  parts.push(cmd.bold(false));
+
+  parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
