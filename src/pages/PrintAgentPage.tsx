@@ -86,8 +86,14 @@ function buildBillHTML(job: any) {
     <div class="sep"></div>
     <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
     <div class="sep"></div>
-    <div class="center footer-msg bold">"Que seu café seja forte<br>e sua jornada gloriosa!"</div>
-    <div class="center bold" style="margin-top:4px;">VOLTE SEMPRE!</div>
+    <div style="margin-top:10px;"></div>
+    <div class="center" style="font-size:11px;">Obrigado por visitar o</div>
+    <div class="center bold subtitle">REINO COFFEE THRONES</div>
+    <div style="margin-top:6px;"></div>
+    <div class="center bold" style="font-size:12px;">⚔ Que seu café seja forte</div>
+    <div class="center bold" style="font-size:12px;">e sua jornada gloriosa! ⚔</div>
+    <div style="margin-top:6px;"></div>
+    <div class="center bold" style="font-size:12px;">Volte sempre!</div>
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
@@ -272,8 +278,13 @@ function TicketPreview({ job }: { job: any }) {
           <>
             <p className="text-center text-[10px] text-muted-foreground uppercase tracking-wide">DOCUMENTO SEM VALOR FISCAL</p>
             <div className="border-t border-dashed border-muted-foreground/30" />
-            <p className="text-center text-[10px] italic text-muted-foreground">"Que seu café seja forte<br/>e sua jornada gloriosa!"</p>
-            <p className="text-center text-[10px] font-bold mt-0.5 uppercase">VOLTE SEMPRE!</p>
+            <div className="mt-3 mb-1 text-center space-y-0.5">
+              <p className="text-[10px] text-muted-foreground">Obrigado por visitar o</p>
+              <p className="text-xs font-bold tracking-wide">REINO COFFEE THRONES</p>
+              <p className="text-[10px] font-bold mt-1">⚔ Que seu café seja forte</p>
+              <p className="text-[10px] font-bold">e sua jornada gloriosa! ⚔</p>
+              <p className="text-[10px] font-bold mt-1">Volte sempre!</p>
+            </div>
             <div className="border-t border-dashed border-muted-foreground/30" />
           </>
         )}
