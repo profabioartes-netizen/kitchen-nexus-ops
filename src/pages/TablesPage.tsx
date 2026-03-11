@@ -270,6 +270,18 @@ export default function TablesPage() {
         .update({ status: newStatus })
         .eq("id", id);
       if (error) throw error;
+
+      // Track delivered_at on the order for service time metrics
+      const tableOrder = ordersByTable[id];
+      if (tableOrder) {
+        if (newStatus === "delivered") {
+          await supabase.from("orders").update({ delivered_at: new Date().toISOString() } as any).eq("id", tableOrder.id);
+        } else {
+          // Reverted from delivered — clear delivered_at
+          await supabase.from("orders").update({ delivered_at: null } as any).eq("id", tableOrder.id);
+        }
+      }
+
       return newStatus;
     },
     onMutate: async ({ id, currentStatus }) => {
