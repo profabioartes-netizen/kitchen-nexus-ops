@@ -235,6 +235,16 @@ export default function PaymentPanel({
   };
 
   const removeItemFromPayment = (itemId: string, qty: number) => {
+    // If customAmount is set, subtract the item price
+    if (customAmount) {
+      const item = orderItems.find((i) => i.id === itemId);
+      if (item) {
+        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
+        const removedValue = Number(item.price) * qty;
+        const newAmount = Math.max(0, Number((existingAmount - removedValue).toFixed(2)));
+        setCustomAmount(newAmount > 0 ? newAmount.toFixed(2) : "");
+      }
+    }
     setPaymentItems((prev) => {
       const current = prev[itemId] ?? 0;
       const next = current - qty;
@@ -248,6 +258,17 @@ export default function PaymentPanel({
   };
 
   const removeAllItemFromPayment = (itemId: string) => {
+    // If customAmount is set, subtract all of this item's value
+    if (customAmount) {
+      const item = orderItems.find((i) => i.id === itemId);
+      const qty = paymentItems[itemId] ?? 0;
+      if (item && qty > 0) {
+        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
+        const removedValue = Number(item.price) * qty;
+        const newAmount = Math.max(0, Number((existingAmount - removedValue).toFixed(2)));
+        setCustomAmount(newAmount > 0 ? newAmount.toFixed(2) : "");
+      }
+    }
     setPaymentItems((prev) => {
       const copy = { ...prev };
       delete copy[itemId];
