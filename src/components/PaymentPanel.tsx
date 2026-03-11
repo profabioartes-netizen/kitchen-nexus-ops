@@ -531,7 +531,12 @@ export default function PaymentPanel({
                         </span>
                       )}
                     </td>
-                    <td className="py-3 text-sm font-medium">{item.product_name}</td>
+                    <td className="py-3">
+                      <span className="text-sm font-medium">{item.product_name}</span>
+                      {itemComplements.filter(c => c.order_item_id === item.id).map(c => (
+                        <p key={c.id} className="text-[10px] text-muted-foreground">+ {c.complement_name}</p>
+                      ))}
+                    </td>
                     <td className="py-3 text-sm font-semibold text-right tabular-nums">
                       R$ {(Number(item.price) * item.remainingQty).toFixed(2)}
                     </td>
