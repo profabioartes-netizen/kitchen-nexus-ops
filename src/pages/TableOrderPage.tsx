@@ -817,6 +817,7 @@ export default function TableOrderPage() {
     toast.success(`${item.product_name} removido!`);
   };
 
+  const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
       p.name.toLowerCase().includes(search.toLowerCase())
