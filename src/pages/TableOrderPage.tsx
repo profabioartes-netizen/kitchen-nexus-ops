@@ -1146,7 +1146,7 @@ export default function TableOrderPage() {
                       <div className="mt-0.5 space-y-0">
                         {comps.map((c) => (
                           <p key={c.id} className="text-[10px] text-muted-foreground">
-                            + {c.complement_name}{Number(c.price) > 0 ? ` (R$ ${Number(c.price).toFixed(2)})` : ""}
+                            + {c.complement_name}
                           </p>
                         ))}
                       </div>
