@@ -395,7 +395,7 @@ export default function TableOrderPage() {
 
   // Auto-create order for free tables (skip dialog)
   useEffect(() => {
-    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending) {
+    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
       autoCreatedRef.current = true;
       createOrder.mutate({ customerName: navState?.customerName });
     }
