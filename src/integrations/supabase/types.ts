@@ -73,6 +73,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          sort_order: number | null
         }
         Insert: {
           active?: boolean
@@ -81,6 +82,7 @@ export type Database = {
           id?: string
           name: string
           price?: number
+          sort_order?: number | null
         }
         Update: {
           active?: boolean
@@ -89,6 +91,7 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          sort_order?: number | null
         }
         Relationships: [
           {
