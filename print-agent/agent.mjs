@@ -188,7 +188,7 @@ function buildBillTicket(job) {
     parts.push(cmd.text(p.table_name.toUpperCase()));
     parts.push(cmd.bold(false));
   }
-  const customerLabel = p.customer_name || "CONSUMIDOR NAO IDENTIFICADO";
+  const customerLabel = p.customer_name || "CONSUMIDOR NÃO IDENTIFICADO";
   parts.push(cmd.text(`CLIENTE : ${customerLabel.toUpperCase()}`));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
