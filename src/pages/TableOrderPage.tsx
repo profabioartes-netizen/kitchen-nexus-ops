@@ -1259,6 +1259,7 @@ export default function TableOrderPage() {
               onAddQuickItem={addQuickItem}
               onRemoveQuickItem={removeQuickItem}
               onRemoveItem={(itemId) => updateQty.mutate({ itemId, delta: -1 })}
+              onUpdateItemQty={(itemId, delta) => updateQty.mutate({ itemId, delta })}
             />
           )}
         </div>
