@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff } from "lucide-react";
+import { Printer, CheckCircle2, Loader2, Volume2, VolumeX, Coffee, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // ── Stations that auto-print (production only) ──────────────────────
 const AUTO_PRINT_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
