@@ -108,7 +108,9 @@ export default function WaiterTablesPage() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-base truncate">{table.name}</span>
+                  <span className="font-semibold text-base truncate">
+                    {order?.customer_name || (table as any).default_name || table.name}
+                  </span>
                   {(table as any).sector && (
                     <span className="text-[10px] bg-secondary rounded-full px-2 py-0.5 text-muted-foreground flex-shrink-0">
                       {(table as any).sector}
@@ -116,6 +118,9 @@ export default function WaiterTablesPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-3 mt-1">
+                  {order?.customer_name && (
+                    <span className="text-[10px] text-muted-foreground">{(table as any).default_name || table.name}</span>
+                  )}
                   <span className="text-xs text-muted-foreground">{table.seats} lugares</span>
                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     {statusLabels[status]}
@@ -124,9 +129,6 @@ export default function WaiterTablesPage() {
                     <span className="text-[10px] text-muted-foreground">{(order as any).guests} pessoas</span>
                   )}
                 </div>
-                {(order as any)?.customer_name && (
-                  <span className="text-xs text-accent font-medium mt-0.5">{(order as any).customer_name}</span>
-                )}
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 {order && (
