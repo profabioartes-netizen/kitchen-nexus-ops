@@ -12,6 +12,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type OrderItemComplement = {
+  id: string;
+  order_item_id: string;
+  complement_name: string;
+  price: number;
+  quantity: number;
+};
+
 type OrderItem = {
   id: string;
   product_id?: string;
@@ -39,6 +47,7 @@ interface PaymentPanelProps {
   onPay: (result: PaymentResult) => void;
   onCancel: () => void;
   isPending: boolean;
+  itemComplements?: OrderItemComplement[];
   onAddQuickItem?: (product: { id: string; name: string; price: number }, quantity: number) => void;
   onRemoveQuickItem?: (productId: string) => void;
   onRemoveItem?: (itemId: string) => void;
@@ -116,6 +125,7 @@ export default function PaymentPanel({
   onPay,
   onCancel,
   isPending,
+  itemComplements = [],
   onAddQuickItem,
   onRemoveQuickItem,
   onRemoveItem,
@@ -521,7 +531,12 @@ export default function PaymentPanel({
                         </span>
                       )}
                     </td>
-                    <td className="py-3 text-sm font-medium">{item.product_name}</td>
+                    <td className="py-3">
+                      <span className="text-sm font-medium">{item.product_name}</span>
+                      {itemComplements.filter(c => c.order_item_id === item.id).map(c => (
+                        <p key={c.id} className="text-[10px] text-muted-foreground">+ {c.complement_name}</p>
+                      ))}
+                    </td>
                     <td className="py-3 text-sm font-semibold text-right tabular-nums">
                       R$ {(Number(item.price) * item.remainingQty).toFixed(2)}
                     </td>
@@ -630,7 +645,12 @@ export default function PaymentPanel({
                       return (
                         <tr key={id} className="border-b border-border/50">
                           <td className="py-2 text-sm tabular-nums">{qty.toFixed(qty % 1 ? 2 : 0)}</td>
-                          <td className="py-2 text-sm">{item.product_name}</td>
+                          <td className="py-2">
+                            <span className="text-sm">{item.product_name}</span>
+                            {itemComplements.filter(c => c.order_item_id === id).map(c => (
+                              <p key={c.id} className="text-[10px] text-muted-foreground">+ {c.complement_name}</p>
+                            ))}
+                          </td>
                           <td className="py-2 text-sm font-semibold text-right tabular-nums">
                             R$ {(Number(item.price) * qty).toFixed(2)}
                           </td>

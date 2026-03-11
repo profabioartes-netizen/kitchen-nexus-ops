@@ -1309,6 +1309,7 @@ export default function TableOrderPage() {
             <PaymentPanel
               total={total}
               orderItems={orderItems}
+              itemComplements={itemComplements}
               serviceFeeEnabled={serviceFeeEnabled}
               onToggleServiceFee={setServiceFeeEnabled}
               onPay={(result) => payMutation.mutate(result)}
