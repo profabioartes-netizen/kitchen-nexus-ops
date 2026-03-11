@@ -219,7 +219,7 @@ export default function PrintersPage() {
         <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
           <AlertTriangle className="h-5 w-5 flex-shrink-0" />
           <span>
-            <strong>{errorCount} job{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
+            ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
             Verifique a impressora e use <strong>Reimprimir</strong> para reenviar manualmente.
           </span>
         </div>
