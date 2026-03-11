@@ -230,14 +230,22 @@ export default function CashierPage() {
             <span className="font-display text-xl">TOTAL</span>
             <span className="font-display text-xl">R$ {subtotal.toFixed(2)}</span>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <button
               disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate("card")}
+              onClick={() => payMutation.mutate("credit")}
               className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               <CreditCard className="h-4 w-4" />
-              <span className="text-xs">Cartão</span>
+              <span className="text-xs">Crédito</span>
+            </button>
+            <button
+              disabled={order.length === 0 || payMutation.isPending}
+              onClick={() => payMutation.mutate("debit")}
+              className="flex flex-col items-center justify-center gap-1 rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <CreditCard className="h-4 w-4" />
+              <span className="text-xs">Débito</span>
             </button>
             <button
               disabled={order.length === 0 || payMutation.isPending}
