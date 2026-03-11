@@ -351,7 +351,9 @@ export default function PrintersPage() {
             </tr>
           </thead>
           <tbody>
-            {printers.map((p) => (
+            {printers.map((p) => {
+              const online = isOnline(p);
+              return (
               <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/30">
                 <td className="px-4 py-3 font-medium flex items-center gap-2">
                   <Printer className="h-4 w-4 text-muted-foreground" />
@@ -360,6 +362,16 @@ export default function PrintersPage() {
                 <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.model}</td>
                 <td className="px-4 py-3 text-muted-foreground">{p.ip}:{p.port}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    online
+                      ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+                      : "bg-destructive/10 text-destructive"
+                  }`}>
+                    <Circle className={`h-2 w-2 ${online ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
+                    {online ? "Online" : "Offline"}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => toggleActive.mutate(p)}
