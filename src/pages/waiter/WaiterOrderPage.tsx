@@ -290,7 +290,6 @@ export default function WaiterOrderPage() {
     },
   });
 
-  // Repeat previous order
   const repeatOrder = useMutation({
     mutationFn: async () => {
       if (!previousOrder?.items?.length) throw new Error("Sem pedido anterior");
@@ -298,31 +297,17 @@ export default function WaiterOrderPage() {
       if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
 
       const orderItemRows = [];
-      const printJobRows = [];
       for (const prevItem of previousOrder.items) {
         const product = products.find((p) => p.id === prevItem.product_id);
         if (!product) continue;
         orderItemRows.push({
           order_id: currentOrder.id, product_id: prevItem.product_id, product_name: prevItem.product_name,
           price: Number(prevItem.price), quantity: prevItem.quantity,
-          sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString(),
+          sent_to_kitchen: false, preparation_status: "pending",
         });
-        const station = (product as any).station || "";
-        if (station) {
-          printJobRows.push({
-            station, status: "pending",
-            payload: { product_name: prevItem.product_name, quantity: prevItem.quantity, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: null, complements: [], order_id: currentOrder.id },
-          });
-        }
       }
 
-      // Batch insert items + print jobs in parallel
-      const insertItemsP = supabase.from("order_items").insert(orderItemRows as any);
-      const insertPrintP = printJobRows.length > 0
-        ? supabase.from("print_jobs").insert(printJobRows)
-        : null;
-      await insertItemsP;
-      if (insertPrintP) await insertPrintP;
+      await supabase.from("order_items").insert(orderItemRows as any);
 
       const addedTotal = previousOrder.items.reduce((s: number, i: any) => s + Number(i.price) * i.quantity, 0);
       const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + addedTotal;
@@ -338,7 +323,6 @@ export default function WaiterOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       toast.success("Pedido anterior repetido!");
     },
     onError: (err) => toast.error((err as Error).message),
@@ -352,7 +336,7 @@ export default function WaiterOrderPage() {
       const unitPrice = Number(product.price) + complementsTotal;
       const { data: insertedItem, error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity,
-        notes: notes || null, sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString(),
+        notes: notes || null, sent_to_kitchen: false, preparation_status: "pending",
       } as any).select().single();
       if (itemError) throw itemError;
 
@@ -360,14 +344,6 @@ export default function WaiterOrderPage() {
         await supabase.from("order_item_complements").insert(
           complements.map((c) => ({ order_item_id: insertedItem.id, complement_id: c.id, complement_name: c.name, price: c.price, quantity: c.quantity }))
         );
-      }
-
-      const station = (product as any).station || "";
-      if (station) {
-        await supabase.from("print_jobs").insert({
-          station, status: "pending",
-          payload: { product_name: product.name, quantity, table_name: table?.name || "—", waiter_name: currentOrder.waiter_name || profile?.full_name || null, notes: notes || null, complements: complements.map((c) => `${c.name}${c.price > 0 ? ` (+R$${c.price.toFixed(2)})` : ""}`), order_id: currentOrder.id },
-        });
       }
 
       const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce((s, i) => s + Number(i.price) * i.quantity, 0);
@@ -385,9 +361,70 @@ export default function WaiterOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       toast.success("Item adicionado!");
     },
+  });
+
+  // Save order — sends unsent items to production printers
+  const saveOrder = useMutation({
+    mutationFn: async () => {
+      if (!order) throw new Error("Sem pedido aberto");
+      const unsent = orderItems.filter((i) => !i.sent_to_kitchen);
+
+      if (unsent.length > 0) {
+        // Fetch complements for unsent items
+        const unsentIds = unsent.map((i) => i.id);
+        const { data: complementsData } = await supabase
+          .from("order_item_complements")
+          .select("order_item_id, complement_name, price")
+          .in("order_item_id", unsentIds);
+        const complementsByItem: Record<string, { name: string; price: number }[]> = {};
+        for (const c of complementsData || []) {
+          if (!complementsByItem[c.order_item_id]) complementsByItem[c.order_item_id] = [];
+          complementsByItem[c.order_item_id].push({ name: c.complement_name, price: Number(c.price) });
+        }
+
+        // Create individual print jobs per item
+        const printJobRows: any[] = [];
+        for (const item of unsent) {
+          const product = products.find((p) => p.id === item.product_id);
+          const station = (product as any)?.station || "";
+          if (!station || station === "Caixa") continue;
+          const itemComplements = complementsByItem[item.id] || [];
+          printJobRows.push({
+            station, status: "pending",
+            payload: {
+              product_name: item.product_name, quantity: item.quantity,
+              table_name: table?.name || "—", waiter_name: order.waiter_name || profile?.full_name || null,
+              order_id: order.id, notes: item.notes || null,
+              complements: itemComplements.map((c) => c.name),
+            },
+          });
+        }
+        if (printJobRows.length > 0) {
+          await supabase.from("print_jobs").insert(printJobRows);
+        }
+
+        // Mark as sent
+        await supabase
+          .from("order_items")
+          .update({ sent_to_kitchen: true, preparation_status: "sent", sent_at: new Date().toISOString() } as any)
+          .in("id", unsentIds);
+
+        await logActivity(tableId!, "order_saved", `Pedido salvo — ${unsent.length} item(ns) enviado(s)`, order.id, profile?.full_name);
+      } else {
+        await logActivity(tableId!, "order_saved", `Pedido salvo (sem novos itens)`, order.id, profile?.full_name);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
+      toast.success("Pedido salvo e enviado!");
+      navigate(-1);
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const updateQty = useMutation({
