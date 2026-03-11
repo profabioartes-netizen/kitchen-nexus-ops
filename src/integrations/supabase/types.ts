@@ -35,6 +35,41 @@ export type Database = {
         }
         Relationships: []
       }
+      comanda_locks: {
+        Row: {
+          id: string
+          lock_expires_at: string
+          locked_at: string
+          locked_by_user_id: string
+          locked_by_user_name: string
+          table_id: string
+        }
+        Insert: {
+          id?: string
+          lock_expires_at?: string
+          locked_at?: string
+          locked_by_user_id: string
+          locked_by_user_name?: string
+          table_id: string
+        }
+        Update: {
+          id?: string
+          lock_expires_at?: string
+          locked_at?: string
+          locked_by_user_id?: string
+          locked_by_user_name?: string
+          table_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comanda_locks_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: true
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complement_groups: {
         Row: {
           created_at: string
@@ -581,7 +616,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      acquire_comanda_lock: {
+        Args: {
+          p_duration_seconds?: number
+          p_table_id: string
+          p_user_id: string
+          p_user_name: string
+        }
+        Returns: Json
+      }
+      release_comanda_lock: {
+        Args: { p_table_id: string; p_user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

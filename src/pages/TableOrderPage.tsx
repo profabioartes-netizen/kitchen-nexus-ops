@@ -9,6 +9,8 @@ import {
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
+import { useComandaLock } from "@/hooks/useComandaLock";
+import { Lock } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -69,6 +71,13 @@ export default function TableOrderPage() {
   const [mergeConfirm, setMergeConfirm] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
+
+  // Concurrency lock
+  const { lockInfo, loading: lockLoading } = useComandaLock(
+    tableId,
+    profile?.id,
+    profile?.full_name,
+  );
 
   const invalidateLog = () => queryClient.invalidateQueries({ queryKey: ["activity_log", tableId] });
 
@@ -833,10 +842,37 @@ export default function TableOrderPage() {
   const unpaidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) < i.quantity);
   const paidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) >= i.quantity);
 
-  if (tableLoading || orderLoading) {
+  if (tableLoading || orderLoading || lockLoading) {
     return (
       <div className="flex items-center justify-center h-full p-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Lock blocked by another user
+  if (lockInfo && !lockInfo.acquired) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-12 gap-4">
+        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-destructive/10">
+          <Lock className="h-8 w-8 text-destructive" />
+        </div>
+        <h2 className="text-xl font-semibold text-foreground">Comanda em uso</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          Esta comanda está sendo editada por <strong>{lockInfo.lockedByUserName || "outro usuário"}</strong>.
+          {lockInfo.lockExpiresAt && (
+            <> O bloqueio expira em breve. Tente novamente após a liberação.</>
+          )}
+        </p>
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 rounded-md border bg-card px-4 py-2 text-sm font-medium hover:bg-secondary transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </button>
+        </div>
       </div>
     );
   }
