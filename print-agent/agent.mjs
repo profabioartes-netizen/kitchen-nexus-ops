@@ -27,7 +27,7 @@ const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
 const ESC = 0x1b;
 const GS = 0x1d;
 
-const COLS = 48;
+const COLS = 42;
 const SEP_CHAR = "-";
 const CNPJ = "00.000.000/0001-00";
 
