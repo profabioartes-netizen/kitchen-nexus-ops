@@ -86,8 +86,14 @@ function buildBillHTML(job: any) {
     <div class="sep"></div>
     <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
     <div class="sep"></div>
-    <div class="center footer-msg bold">"Que seu café seja forte<br>e sua jornada gloriosa!"</div>
-    <div class="center bold" style="margin-top:4px;">VOLTE SEMPRE!</div>
+    <div style="margin-top:10px;"></div>
+    <div class="center" style="font-size:11px;">Obrigado por visitar o</div>
+    <div class="center bold subtitle">REINO COFFEE THRONES</div>
+    <div style="margin-top:6px;"></div>
+    <div class="center bold" style="font-size:12px;">⚔ Que seu café seja forte</div>
+    <div class="center bold" style="font-size:12px;">e sua jornada gloriosa! ⚔</div>
+    <div style="margin-top:6px;"></div>
+    <div class="center bold" style="font-size:12px;">Volte sempre!</div>
     <div class="sep"></div>
     <div class="center small">Ticket #${job.id?.slice(0, 8)}</div>
     <div style="height:16px;"></div>
