@@ -9,6 +9,8 @@ import {
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
+import { useComandaLock } from "@/hooks/useComandaLock";
+import { Lock } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 
