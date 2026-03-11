@@ -788,6 +788,7 @@ export default function TableOrderPage() {
             payload: {
               items: stationItems,
               table_name: table?.name || "—",
+              mesa_name: table?.default_name || null,
               waiter_name: order.waiter_name || null,
               order_id: order.id,
             },
