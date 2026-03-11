@@ -869,8 +869,13 @@ export default function TableOrderPage() {
                   const newName = e.target.value.trim();
                   if (order && newName !== (order.customer_name || "")) {
                     await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
+                    const defaultName = (table as any)?.default_name || "Comanda";
+                    const tableName = newName ? `${defaultName} — ${newName}` : defaultName;
+                    await supabase.from("restaurant_tables").update({ name: tableName }).eq("id", table!.id);
                     queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                    queryClient.invalidateQueries({ queryKey: ["table", tableId] });
                     queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+                    queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
                   }
                 }}
                 onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
