@@ -845,6 +845,7 @@ export default function TableOrderPage() {
     if (!item) return;
 
 
+    await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
     await supabase.from("order_items").delete().eq("id", item.id);
     const newTotal = orderItems.filter((i) => i.id !== item.id).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
     await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
