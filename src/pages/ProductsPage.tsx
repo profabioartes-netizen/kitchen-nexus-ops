@@ -24,7 +24,7 @@ export default function ProductsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*, categories(name)")
+        .select("*, categories(name, sort_order)")
         .order("sort_order", { ascending: true })
         .order("name");
       if (error) throw error;
