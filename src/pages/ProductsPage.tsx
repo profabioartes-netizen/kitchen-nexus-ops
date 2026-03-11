@@ -182,7 +182,7 @@ export default function ProductsPage() {
                       <tr className="border-b bg-secondary/50">
                         <th className="w-10 px-2 py-2"></th>
                         <th className="text-left px-4 py-2 font-medium">Produto</th>
-                        <th className="text-left px-4 py-2 font-medium">Estação</th>
+                        <th className="text-left px-4 py-2 font-medium">Impressora</th>
                         <th className="text-right px-4 py-2 font-medium">Preço</th>
                         <th className="text-right px-4 py-2 font-medium">Estoque</th>
                         <th className="text-center px-4 py-2 font-medium">Status</th>
