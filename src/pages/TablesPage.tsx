@@ -755,7 +755,7 @@ export default function TablesPage() {
                                 </div>
                               </div>
                             )}
-                            {newItems.length === 0 && ongoingItems.length === 0 && (
+                            {newItems.length === 0 && completedItems.length === 0 && (
                               <p className="text-xs text-muted-foreground italic p-2.5">Sem itens</p>
                             )}
                           </div>
