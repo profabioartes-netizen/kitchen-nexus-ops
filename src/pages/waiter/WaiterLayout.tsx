@@ -49,7 +49,7 @@ export default function WaiterLayout() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => { import("@/lib/forceUpdate").then(m => m.forceUpdate()); }}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors touch-manipulation"
           >
             <RefreshCw className="h-4 w-4" />
