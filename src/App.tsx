@@ -74,6 +74,7 @@ function AuthRoute() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <PWAUpdatePrompt />
       <Toaster />
       <Sonner />
       <BrowserRouter>
