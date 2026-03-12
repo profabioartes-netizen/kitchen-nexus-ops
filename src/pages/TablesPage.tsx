@@ -209,7 +209,7 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("id, product_name, quantity, sent_to_kitchen, viewed_at")
+        .select("id, product_name, quantity, sent_to_kitchen, viewed_at, delivered_at")
         .eq("order_id", previewOrderId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -717,8 +717,8 @@ export default function TablesPage() {
                       {previewItems.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
                       ) : (() => {
-                        const newItems = previewItems.filter((i) => !i.sent_to_kitchen);
-                        const ongoingItems = previewItems.filter((i) => i.sent_to_kitchen);
+                        const newItems = previewItems.filter((i) => !(i as any).delivered_at);
+                        const completedItems = previewItems.filter((i) => !!(i as any).delivered_at);
                         return (
                           <div>
                             {newItems.length > 0 && (
@@ -737,28 +737,25 @@ export default function TablesPage() {
                                     ))}
                                   </div>
                                 </div>
-                                {ongoingItems.length > 0 && (
+                                {completedItems.length > 0 && (
                                   <div className="mx-2.5 my-1.5 border-t border-border" />
                                 )}
                               </>
                             )}
-                            {ongoingItems.length > 0 && (
+                            {completedItems.length > 0 && (
                               <div className="p-2.5">
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pedido em Andamento</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Concluído</p>
                                 <div className="space-y-1">
-                                  {ongoingItems.map((item) => (
+                                  {completedItems.map((item) => (
                                     <div key={item.id} className="flex items-center justify-between text-xs gap-1">
                                       <span className="truncate flex-1 mr-1">{item.product_name}</span>
-                                      {!(item as any).viewed_at && (
-                                        <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
-                                      )}
                                       <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             )}
-                            {newItems.length === 0 && ongoingItems.length === 0 && (
+                            {newItems.length === 0 && completedItems.length === 0 && (
                               <p className="text-xs text-muted-foreground italic p-2.5">Sem itens</p>
                             )}
                           </div>
