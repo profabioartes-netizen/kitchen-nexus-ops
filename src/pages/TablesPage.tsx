@@ -732,6 +732,21 @@ export default function TablesPage() {
                   </div>
                 )}
 
+                {/* Water alert icon */}
+                {waterAlert && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      dismissWaterAlert.mutate(waterAlert.ids);
+                    }}
+                    className="absolute -top-2 -left-2 z-30 flex items-center gap-1 rounded-full bg-destructive text-destructive-foreground px-2 py-1 animate-pulse shadow-lg hover:scale-110 transition-transform"
+                    title={`Entregar: ${waterAlert.names.join(", ")} — Clique para concluir`}
+                  >
+                    <Droplets className="h-3.5 w-3.5" />
+                    <span className="text-[8px] font-black uppercase leading-none">ÁGUA</span>
+                  </button>
+                )}
 
                 {/* Unviewed items badge */}
                 {order && (unviewedCounts[order.id] || 0) > 0 && (
