@@ -218,13 +218,18 @@ export default function TablesPage() {
     enabled: !!previewOrderId,
   });
 
-  // Fetch item counts for all orders
+  // Derive open order IDs to scope item queries
+  const openOrderIds = useMemo(() => openOrders.map((o) => o.id), [openOrders]);
+
+  // Fetch item counts only for open orders
   const { data: orderItemCounts = {} } = useQuery({
-    queryKey: ["order_item_counts"],
+    queryKey: ["order_item_counts", openOrderIds],
     queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
       const { data, error } = await supabase
         .from("order_items")
-        .select("order_id, quantity, viewed_at");
+        .select("order_id, quantity")
+        .in("order_id", openOrderIds);
       if (error) throw error;
       const counts: Record<string, number> = {};
       for (const item of data) {
@@ -232,15 +237,18 @@ export default function TablesPage() {
       }
       return counts;
     },
+    enabled: openOrderIds.length > 0,
   });
 
-  // Count unviewed items per order
+  // Count unviewed items only for open orders
   const { data: unviewedCounts = {} } = useQuery({
-    queryKey: ["unviewed_item_counts"],
+    queryKey: ["unviewed_item_counts", openOrderIds],
     queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
       const { data, error } = await supabase
         .from("order_items")
         .select("order_id, quantity, viewed_at")
+        .in("order_id", openOrderIds)
         .is("viewed_at", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
@@ -249,6 +257,7 @@ export default function TablesPage() {
       }
       return counts;
     },
+    enabled: openOrderIds.length > 0,
   });
 
   const updatePosition = useMutation({
