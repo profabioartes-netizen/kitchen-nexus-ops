@@ -499,6 +499,7 @@ export default function WaiterOrderPage() {
 
   if (tableLoading || orderLoading) {
     return <LoadingScreen />;
+  }
 
   if (!order && !orderLoading && !tableLoading) {
     return (
