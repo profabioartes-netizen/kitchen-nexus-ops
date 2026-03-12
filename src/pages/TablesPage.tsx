@@ -737,21 +737,18 @@ export default function TablesPage() {
                                     ))}
                                   </div>
                                 </div>
-                                {ongoingItems.length > 0 && (
+                                {completedItems.length > 0 && (
                                   <div className="mx-2.5 my-1.5 border-t border-border" />
                                 )}
                               </>
                             )}
-                            {ongoingItems.length > 0 && (
+                            {completedItems.length > 0 && (
                               <div className="p-2.5">
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Pedido em Andamento</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Concluído</p>
                                 <div className="space-y-1">
-                                  {ongoingItems.map((item) => (
+                                  {completedItems.map((item) => (
                                     <div key={item.id} className="flex items-center justify-between text-xs gap-1">
                                       <span className="truncate flex-1 mr-1">{item.product_name}</span>
-                                      {!(item as any).viewed_at && (
-                                        <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
-                                      )}
                                       <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
                                     </div>
                                   ))}
