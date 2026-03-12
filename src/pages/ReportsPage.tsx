@@ -5,10 +5,10 @@ import {
   DollarSign,
   ShoppingBag,
   Receipt,
-  Loader2,
   CalendarDays,
   Lock,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import {
   BarChart,
   Bar,
