@@ -106,10 +106,11 @@ export default function CashierPage() {
       const { error: itemsError } = await supabase.from("order_items").insert(items);
       if (itemsError) throw itemsError;
 
-      // Insert payment
+      // Insert payment (DB constraint allows: cash, card, pix)
+      const dbMethod = method === "credit" || method === "debit" ? "card" : method;
       const { error: payError } = await supabase.from("payments").insert({
         order_id: newOrder.id,
-        method,
+        method: dbMethod,
         amount: subtotal,
       });
       if (payError) throw payError;
