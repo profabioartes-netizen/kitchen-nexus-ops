@@ -197,12 +197,7 @@ export default function CustomerSalesPage() {
   const counterTotal = useMemo(() => counterOrders.reduce((s, o) => s + Number(o.total), 0), [counterOrders]);
 
   if (loadingOrders) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+    return <LoadingScreen />;
 
   // Shared order detail renderer
   const renderOrderDetail = (order: any) => {

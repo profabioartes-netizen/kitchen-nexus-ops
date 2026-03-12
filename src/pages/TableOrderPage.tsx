@@ -906,12 +906,7 @@ export default function TableOrderPage() {
 
   // Auto-creating order, show loading
   if (!order && !orderLoading && !tableLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-      </div>
-    );
+    return <LoadingScreen message="Abrindo comanda..." />;
   }
 
   const orderItemCount = orderItems.reduce((s, i) => s + i.quantity, 0);

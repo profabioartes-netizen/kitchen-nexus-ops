@@ -512,11 +512,7 @@ export default function WaiterOrderPage() {
         />
         <div className="flex items-center justify-center h-full p-12">
           {createOrder.isPending ? (
-            <>
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-            </>
-          ) : (
+                         <LoadingScreen message="Abrindo comanda..." />
             <span className="text-sm text-muted-foreground">Aguardando abertura da mesa...</span>
           )}
         </div>
