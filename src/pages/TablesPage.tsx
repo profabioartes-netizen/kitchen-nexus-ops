@@ -570,8 +570,9 @@ export default function TablesPage() {
   }
 
   return (
-    <div className="p-3 sm:p-6 h-full flex flex-col overflow-x-hidden">
-      {/* Header */}
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Sticky top section */}
+      <div className="flex-shrink-0 p-3 sm:p-6 pb-0 sm:pb-0 overflow-x-hidden">
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div>
           <h1 className="text-lg sm:text-2xl font-semibold">Mapa de Comandas</h1>
@@ -691,6 +692,10 @@ export default function TablesPage() {
           </button>
         )}
       </div>
+      </div>
+
+      {/* Scrollable content area */}
+      <div className="flex-1 min-h-0 overflow-auto px-3 sm:px-6 pb-3 sm:pb-6">
 
       {viewMode === "floor" && (
         <div className="mb-3 sm:mb-4">
@@ -1051,6 +1056,7 @@ export default function TablesPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
