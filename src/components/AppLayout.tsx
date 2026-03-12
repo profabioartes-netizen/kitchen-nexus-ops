@@ -8,7 +8,7 @@ export function AppLayout() {
   return (
     <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden">
       {!isMobile && <NavigationRail />}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-h-0 overflow-auto">
         <Outlet />
       </main>
     </div>
