@@ -231,7 +231,7 @@ export default function PrintersPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 h-full overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Impressoras & Estações</h1>
         <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">

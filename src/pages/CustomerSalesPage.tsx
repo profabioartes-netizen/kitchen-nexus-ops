@@ -320,7 +320,7 @@ export default function CustomerSalesPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl">
+    <div className="p-6 max-w-5xl h-full overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Users className="h-6 w-6 text-accent" />

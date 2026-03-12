@@ -120,7 +120,7 @@ export default function ProductsPage() {
   ];
 
   return (
-    <div className="p-6">
+    <div className="p-6 h-full overflow-auto">
       {/* Tab bar */}
       <div className="flex items-center gap-6 mb-6 border-b">
         {tabs.map((tab) => (
