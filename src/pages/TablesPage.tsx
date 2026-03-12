@@ -260,7 +260,47 @@ export default function TablesPage() {
     enabled: openOrderIds.length > 0,
   });
 
-  const updatePosition = useMutation({
+  // Water alert: pending "Água com Gás" / "Água sem Gás" items per order
+  const WATER_NAMES = ["água com gás", "água sem gás"];
+  const { data: waterAlertOrders = {} } = useQuery({
+    queryKey: ["water_alerts", openOrderIds],
+    queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("id, order_id, product_name, quantity")
+        .in("order_id", openOrderIds)
+        .is("delivered_at", null);
+      if (error) throw error;
+      const map: Record<string, { ids: string[]; names: string[] }> = {};
+      for (const item of data) {
+        if (WATER_NAMES.includes(item.product_name.toLowerCase().trim())) {
+          if (!map[item.order_id]) map[item.order_id] = { ids: [], names: [] };
+          map[item.order_id].ids.push(item.id);
+          map[item.order_id].names.push(item.product_name);
+        }
+      }
+      return map;
+    },
+    enabled: openOrderIds.length > 0,
+  });
+
+  const dismissWaterAlert = useMutation({
+    mutationFn: async (itemIds: string[]) => {
+      const { error } = await supabase
+        .from("order_items")
+        .update({ delivered_at: new Date().toISOString() })
+        .in("id", itemIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["water_alerts"] });
+      queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+      queryClient.invalidateQueries({ queryKey: ["order_items"] });
+      toast.success("Águas marcadas como entregues!");
+    },
+    onError: () => toast.error("Erro ao marcar águas como entregues"),
+  });
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
       const { error } = await supabase
         .from("restaurant_tables")
