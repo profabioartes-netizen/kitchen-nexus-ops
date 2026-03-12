@@ -133,6 +133,8 @@ export default function TableOrderPage() {
         .select("*")
         .eq("table_id", tableId!)
         .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
+        .order("created_at", { ascending: true })
+        .limit(1)
         .maybeSingle();
       if (error) throw error;
       return data;
