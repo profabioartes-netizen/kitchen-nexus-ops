@@ -838,6 +838,7 @@ const healthInterval = setInterval(healthCheckLoop, 10000);
 // Graceful shutdown
 process.on("SIGINT", () => {
   stopFallbackPolling();
+  if (safetyInterval) clearInterval(safetyInterval);
   clearInterval(healthInterval);
   supabase.removeChannel(realtimeChannel);
   console.log(`\n  🛑 Agente encerrado. ${jobsProcessed} tickets impressos nesta sessão.\n`);
