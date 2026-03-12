@@ -1,6 +1,6 @@
 import { Outlet, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, LogOut, ArrowLeft } from "lucide-react";
+import { Loader2, LogOut, ArrowLeft, RefreshCw } from "lucide-react";
 
 export default function WaiterLayout() {
   const { user, profile, loading, signOut } = useAuth();
