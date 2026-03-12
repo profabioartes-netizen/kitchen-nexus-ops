@@ -47,13 +47,22 @@ export default function WaiterLayout() {
             {profile?.full_name || "Garçom"}
           </span>
         </div>
-        <button
-          onClick={signOut}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          Sair
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-accent transition-colors touch-manipulation"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </button>
+          <button
+            onClick={signOut}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors touch-manipulation"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-auto">
