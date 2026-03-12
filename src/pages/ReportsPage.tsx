@@ -199,7 +199,7 @@ export default function ReportsPage() {
   const hasData = filteredPayments.length > 0 || filteredItems.length > 0;
 
   return (
-    <div className="p-6">
+    <div className="p-6 h-full overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Relatórios</h1>
         <div className="flex gap-1 rounded-md border bg-card p-1">
