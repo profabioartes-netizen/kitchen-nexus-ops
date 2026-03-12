@@ -314,9 +314,18 @@ export default function TablesPage() {
       if (tableOrder) {
         if (newStatus === "delivered") {
           await supabase.from("orders").update({ delivered_at: new Date().toISOString() } as any).eq("id", tableOrder.id);
+          // Mark all non-delivered order items as delivered
+          await supabase.from("order_items")
+            .update({ delivered_at: new Date().toISOString() } as any)
+            .eq("order_id", tableOrder.id)
+            .is("delivered_at", null);
         } else {
           // Reverted from delivered — clear delivered_at
           await supabase.from("orders").update({ delivered_at: null } as any).eq("id", tableOrder.id);
+          // Clear delivered_at on all order items
+          await supabase.from("order_items")
+            .update({ delivered_at: null } as any)
+            .eq("order_id", tableOrder.id);
         }
       }
 
