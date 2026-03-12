@@ -21,6 +21,36 @@ const methodLabels: Record<string, string> = {
 export default function CustomerSalesPage() {
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
+
+  const reprintOrder = async (order: any, items: any[]) => {
+    if (printingOrderId) return;
+    setPrintingOrderId(order.id);
+    try {
+      await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "bill",
+          table_name: order.customer_name || "Balcão",
+          customer_name: order.customer_name || null,
+          waiter_name: order.waiter_name || null,
+          order_id: order.id,
+          items: items.map((i) => ({
+            product_name: i.product_name,
+            quantity: i.quantity,
+            price: Number(i.price),
+          })),
+          total: Number(order.total),
+        },
+      });
+      toast.success("Reimpressão enviada para o Caixa!");
+    } catch {
+      toast.error("Erro ao reimprimir.");
+    } finally {
+      setPrintingOrderId(null);
+    }
+  };
 
   // Fetch all finalized orders (including cashier/anonymous sales)
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
