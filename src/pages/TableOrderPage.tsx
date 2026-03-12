@@ -875,12 +875,7 @@ export default function TableOrderPage() {
   const paidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) >= i.quantity);
 
   if (tableLoading || orderLoading || lockLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+    return <LoadingScreen />;
 
   // Lock blocked by another user
   if (lockInfo && !lockInfo.acquired) {
