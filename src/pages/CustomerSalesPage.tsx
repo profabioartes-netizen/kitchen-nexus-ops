@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Loader2, Users, ChevronDown, ChevronUp,
-  CreditCard, Clock, CalendarDays, Receipt, Package,
+  CreditCard, Clock, CalendarDays, Receipt, Package, Printer,
 } from "lucide-react";
+import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,6 +21,36 @@ const methodLabels: Record<string, string> = {
 export default function CustomerSalesPage() {
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
+
+  const reprintOrder = async (order: any, items: any[]) => {
+    if (printingOrderId) return;
+    setPrintingOrderId(order.id);
+    try {
+      await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "bill",
+          table_name: order.customer_name || "Balcão",
+          customer_name: order.customer_name || null,
+          waiter_name: order.waiter_name || null,
+          order_id: order.id,
+          items: items.map((i) => ({
+            product_name: i.product_name,
+            quantity: i.quantity,
+            price: Number(i.price),
+          })),
+          total: Number(order.total),
+        },
+      });
+      toast.success("Reimpressão enviada para o Caixa!");
+    } catch {
+      toast.error("Erro ao reimprimir.");
+    } finally {
+      setPrintingOrderId(null);
+    }
+  };
 
   // Fetch all finalized orders (including cashier/anonymous sales)
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
@@ -256,7 +287,22 @@ export default function CustomerSalesPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
+                            <button
+                              onClick={() => reprintOrder(order, items)}
+                              disabled={printingOrderId === order.id}
+                              className="flex items-center gap-1 rounded-md border border-border bg-secondary/50 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
+                              title="Reimprimir no Caixa"
+                            >
+                              {printingOrderId === order.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Printer className="h-3 w-3" />
+                              )}
+                              Reimprimir
+                            </button>
+                          </div>
                         </div>
 
                         {/* Products */}
