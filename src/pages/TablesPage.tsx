@@ -634,42 +634,42 @@ export default function TablesPage() {
         </div>
       </div>
 
-      {/* Summary Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
-        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
-          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-occupied/15">
-            <Users className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-status-occupied" />
+      {/* Summary Bar - compact horizontal scroll on mobile, grid on desktop */}
+      <div className="flex sm:grid sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
+          <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-occupied/15">
+            <Users className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-status-occupied" />
           </div>
           <div>
-            <p className="text-lg sm:text-xl font-bold leading-none">{occupied}</p>
-            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Ocupadas</p>
+            <p className="text-base sm:text-xl font-bold leading-none">{occupied}</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Ocupadas</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
-          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-free/15">
-            <UtensilsCrossed className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-status-free" />
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
+          <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-free/15">
+            <UtensilsCrossed className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-status-free" />
           </div>
           <div>
-            <p className="text-lg sm:text-xl font-bold leading-none">{free}</p>
-            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Livres</p>
+            <p className="text-base sm:text-xl font-bold leading-none">{free}</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Livres</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
-          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-accent/15">
-            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-accent" />
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
+          <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-accent/15">
+            <CheckCircle2 className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-accent" />
           </div>
           <div>
-            <p className="text-lg sm:text-xl font-bold leading-none">{todayStats.clients}</p>
-            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Atendidos hoje</p>
+            <p className="text-base sm:text-xl font-bold leading-none">{todayStats.clients}</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Atendidos</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-2 sm:p-3">
-          <div className="flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/15">
-            <Clock className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 text-primary" />
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
+          <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/15">
+            <Clock className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-primary" />
           </div>
           <div>
-            <p className="text-lg sm:text-xl font-bold leading-none">{avgServiceTime !== null ? `${avgServiceTime}` : "--"}</p>
-            <p className="text-[9px] sm:text-[11px] text-muted-foreground mt-0.5">Tempo médio <span className="hidden sm:inline">(min)</span></p>
+            <p className="text-base sm:text-xl font-bold leading-none">{avgServiceTime !== null ? `${avgServiceTime}` : "--"}</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Média <span className="hidden sm:inline">(min)</span></p>
           </div>
         </div>
       </div>
