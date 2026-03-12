@@ -90,6 +90,9 @@ export function useComandaLock(
   }, [tableId, userId]);
 
   // Listen for realtime changes to comanda_locks for this table
+  // IMPORTANT: Do NOT call acquireLock here — it would create an infinite loop
+  // (acquireLock updates the lock → triggers Realtime → calls acquireLock again)
+  // Instead, just re-check the lock status via a lightweight read
   useEffect(() => {
     if (!tableId) return;
     const channel = supabase
@@ -97,7 +100,11 @@ export function useComandaLock(
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "comanda_locks", filter: `table_id=eq.${tableId}` },
-        () => {
+        async (payload) => {
+          // Only react if the change was made by a DIFFERENT user
+          const newRow = (payload as any).new;
+          if (newRow && newRow.locked_by_user_id === userId) return; // ignore own updates
+          // Re-check lock status
           acquireLock();
         },
       )
@@ -107,7 +114,7 @@ export function useComandaLock(
       supabase.removeChannel(channel);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableId]);
+  }, [tableId, userId]);
 
   return { lockInfo, loading, releaseLock, retry: () => acquireLock() };
 }
