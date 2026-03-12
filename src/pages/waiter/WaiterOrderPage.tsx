@@ -8,6 +8,7 @@ import {
   ArrowLeft, Search, Plus, Minus, Trash2, Loader2, StickyNote, X, ShoppingBag,
   ChevronUp, ChevronDown, Zap, RotateCcw, Star, Clock, Repeat,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
