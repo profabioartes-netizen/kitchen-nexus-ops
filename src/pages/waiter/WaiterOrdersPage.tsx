@@ -45,11 +45,7 @@ export default function WaiterOrdersPage() {
   const otherOrders = orders.filter((o) => o.waiter_name !== profile?.full_name);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const renderOrder = (order: any) => (
