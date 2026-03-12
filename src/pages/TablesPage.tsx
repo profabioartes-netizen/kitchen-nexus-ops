@@ -828,6 +828,21 @@ export default function TablesPage() {
                   </span>
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
+                {/* Water alert - below timer */}
+                {waterAlert && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      dismissWaterAlert.mutate(waterAlert.ids);
+                    }}
+                    className="flex items-center gap-1 rounded-full bg-destructive text-destructive-foreground px-2 py-0.5 animate-pulse shadow-sm hover:scale-105 transition-transform self-end"
+                    title={`Entregar: ${waterAlert.names.join(", ")} — Clique para concluir`}
+                  >
+                    <Droplets className="h-3 w-3" />
+                    <span className="text-[8px] font-black uppercase leading-none">ÁGUA</span>
+                  </button>
+                )}
                 {order?.customer_name && (
                   <span className="text-[10px] text-muted-foreground">{(table as any).default_name || table.name}</span>
                 )}
