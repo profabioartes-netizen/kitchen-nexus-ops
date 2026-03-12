@@ -743,12 +743,14 @@ export default function TablesPage() {
                               </>
                             )}
                             {completedItems.length > 0 && (
-                              <div className="p-2.5">
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Concluído</p>
+                              <div className="bg-[hsl(var(--status-free)/0.08)] rounded-md m-2 mt-0 p-2.5 ring-1 ring-[hsl(var(--status-free)/0.18)]">
+                                <p className="text-[10px] text-[hsl(var(--status-free))] uppercase tracking-widest font-black mb-1.5 flex items-center gap-1">
+                                  <CheckCircle2 className="h-3 w-3" /> Concluído
+                                </p>
                                 <div className="space-y-1">
                                   {completedItems.map((item) => (
                                     <div key={item.id} className="flex items-center justify-between text-xs gap-1">
-                                      <span className="truncate flex-1 mr-1">{item.product_name}</span>
+                                      <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
                                       <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
                                     </div>
                                   ))}
