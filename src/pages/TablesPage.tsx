@@ -157,8 +157,11 @@ export default function TablesPage() {
   });
 
   // Today's revenue and client count from finalized orders
+  // Date key resets queries at midnight
+  const todayDateKey = new Date().toISOString().slice(0, 10);
+
   const { data: todayStats = { revenue: 0, clients: 0 } } = useQuery({
-    queryKey: ["today_revenue"],
+    queryKey: ["today_revenue", todayDateKey],
     queryFn: async () => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -173,11 +176,12 @@ export default function TablesPage() {
         clients: data.reduce((sum, o) => sum + (o.guests || 1), 0),
       };
     },
+    refetchInterval: 60_000,
   });
 
   // Average service time for today (delivered comandas)
   const { data: avgServiceTime = null } = useQuery({
-    queryKey: ["avg_service_time"],
+    queryKey: ["avg_service_time", todayDateKey],
     queryFn: async () => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -196,6 +200,7 @@ export default function TablesPage() {
       const avgMs = times.reduce((a: number, b: number) => a + b, 0) / times.length;
       return Math.round(avgMs / 60000);
     },
+    refetchInterval: 60_000,
   });
 
   // Fetch items for the previewed order
