@@ -25,6 +25,7 @@ import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import { Loader2 } from "lucide-react";
+import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 
 const queryClient = new QueryClient();
 
