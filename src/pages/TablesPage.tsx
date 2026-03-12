@@ -717,8 +717,8 @@ export default function TablesPage() {
                       {previewItems.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
                       ) : (() => {
-                        const newItems = previewItems.filter((i) => !i.sent_to_kitchen);
-                        const ongoingItems = previewItems.filter((i) => i.sent_to_kitchen);
+                        const newItems = previewItems.filter((i) => !(i as any).delivered_at);
+                        const completedItems = previewItems.filter((i) => !!(i as any).delivered_at);
                         return (
                           <div>
                             {newItems.length > 0 && (
