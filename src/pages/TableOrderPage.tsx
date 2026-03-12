@@ -876,6 +876,7 @@ export default function TableOrderPage() {
 
   if (tableLoading || orderLoading || lockLoading) {
     return <LoadingScreen />;
+  }
 
   // Lock blocked by another user
   if (lockInfo && !lockInfo.acquired) {

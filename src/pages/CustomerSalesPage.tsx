@@ -198,6 +198,7 @@ export default function CustomerSalesPage() {
 
   if (loadingOrders) {
     return <LoadingScreen />;
+  }
 
   // Shared order detail renderer
   const renderOrderDetail = (order: any) => {

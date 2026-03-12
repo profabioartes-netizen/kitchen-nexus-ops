@@ -228,6 +228,7 @@ export default function PrintersPage() {
 
   if (isLoading) {
     return <LoadingScreen />;
+  }
 
   return (
     <div className="p-6">
