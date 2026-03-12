@@ -20,8 +20,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
+    <div className="h-screen overflow-hidden flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm flex-shrink-0">
         <div className="text-center mb-10">
           <img src={coffeeLogo} alt="Coffee Thrones" className="h-28 mx-auto mb-4 object-contain drop-shadow-md" />
           <h1 className="font-display text-2xl tracking-tight">Coffee Thrones</h1>

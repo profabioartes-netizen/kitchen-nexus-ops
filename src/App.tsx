@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -27,11 +28,14 @@ import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import { Loader2 } from "lucide-react";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import SplashScreen from "@/components/SplashScreen";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const handleSplashFinished = useCallback(() => setShowSplash(false), []);
 
   if (loading) {
     return (
@@ -46,22 +50,25 @@ function ProtectedRoutes() {
   }
 
   return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<TablesPage />} />
-        <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
-        <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
-        <Route path="/cozinha" element={<KitchenStationPage />} />
-        <Route path="/caixa" element={<CashierPage />} />
-        <Route path="/produtos" element={<ProductsPage />} />
-        <Route path="/impressoras" element={<PrintersPage />} />
-        <Route path="/impressoras/agente" element={<PrintAgentPage />} />
-        <Route path="/relatorios" element={<ReportsPage />} />
-        <Route path="/clientes" element={<CustomerSalesPage />} />
-        <Route path="/usuarios" element={<UsersPage />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<TablesPage />} />
+          <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
+          <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
+          <Route path="/cozinha" element={<KitchenStationPage />} />
+          <Route path="/caixa" element={<CashierPage />} />
+          <Route path="/produtos" element={<ProductsPage />} />
+          <Route path="/impressoras" element={<PrintersPage />} />
+          <Route path="/impressoras/agente" element={<PrintAgentPage />} />
+          <Route path="/relatorios" element={<ReportsPage />} />
+          <Route path="/clientes" element={<CustomerSalesPage />} />
+          <Route path="/usuarios" element={<UsersPage />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }
 
