@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Loader2, Users, ChevronDown, ChevronUp,
-  CreditCard, Clock, CalendarDays, Receipt, Package,
+  CreditCard, Clock, CalendarDays, Receipt, Package, Printer,
 } from "lucide-react";
+import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
