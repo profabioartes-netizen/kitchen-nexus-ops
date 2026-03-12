@@ -72,6 +72,7 @@ function AuthRoute() {
   return <AuthPage />;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
