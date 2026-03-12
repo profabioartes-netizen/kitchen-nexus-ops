@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Loader2, ChefHat, GlassWater, CakeSlice, Clock, Flame,
+  ChefHat, GlassWater, CakeSlice, Clock, Flame,
   CheckCircle2, Truck, Volume2, VolumeX, AlertTriangle,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 type PrepStatus = "pending" | "sent" | "preparing" | "ready" | "delivered";
 
