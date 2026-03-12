@@ -600,9 +600,10 @@ export default function TableOrderPage() {
         .update({ sent_to_kitchen: true })
         .eq("order_id", order.id);
 
-      // Insert all payments
+      // Insert all payments (DB constraint allows: cash, card, pix)
       for (const p of payments) {
-        await supabase.from("payments").insert({ order_id: order.id, method: p.method, amount: p.amount });
+        const dbMethod = p.method === "credit" || p.method === "debit" ? "card" : p.method;
+        await supabase.from("payments").insert({ order_id: order.id, method: dbMethod, amount: p.amount });
       }
 
       const totalVal = payments.reduce((s, p) => s + p.amount, 0);
