@@ -301,6 +301,8 @@ export default function TablesPage() {
     },
     onError: () => toast.error("Erro ao marcar águas como entregues"),
   });
+
+  const updatePosition = useMutation({
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
       const { error } = await supabase
         .from("restaurant_tables")
