@@ -56,6 +56,12 @@
         padding-right: env(safe-area-inset-right);
       }
     </style>
+    <script>
+      // Redirect www to apex domain
+      if (window.location.hostname === 'www.coffeethrones.app') {
+        window.location.replace('https://coffeethrones.app' + window.location.pathname + window.location.search + window.location.hash);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
