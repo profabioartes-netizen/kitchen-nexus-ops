@@ -726,6 +726,8 @@ async function healthCheckLoop() {
 
 // ── Realtime subscription ───────────────────────────────────────────
 let fallbackInterval = null;
+let safetyInterval = null;
+const SAFETY_POLL_MS = 15_000; // always-on safety net poll every 15s
 
 function startFallbackPolling() {
   if (fallbackInterval) return;
@@ -737,8 +739,14 @@ function stopFallbackPolling() {
   if (fallbackInterval) {
     clearInterval(fallbackInterval);
     fallbackInterval = null;
-    console.log("  ⏱  Fallback polling desativado (Realtime conectado)");
+    console.log("  ⏱  Fallback polling rápido desativado (Realtime conectado)");
   }
+}
+
+function startSafetyPolling() {
+  if (safetyInterval) return;
+  console.log(`  🛡️  Safety polling ativo (${SAFETY_POLL_MS}ms) — sempre ligado`);
+  safetyInterval = setInterval(pollAndPrint, SAFETY_POLL_MS);
 }
 
 function setupRealtime() {
