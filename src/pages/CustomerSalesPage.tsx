@@ -287,7 +287,22 @@ export default function CustomerSalesPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
+                            <button
+                              onClick={() => reprintOrder(order, items)}
+                              disabled={printingOrderId === order.id}
+                              className="flex items-center gap-1 rounded-md border border-border bg-secondary/50 px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
+                              title="Reimprimir no Caixa"
+                            >
+                              {printingOrderId === order.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Printer className="h-3 w-3" />
+                              )}
+                              Reimprimir
+                            </button>
+                          </div>
                         </div>
 
                         {/* Products */}
