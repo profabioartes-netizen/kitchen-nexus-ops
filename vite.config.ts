@@ -17,13 +17,14 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "pwa-icon-192.png", "pwa-icon-512.png"],
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallbackDenylist: [/^\/~oauth/],
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
