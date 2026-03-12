@@ -322,17 +322,8 @@ function buildProductionTicket(job) {
   const parts = [
     cmd.init,
     cmd.codepage,
-    // Header — same as cashier
     cmd.alignCenter,
     cmd.text(""),
-    cmd.bold(true),
-    cmd.text("COFFEE THRONES"),
-    cmd.bold(false),
-    cmd.text(`CNPJ : ${CNPJ}`),
-    cmd.text(""),
-    cmd.separator(),
-    cmd.text(""),
-    // Station name instead of "RESUMO DA CONTA"
     cmd.bold(true),
     cmd.text(`* ${upperPt(job.station)} *`),
     cmd.bold(false),
@@ -425,15 +416,7 @@ function buildCancellationTicket(job) {
   const parts = [
     cmd.init,
     cmd.codepage,
-    // Header — same as cashier
     cmd.alignCenter,
-    cmd.text(""),
-    cmd.bold(true),
-    cmd.text("COFFEE THRONES"),
-    cmd.bold(false),
-    cmd.text(`CNPJ : ${CNPJ}`),
-    cmd.text(""),
-    cmd.separator(),
     cmd.text(""),
     cmd.bold(true),
     cmd.text("** CANCELAMENTO **"),
