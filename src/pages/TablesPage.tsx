@@ -1056,6 +1056,7 @@ export default function TablesPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
