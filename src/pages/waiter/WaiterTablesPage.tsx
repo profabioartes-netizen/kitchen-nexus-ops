@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Users, ChefHat, Droplets } from "lucide-react";
+import { Users, ChefHat, Droplets } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
