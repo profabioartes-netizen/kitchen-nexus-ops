@@ -826,6 +826,9 @@ const realtimeChannel = setupRealtime();
 // Start fallback polling immediately (will be stopped once Realtime connects)
 startFallbackPolling();
 
+// Always-on safety polling to catch silently missed Realtime events
+startSafetyPolling();
+
 // Initial poll to catch any pending jobs from before agent started
 setTimeout(pollAndPrint, 1000);
 
