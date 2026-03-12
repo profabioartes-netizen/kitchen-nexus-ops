@@ -86,6 +86,14 @@ export function NavigationRail() {
             </span>
           )}
           <button
+            onClick={() => window.location.reload()}
+            className="flex flex-col items-center gap-1 rounded-md py-2 px-1 text-[11px] font-medium text-nav-foreground hover:bg-sidebar-accent transition-colors w-full"
+            title="Atualizar"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Atualizar</span>
+          </button>
+          <button
             onClick={signOut}
             className="flex flex-col items-center gap-1 rounded-md py-2 px-1 text-[11px] font-medium text-nav-foreground hover:bg-sidebar-accent transition-colors w-full"
           >
