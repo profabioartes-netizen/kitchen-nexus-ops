@@ -26,6 +26,7 @@ import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import { Loader2 } from "lucide-react";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
