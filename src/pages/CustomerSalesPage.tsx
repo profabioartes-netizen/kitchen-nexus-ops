@@ -2,9 +2,10 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Search, Loader2, Users, ChevronDown, ChevronUp,
-  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store,
+  Search, Users, ChevronDown, ChevronUp,
+  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
@@ -196,11 +197,7 @@ export default function CustomerSalesPage() {
   const counterTotal = useMemo(() => counterOrders.reduce((s, o) => s + Number(o.total), 0), [counterOrders]);
 
   if (loadingOrders) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Shared order detail renderer

@@ -1,6 +1,7 @@
 import { Outlet, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, LogOut, ArrowLeft, RefreshCw } from "lucide-react";
+import { LogOut, ArrowLeft, RefreshCw } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function WaiterLayout() {
   const { user, profile, loading, signOut } = useAuth();
@@ -8,11 +9,7 @@ export default function WaiterLayout() {
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen mode="full" />;
   }
 
   if (!user) return <Navigate to="/garcom/login" replace />;

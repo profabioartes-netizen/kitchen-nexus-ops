@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
@@ -226,11 +227,7 @@ export default function PrintersPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (

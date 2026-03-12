@@ -7,6 +7,7 @@ import { normalize } from "@/lib/normalize";
 import {
   Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save, ShoppingBag, UtensilsCrossed,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -874,11 +875,7 @@ export default function TableOrderPage() {
   const paidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) >= i.quantity);
 
   if (tableLoading || orderLoading || lockLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Lock blocked by another user
@@ -910,12 +907,7 @@ export default function TableOrderPage() {
 
   // Auto-creating order, show loading
   if (!order && !orderLoading && !tableLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-      </div>
-    );
+    return <LoadingScreen message="Abrindo comanda..." />;
   }
 
   const orderItemCount = orderItems.reduce((s, i) => s + i.quantity, 0);

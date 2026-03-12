@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Users, ChefHat, Droplets } from "lucide-react";
+import { Users, ChefHat, Droplets } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -121,11 +122,7 @@ export default function WaiterTablesPage() {
   const occupied = tables.filter((t) => t.status === "occupied").length;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (

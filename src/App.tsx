@@ -26,6 +26,7 @@ import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import { Loader2 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import SplashScreen from "@/components/SplashScreen";
@@ -38,11 +39,7 @@ function ProtectedRoutes() {
   const handleSplashFinished = useCallback(() => setShowSplash(false), []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen mode="full" />;
   }
 
   if (!user) {

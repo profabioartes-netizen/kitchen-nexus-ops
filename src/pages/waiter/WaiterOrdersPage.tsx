@@ -2,7 +2,8 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Clock, ShoppingBag } from "lucide-react";
+import { Clock, ShoppingBag } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -44,11 +45,7 @@ export default function WaiterOrdersPage() {
   const otherOrders = orders.filter((o) => o.waiter_name !== profile?.full_name);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const renderOrder = (order: any) => (

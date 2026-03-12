@@ -8,6 +8,7 @@ import {
   ArrowLeft, Search, Plus, Minus, Trash2, Loader2, StickyNote, X, ShoppingBag,
   ChevronUp, ChevronDown, Zap, RotateCcw, Star, Clock, Repeat,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -497,11 +498,7 @@ export default function WaiterOrderPage() {
   // ── Render ──
 
   if (tableLoading || orderLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!order && !orderLoading && !tableLoading) {
@@ -516,10 +513,7 @@ export default function WaiterOrderPage() {
         />
         <div className="flex items-center justify-center h-full p-12">
           {createOrder.isPending ? (
-            <>
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">Abrindo comanda...</span>
-            </>
+            <LoadingScreen message="Abrindo comanda..." />
           ) : (
             <span className="text-sm text-muted-foreground">Aguardando abertura da mesa...</span>
           )}

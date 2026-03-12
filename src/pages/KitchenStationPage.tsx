@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Loader2, ChefHat, GlassWater, CakeSlice, Clock, Flame,
+  ChefHat, GlassWater, CakeSlice, Clock, Flame,
   CheckCircle2, Truck, Volume2, VolumeX, AlertTriangle,
 } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 type PrepStatus = "pending" | "sent" | "preparing" | "ready" | "delivered";
 
@@ -185,11 +186,7 @@ export default function KitchenStationPage() {
   ).length;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full p-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (

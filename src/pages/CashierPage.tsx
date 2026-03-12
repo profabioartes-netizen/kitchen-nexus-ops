@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone, Printer } from "lucide-react";
+import LoadingScreen from "@/components/LoadingScreen";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 
@@ -203,9 +204,7 @@ export default function CashierPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <LoadingScreen />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-auto flex-1 items-start content-start">
             {filtered.map((item) => (
