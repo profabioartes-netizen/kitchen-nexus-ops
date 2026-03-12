@@ -692,6 +692,10 @@ export default function TablesPage() {
           </button>
         )}
       </div>
+      </div>
+
+      {/* Scrollable content area */}
+      <div className="flex-1 min-h-0 overflow-auto px-3 sm:px-6 pb-3 sm:pb-6">
 
       {viewMode === "floor" && (
         <div className="mb-3 sm:mb-4">
