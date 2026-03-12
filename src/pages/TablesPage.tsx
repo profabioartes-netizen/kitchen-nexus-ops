@@ -741,7 +741,7 @@ export default function TablesPage() {
                       e.preventDefault();
                       dismissWaterAlert.mutate(waterAlert.ids);
                     }}
-                    className="absolute -top-2 -left-2 z-30 flex items-center gap-1 rounded-full bg-destructive text-destructive-foreground px-2 py-1 animate-pulse shadow-lg hover:scale-110 transition-transform"
+                    className="absolute bottom-1.5 left-1.5 z-30 flex items-center gap-1 rounded-full bg-destructive text-destructive-foreground px-2 py-1 animate-pulse shadow-lg hover:scale-110 transition-transform"
                     title={`Entregar: ${waterAlert.names.join(", ")} — Clique para concluir`}
                   >
                     <Droplets className="h-3.5 w-3.5" />
