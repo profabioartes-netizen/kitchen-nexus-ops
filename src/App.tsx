@@ -20,6 +20,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import CustomerSalesPage from "@/pages/CustomerSalesPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import QRCodesBatchPage from "@/pages/QRCodesBatchPage";
 import NotFound from "@/pages/NotFound";
 import WaiterLayout from "@/pages/waiter/WaiterLayout";
 import WaiterLoginPage from "@/pages/waiter/WaiterLoginPage";
@@ -67,6 +68,7 @@ function ProtectedRoutes() {
           <Route path="/clientes" element={<CustomerSalesPage />} />
           <Route path="/usuarios" element={<UsersPage />} />
           <Route path="/configuracoes" element={<SettingsPage />} />
+          <Route path="/qrcodes" element={<QRCodesBatchPage />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
