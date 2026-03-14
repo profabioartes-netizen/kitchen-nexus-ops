@@ -671,13 +671,7 @@ export default function TableOrderPage() {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido");
       await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
-      const { data: tableData } = await supabase
-        .from("restaurant_tables")
-        .select("default_name")
-        .eq("id", tableId!)
-        .single();
-      const resetName = (tableData as any)?.default_name || table?.name;
-      await supabase.from("restaurant_tables").update({ status: "free", name: resetName, sector: null } as any).eq("id", tableId!);
+      await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
     },
     onSuccess: () => {
