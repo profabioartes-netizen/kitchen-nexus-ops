@@ -756,8 +756,8 @@ export default function TablesPage() {
                           e.stopPropagation();
                           setPreviewOrderId((prev) => (prev === order.id ? null : order.id));
                         }}
-                        onMouseEnter={(e) => { e.stopPropagation(); setPreviewOrderId(order.id); }}
-                        onMouseLeave={(e) => { e.stopPropagation(); setPreviewOrderId(null); }}
+                        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewOrderId(order.id); } }}
+                        onPointerLeave={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewOrderId(null); } }}
                         className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${previewOrderId === order.id ? "bg-accent/20" : ""} hover:bg-secondary/80`}
                       >
                         <Eye className="h-3 w-3 text-muted-foreground" />
