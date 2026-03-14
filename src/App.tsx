@@ -78,8 +78,8 @@ const App = () => (
             <Route path="/login" element={<AuthRoute />} />
 
             {/* Public self-service routes */}
-            <Route path="/auto-atendimento/:tableId" element={<SelfServicePage />} />
-            <Route path="/autoatendimento/:tableId" element={<SelfServicePage />} />
+            <Route path="/auto-atendimento/:tableId/*" element={<SelfServicePage />} />
+            <Route path="/autoatendimento/:tableId/*" element={<SelfServicePage />} />
 
             {/* Waiter mobile mode */}
             <Route path="/garcom/login" element={<WaiterLoginPage />} />
