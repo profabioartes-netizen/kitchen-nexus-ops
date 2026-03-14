@@ -23,9 +23,6 @@ const navItems = [
   { to: "/controle-caixa", icon: Landmark, label: "Abertura" },
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
-  { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
-  { to: "/clientes", icon: DollarSign, label: "Vendas" },
-  { to: "/usuarios", icon: Users, label: "Usuários" },
 ];
 
 export function NavigationRail() {
