@@ -20,6 +20,7 @@ export default function TableManagementPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TableForm>(emptyForm);
+  const [qrTable, setQrTable] = useState<{ id: string; name: string } | null>(null);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_admin"],
