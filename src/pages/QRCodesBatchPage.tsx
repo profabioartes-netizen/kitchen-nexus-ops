@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import logoSrc from "@/assets/coffee-thrones-logo.png";
 
 export default function QRCodesBatchPage() {
-  const baseUrl = window.location.origin;
+  const baseUrl = "https://coffeethrones.app";
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_qr"],
