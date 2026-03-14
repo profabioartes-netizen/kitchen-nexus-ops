@@ -327,7 +327,24 @@ export default function PaymentPanel({
       });
     }
 
+    // Track split entries as fractional paid quantities
+    if (splitEntries.length > 0) {
+      setAccumulatedPaidItems((prev) => {
+        const next = { ...prev };
+        for (const entry of splitEntries) {
+          const item = orderItems.find((i) => i.id === entry.itemId);
+          if (item) {
+            // Track as fractional quantity paid (fractionedPrice / item.price)
+            const fracQty = Number(item.price) > 0 ? entry.fractionedPrice / Number(item.price) : 0;
+            next[entry.itemId] = (next[entry.itemId] || 0) + fracQty;
+          }
+        }
+        return next;
+      });
+    }
+
     setPaymentItems({});
+    setSplitEntries([]);
     setCustomAmount("");
     setCashGiven("");
   };
