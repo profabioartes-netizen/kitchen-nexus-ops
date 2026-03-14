@@ -1,25 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { User, UtensilsCrossed } from "lucide-react";
+import { User, UtensilsCrossed, Loader2 } from "lucide-react";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
+
+const SESSION_DURATION_MINUTES = 60;
 
 export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
   const [customerName, setCustomerName] = useState("");
   const [entered, setEntered] = useState(false);
   const [view, setView] = useState<"menu" | "bill">("menu");
-
-  // Restore name from sessionStorage
-  useEffect(() => {
-    const saved = sessionStorage.getItem(`ss_name_${tableId}`);
-    if (saved) {
-      setCustomerName(saved);
-      setEntered(true);
-    }
-  }, [tableId]);
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const { data: table, isLoading: tableLoading } = useQuery({
     queryKey: ["self_service_table", tableId],
@@ -35,16 +29,108 @@ export default function SelfServicePage() {
     enabled: !!tableId,
   });
 
-  const handleEnter = () => {
-    if (!customerName.trim()) return;
-    sessionStorage.setItem(`ss_name_${tableId}`, customerName.trim());
+  // Check for existing valid session or open comanda on mount
+  const tryAutoEnter = useCallback(async () => {
+    if (!tableId) return;
+    setCheckingSession(true);
+
+    try {
+      // 1. Check localStorage for session token
+      const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+
+      if (savedToken) {
+        // Validate token against DB
+        const { data: session } = await supabase
+          .from("self_service_sessions")
+          .select("*")
+          .eq("session_token", savedToken)
+          .eq("table_id", tableId)
+          .single();
+
+        if (session && new Date(session.expires_at) > new Date()) {
+          // Session still valid
+          setCustomerName(session.customer_name);
+          setEntered(true);
+          setCheckingSession(false);
+          return;
+        }
+      }
+
+      // 2. No valid session — check if there's an open comanda for this table
+      const { data: openOrder } = await supabase
+        .from("orders")
+        .select("id, customer_name")
+        .eq("table_id", tableId)
+        .eq("status", "open")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (openOrder && openOrder.customer_name) {
+        // Auto-reconnect: create new session for existing comanda
+        const expiresAt = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+        const { data: newSession } = await supabase
+          .from("self_service_sessions")
+          .insert({
+            table_id: tableId,
+            customer_name: openOrder.customer_name,
+            expires_at: expiresAt,
+          })
+          .select("session_token")
+          .single();
+
+        if (newSession) {
+          localStorage.setItem(`ss_session_${tableId}`, newSession.session_token);
+        }
+        setCustomerName(openOrder.customer_name);
+        setEntered(true);
+        setCheckingSession(false);
+        return;
+      }
+
+      // 3. No session, no open comanda → show name input
+    } catch (err) {
+      console.error("Session check error:", err);
+    }
+
+    setCheckingSession(false);
+  }, [tableId]);
+
+  useEffect(() => {
+    tryAutoEnter();
+  }, [tryAutoEnter]);
+
+  const handleEnter = async () => {
+    if (!customerName.trim() || !tableId) return;
+    const name = customerName.trim();
+
+    // Create session
+    const expiresAt = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+    const { data: session } = await supabase
+      .from("self_service_sessions")
+      .insert({
+        table_id: tableId,
+        customer_name: name,
+        expires_at: expiresAt,
+      })
+      .select("session_token")
+      .single();
+
+    if (session) {
+      localStorage.setItem(`ss_session_${tableId}`, session.session_token);
+    }
+
+    setCustomerName(name);
     setEntered(true);
   };
 
-  if (tableLoading) {
+  if (tableLoading || checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
       </div>
     );
   }
