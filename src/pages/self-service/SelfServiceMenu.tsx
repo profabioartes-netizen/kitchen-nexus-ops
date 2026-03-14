@@ -266,31 +266,39 @@ export default function SelfServiceMenu({ tableId, customerName, table }: Props)
       {/* Products grid */}
       <div className="flex-1 overflow-auto px-4 pb-24">
         <div className="grid grid-cols-2 gap-3">
-          {filtered.map((product) => (
-            <button
-              key={product.id}
-              onClick={() => setSelectedProduct(product)}
-              className="rounded-lg border border-border bg-card p-3 text-left hover:border-accent/40 transition-colors"
-            >
-              {product.image_url && (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-24 object-cover rounded-md mb-2"
-                  loading="lazy"
-                />
-              )}
-              <h3 className="text-sm font-medium text-foreground line-clamp-2">{product.name}</h3>
-              <p className="text-sm font-semibold text-accent mt-1">
-                R$ {Number(product.price).toFixed(2)}
-              </p>
-              {product.stock !== null && product.stock >= 0 && product.stock <= 5 && (
-                <p className="text-[10px] text-destructive mt-0.5">
-                  {product.stock === 0 ? "Esgotado" : `Restam ${product.stock}`}
+          {filtered.map((product) => {
+            const isOutOfStock = product.stock !== null && product.stock === 0;
+            return (
+              <button
+                key={product.id}
+                onClick={() => !isOutOfStock && setSelectedProduct(product)}
+                disabled={isOutOfStock}
+                className={`rounded-lg border border-border bg-card p-3 text-left transition-colors ${
+                  isOutOfStock
+                    ? "opacity-60 cursor-not-allowed"
+                    : "hover:border-accent/40"
+                }`}
+              >
+                {product.image_url && (
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-full h-24 object-cover rounded-md mb-2"
+                    loading="lazy"
+                  />
+                )}
+                <h3 className="text-sm font-medium text-foreground line-clamp-2">{product.name}</h3>
+                <p className="text-sm font-semibold text-accent mt-1">
+                  R$ {Number(product.price).toFixed(2)}
                 </p>
-              )}
-            </button>
-          ))}
+                {product.stock !== null && product.stock >= 0 && product.stock <= 5 && (
+                  <p className={`text-[10px] mt-0.5 ${product.stock === 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                    {product.stock === 0 ? "Esgotado" : `Restam ${product.stock}`}
+                  </p>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {filtered.length === 0 && (
