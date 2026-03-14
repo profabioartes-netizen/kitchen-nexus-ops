@@ -92,6 +92,8 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
             {/* Waiter mobile mode */}
+            {/* Self-service (public, no auth) */}
+            <Route path="/autoatendimento/:tableId" element={<SelfServicePage />} />
             <Route path="/garcom/login" element={<WaiterLoginPage />} />
             <Route path="/garcom" element={<WaiterLayout />}>
               <Route index element={<WaiterTablesPage />} />
