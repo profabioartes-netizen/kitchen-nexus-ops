@@ -942,6 +942,56 @@ export default function PaymentPanel({
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Dividir Tudo dialog */}
+      {showSplitAllDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-xs rounded-lg border bg-background p-5 shadow-lg">
+            <h3 className="font-semibold text-base mb-1">Dividir Tudo</h3>
+            <p className="text-xs text-muted-foreground mb-4">Em quantas partes deseja dividir a conta?</p>
+            <div className="flex items-center justify-center gap-4 mb-5">
+              <button
+                onClick={() => setSplitAllDivisor(Math.max(1, splitAllDivisor - 1))}
+                className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-bold tabular-nums">{splitAllDivisor}</span>
+                <span className="text-[10px] text-muted-foreground">{splitAllDivisor === 1 ? "inteiro" : "pessoas"}</span>
+              </div>
+              <button
+                onClick={() => setSplitAllDivisor(splitAllDivisor + 1)}
+                className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            {splitAllDivisor > 1 && (
+              <p className="text-center text-sm text-muted-foreground mb-4">
+                Cada parte: <strong className="text-foreground">R$ {(grandTotal / splitAllDivisor).toFixed(2)}</strong>
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSplitAllDialog(false)}
+                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  addAllItems(splitAllDivisor);
+                  setShowSplitAllDialog(false);
+                }}
+                className="flex-1 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity touch-manipulation"
+              >
+                Dividir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
