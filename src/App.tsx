@@ -14,6 +14,7 @@ import CashierPage from "@/pages/CashierPage";
 import CashRegisterPage from "@/pages/CashRegisterPage";
 import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
+import SelfServiceAdminPage from "@/pages/SelfServiceAdminPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
