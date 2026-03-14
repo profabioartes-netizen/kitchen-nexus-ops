@@ -240,6 +240,9 @@ export default function TableManagementPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => setQrTable({ id: table.id, name: table.name })} className="rounded p-1 hover:bg-secondary" title="QR Code">
+                      <QrCode className="h-4 w-4 text-muted-foreground" />
+                    </button>
                     <button onClick={() => openEdit(table)} className="rounded p-1 hover:bg-secondary">
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </button>
