@@ -157,6 +157,10 @@ export default function PaymentPanel({
   type SplitEntry = { uid: string; itemId: string; productName: string; fractionedPrice: number; divisor: number };
   const [splitEntries, setSplitEntries] = useState<SplitEntry[]>([]);
 
+  // ── "Dividir Tudo" dialog ──
+  const [showSplitAllDialog, setShowSplitAllDialog] = useState(false);
+  const [splitAllDivisor, setSplitAllDivisor] = useState(2);
+
   // ── Quick-sale products ──
   const { data: quickSaleProducts = [] } = useQuery({
     queryKey: ["quick_sale_products"],
@@ -295,14 +299,37 @@ export default function PaymentPanel({
     });
   };
 
-  const addAllItems = () => {
-    const items: Record<string, number> = {};
-    for (const item of unpaidItems) {
-      const inPayment = paymentItems[item.id] ?? 0;
-      const avail = item.remainingQty - inPayment;
-      if (avail > 0) items[item.id] = (paymentItems[item.id] ?? 0) + avail;
+  const addAllItems = (divisor: number = 1) => {
+    if (divisor <= 1) {
+      // Original behavior: add all remaining items at full qty
+      const items: Record<string, number> = {};
+      for (const item of unpaidItems) {
+        const inPayment = paymentItems[item.id] ?? 0;
+        const avail = item.remainingQty - inPayment;
+        if (avail > 0) items[item.id] = (paymentItems[item.id] ?? 0) + avail;
+      }
+      setPaymentItems((prev) => ({ ...prev, ...items }));
+    } else {
+      // Split: add fractioned entries for each item ÷ divisor
+      const newEntries: SplitEntry[] = [];
+      for (const item of unpaidItems) {
+        const inPayment = paymentItems[item.id] ?? 0;
+        const avail = item.remainingQty - inPayment;
+        if (avail <= 0) continue;
+        const fractionedPrice = Number(((Number(item.price) * avail) / divisor).toFixed(2));
+        newEntries.push({
+          uid: crypto.randomUUID(),
+          itemId: item.id,
+          productName: item.product_name,
+          fractionedPrice,
+          divisor,
+        });
+      }
+      setSplitEntries((prev) => [...prev, ...newEntries]);
+      // Set custom amount to total of new split entries
+      const splitTotal = newEntries.reduce((s, e) => s + e.fractionedPrice, 0);
+      setCustomAmount(splitTotal.toFixed(2));
     }
-    setPaymentItems((prev) => ({ ...prev, ...items }));
   };
 
   const payRemaining = () => {
@@ -693,7 +720,7 @@ export default function PaymentPanel({
       {/* Top action bar */}
       <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 border-b bg-card overflow-x-auto">
         <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
-        <button onClick={addAllItems} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
+        <button onClick={() => { setSplitAllDivisor(2); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
           {!isMobile && (
@@ -915,6 +942,56 @@ export default function PaymentPanel({
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Dividir Tudo dialog */}
+      {showSplitAllDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/30">
+          <div className="w-full max-w-xs rounded-lg border bg-background p-5 shadow-lg">
+            <h3 className="font-semibold text-base mb-1">Dividir Tudo</h3>
+            <p className="text-xs text-muted-foreground mb-4">Em quantas partes deseja dividir a conta?</p>
+            <div className="flex items-center justify-center gap-4 mb-5">
+              <button
+                onClick={() => setSplitAllDivisor(Math.max(1, splitAllDivisor - 1))}
+                className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-bold tabular-nums">{splitAllDivisor}</span>
+                <span className="text-[10px] text-muted-foreground">{splitAllDivisor === 1 ? "inteiro" : "pessoas"}</span>
+              </div>
+              <button
+                onClick={() => setSplitAllDivisor(splitAllDivisor + 1)}
+                className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+            {splitAllDivisor > 1 && (
+              <p className="text-center text-sm text-muted-foreground mb-4">
+                Cada parte: <strong className="text-foreground">R$ {(grandTotal / splitAllDivisor).toFixed(2)}</strong>
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSplitAllDialog(false)}
+                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  addAllItems(splitAllDivisor);
+                  setShowSplitAllDialog(false);
+                }}
+                className="flex-1 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity touch-manipulation"
+              >
+                Dividir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
