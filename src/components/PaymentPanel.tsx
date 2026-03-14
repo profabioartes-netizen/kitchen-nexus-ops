@@ -209,12 +209,16 @@ export default function PaymentPanel({
   const remaining = Math.max(0, Number((grandTotal - paidTotal).toFixed(2)));
 
   // ── Payment items total ──
+  const splitEntriesTotal = useMemo(() => {
+    return splitEntries.reduce((sum, e) => sum + e.fractionedPrice, 0);
+  }, [splitEntries]);
+
   const paymentItemsTotal = useMemo(() => {
     return Object.entries(paymentItems).reduce((sum, [id, qty]) => {
       const item = orderItems.find((i) => i.id === id);
       return sum + (item ? Number(item.price) * qty : 0);
-    }, 0);
-  }, [paymentItems, orderItems]);
+    }, 0) + splitEntriesTotal;
+  }, [paymentItems, orderItems, splitEntriesTotal]);
 
   // Amount to pay = custom or payment items total or remaining
   const amountToPay = customAmount
