@@ -24,6 +24,7 @@ const navItems = [
   { to: "/controle-caixa", icon: Landmark, label: "Abertura" },
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
+  { to: "/configuracoes", icon: Settings, label: "Config" },
 ];
 
 export function NavigationRail() {
