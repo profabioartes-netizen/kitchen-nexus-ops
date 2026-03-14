@@ -24,6 +24,7 @@ const navItems = [
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
   { to: "/controle-caixa", icon: Landmark, label: "Abertura" },
   { to: "/produtos", icon: Package, label: "Produtos" },
+  { to: "/cardapio-cliente", icon: Smartphone, label: "Cardápio" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/configuracoes", icon: Settings, label: "Config" },
 ];
