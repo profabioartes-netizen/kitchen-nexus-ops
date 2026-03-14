@@ -160,6 +160,8 @@ export default function PaymentPanel({
   // ── "Dividir Tudo" dialog ──
   const [showSplitAllDialog, setShowSplitAllDialog] = useState(false);
   const [splitAllDivisor, setSplitAllDivisor] = useState(2);
+  const [splitAllStep, setSplitAllStep] = useState<"count" | "methods">("count");
+  const [splitAllMethods, setSplitAllMethods] = useState<string[]>([]);
 
   // ── Quick-sale products ──
   const { data: quickSaleProducts = [] } = useQuery({
