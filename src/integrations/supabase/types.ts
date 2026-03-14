@@ -667,6 +667,41 @@ export type Database = {
         }
         Relationships: []
       }
+      self_service_sessions: {
+        Row: {
+          created_at: string
+          customer_name: string
+          expires_at: string
+          id: string
+          session_token: string
+          table_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name?: string
+          expires_at?: string
+          id?: string
+          session_token?: string
+          table_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          expires_at?: string
+          id?: string
+          session_token?: string
+          table_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "self_service_sessions_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       table_activity_log: {
         Row: {
           action: string
