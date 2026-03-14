@@ -658,12 +658,21 @@ export default function TablesPage() {
       {/* Summary Bar - compact horizontal scroll on mobile, grid on desktop */}
       <div className="flex sm:grid sm:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4 overflow-x-auto scrollbar-hide">
         <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
+          <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/15">
+            <Clock className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-primary" />
+          </div>
+          <div>
+            <p className="text-base sm:text-xl font-bold leading-none">{avgServiceTime !== null ? `${avgServiceTime}` : "--"}</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Média <span className="hidden sm:inline">(min)</span></p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
           <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-status-occupied/15">
             <Users className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-status-occupied" />
           </div>
           <div>
             <p className="text-base sm:text-xl font-bold leading-none">{occupied}</p>
-            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Ocupadas</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Mesas Ocupadas</p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
@@ -672,7 +681,7 @@ export default function TablesPage() {
           </div>
           <div>
             <p className="text-base sm:text-xl font-bold leading-none">{free}</p>
-            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Livres</p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Mesas Livres</p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
@@ -681,16 +690,7 @@ export default function TablesPage() {
           </div>
           <div>
             <p className="text-base sm:text-xl font-bold leading-none">{todayStats.clients}</p>
-            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Atendidos</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 rounded-xl border bg-card p-1.5 sm:p-3 min-w-[120px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
-          <div className="flex h-6 w-6 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-primary/15">
-            <Clock className="h-3 w-3 sm:h-4.5 sm:w-4.5 text-primary" />
-          </div>
-          <div>
-            <p className="text-base sm:text-xl font-bold leading-none">{avgServiceTime !== null ? `${avgServiceTime}` : "--"}</p>
-            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Média <span className="hidden sm:inline">(min)</span></p>
+            <p className="text-[8px] sm:text-[11px] text-muted-foreground mt-0.5">Clientes Atendidos</p>
           </div>
         </div>
       </div>
