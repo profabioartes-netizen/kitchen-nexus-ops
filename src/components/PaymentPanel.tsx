@@ -153,6 +153,10 @@ export default function PaymentPanel({
   const [splitMode, setSplitMode] = useState<"quantity" | "value">("quantity");
   const [splitQtyDivisor, setSplitQtyDivisor] = useState(2);
 
+  // ── Split payment entries (fractioned items shown in summary without consuming from left) ──
+  type SplitEntry = { uid: string; itemId: string; productName: string; fractionedPrice: number; divisor: number };
+  const [splitEntries, setSplitEntries] = useState<SplitEntry[]>([]);
+
   // ── Quick-sale products ──
   const { data: quickSaleProducts = [] } = useQuery({
     queryKey: ["quick_sale_products"],
@@ -205,17 +209,21 @@ export default function PaymentPanel({
   const remaining = Math.max(0, Number((grandTotal - paidTotal).toFixed(2)));
 
   // ── Payment items total ──
+  const splitEntriesTotal = useMemo(() => {
+    return splitEntries.reduce((sum, e) => sum + e.fractionedPrice, 0);
+  }, [splitEntries]);
+
   const paymentItemsTotal = useMemo(() => {
     return Object.entries(paymentItems).reduce((sum, [id, qty]) => {
       const item = orderItems.find((i) => i.id === id);
       return sum + (item ? Number(item.price) * qty : 0);
-    }, 0);
-  }, [paymentItems, orderItems]);
+    }, 0) + splitEntriesTotal;
+  }, [paymentItems, orderItems, splitEntriesTotal]);
 
   // Amount to pay = custom or payment items total or remaining
   const amountToPay = customAmount
-    ? Number(customAmount)
-    : Object.keys(paymentItems).length > 0
+    ? Number(customAmount.replace(",", ".")) || 0
+    : (Object.keys(paymentItems).length > 0 || splitEntries.length > 0)
       ? Math.min(paymentItemsTotal, remaining)
       : remaining;
 
@@ -319,7 +327,24 @@ export default function PaymentPanel({
       });
     }
 
+    // Track split entries as fractional paid quantities
+    if (splitEntries.length > 0) {
+      setAccumulatedPaidItems((prev) => {
+        const next = { ...prev };
+        for (const entry of splitEntries) {
+          const item = orderItems.find((i) => i.id === entry.itemId);
+          if (item) {
+            // Track as fractional quantity paid (fractionedPrice / item.price)
+            const fracQty = Number(item.price) > 0 ? entry.fractionedPrice / Number(item.price) : 0;
+            next[entry.itemId] = (next[entry.itemId] || 0) + fracQty;
+          }
+        }
+        return next;
+      });
+    }
+
     setPaymentItems({});
+    setSplitEntries([]);
     setCustomAmount("");
     setCashGiven("");
   };
@@ -343,24 +368,19 @@ export default function PaymentPanel({
     const item = unpaidItems.find((i) => i.id === splitItemDialog.id);
     if (!item) return;
     if (splitMode === "quantity") {
-      // Calculate the fractioned value: total item value / divisor
       const totalItemValue = Number(item.price) * item.remainingQty;
       const fractionedValue = Number((totalItemValue / splitQtyDivisor).toFixed(2));
-      // Accumulate with existing custom amount instead of overwriting
-      const existingAmount = customAmount
-        ? Number(customAmount.replace(",", ".")) || 0
-        : 0;
-      const newTotal = Number((existingAmount + fractionedValue).toFixed(2));
-      setCustomAmount(newTotal.toFixed(2));
-      // Add all remaining qty of this item to payment tracking
-      // NOTE: directly update paymentItems to avoid double-counting in customAmount
-      const canAdd = item.remainingQty - (paymentItems[item.id] ?? 0);
-      if (canAdd > 0) {
-        setPaymentItems((prev) => ({
-          ...prev,
-          [item.id]: (prev[item.id] ?? 0) + canAdd,
-        }));
-      }
+      // Add a split entry to the summary (does NOT consume from left panel)
+      setSplitEntries((prev) => [
+        ...prev,
+        {
+          uid: crypto.randomUUID(),
+          itemId: item.id,
+          productName: item.product_name,
+          fractionedPrice: fractionedValue,
+          divisor: splitQtyDivisor,
+        },
+      ]);
     }
     setSplitItemDialog(null);
   };
@@ -550,12 +570,14 @@ export default function PaymentPanel({
     </>
   );
 
+  const hasSummaryItems = Object.keys(paymentItems).length > 0 || splitEntries.length > 0;
+
   const renderSummaryContent = () => (
     <>
       <div className="text-center mb-3">
         <p className="text-2xl font-bold tabular-nums">R$ {amountToPay.toFixed(2)}</p>
       </div>
-      {Object.keys(paymentItems).length > 0 ? (
+      {hasSummaryItems ? (
         <div className="space-y-1">
           <div className="space-y-1.5">
             {Object.entries(paymentItems).map(([id, qty]) => {
@@ -574,14 +596,27 @@ export default function PaymentPanel({
                 </div>
               );
             })}
+            {splitEntries.map((entry) => (
+              <div key={entry.uid} className="flex items-center justify-between rounded-lg border border-[hsl(var(--status-reserved))]/40 bg-[hsl(var(--status-reserved))]/5 px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm">{entry.productName}</span>
+                  <p className="text-[10px] text-muted-foreground">÷ {entry.divisor} (dividido)</p>
+                </div>
+                <span className="text-sm font-semibold tabular-nums">R$ {entry.fractionedPrice.toFixed(2)}</span>
+              </div>
+            ))}
           </div>
           <div className="flex gap-2 pt-2">
             <button
               onClick={() => {
-                const entries = Object.entries(paymentItems);
-                if (entries.length > 0) {
-                  const [lastId] = entries[entries.length - 1];
-                  removeItemFromPayment(lastId, 1);
+                if (splitEntries.length > 0) {
+                  setSplitEntries((prev) => prev.slice(0, -1));
+                } else {
+                  const entries = Object.entries(paymentItems);
+                  if (entries.length > 0) {
+                    const [lastId] = entries[entries.length - 1];
+                    removeItemFromPayment(lastId, 1);
+                  }
                 }
               }}
               className="flex-1 rounded-md bg-destructive/15 text-destructive py-2.5 text-xs font-bold hover:bg-destructive/25 transition-colors touch-manipulation"
@@ -589,7 +624,7 @@ export default function PaymentPanel({
               REMOVER 1
             </button>
             <button
-              onClick={() => { setPaymentItems({}); setCustomAmount(""); }}
+              onClick={() => { setPaymentItems({}); setSplitEntries([]); setCustomAmount(""); }}
               className="flex-1 rounded-md bg-destructive/15 text-destructive py-2.5 text-xs font-bold hover:bg-destructive/25 transition-colors touch-manipulation"
             >
               REMOVER TODOS
@@ -701,7 +736,7 @@ export default function PaymentPanel({
           <div className="flex border-b bg-card">
             {([
               { key: "items" as const, label: "Itens", badge: unpaidItems.length },
-              { key: "summary" as const, label: "Resumo", badge: Object.keys(paymentItems).length + payments.length },
+              { key: "summary" as const, label: "Resumo", badge: Object.keys(paymentItems).length + splitEntries.length + payments.length },
               { key: "pay" as const, label: "Pagar", badge: 0 },
             ]).map((tab) => (
               <button
