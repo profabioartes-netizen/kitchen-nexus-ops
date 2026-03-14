@@ -216,7 +216,21 @@ export default function PrintersPage() {
   };
 
   const remove = (id: string) => {
-    if (confirm("Remover esta impressora?")) removeMutation.mutate(id);
+    setDeleteTargetId(id);
+    setDeletePinInput("");
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deletePinInput !== DELETE_PIN) {
+      toast.error("PIN incorreto!");
+      setDeletePinInput("");
+      return;
+    }
+    if (deleteTargetId) {
+      removeMutation.mutate(deleteTargetId);
+      setDeleteTargetId(null);
+      setDeletePinInput("");
+    }
   };
 
   const statusLabel: Record<string, string> = {
