@@ -160,6 +160,8 @@ export default function PaymentPanel({
   // ── "Dividir Tudo" dialog ──
   const [showSplitAllDialog, setShowSplitAllDialog] = useState(false);
   const [splitAllDivisor, setSplitAllDivisor] = useState(2);
+  const [splitAllStep, setSplitAllStep] = useState<"count" | "methods">("count");
+  const [splitAllMethods, setSplitAllMethods] = useState<string[]>([]);
 
   // ── Quick-sale products ──
   const { data: quickSaleProducts = [] } = useQuery({
@@ -720,7 +722,7 @@ export default function PaymentPanel({
       {/* Top action bar */}
       <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 border-b bg-card overflow-x-auto">
         <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
-        <button onClick={() => { setSplitAllDivisor(2); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
+        <button onClick={() => { setSplitAllDivisor(2); setSplitAllStep("count"); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
           {!isMobile && (
@@ -946,49 +948,123 @@ export default function PaymentPanel({
       {/* Dividir Tudo dialog */}
       {showSplitAllDialog && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/30">
-          <div className="w-full max-w-xs rounded-lg border bg-background p-5 shadow-lg">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
             <h3 className="font-semibold text-base mb-1">Dividir Tudo</h3>
-            <p className="text-xs text-muted-foreground mb-4">Em quantas partes deseja dividir a conta?</p>
-            <div className="flex items-center justify-center gap-4 mb-5">
-              <button
-                onClick={() => setSplitAllDivisor(Math.max(1, splitAllDivisor - 1))}
-                className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <div className="flex flex-col items-center">
-                <span className="text-3xl font-bold tabular-nums">{splitAllDivisor}</span>
-                <span className="text-[10px] text-muted-foreground">{splitAllDivisor === 1 ? "inteiro" : "pessoas"}</span>
-              </div>
-              <button
-                onClick={() => setSplitAllDivisor(splitAllDivisor + 1)}
-                className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            {splitAllDivisor > 1 && (
-              <p className="text-center text-sm text-muted-foreground mb-4">
-                Cada parte: <strong className="text-foreground">R$ {(grandTotal / splitAllDivisor).toFixed(2)}</strong>
-              </p>
+
+            {splitAllStep === "count" ? (
+              <>
+                <p className="text-xs text-muted-foreground mb-4">Em quantas partes deseja dividir a conta?</p>
+                <div className="flex items-center justify-center gap-4 mb-5">
+                  <button
+                    onClick={() => setSplitAllDivisor(Math.max(2, splitAllDivisor - 1))}
+                    className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="flex flex-col items-center">
+                    <span className="text-3xl font-bold tabular-nums">{splitAllDivisor}</span>
+                    <span className="text-[10px] text-muted-foreground">pessoas</span>
+                  </div>
+                  <button
+                    onClick={() => setSplitAllDivisor(splitAllDivisor + 1)}
+                    className="rounded-full border h-10 w-10 flex items-center justify-center hover:bg-secondary transition-colors touch-manipulation"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-center text-sm text-muted-foreground mb-4">
+                  Cada parte: <strong className="text-foreground">R$ {(grandTotal / splitAllDivisor).toFixed(2)}</strong>
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowSplitAllDialog(false); setSplitAllStep("count"); }}
+                    className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSplitAllMethods(Array(splitAllDivisor).fill("cash"));
+                      setSplitAllStep("methods");
+                    }}
+                    className="flex-1 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity touch-manipulation"
+                  >
+                    Próximo
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground mb-4">Escolha a forma de pagamento de cada parte:</p>
+                <div className="space-y-3 max-h-[50vh] overflow-auto mb-4">
+                  {splitAllMethods.map((method, idx) => (
+                    <div key={idx} className="rounded-lg border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold">Parte {idx + 1}</span>
+                        <span className="text-sm font-bold tabular-nums">R$ {(grandTotal / splitAllDivisor).toFixed(2)}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {METHODS.map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => setSplitAllMethods((prev) => prev.map((v, i) => i === idx ? m : v))}
+                            className={`rounded-md py-2 text-[10px] font-bold transition-all touch-manipulation ${
+                              method === m
+                                ? `${methodColors[m]} ring-2 ring-ring ring-offset-1 ring-offset-background`
+                                : `${methodColors[m]} opacity-50 hover:opacity-80`
+                            }`}
+                          >
+                            {methodLabels[m].split(" ").pop()?.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSplitAllStep("count")}
+                    className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Add split entries for each fraction
+                      addAllItems(splitAllDivisor);
+                      // Create a payment for each fraction with its chosen method
+                      const fractionAmount = Number((grandTotal / splitAllDivisor).toFixed(2));
+                      const newPayments: PaymentEntry[] = splitAllMethods.map((m) => ({
+                        method: m,
+                        amount: fractionAmount,
+                      }));
+                      // Adjust last payment for rounding
+                      const totalPaid = fractionAmount * (splitAllDivisor - 1);
+                      newPayments[newPayments.length - 1].amount = Number((grandTotal - totalPaid).toFixed(2));
+                      setPayments((prev) => [...prev, ...newPayments]);
+
+                      // Track all items as paid
+                      setAccumulatedPaidItems((prev) => {
+                        const next = { ...prev };
+                        for (const item of unpaidItems) {
+                          next[item.id] = (next[item.id] || 0) + item.remainingQty;
+                        }
+                        return next;
+                      });
+
+                      setPaymentItems({});
+                      setSplitEntries([]);
+                      setCustomAmount("");
+                      setShowSplitAllDialog(false);
+                      setSplitAllStep("count");
+                    }}
+                    className="flex-1 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity touch-manipulation"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </>
             )}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowSplitAllDialog(false)}
-                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  addAllItems(splitAllDivisor);
-                  setShowSplitAllDialog(false);
-                }}
-                className="flex-1 rounded-md bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity touch-manipulation"
-              >
-                Dividir
-              </button>
-            </div>
           </div>
         </div>
       )}
