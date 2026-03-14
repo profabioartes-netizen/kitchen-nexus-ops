@@ -320,7 +320,7 @@ export default function PaymentPanel({
         newEntries.push({
           uid: crypto.randomUUID(),
           itemId: item.id,
-          productName: item.productName,
+          productName: item.product_name,
           fractionedPrice,
           divisor,
         });
