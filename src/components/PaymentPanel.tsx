@@ -222,8 +222,8 @@ export default function PaymentPanel({
 
   // Amount to pay = custom or payment items total or remaining
   const amountToPay = customAmount
-    ? Number(customAmount)
-    : Object.keys(paymentItems).length > 0
+    ? Number(customAmount.replace(",", ".")) || 0
+    : (Object.keys(paymentItems).length > 0 || splitEntries.length > 0)
       ? Math.min(paymentItemsTotal, remaining)
       : remaining;
 
