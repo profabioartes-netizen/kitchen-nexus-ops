@@ -13,6 +13,7 @@ import {
   Users,
   RefreshCw,
   Landmark,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/controle-caixa", icon: Landmark, label: "Abertura" },
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
+  { to: "/configuracoes", icon: Settings, label: "Config" },
 ];
 
 export function NavigationRail() {
