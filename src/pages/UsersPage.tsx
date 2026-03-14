@@ -143,6 +143,12 @@ export default function UsersPage() {
             placeholder="••••"
             className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
           />
+          <button
+            onClick={() => window.history.back()}
+            className="w-full rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            ← Voltar
+          </button>
         </div>
       </div>
     );
