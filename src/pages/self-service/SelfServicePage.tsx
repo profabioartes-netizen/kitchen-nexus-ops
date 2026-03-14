@@ -185,7 +185,7 @@ export default function SelfServicePage() {
                 Acessar Cardápio
               </button>
               <p className="text-[10px] text-muted-foreground text-center">
-                resto-reach-os.lovable.app
+                coffeethrones.app
               </p>
             </div>
           </div>
