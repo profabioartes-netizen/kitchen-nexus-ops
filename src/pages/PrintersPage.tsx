@@ -2,17 +2,26 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+
+const PAGE_PIN = "9135";
+const DELETE_PIN = "9774";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
   const [agentActive, setAgentActive] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
+
+  // Delete confirmation state
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deletePinInput, setDeletePinInput] = useState("");
 
   // Track Realtime (WebSocket) connection status with reconnection
   useEffect(() => {
@@ -207,7 +216,21 @@ export default function PrintersPage() {
   };
 
   const remove = (id: string) => {
-    if (confirm("Remover esta impressora?")) removeMutation.mutate(id);
+    setDeleteTargetId(id);
+    setDeletePinInput("");
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deletePinInput !== DELETE_PIN) {
+      toast.error("PIN incorreto!");
+      setDeletePinInput("");
+      return;
+    }
+    if (deleteTargetId) {
+      removeMutation.mutate(deleteTargetId);
+      setDeleteTargetId(null);
+      setDeletePinInput("");
+    }
   };
 
   const statusLabel: Record<string, string> = {
@@ -230,8 +253,92 @@ export default function PrintersPage() {
     return <LoadingScreen />;
   }
 
+  if (!unlocked) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="rounded-lg border bg-card p-6 w-full max-w-xs space-y-4 shadow-lg text-center">
+          <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
+          <h2 className="font-semibold text-lg">Área Restrita</h2>
+          <p className="text-sm text-muted-foreground">Digite o PIN de administrador</p>
+          <input
+            type="password"
+            autoFocus
+            inputMode="numeric"
+            maxLength={4}
+            value={pinInput}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "");
+              setPinInput(val);
+              if (val === PAGE_PIN) setUnlocked(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (pinInput === PAGE_PIN) setUnlocked(true);
+                else { setPinInput(""); toast.error("PIN incorreto!"); }
+              }
+            }}
+            placeholder="••••"
+            className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            onClick={() => window.history.back()}
+            className="w-full rounded-md border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+          >
+            ← Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 h-full overflow-auto">
+      {/* Delete PIN confirmation dialog */}
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-lg border bg-card p-6 w-full max-w-sm mx-4 space-y-4 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center h-10 w-10 rounded-full bg-destructive/15 text-destructive">
+                <Lock className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Confirmar exclusão</h3>
+                <p className="text-xs text-muted-foreground">Remover esta impressora</p>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Digite o PIN de exclusão para confirmar:</p>
+            <input
+              type="password"
+              autoFocus
+              inputMode="numeric"
+              maxLength={4}
+              value={deletePinInput}
+              onChange={(e) => setDeletePinInput(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleDeleteConfirm();
+              }}
+              placeholder="••••"
+              className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setDeleteTargetId(null); setDeletePinInput(""); }}
+                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deletePinInput.length < 4 || removeMutation.isPending}
+                className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {removeMutation.isPending ? "Removendo..." : "Confirmar Exclusão"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Impressoras & Estações</h1>
         <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
