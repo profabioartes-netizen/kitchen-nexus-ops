@@ -720,7 +720,7 @@ export default function PaymentPanel({
       {/* Top action bar */}
       <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 border-b bg-card overflow-x-auto">
         <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
-        <button onClick={addAllItems} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
+        <button onClick={() => { setSplitAllDivisor(2); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
         <div className="ml-auto flex items-center gap-2 md:gap-3">
           <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
           {!isMobile && (
