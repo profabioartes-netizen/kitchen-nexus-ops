@@ -736,7 +736,7 @@ export default function PaymentPanel({
           <div className="flex border-b bg-card">
             {([
               { key: "items" as const, label: "Itens", badge: unpaidItems.length },
-              { key: "summary" as const, label: "Resumo", badge: Object.keys(paymentItems).length + payments.length },
+              { key: "summary" as const, label: "Resumo", badge: Object.keys(paymentItems).length + splitEntries.length + payments.length },
               { key: "pay" as const, label: "Pagar", badge: 0 },
             ]).map((tab) => (
               <button
