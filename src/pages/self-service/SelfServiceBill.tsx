@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Clock, CheckCircle2, UtensilsCrossed } from "lucide-react";
+import { Receipt, Clock, CheckCircle2, UtensilsCrossed, QrCode, Copy, Check } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { generatePixBrCode } from "@/lib/pixBrCode";
+import { toast } from "sonner";
 
 interface Props {
   tableId: string;
@@ -8,6 +12,9 @@ interface Props {
 }
 
 export default function SelfServiceBill({ tableId, customerName }: Props) {
+  const [showPix, setShowPix] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const { data: order, isLoading } = useQuery({
     queryKey: ["self_service_order", tableId],
     queryFn: async () => {
@@ -40,6 +47,22 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     refetchInterval: 10_000,
   });
 
+  // Fetch Pix settings
+  const { data: pixSettings } = useQuery({
+    queryKey: ["pix_settings"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("key, value")
+        .in("key", ["pix_key", "pix_recipient_name", "pix_city"]);
+      const map: Record<string, string> = {};
+      (data || []).forEach((r) => (map[r.key] = r.value));
+      return map;
+    },
+  });
+
+  const pixConfigured = !!(pixSettings?.pix_key && pixSettings?.pix_recipient_name);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -66,6 +89,27 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
   };
 
   const total = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+
+  const pixBrCode = pixConfigured
+    ? generatePixBrCode({
+        pixKey: pixSettings!.pix_key,
+        recipientName: pixSettings!.pix_recipient_name,
+        city: pixSettings!.pix_city || "SAO PAULO",
+        amount: total,
+        txId: order.id.substring(0, 25).replace(/-/g, ""),
+      })
+    : "";
+
+  const handleCopyPix = async () => {
+    try {
+      await navigator.clipboard.writeText(pixBrCode);
+      setCopied(true);
+      toast.success("Código Pix copiado!");
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -113,10 +157,67 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
       </div>
 
       {items.length > 0 && (
-        <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-foreground">Total</span>
-          <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
-        </div>
+        <>
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-4 flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">Total</span>
+            <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
+          </div>
+
+          {/* Pix Payment */}
+          {pixConfigured && total > 0 && (
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowPix(!showPix)}
+                className="w-full rounded-lg border border-accent/30 bg-card p-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground hover:bg-accent/5 transition-colors"
+              >
+                <QrCode className="h-5 w-5 text-accent" />
+                {showPix ? "Fechar Pix" : "Pagar com Pix"}
+              </button>
+
+              {showPix && (
+                <div className="rounded-lg border border-border bg-card p-4 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <p className="text-xs text-muted-foreground text-center">
+                    Escaneie o QR Code ou copie o código Pix abaixo
+                  </p>
+
+                  <div className="bg-white p-3 rounded-lg">
+                    <QRCodeSVG value={pixBrCode} size={200} level="M" />
+                  </div>
+
+                  <div className="w-full space-y-2">
+                    <p className="text-[11px] text-muted-foreground text-center font-medium">
+                      {pixSettings!.pix_recipient_name}
+                    </p>
+                    <p className="text-lg font-bold text-center text-foreground">
+                      R$ {total.toFixed(2)}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleCopyPix}
+                    className="w-full flex items-center justify-center gap-2 rounded-md border bg-secondary text-secondary-foreground py-2.5 text-sm font-medium hover:bg-secondary/80 transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4" />
+                        Copiar Pix Copia e Cola
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                    Após o pagamento, informe ao restaurante para confirmação.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
