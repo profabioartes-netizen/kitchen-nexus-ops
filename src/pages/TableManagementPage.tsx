@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, X, Loader2, Settings } from "lucide-react";
+import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, X, Loader2, Settings, QrCode } from "lucide-react";
+import QRCodeDialog from "@/components/QRCodeDialog";
 
 interface TableForm {
   name: string;
@@ -19,6 +20,7 @@ export default function TableManagementPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TableForm>(emptyForm);
+  const [qrTable, setQrTable] = useState<{ id: string; name: string } | null>(null);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_admin"],
@@ -238,6 +240,9 @@ export default function TableManagementPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => setQrTable({ id: table.id, name: table.name })} className="rounded p-1 hover:bg-secondary" title="QR Code">
+                      <QrCode className="h-4 w-4 text-muted-foreground" />
+                    </button>
                     <button onClick={() => openEdit(table)} className="rounded p-1 hover:bg-secondary">
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -338,6 +343,15 @@ export default function TableManagementPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* QR Code Dialog */}
+      {qrTable && (
+        <QRCodeDialog
+          tableId={qrTable.id}
+          tableName={qrTable.name}
+          onClose={() => setQrTable(null)}
+        />
       )}
     </div>
   );

@@ -26,6 +26,7 @@ import WaiterTablesPage from "@/pages/waiter/WaiterTablesPage";
 import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
+import SelfServicePage from "@/pages/self-service/SelfServicePage";
 import { Loader2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
@@ -91,6 +92,8 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
             {/* Waiter mobile mode */}
+            {/* Self-service (public, no auth) */}
+            <Route path="/autoatendimento/:tableId" element={<SelfServicePage />} />
             <Route path="/garcom/login" element={<WaiterLoginPage />} />
             <Route path="/garcom" element={<WaiterLayout />}>
               <Route index element={<WaiterTablesPage />} />

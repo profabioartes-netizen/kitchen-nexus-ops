@@ -1,0 +1,377 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { normalize } from "@/lib/normalize";
+import { Search, ShoppingBag, Plus, Minus, X, Trash2 } from "lucide-react";
+import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
+
+type CartItem = {
+  product: { id: string; name: string; price: number; station: string; category_id: string | null };
+  quantity: number;
+  notes: string;
+  complements: { id: string; name: string; price: number; quantity: number }[];
+  complementsTotal: number;
+};
+
+interface Props {
+  tableId: string;
+  customerName: string;
+  table: any;
+}
+
+export default function SelfServiceMenu({ tableId, customerName, table }: Props) {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showCart, setShowCart] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("categories").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["products_active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("active", true)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Check approval setting
+  const { data: requiresApproval } = useQuery({
+    queryKey: ["self_service_requires_approval"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "self_service_requires_approval")
+        .single();
+      return data?.value === "true";
+    },
+  });
+
+  const filtered = useMemo(() => {
+    let list = products;
+    if (activeCategory) list = list.filter((p) => p.category_id === activeCategory);
+    if (search.trim()) {
+      const q = normalize(search);
+      list = list.filter((p) => normalize(p.name).includes(q));
+    }
+    return list;
+  }, [products, activeCategory, search]);
+
+  const cartTotal = useMemo(() => {
+    return cart.reduce((sum, item) => sum + (Number(item.product.price) + item.complementsTotal) * item.quantity, 0);
+  }, [cart]);
+
+  const cartCount = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
+
+  const handleAddItem = (payload: AddItemPayload) => {
+    setCart((prev) => [...prev, payload]);
+    setSelectedProduct(null);
+    toast.success(`${payload.product.name} adicionado ao carrinho`);
+  };
+
+  const removeFromCart = (index: number) => {
+    setCart((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const submitOrder = async () => {
+    if (cart.length === 0) return;
+    setSubmitting(true);
+
+    try {
+      // Find or create an open order for this table
+      let orderId: string;
+
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("table_id", tableId)
+        .eq("status", "open")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (existingOrder) {
+        orderId = existingOrder.id;
+      } else {
+        // Update table status + create order
+        await supabase
+          .from("restaurant_tables")
+          .update({ status: "occupied", name: customerName })
+          .eq("id", tableId);
+
+        const { data: newOrder, error: orderErr } = await supabase
+          .from("orders")
+          .insert({
+            table_id: tableId,
+            status: "open",
+            customer_name: customerName,
+            waiter_name: "Auto-atendimento",
+          })
+          .select("id")
+          .single();
+
+        if (orderErr) throw orderErr;
+        orderId = newOrder.id;
+      }
+
+      // Insert items
+      for (const item of cart) {
+        const { data: inserted, error: itemErr } = await supabase
+          .from("order_items")
+          .insert({
+            order_id: orderId,
+            product_id: item.product.id,
+            product_name: item.product.name,
+            price: Number(item.product.price) + item.complementsTotal,
+            quantity: item.quantity,
+            notes: item.notes || null,
+            sent_to_kitchen: !requiresApproval,
+            sent_at: !requiresApproval ? new Date().toISOString() : null,
+            preparation_status: !requiresApproval ? "pending" : "pending",
+          })
+          .select("id")
+          .single();
+
+        if (itemErr) throw itemErr;
+
+        // Insert complements
+        if (item.complements.length > 0 && inserted) {
+          const compInserts = item.complements.map((c) => ({
+            order_item_id: inserted.id,
+            complement_id: c.id,
+            complement_name: c.name,
+            price: c.price,
+            quantity: c.quantity,
+          }));
+          await supabase.from("order_item_complements").insert(compInserts);
+        }
+      }
+
+      // Create print jobs for kitchen if auto-approved
+      if (!requiresApproval) {
+        const stations = new Map<string, any[]>();
+        for (const item of cart) {
+          const station = item.product.station || "Cozinha";
+          if (!stations.has(station)) stations.set(station, []);
+          stations.get(station)!.push({
+            name: item.product.name,
+            qty: item.quantity,
+            notes: item.notes || "",
+            complements: item.complements.map((c) => `${c.name}${c.quantity > 1 ? ` x${c.quantity}` : ""}`),
+          });
+        }
+
+        for (const [station, items] of stations) {
+          await supabase.from("print_jobs").insert({
+            station,
+            payload: {
+              type: "production",
+              table: table.name || "Mesa",
+              customerName,
+              items,
+              selfService: true,
+            },
+          });
+        }
+      }
+
+      // Log activity
+      await supabase.from("table_activity_log").insert({
+        table_id: tableId,
+        order_id: orderId,
+        action: "self_service_order",
+        description: `Pedido feito via auto-atendimento por ${customerName} (${cart.length} itens)`,
+        user_name: customerName,
+      });
+
+      // Update order total
+      const { data: allItems } = await supabase
+        .from("order_items")
+        .select("price, quantity")
+        .eq("order_id", orderId);
+      const total = (allItems || []).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+      await supabase.from("orders").update({ total }).eq("id", orderId);
+
+      setCart([]);
+      setShowCart(false);
+      toast.success(
+        requiresApproval
+          ? "Pedido enviado! Aguarde a confirmação do restaurante."
+          : "Pedido enviado para a cozinha!",
+      );
+    } catch (err: any) {
+      console.error("Erro ao enviar pedido:", err);
+      toast.error("Erro ao enviar pedido. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Search */}
+      <div className="px-4 py-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar no cardápio..."
+            className="w-full rounded-lg border border-input bg-card pl-9 pr-4 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent placeholder:text-muted-foreground"
+          />
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
+        <button
+          onClick={() => setActiveCategory(null)}
+          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            !activeCategory ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
+          }`}
+        >
+          Todos
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.id)}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              activeCategory === cat.id ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
+            }`}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Products grid */}
+      <div className="flex-1 overflow-auto px-4 pb-24">
+        <div className="grid grid-cols-2 gap-3">
+          {filtered.map((product) => (
+            <button
+              key={product.id}
+              onClick={() => setSelectedProduct(product)}
+              className="rounded-lg border border-border bg-card p-3 text-left hover:border-accent/40 transition-colors"
+            >
+              {product.image_url && (
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="w-full h-24 object-cover rounded-md mb-2"
+                  loading="lazy"
+                />
+              )}
+              <h3 className="text-sm font-medium text-foreground line-clamp-2">{product.name}</h3>
+              <p className="text-sm font-semibold text-accent mt-1">
+                R$ {Number(product.price).toFixed(2)}
+              </p>
+              {product.stock !== null && product.stock >= 0 && product.stock <= 5 && (
+                <p className="text-[10px] text-destructive mt-0.5">
+                  {product.stock === 0 ? "Esgotado" : `Restam ${product.stock}`}
+                </p>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {filtered.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground mt-8">Nenhum produto encontrado</p>
+        )}
+      </div>
+
+      {/* Cart FAB */}
+      {cartCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
+          <button
+            onClick={() => setShowCart(true)}
+            className="w-full rounded-lg bg-accent text-accent-foreground py-3.5 font-semibold flex items-center justify-center gap-2 shadow-lg"
+          >
+            <ShoppingBag className="h-5 w-5" />
+            Ver Carrinho ({cartCount}) · R$ {cartTotal.toFixed(2)}
+          </button>
+        </div>
+      )}
+
+      {/* Cart Sheet */}
+      {showCart && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <h2 className="text-lg font-semibold text-foreground">Seu Pedido</h2>
+            <button onClick={() => setShowCart(false)} className="p-1.5 rounded hover:bg-secondary">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-auto p-4 space-y-3">
+            {cart.map((item, i) => (
+              <div key={i} className="rounded-lg border border-border bg-card p-3 flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{item.product.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {item.quantity}x R$ {(Number(item.product.price) + item.complementsTotal).toFixed(2)}
+                  </p>
+                  {item.complements.length > 0 && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      + {item.complements.map((c) => c.name).join(", ")}
+                    </p>
+                  )}
+                  {item.notes && (
+                    <p className="text-[10px] text-muted-foreground italic mt-0.5">"{item.notes}"</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 ml-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    R$ {((Number(item.product.price) + item.complementsTotal) * item.quantity).toFixed(2)}
+                  </span>
+                  <button onClick={() => removeFromCart(i)} className="p-1 rounded hover:bg-secondary text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="text-lg font-bold text-foreground">R$ {cartTotal.toFixed(2)}</span>
+            </div>
+            <button
+              onClick={submitOrder}
+              disabled={submitting || cart.length === 0}
+              className="w-full rounded-lg bg-accent text-accent-foreground py-3.5 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {submitting ? "Enviando..." : "Confirmar Pedido"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Add Item Dialog */}
+      <AddItemDialog
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onAdd={handleAddItem}
+      />
+    </div>
+  );
+}
