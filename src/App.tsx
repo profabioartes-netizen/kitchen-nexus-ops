@@ -14,6 +14,7 @@ import CashierPage from "@/pages/CashierPage";
 import CashRegisterPage from "@/pages/CashRegisterPage";
 import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
+import SelfServiceAdminPage from "@/pages/SelfServiceAdminPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
@@ -105,6 +106,7 @@ const App = () => (
               <Route path="/caixa" element={<CashierPage />} />
               <Route path="/controle-caixa" element={<CashRegisterPage />} />
               <Route path="/produtos" element={<ProductsPage />} />
+              <Route path="/cardapio-cliente" element={<SelfServiceAdminPage />} />
               <Route path="/impressoras" element={<PrintersPage />} />
               <Route path="/impressoras/agente" element={<PrintAgentPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />

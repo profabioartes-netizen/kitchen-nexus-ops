@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Landmark,
   Settings,
+  Smartphone,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
   { to: "/controle-caixa", icon: Landmark, label: "Abertura" },
   { to: "/produtos", icon: Package, label: "Produtos" },
+  { to: "/cardapio-cliente", icon: Smartphone, label: "Cardápio" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/configuracoes", icon: Settings, label: "Config" },
 ];
