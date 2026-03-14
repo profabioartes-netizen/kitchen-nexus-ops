@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -29,7 +29,6 @@ import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import SelfServicePage from "@/pages/self-service/SelfServicePage";
-import { Loader2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -37,7 +36,7 @@ import SplashScreen from "@/components/SplashScreen";
 
 const queryClient = new QueryClient();
 
-function ProtectedRoutes() {
+function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const handleSplashFinished = useCallback(() => setShowSplash(false), []);
@@ -53,25 +52,7 @@ function ProtectedRoutes() {
   return (
     <>
       {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<TablesPage />} />
-          <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
-          <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
-          <Route path="/cozinha" element={<KitchenStationPage />} />
-          <Route path="/caixa" element={<CashierPage />} />
-          <Route path="/controle-caixa" element={<CashRegisterPage />} />
-          <Route path="/produtos" element={<ProductsPage />} />
-          <Route path="/impressoras" element={<PrintersPage />} />
-          <Route path="/impressoras/agente" element={<PrintAgentPage />} />
-          <Route path="/relatorios" element={<ReportsPage />} />
-          <Route path="/clientes" element={<CustomerSalesPage />} />
-          <Route path="/usuarios" element={<UsersPage />} />
-          <Route path="/configuracoes" element={<SettingsPage />} />
-          <Route path="/qrcodes" element={<QRCodesBatchPage />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      {children}
     </>
   );
 }
@@ -95,10 +76,12 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
-            {/* Waiter mobile mode */}
-            {/* Self-service (public, no auth) */}
+
+            {/* Public self-service routes */}
             <Route path="/auto-atendimento/:tableId" element={<SelfServicePage />} />
             <Route path="/autoatendimento/:tableId" element={<SelfServicePage />} />
+
+            {/* Waiter mobile mode */}
             <Route path="/garcom/login" element={<WaiterLoginPage />} />
             <Route path="/garcom" element={<WaiterLayout />}>
               <Route index element={<WaiterTablesPage />} />
@@ -106,7 +89,32 @@ const App = () => (
               <Route path="pedidos" element={<WaiterOrdersPage />} />
               <Route path="perfil" element={<WaiterProfilePage />} />
             </Route>
-            <Route path="/*" element={<ProtectedRoutes />} />
+
+            {/* Admin-only routes */}
+            <Route
+              element={
+                <RequireAuth>
+                  <AppLayout />
+                </RequireAuth>
+              }
+            >
+              <Route path="/" element={<TablesPage />} />
+              <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
+              <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
+              <Route path="/cozinha" element={<KitchenStationPage />} />
+              <Route path="/caixa" element={<CashierPage />} />
+              <Route path="/controle-caixa" element={<CashRegisterPage />} />
+              <Route path="/produtos" element={<ProductsPage />} />
+              <Route path="/impressoras" element={<PrintersPage />} />
+              <Route path="/impressoras/agente" element={<PrintAgentPage />} />
+              <Route path="/relatorios" element={<ReportsPage />} />
+              <Route path="/clientes" element={<CustomerSalesPage />} />
+              <Route path="/usuarios" element={<UsersPage />} />
+              <Route path="/configuracoes" element={<SettingsPage />} />
+              <Route path="/qrcodes" element={<QRCodesBatchPage />} />
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
