@@ -157,6 +157,10 @@ export default function PaymentPanel({
   type SplitEntry = { uid: string; itemId: string; productName: string; fractionedPrice: number; divisor: number };
   const [splitEntries, setSplitEntries] = useState<SplitEntry[]>([]);
 
+  // ── "Dividir Tudo" dialog ──
+  const [showSplitAllDialog, setShowSplitAllDialog] = useState(false);
+  const [splitAllDivisor, setSplitAllDivisor] = useState(2);
+
   // ── Quick-sale products ──
   const { data: quickSaleProducts = [] } = useQuery({
     queryKey: ["quick_sale_products"],
