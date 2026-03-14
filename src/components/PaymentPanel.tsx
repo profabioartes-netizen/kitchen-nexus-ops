@@ -299,14 +299,37 @@ export default function PaymentPanel({
     });
   };
 
-  const addAllItems = () => {
-    const items: Record<string, number> = {};
-    for (const item of unpaidItems) {
-      const inPayment = paymentItems[item.id] ?? 0;
-      const avail = item.remainingQty - inPayment;
-      if (avail > 0) items[item.id] = (paymentItems[item.id] ?? 0) + avail;
+  const addAllItems = (divisor: number = 1) => {
+    if (divisor <= 1) {
+      // Original behavior: add all remaining items at full qty
+      const items: Record<string, number> = {};
+      for (const item of unpaidItems) {
+        const inPayment = paymentItems[item.id] ?? 0;
+        const avail = item.remainingQty - inPayment;
+        if (avail > 0) items[item.id] = (paymentItems[item.id] ?? 0) + avail;
+      }
+      setPaymentItems((prev) => ({ ...prev, ...items }));
+    } else {
+      // Split: add fractioned entries for each item ÷ divisor
+      const newEntries: SplitEntry[] = [];
+      for (const item of unpaidItems) {
+        const inPayment = paymentItems[item.id] ?? 0;
+        const avail = item.remainingQty - inPayment;
+        if (avail <= 0) continue;
+        const fractionedPrice = Number(((Number(item.price) * avail) / divisor).toFixed(2));
+        newEntries.push({
+          uid: crypto.randomUUID(),
+          itemId: item.id,
+          productName: item.productName,
+          fractionedPrice,
+          divisor,
+        });
+      }
+      setSplitEntries((prev) => [...prev, ...newEntries]);
+      // Set custom amount to total of new split entries
+      const splitTotal = newEntries.reduce((s, e) => s + e.fractionedPrice, 0);
+      setCustomAmount(splitTotal.toFixed(2));
     }
-    setPaymentItems((prev) => ({ ...prev, ...items }));
   };
 
   const payRemaining = () => {
