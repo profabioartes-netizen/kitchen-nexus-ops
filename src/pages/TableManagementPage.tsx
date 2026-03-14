@@ -344,6 +344,15 @@ export default function TableManagementPage() {
           </div>
         </div>
       )}
+
+      {/* QR Code Dialog */}
+      {qrTable && (
+        <QRCodeDialog
+          tableId={qrTable.id}
+          tableName={qrTable.name}
+          onClose={() => setQrTable(null)}
+        />
+      )}
     </div>
   );
 }
