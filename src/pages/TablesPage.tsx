@@ -576,6 +576,22 @@ export default function TablesPage() {
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por Fábio Júnior</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => navigate("/relatorios")}
+            className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
+            title="Relatórios"
+          >
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <span className="hidden sm:inline">Relatórios</span>
+          </button>
+          <button
+            onClick={() => navigate("/usuarios")}
+            className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
+            title="Usuários"
+          >
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="hidden sm:inline">Usuários</span>
+          </button>
           <div className="hidden sm:flex rounded-md border bg-card overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
