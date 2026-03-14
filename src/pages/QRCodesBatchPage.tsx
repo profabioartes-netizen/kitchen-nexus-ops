@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoSrc from "@/assets/coffee-thrones-logo.png";
 
 export default function QRCodesBatchPage() {
   const baseUrl = window.location.origin;
@@ -56,7 +57,17 @@ export default function QRCodesBatchPage() {
                 <span className="text-[10px] text-muted-foreground mb-2">#{table.internal_number}</span>
               )}
               <div className="bg-white p-3 rounded-md">
-                <QRCodeSVG value={url} size={140} level="M" />
+                <QRCodeSVG
+                  value={url}
+                  size={140}
+                  level="H"
+                  imageSettings={{
+                    src: logoSrc,
+                    height: 30,
+                    width: 30,
+                    excavate: true,
+                  }}
+                />
               </div>
               <p className="text-[9px] text-muted-foreground mt-2 text-center break-all leading-tight max-w-[160px]">
                 {url}
