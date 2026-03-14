@@ -153,6 +153,10 @@ export default function PaymentPanel({
   const [splitMode, setSplitMode] = useState<"quantity" | "value">("quantity");
   const [splitQtyDivisor, setSplitQtyDivisor] = useState(2);
 
+  // ── Split payment entries (fractioned items shown in summary without consuming from left) ──
+  type SplitEntry = { uid: string; itemId: string; productName: string; fractionedPrice: number; divisor: number };
+  const [splitEntries, setSplitEntries] = useState<SplitEntry[]>([]);
+
   // ── Quick-sale products ──
   const { data: quickSaleProducts = [] } = useQuery({
     queryKey: ["quick_sale_products"],
