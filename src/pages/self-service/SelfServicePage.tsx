@@ -150,37 +150,44 @@ export default function SelfServicePage() {
 
   if (!entered) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-sm space-y-6 text-center">
-          <div>
-            <UtensilsCrossed className="h-10 w-10 mx-auto text-accent mb-3" />
-            <h1 className="text-xl font-bold text-foreground">Bem-vindo!</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+      <div className="h-screen overflow-hidden flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-sm flex-shrink-0">
+          <div className="text-center mb-10">
+            <img src={coffeeLogo} alt="Coffee Thrones" className="h-28 mx-auto mb-4 object-contain drop-shadow-md" />
+            <h1 className="font-display text-2xl tracking-tight">Coffee Thrones</h1>
+            <p className="text-sm text-muted-foreground mt-1.5 tracking-wide">
               {table.name} {table.sector ? `· ${table.sector}` : ""}
             </p>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-center gap-1.5">
-              <User className="h-3.5 w-3.5" />
-              Seu nome
-            </label>
-            <input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleEnter()}
-              placeholder="Digite seu nome..."
-              autoFocus
-              className="w-full rounded-lg border border-input bg-card px-4 py-3 text-center text-base text-foreground outline-none focus:ring-2 focus:ring-accent placeholder:text-muted-foreground"
-            />
-            <button
-              onClick={handleEnter}
-              disabled={!customerName.trim()}
-              className="w-full rounded-lg bg-accent text-accent-foreground py-3 font-semibold text-base hover:opacity-90 transition-opacity disabled:opacity-40"
-            >
-              Acessar Cardápio
-            </button>
+          <div className="rounded-lg border bg-card p-6 shadow-sm">
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  Seu nome
+                </label>
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEnter()}
+                  placeholder="Digite seu nome..."
+                  autoFocus
+                  className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <button
+                onClick={handleEnter}
+                disabled={!customerName.trim()}
+                className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                Acessar Cardápio
+              </button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                resto-reach-os.lovable.app
+              </p>
+            </div>
           </div>
         </div>
       </div>
