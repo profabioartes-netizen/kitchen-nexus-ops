@@ -74,11 +74,8 @@ export default function QRCodesBatchPage() {
                   }}
                 />
               </div>
-              <p className="text-[9px] text-muted-foreground mt-2 text-center break-all leading-tight max-w-[160px]">
-                {url}
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-1 italic">
-                Escaneie para fazer seu pedido
+              <p className="text-sm text-muted-foreground mt-3 font-medium text-center">
+                Escaneie para agilizar o seu pedido
               </p>
             </div>
           );
