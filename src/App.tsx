@@ -26,6 +26,7 @@ import WaiterTablesPage from "@/pages/waiter/WaiterTablesPage";
 import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
+import SelfServicePage from "@/pages/self-service/SelfServicePage";
 import { Loader2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
