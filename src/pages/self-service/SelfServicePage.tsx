@@ -6,7 +6,7 @@ import { User, UtensilsCrossed, Loader2 } from "lucide-react";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
 
-const SESSION_DURATION_MINUTES = 60;
+const SESSION_DURATION_MINUTES = 90;
 
 export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
