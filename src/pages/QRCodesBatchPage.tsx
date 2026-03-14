@@ -51,7 +51,7 @@ export default function QRCodesBatchPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 print:grid-cols-3 print:gap-4">
         {tables.map((table) => {
-          const url = `${baseUrl}/autoatendimento/${table.id}`;
+          const url = `${baseUrl}/auto-atendimento/${table.id}`;
           return (
             <div
               key={table.id}

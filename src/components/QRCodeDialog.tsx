@@ -8,8 +8,8 @@ interface Props {
 }
 
 export default function QRCodeDialog({ tableId, tableName, onClose }: Props) {
-  const baseUrl = window.location.origin;
-  const url = `${baseUrl}/autoatendimento/${tableId}`;
+  const baseUrl = "https://coffeethrones.app";
+  const url = `${baseUrl}/auto-atendimento/${tableId}`;
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
