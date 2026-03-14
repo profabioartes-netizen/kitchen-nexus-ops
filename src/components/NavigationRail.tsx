@@ -13,6 +13,7 @@ import {
   Users,
   RefreshCw,
   Landmark,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
