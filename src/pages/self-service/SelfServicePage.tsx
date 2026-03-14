@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { User, UtensilsCrossed, Loader2 } from "lucide-react";
+import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
 
