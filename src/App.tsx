@@ -68,6 +68,7 @@ function ProtectedRoutes() {
           <Route path="/clientes" element={<CustomerSalesPage />} />
           <Route path="/usuarios" element={<UsersPage />} />
           <Route path="/configuracoes" element={<SettingsPage />} />
+          <Route path="/qrcodes" element={<QRCodesBatchPage />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
