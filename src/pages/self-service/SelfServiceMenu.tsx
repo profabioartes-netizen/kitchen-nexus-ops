@@ -287,13 +287,18 @@ export default function SelfServiceMenu({ tableId, customerName, table }: Props)
                     loading="lazy"
                   />
                 )}
-                <h3 className="text-sm font-medium text-foreground line-clamp-2">{product.name}</h3>
-                <p className="text-sm font-semibold text-accent mt-1">
-                  R$ {Number(product.price).toFixed(2)}
+              <h3 className="text-sm font-medium text-foreground line-clamp-2">{product.name}</h3>
+              {(product as any).description && (
+                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                  {(product as any).description}
                 </p>
-                {product.stock !== null && product.stock >= 0 && product.stock <= 5 && (
-                  <p className={`text-[10px] mt-0.5 ${product.stock === 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                    {product.stock === 0 ? "Esgotado" : `Restam ${product.stock}`}
+              )}
+              <p className="text-sm font-semibold text-accent mt-1">
+                R$ {Number(product.price).toFixed(2)}
+              </p>
+              {product.stock !== null && product.stock >= 0 && product.stock <= 5 && (
+                <p className={`text-[10px] mt-0.5 ${product.stock === 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  {product.stock === 0 ? "Esgotado" : `Restam ${product.stock}`}
                   </p>
                 )}
               </button>
