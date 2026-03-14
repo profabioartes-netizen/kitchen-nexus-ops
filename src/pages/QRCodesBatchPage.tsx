@@ -4,7 +4,6 @@ import { QRCodeSVG } from "qrcode.react";
 import { Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoSrc from "@/assets/coffee-thrones-logo.png";
-import { Button } from "@/components/ui/button";
 
 export default function QRCodesBatchPage() {
   const baseUrl = window.location.origin;
