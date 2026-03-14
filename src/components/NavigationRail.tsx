@@ -12,6 +12,7 @@ import {
   DollarSign,
   Users,
   RefreshCw,
+  Landmark,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
@@ -19,6 +20,7 @@ import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 const navItems = [
   { to: "/", icon: LayoutGrid, label: "Comandas" },
   { to: "/caixa", icon: ShoppingCart, label: "Caixa" },
+  { to: "/controle-caixa", icon: Landmark, label: "Abertura" },
   { to: "/produtos", icon: Package, label: "Produtos" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },

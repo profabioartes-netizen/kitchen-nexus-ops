@@ -11,6 +11,7 @@ import TablesPage from "@/pages/TablesPage";
 import TableManagementPage from "@/pages/TableManagementPage";
 import TableOrderPage from "@/pages/TableOrderPage";
 import CashierPage from "@/pages/CashierPage";
+import CashRegisterPage from "@/pages/CashRegisterPage";
 import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
@@ -56,6 +57,7 @@ function ProtectedRoutes() {
           <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
           <Route path="/cozinha" element={<KitchenStationPage />} />
           <Route path="/caixa" element={<CashierPage />} />
+          <Route path="/controle-caixa" element={<CashRegisterPage />} />
           <Route path="/produtos" element={<ProductsPage />} />
           <Route path="/impressoras" element={<PrintersPage />} />
           <Route path="/impressoras/agente" element={<PrintAgentPage />} />

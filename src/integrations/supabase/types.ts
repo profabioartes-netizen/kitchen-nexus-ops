@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_movements: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by_name: string
+          description: string
+          id: string
+          session_id: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by_name?: string
+          description?: string
+          id?: string
+          session_id: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by_name?: string
+          description?: string
+          id?: string
+          session_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_register_sessions: {
+        Row: {
+          closed_at: string | null
+          closed_by_name: string | null
+          closing_amount: number | null
+          created_at: string
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by_name: string
+          opening_amount: number
+          status: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by_name?: string | null
+          closing_amount?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by_name?: string
+          opening_amount?: number
+          status?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by_name?: string | null
+          closing_amount?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by_name?: string
+          opening_amount?: number
+          status?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
