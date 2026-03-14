@@ -3,13 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Users, ChevronDown, ChevronUp,
-  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2,
+  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const ADMIN_PIN = "9135";
 
 const methodLabels: Record<string, string> = {
   cash: "Dinheiro",
@@ -20,6 +22,8 @@ const methodLabels: Record<string, string> = {
 };
 
 export default function CustomerSalesPage() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [expandedBalcaoOrder, setExpandedBalcaoOrder] = useState<string | null>(null);
