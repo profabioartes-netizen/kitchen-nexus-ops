@@ -374,6 +374,7 @@ export default function SelfServicePage() {
         {view === "menu" ? (
           <SelfServiceMenu
             tableId={tableId!}
+            sessionId={sessionId}
             customerName={customerName}
             table={table}
             whatsappPhone={whatsappPhone}
