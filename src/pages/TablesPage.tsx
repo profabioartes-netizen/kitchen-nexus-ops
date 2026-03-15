@@ -525,12 +525,14 @@ export default function TablesPage() {
     setDraggingId(null);
   }, [draggingId, dragPos, didDrag, updatePosition]);
 
-  const occupied = openOrders.length;
-  const free = tables.filter((t) => t.status === "free").length;
-  const ordersByTable = [...openOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
-    if (o.table_id) acc[o.table_id] = o;
-    return acc;
-  }, {});
+  const ordersByTable = [...openOrders]
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
+      if (o.table_id && !acc[o.table_id]) acc[o.table_id] = o;
+      return acc;
+    }, {});
+  const occupied = Object.keys(ordersByTable).length;
+  const free = Math.max(0, tables.length - occupied);
 
   const sortedTables = useMemo(() => {
     // Active tables (occupied/bill/delivered) come first, then free ones
