@@ -113,6 +113,40 @@ export default function SelfServicePage() {
     tryAutoEnter();
   }, [tryAutoEnter]);
 
+  // Realtime: auto-logout when waiter cancels the order/table
+  useEffect(() => {
+    if (!entered || !tableId) return;
+
+    const channel = supabase
+      .channel(`ss-auto-logout-${tableId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `table_id=eq.${tableId}` },
+        (payload: any) => {
+          const newStatus = payload.new?.status;
+          if (newStatus === "cancelado" || newStatus === "cancelled") {
+            localStorage.removeItem(`ss_session_${tableId}`);
+            window.location.reload();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "restaurant_tables", filter: `id=eq.${tableId}` },
+        (payload: any) => {
+          if (payload.new?.status === "free") {
+            localStorage.removeItem(`ss_session_${tableId}`);
+            window.location.reload();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [entered, tableId]);
+
   const handleEnter = async () => {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
