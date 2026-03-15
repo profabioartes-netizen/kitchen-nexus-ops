@@ -13,6 +13,7 @@ const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 interface Props {
   tableId: string;
   customerName: string;
+  onPaymentComplete?: () => void;
 }
 
 function usePixCountdown(active: boolean) {
