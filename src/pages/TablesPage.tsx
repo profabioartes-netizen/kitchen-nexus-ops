@@ -892,9 +892,11 @@ export default function TablesPage() {
                   </button>
                 )}
 
-                {(table as any).sector && (
+                {((table as any).internal_number || (table as any).sector) && (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).sector}</span>
+                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
+                      📍 {(table as any).internal_number || (table as any).sector}
+                    </span>
                   </div>
                 )}
 
@@ -1000,8 +1002,8 @@ export default function TablesPage() {
 
                 <span className="font-display text-sm">{table.name}</span>
                 
-                {(table as any).sector && (
-                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
+                {((table as any).internal_number || (table as any).sector) && (
+                  <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).internal_number || (table as any).sector}</span>
                 )}
                 <span
                   className="inline-block text-[8px] font-bold uppercase tracking-wider mt-1 rounded-full px-1.5 py-0.5"
