@@ -444,10 +444,7 @@ export default function TableOrderPage() {
         );
       }
 
-      const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce(
-        (s, i) => s + Number(i.price) * i.quantity, 0
-      );
-      await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await recalculateOrderTotal(currentOrder.id);
 
       // If table is currently "delivered", reset to "occupied" since new items were added
       if (table?.status === "delivered") {
