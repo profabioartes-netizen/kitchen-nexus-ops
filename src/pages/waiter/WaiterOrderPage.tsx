@@ -436,7 +436,7 @@ export default function WaiterOrderPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
