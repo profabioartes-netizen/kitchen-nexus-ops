@@ -473,6 +473,10 @@ export default function TableOrderPage() {
       if (!item) return;
       const newQty = item.quantity + delta;
 
+      // Block removal of items already sent to kitchen
+      if (newQty <= 0 && item.sent_to_kitchen) {
+        throw new Error("SENT_ITEM");
+      }
 
       if (newQty <= 0) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
@@ -499,6 +503,11 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       invalidateLog();
     },
+    onError: (err) => {
+      if ((err as Error).message === "SENT_ITEM") {
+        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
+      }
+    },
   });
 
   // Remove item
@@ -506,6 +515,10 @@ export default function TableOrderPage() {
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
 
+      // Block removal of items already sent to kitchen
+      if (item?.sent_to_kitchen) {
+        throw new Error("SENT_ITEM");
+      }
 
       if (item) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
@@ -523,6 +536,11 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       invalidateLog();
+    },
+    onError: (err) => {
+      if ((err as Error).message === "SENT_ITEM") {
+        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
+      }
     },
   });
 
