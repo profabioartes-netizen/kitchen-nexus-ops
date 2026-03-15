@@ -194,9 +194,49 @@ function MercadoPagoCard({ upsert }: { upsert: ReturnType<typeof useUpsertSettin
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
+  const [unlocked, setUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
   const upsert = useUpsertSetting();
 
   const { data: requiresApproval, isLoading: loadingApproval } = useSettingValue("self_service_requires_approval");
+
+  if (!unlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
+        <Lock className="h-8 w-8 text-muted-foreground" />
+        <h2 className="font-semibold text-lg">Área Restrita</h2>
+        <p className="text-sm text-muted-foreground">Digite o PIN de administrador</p>
+        <input
+          type="password"
+          autoFocus
+          inputMode="numeric"
+          maxLength={4}
+          value={pinInput}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "");
+            setPinInput(val);
+            if (val === ADMIN_PIN) setUnlocked(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              if (pinInput === ADMIN_PIN) setUnlocked(true);
+              else { setPinInput(""); toast.error("PIN incorreto!"); }
+            }
+          }}
+          className="w-40 text-center text-2xl tracking-[0.5em] rounded-md border bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring"
+          placeholder="••••"
+        />
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </button>
+      </div>
+    );
+  }
 
   if (loadingApproval) {
     return (
