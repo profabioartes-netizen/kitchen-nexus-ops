@@ -79,13 +79,15 @@ export default function SelfServicePage() {
 
         if (session && new Date(session.expires_at) > new Date()) {
           // Session still valid — reconnect same customer
+          setSessionId(session.id);
           setCustomerName(session.customer_name);
           setSessionOrderId((session as any).order_id || null);
           setEntered(true);
           setCheckingSession(false);
           return;
         } else {
-          // Token expired or invalid — clean up
+          // Token expired ou inválido — limpar sessão local
+          setSessionId(null);
           sessionStorage.removeItem(`ss_session_${tableId}`);
         }
       }
