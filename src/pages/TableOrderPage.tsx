@@ -1192,7 +1192,7 @@ export default function TableOrderPage() {
               onBlur={async () => {
                 if (order && waiterName && waiterName !== order.waiter_name) {
                   await supabase.from("orders").update({ waiter_name: waiterName }).eq("id", order.id);
-                  queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                  queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
                 }
               }}
               placeholder="Nome do garçom..."
