@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Settings, Loader2, Save, Eye, EyeOff, CreditCard, AlertCircle, CheckCircle2, Lock, ArrowLeft } from "lucide-react";
+import { Settings, Loader2, Save, Eye, EyeOff, CreditCard, AlertCircle, CheckCircle2, Lock, ArrowLeft, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const ADMIN_PIN = "9135";
@@ -200,6 +200,7 @@ export default function SettingsPage() {
   const upsert = useUpsertSetting();
 
   const { data: requiresApproval, isLoading: loadingApproval } = useSettingValue("self_service_requires_approval");
+  const { data: selfServiceEnabled, isLoading: loadingSelfService } = useSettingValue("self_service_enabled");
 
   if (!unlocked) {
     return (
@@ -238,13 +239,15 @@ export default function SettingsPage() {
     );
   }
 
-  if (loadingApproval) {
+  if (loadingApproval || loadingSelfService) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  const isSelfServiceOn = selfServiceEnabled !== "false"; // default true
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-2xl h-full overflow-auto">
@@ -255,31 +258,54 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Auto-Atendimento</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <QrCode className="h-5 w-5 text-primary" />
+            Atendimento por QR Code
+          </CardTitle>
           <CardDescription>
-            Configure o comportamento dos pedidos feitos pelo QR Code nas mesas.
+            Permite que clientes façam pedidos escaneando o QR Code da mesa.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <Label htmlFor="approval-toggle" className="text-sm font-medium">
-                Aprovação obrigatória de pedidos
+              <Label htmlFor="self-service-toggle" className="text-sm font-medium">
+                Ativar auto-atendimento
               </Label>
               <p className="text-xs text-muted-foreground">
-                Quando ativado, os pedidos do auto-atendimento ficam pendentes até que um funcionário aprove.
-                Quando desativado, os pedidos são enviados automaticamente para a cozinha.
+                Quando desativado, os QR Codes das mesas ficam inativos e clientes não conseguem acessar o cardápio digital.
               </p>
             </div>
             <Switch
-              id="approval-toggle"
-              checked={requiresApproval === "true"}
+              id="self-service-toggle"
+              checked={isSelfServiceOn}
               onCheckedChange={(checked) =>
-                upsert.mutate({ key: "self_service_requires_approval", value: String(checked) })
+                upsert.mutate({ key: "self_service_enabled", value: String(checked) })
               }
               disabled={upsert.isPending}
             />
           </div>
+
+          {isSelfServiceOn && (
+            <div className="flex items-center justify-between gap-4 pt-2 border-t">
+              <div className="space-y-1">
+                <Label htmlFor="approval-toggle" className="text-sm font-medium">
+                  Aprovação obrigatória de pedidos
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Quando ativado, os pedidos do auto-atendimento ficam pendentes até que um funcionário aprove.
+                </p>
+              </div>
+              <Switch
+                id="approval-toggle"
+                checked={requiresApproval === "true"}
+                onCheckedChange={(checked) =>
+                  upsert.mutate({ key: "self_service_requires_approval", value: String(checked) })
+                }
+                disabled={upsert.isPending}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
