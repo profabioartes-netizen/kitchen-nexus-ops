@@ -236,7 +236,7 @@ export default function SelfServicePage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {view === "menu" ? (
-          <SelfServiceMenu tableId={tableId!} customerName={customerName} table={table} />
+          <SelfServiceMenu tableId={tableId!} customerName={customerName} table={table} whatsappPhone={whatsappPhone} />
         ) : (
           <SelfServiceBill tableId={tableId!} customerName={customerName} />
         )}
