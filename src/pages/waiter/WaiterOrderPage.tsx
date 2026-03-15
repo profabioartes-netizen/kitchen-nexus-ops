@@ -589,6 +589,16 @@ export default function WaiterOrderPage() {
         </div>
       </div>
 
+      {/* Order selector when multiple comandas on same table */}
+      {tableOrders.length > 1 && (
+        <OrderSelector
+          orders={tableOrders}
+          selectedOrderId={selectedOrderId}
+          onSelect={setSelectedOrderId}
+          onCreateNew={() => setShowOpenDialog(true)}
+        />
+      )}
+
       {/* ── Quick Shortcuts Section ── */}
       <div className="flex-shrink-0 border-b bg-card/50">
         {/* Shortcut toggle + tabs */}
