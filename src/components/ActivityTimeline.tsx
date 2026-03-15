@@ -35,6 +35,8 @@ const actionColors: Record<string, string> = {
   complement_added: "text-accent bg-accent/10",
   discount_applied: "text-destructive bg-destructive/10",
   extra_charge: "text-accent bg-accent/10",
+  comanda_created: "text-[hsl(var(--status-free))] bg-[hsl(var(--status-free)/0.12)]",
+  self_service_order: "text-accent bg-accent/10",
 };
 
 interface Props {
