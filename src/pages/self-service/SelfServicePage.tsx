@@ -158,7 +158,7 @@ export default function SelfServicePage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "order_items" },
         (payload: any) => {
-          if (payload.new?.sent_to_kitchen === true && payload.old?.sent_to_kitchen === false) {
+          if (payload.new?.sent_to_kitchen === true) {
             setPulseBill(true);
           }
         }
