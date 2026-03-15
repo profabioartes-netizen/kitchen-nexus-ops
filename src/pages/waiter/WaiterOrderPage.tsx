@@ -435,15 +435,11 @@ export default function WaiterOrderPage() {
       if (!item) return;
       const newQty = item.quantity + delta;
 
-      // Block removal of items already sent to kitchen
-      if (newQty <= 0 && item.sent_to_kitchen) {
-        throw new Error("SENT_ITEM");
-      }
-
       if (newQty <= 0) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
         await supabase.from("order_items").delete().eq("id", itemId);
-        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id, profile?.full_name);
+        const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
+        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}${sentLabel}`, order?.id, profile?.full_name);
       } else {
         await supabase.from("order_items").update({ quantity: newQty }).eq("id", itemId);
       }
@@ -452,14 +448,11 @@ export default function WaiterOrderPage() {
       await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
     },
     onSuccess: () => {
+      setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
     },
-    onError: (err) => {
-      if ((err as Error).message === "SENT_ITEM") {
-        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
-      }
-    },
+  });
   });
 
   const removeItem = useMutation({
