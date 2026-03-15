@@ -27,6 +27,7 @@ export default function SelfServicePage() {
   const isWhatsappValid = rawWhatsapp.length === 11 && rawWhatsapp[2] === "9";
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
+  const [pulseBill, setPulseBill] = useState(false);
 
   const { data: table, isLoading: tableLoading } = useQuery({
     queryKey: ["self_service_table", tableId],
@@ -137,6 +138,28 @@ export default function SelfServicePage() {
           if (payload.new?.status === "free") {
             localStorage.removeItem(`ss_session_${tableId}`);
             window.location.reload();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [entered, tableId]);
+
+  // Pulse "Minha Conta" when waiter approves items (sent_to_kitchen changes)
+  useEffect(() => {
+    if (!entered || !tableId) return;
+
+    const channel = supabase
+      .channel(`ss-pulse-bill-${tableId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "order_items" },
+        (payload: any) => {
+          if (payload.new?.sent_to_kitchen === true && payload.old?.sent_to_kitchen === false) {
+            setPulseBill(true);
           }
         }
       )
@@ -283,8 +306,8 @@ export default function SelfServicePage() {
             Cardápio
           </button>
           <button
-            onClick={() => setView("bill")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${view === "bill" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+            onClick={() => { setView("bill"); setPulseBill(false); }}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${view === "bill" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary"} ${pulseBill && view !== "bill" ? "animate-pulse bg-accent text-accent-foreground ring-2 ring-accent/50" : ""}`}
           >
             Minha Conta
           </button>
