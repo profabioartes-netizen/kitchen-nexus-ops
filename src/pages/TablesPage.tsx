@@ -1002,7 +1002,7 @@ export default function TablesPage() {
 
                 <span className="font-display text-sm">{table.name}</span>
                 
-                {order && ((table as any).internal_number || (table as any).sector) && (
+                {order && (order as any).whatsapp_phone && ((table as any).internal_number || (table as any).sector) && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).internal_number || (table as any).sector}</span>
                 )}
                 <span
