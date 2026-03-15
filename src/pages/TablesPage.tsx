@@ -1028,7 +1028,7 @@ export default function TablesPage() {
                 )}
 
 
-                <span className="font-display text-sm">{table.name}</span>
+                <span className="font-display text-sm">{visualLabels[table.id] || table.name}</span>
                 
                 {order && ((table as any).sector || (table as any).internal_number) && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).sector || (table as any).internal_number}</span>
