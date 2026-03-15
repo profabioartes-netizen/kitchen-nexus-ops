@@ -13,6 +13,7 @@ const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 interface Props {
   tableId: string;
   customerName: string;
+  onPaymentComplete?: () => void;
 }
 
 function usePixCountdown(active: boolean) {
@@ -40,7 +41,7 @@ function usePixCountdown(active: boolean) {
   return { secondsLeft, expired, formatted, reset, started: expiresAt !== null };
 }
 
-export default function SelfServiceBill({ tableId, customerName }: Props) {
+export default function SelfServiceBill({ tableId, customerName, onPaymentComplete }: Props) {
   const queryClient = useQueryClient();
   const [showPix, setShowPix] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -244,10 +245,13 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
 
-            // Set flag so SelfServicePage shows thank-you instead of reloading
+            // Show thank-you screen immediately (don't rely on Realtime)
+            onPaymentComplete?.();
+
+            // Set flag as backup for Realtime listener
             localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
 
-            // Free table and clear session LAST — this triggers realtime auto-logout
+            // Free table and clear session LAST
             await supabase.from("self_service_sessions").delete().eq("table_id", tableId);
             await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
           }

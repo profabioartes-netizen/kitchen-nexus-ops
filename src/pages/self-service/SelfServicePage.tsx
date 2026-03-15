@@ -361,7 +361,7 @@ export default function SelfServicePage() {
         {view === "menu" ? (
           <SelfServiceMenu tableId={tableId!} customerName={customerName} table={table} whatsappPhone={whatsappPhone} />
         ) : (
-          <SelfServiceBill tableId={tableId!} customerName={customerName} />
+          <SelfServiceBill tableId={tableId!} customerName={customerName} onPaymentComplete={() => setShowThankYou(true)} />
         )}
       </div>
     </div>
