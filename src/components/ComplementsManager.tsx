@@ -388,6 +388,9 @@ export function ComplementsManager() {
                   <button onClick={(e) => { e.stopPropagation(); startEditGroup(group); }} className="rounded p-1 hover:bg-secondary text-muted-foreground">
                     <Edit2 className="h-3.5 w-3.5" />
                   </button>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateGroup.mutate(group); }} className="rounded p-1 hover:bg-secondary text-muted-foreground" title="Duplicar grupo">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); if (confirm(`Remover grupo "${group.name}" e todos os complementos?`)) deleteGroup.mutate(group.id); }} className="rounded p-1 hover:bg-destructive/10 text-destructive">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
