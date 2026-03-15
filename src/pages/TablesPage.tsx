@@ -892,9 +892,11 @@ export default function TablesPage() {
                   </button>
                 )}
 
-                {(table as any).sector && (
+                {((table as any).internal_number || (table as any).sector) && (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).sector}</span>
+                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
+                      📍 {(table as any).internal_number || (table as any).sector}
+                    </span>
                   </div>
                 )}
 
