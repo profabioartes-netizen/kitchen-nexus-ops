@@ -811,14 +811,23 @@ export default function TablesPage() {
                                   <p className="text-[10px] text-accent uppercase tracking-widest font-black mb-1.5">● Novos Pedidos</p>
                                   <div className="space-y-1">
                                     {newItems.map((item) => (
-                                      <div key={item.id} className="flex items-center justify-between text-xs gap-1">
-                                        <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
-                                        {!(item as any).viewed_at && (
-                                          <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                      <div key={item.id}>
+                                        <div className="flex items-center justify-between text-xs gap-1">
+                                          <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
+                                          {!(item as any).viewed_at && (
+                                            <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                          )}
+                                          <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
+                                        </div>
+                                        {(item as any).order_item_complements?.length > 0 && (
+                                          <div className="ml-2 mt-0.5 space-y-0.5">
+                                            {(item as any).order_item_complements.map((c: any, i: number) => (
+                                              <span key={i} className="block text-[10px] text-muted-foreground">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
+                                            ))}
+                                          </div>
                                         )}
-                                        <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
                                       </div>
-                                    ))}
+                                    ))
                                   </div>
                                 </div>
                                 {completedItems.length > 0 && (
