@@ -258,31 +258,54 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Auto-Atendimento</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <QrCode className="h-5 w-5 text-primary" />
+            Atendimento por QR Code
+          </CardTitle>
           <CardDescription>
-            Configure o comportamento dos pedidos feitos pelo QR Code nas mesas.
+            Permite que clientes façam pedidos escaneando o QR Code da mesa.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
-              <Label htmlFor="approval-toggle" className="text-sm font-medium">
-                Aprovação obrigatória de pedidos
+              <Label htmlFor="self-service-toggle" className="text-sm font-medium">
+                Ativar auto-atendimento
               </Label>
               <p className="text-xs text-muted-foreground">
-                Quando ativado, os pedidos do auto-atendimento ficam pendentes até que um funcionário aprove.
-                Quando desativado, os pedidos são enviados automaticamente para a cozinha.
+                Quando desativado, os QR Codes das mesas ficam inativos e clientes não conseguem acessar o cardápio digital.
               </p>
             </div>
             <Switch
-              id="approval-toggle"
-              checked={requiresApproval === "true"}
+              id="self-service-toggle"
+              checked={isSelfServiceOn}
               onCheckedChange={(checked) =>
-                upsert.mutate({ key: "self_service_requires_approval", value: String(checked) })
+                upsert.mutate({ key: "self_service_enabled", value: String(checked) })
               }
               disabled={upsert.isPending}
             />
           </div>
+
+          {isSelfServiceOn && (
+            <div className="flex items-center justify-between gap-4 pt-2 border-t">
+              <div className="space-y-1">
+                <Label htmlFor="approval-toggle" className="text-sm font-medium">
+                  Aprovação obrigatória de pedidos
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Quando ativado, os pedidos do auto-atendimento ficam pendentes até que um funcionário aprove.
+                </p>
+              </div>
+              <Switch
+                id="approval-toggle"
+                checked={requiresApproval === "true"}
+                onCheckedChange={(checked) =>
+                  upsert.mutate({ key: "self_service_requires_approval", value: String(checked) })
+                }
+                disabled={upsert.isPending}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
