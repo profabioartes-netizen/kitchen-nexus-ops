@@ -41,6 +41,9 @@ export default function SelfServiceAdminPage() {
   const [editImage, setEditImage] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  const [activeSection, setActiveSection] = useState<"produtos" | "complementos">("produtos");
+  const [expandedCompGroup, setExpandedCompGroup] = useState<string | null>(null);
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products_all"],
     queryFn: async () => {
@@ -52,6 +55,35 @@ export default function SelfServiceAdminPage() {
       if (error) throw error;
       return data as unknown as Product[];
     },
+  });
+
+  const { data: compGroups = [] } = useQuery({
+    queryKey: ["complement_groups_admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("complement_groups")
+        .select("*, complements(*)")
+        .order("name");
+      if (error) throw error;
+      return data.map((g: any) => ({
+        ...g,
+        complements: [...(g.complements || [])].sort(
+          (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        ),
+      }));
+    },
+  });
+
+  const toggleCompMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from("complements").update({ active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["complement_groups_admin"] });
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const toggleMutation = useMutation({
