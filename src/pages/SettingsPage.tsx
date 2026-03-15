@@ -200,6 +200,7 @@ export default function SettingsPage() {
   const upsert = useUpsertSetting();
 
   const { data: requiresApproval, isLoading: loadingApproval } = useSettingValue("self_service_requires_approval");
+  const { data: selfServiceEnabled, isLoading: loadingSelfService } = useSettingValue("self_service_enabled");
 
   if (!unlocked) {
     return (
