@@ -689,6 +689,8 @@ export default function TableOrderPage() {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido");
       await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
+      // Close any other stale open orders for this table (prevent ghost orders)
+      await supabase.from("orders").update({ status: "finalized" }).eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).neq("id", order.id);
       await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
     },
