@@ -434,6 +434,10 @@ export default function WaiterOrderPage() {
       if (!item) return;
       const newQty = item.quantity + delta;
 
+      // Block removal of items already sent to kitchen
+      if (newQty <= 0 && item.sent_to_kitchen) {
+        throw new Error("SENT_ITEM");
+      }
 
       if (newQty <= 0) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
@@ -450,11 +454,21 @@ export default function WaiterOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
     },
+    onError: (err) => {
+      if ((err as Error).message === "SENT_ITEM") {
+        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
+      }
+    },
   });
 
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
+
+      // Block removal of items already sent to kitchen
+      if (item?.sent_to_kitchen) {
+        throw new Error("SENT_ITEM");
+      }
 
       if (item) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
@@ -468,6 +482,11 @@ export default function WaiterOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    },
+    onError: (err) => {
+      if ((err as Error).message === "SENT_ITEM") {
+        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
+      }
     },
   });
 
@@ -796,10 +815,15 @@ export default function WaiterOrderPage() {
               <div className="space-y-2">
                 {orderItems.map((item) => {
                   const comps = itemComplements.filter((c) => c.order_item_id === item.id);
+                  const isSent = item.sent_to_kitchen;
                   return (
-                    <div key={item.id} className="flex items-center gap-2 rounded-xl border bg-background p-2.5">
+                    <div key={item.id} className={`flex items-center gap-2 rounded-xl border bg-background p-2.5 ${isSent ? "border-accent/30" : ""}`}>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })} className="rounded-xl border p-2.5 active:bg-secondary">
+                        <button
+                          onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
+                          disabled={isSent && item.quantity <= 1}
+                          className={`rounded-xl border p-2.5 active:bg-secondary ${isSent && item.quantity <= 1 ? "opacity-30 cursor-not-allowed" : ""}`}
+                        >
                           <Minus className="h-4 w-4" />
                         </button>
                         <span className="text-base font-bold w-7 text-center">{item.quantity}</span>
@@ -811,13 +835,18 @@ export default function WaiterOrderPage() {
                         <p className="font-medium text-xs truncate">{item.product_name}</p>
                         {comps.length > 0 && <p className="text-[9px] text-muted-foreground truncate">{comps.map((c) => c.complement_name).join(", ")}</p>}
                         {item.notes && <p className="text-[9px] text-accent truncate">📝 {item.notes}</p>}
+                        {isSent && <p className="text-[8px] text-accent font-medium">✓ Enviado</p>}
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <span className="text-xs font-semibold mr-1">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
                         <button onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }} className="rounded-lg p-2 active:bg-secondary">
                           <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>
-                        <button onClick={() => removeItem.mutate(item.id)} className="rounded-lg p-2 active:bg-secondary">
+                        <button
+                          onClick={() => removeItem.mutate(item.id)}
+                          disabled={isSent}
+                          className={`rounded-lg p-2 active:bg-secondary ${isSent ? "opacity-30 cursor-not-allowed" : ""}`}
+                        >
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </button>
                       </div>
