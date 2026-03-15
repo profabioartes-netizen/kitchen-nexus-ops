@@ -245,10 +245,13 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
 
-            // Set flag so SelfServicePage shows thank-you instead of reloading
+            // Show thank-you screen immediately (don't rely on Realtime)
+            onPaymentComplete?.();
+
+            // Set flag as backup for Realtime listener
             localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
 
-            // Free table and clear session LAST — this triggers realtime auto-logout
+            // Free table and clear session LAST
             await supabase.from("self_service_sessions").delete().eq("table_id", tableId);
             await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
           }
