@@ -206,12 +206,24 @@ export default function SelfServicePage() {
     }
   }, [tableId]);
 
-  if (tableLoading || checkingSession) {
+  if (tableLoading || checkingSession || loadingSelfServiceSetting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-accent" />
           <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (selfServiceEnabled === "false") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center space-y-2">
+          <UtensilsCrossed className="h-12 w-12 mx-auto text-muted-foreground" />
+          <h1 className="text-lg font-semibold text-foreground">Atendimento indisponível</h1>
+          <p className="text-sm text-muted-foreground">O auto-atendimento por QR Code está temporariamente desativado. Chame um garçom para fazer seu pedido.</p>
         </div>
       </div>
     );
