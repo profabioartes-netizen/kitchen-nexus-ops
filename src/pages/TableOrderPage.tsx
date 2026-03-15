@@ -1231,7 +1231,8 @@ export default function TableOrderPage() {
                   </button>
                   <button
                     onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
-                    className="rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation"
+                    disabled={item.sent_to_kitchen && remainingQty <= 1}
+                    className={`rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation ${item.sent_to_kitchen && remainingQty <= 1 ? "opacity-30 cursor-not-allowed" : ""}`}
                   >
                     <Minus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
@@ -1244,7 +1245,8 @@ export default function TableOrderPage() {
                   </button>
                   <button
                     onClick={() => removeItem.mutate(item.id)}
-                    className="rounded p-1.5 md:p-1 hover:bg-destructive/10 text-destructive ml-0.5 touch-manipulation"
+                    disabled={item.sent_to_kitchen}
+                    className={`rounded p-1.5 md:p-1 hover:bg-destructive/10 text-destructive ml-0.5 touch-manipulation ${item.sent_to_kitchen ? "opacity-30 cursor-not-allowed" : ""}`}
                   >
                     <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
