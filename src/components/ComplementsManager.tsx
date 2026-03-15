@@ -395,7 +395,24 @@ export function ComplementsManager() {
                   {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   <span className="flex-1 font-medium text-sm">{group.name}</span>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {group.required && <span className="rounded-full bg-accent/10 text-accent px-2 py-0.5 font-medium">Obrigatório</span>}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        supabase.from("complement_groups").update({ required: !group.required }).eq("id", group.id).then(({ error }) => {
+                          if (error) { toast.error(error.message); return; }
+                          queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+                          toast.success(group.required ? "Grupo agora é opcional" : "Grupo agora é obrigatório");
+                        });
+                      }}
+                      className={`rounded-full px-2 py-0.5 font-medium transition-colors ${
+                        group.required
+                          ? "bg-accent/10 text-accent hover:bg-accent/20"
+                          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                      }`}
+                      title={group.required ? "Clique para tornar opcional" : "Clique para tornar obrigatório"}
+                    >
+                      {group.required ? "Obrigatório" : "Opcional"}
+                    </button>
                     <span>{complements.length} item(s)</span>
                     <span>({group.min_select}–{group.max_select})</span>
                   </div>
