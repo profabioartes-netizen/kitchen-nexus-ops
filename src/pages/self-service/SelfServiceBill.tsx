@@ -173,7 +173,11 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
           if (pollingRef.current) clearInterval(pollingRef.current);
           toast.success("Pagamento Pix confirmado! ✅");
 
-          // Record payment in DB
+          // Redirect immediately to thank-you screen
+          onPaymentComplete?.();
+          localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
+
+          // Record payment in DB (background)
           if (order) {
             await supabase.from("payments").insert({
               order_id: order.id,
@@ -244,12 +248,6 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
             queryClient.invalidateQueries({ queryKey: ["self_service_order", orderId] });
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-
-            // Show thank-you screen immediately
-            onPaymentComplete?.();
-
-            // Set flag as backup for Realtime listener
-            localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
 
             // Delete only THIS customer's session, free table only if no other open orders remain
             const savedToken = localStorage.getItem(`ss_session_${tableId}`);
