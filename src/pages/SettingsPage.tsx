@@ -194,31 +194,8 @@ export default function SettingsPage() {
   const upsert = useUpsertSetting();
 
   const { data: requiresApproval, isLoading: loadingApproval } = useSettingValue("self_service_requires_approval");
-  const { data: pixKey, isLoading: loadingPixKey } = useSettingValue("pix_key");
-  const { data: pixName, isLoading: loadingPixName } = useSettingValue("pix_recipient_name");
-  const { data: pixCity, isLoading: loadingPixCity } = useSettingValue("pix_city");
 
-  const [localPixKey, setLocalPixKey] = useState("");
-  const [localPixName, setLocalPixName] = useState("");
-  const [localPixCity, setLocalPixCity] = useState("");
-
-  useEffect(() => { if (pixKey !== undefined) setLocalPixKey(pixKey); }, [pixKey]);
-  useEffect(() => { if (pixName !== undefined) setLocalPixName(pixName); }, [pixName]);
-  useEffect(() => { if (pixCity !== undefined) setLocalPixCity(pixCity || "SAO PAULO"); }, [pixCity]);
-
-  const isLoading = loadingApproval || loadingPixKey || loadingPixName || loadingPixCity;
-
-  const savePixSettings = async () => {
-    if (!localPixKey.trim() || !localPixName.trim()) {
-      toast.error("Preencha a chave Pix e o nome do recebedor.");
-      return;
-    }
-    await upsert.mutateAsync({ key: "pix_key", value: localPixKey.trim() });
-    await upsert.mutateAsync({ key: "pix_recipient_name", value: localPixName.trim().toUpperCase() });
-    await upsert.mutateAsync({ key: "pix_city", value: localPixCity.trim().toUpperCase() || "SAO PAULO" });
-  };
-
-  if (isLoading) {
+  if (loadingApproval) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -264,69 +241,6 @@ export default function SettingsPage() {
       </Card>
 
       <MercadoPagoCard upsert={upsert} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Pix Manual (Estático)</CardTitle>
-          <CardDescription>
-            Pix estático como fallback. Quando o Mercado Pago estiver configurado, o sistema usará cobranças dinâmicas automaticamente.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="pix-key" className="text-sm font-medium">
-              Chave Pix
-            </Label>
-            <input
-              id="pix-key"
-              type="text"
-              value={localPixKey}
-              onChange={(e) => setLocalPixKey(e.target.value)}
-              placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pix-name" className="text-sm font-medium">
-              Nome do recebedor
-            </Label>
-            <input
-              id="pix-name"
-              type="text"
-              value={localPixName}
-              onChange={(e) => setLocalPixName(e.target.value)}
-              placeholder="Nome que aparece no Pix (ex: COFFEE THRONES)"
-              maxLength={25}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pix-city" className="text-sm font-medium">
-              Cidade
-            </Label>
-            <input
-              id="pix-city"
-              type="text"
-              value={localPixCity}
-              onChange={(e) => setLocalPixCity(e.target.value)}
-              placeholder="Cidade do estabelecimento"
-              maxLength={15}
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <button
-            onClick={savePixSettings}
-            disabled={upsert.isPending}
-            className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            Salvar Configurações Pix
-          </button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
