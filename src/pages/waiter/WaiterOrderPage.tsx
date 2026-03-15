@@ -259,8 +259,7 @@ export default function WaiterOrderPage() {
       } as any);
       if (itemError) throw itemError;
 
-      const newTotal = [...orderItems, { price: unitPrice, quantity: 1 }].reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await recalculateOrderTotal(currentOrder.id);
       if (table?.status === "delivered") {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
