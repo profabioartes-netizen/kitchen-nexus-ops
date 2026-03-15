@@ -272,7 +272,11 @@ function buildBillTicket(job) {
   parts.push(cmd.text(`SUBTOTAL : R$ ${subtotal.toFixed(2).replace(".", ",")}`));
   parts.push(cmd.text(""));
   parts.push(cmd.bold(true));
-  parts.push(cmd.text(`VALOR A PAGAR : R$ ${totalVal.toFixed(2).replace(".", ",")}`));
+  if (p.pix_confirmed) {
+    parts.push(cmd.text(`PIX APROVADO : R$ ${totalVal.toFixed(2).replace(".", ",")}`));
+  } else {
+    parts.push(cmd.text(`VALOR A PAGAR : R$ ${totalVal.toFixed(2).replace(".", ",")}`));
+  }
   parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
 
