@@ -108,6 +108,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
           .from("orders")
           .select("id")
           .eq("id", currentOrderId)
+          .eq("table_id", tableId)
           .eq("status", "open")
           .single();
         if (!existingOrder) {
