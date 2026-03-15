@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Phone, UtensilsCrossed, Loader2 } from "lucide-react";
+import { User, Phone, UtensilsCrossed, Loader2, Instagram } from "lucide-react";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
@@ -28,6 +28,7 @@ export default function SelfServicePage() {
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
   const [pulseBill, setPulseBill] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
 
   const { data: table, isLoading: tableLoading } = useQuery({
     queryKey: ["self_service_table", tableId],
@@ -136,8 +137,14 @@ export default function SelfServicePage() {
         { event: "UPDATE", schema: "public", table: "restaurant_tables", filter: `id=eq.${tableId}` },
         (payload: any) => {
           if (payload.new?.status === "free") {
+            const pixJustPaid = localStorage.getItem(`ss_pix_paid_${tableId}`);
             localStorage.removeItem(`ss_session_${tableId}`);
-            window.location.reload();
+            localStorage.removeItem(`ss_pix_paid_${tableId}`);
+            if (pixJustPaid) {
+              setShowThankYou(true);
+            } else {
+              window.location.reload();
+            }
           }
         }
       )
@@ -286,6 +293,30 @@ export default function SelfServicePage() {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (showThankYou) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+        <img src={coffeeLogo} alt="Coffee Thrones" className="h-36 object-contain drop-shadow-md mb-8" />
+        <h2 className="text-2xl font-display font-bold text-foreground text-center mb-2">
+          Obrigado pela preferência!
+        </h2>
+        <p className="text-base text-muted-foreground text-center mb-8">
+          Volte sempre! ☕
+        </p>
+        <a
+          href="https://www.instagram.com/coffeethrones/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-orange-400 text-white px-6 py-3 text-sm font-semibold shadow-lg hover:scale-105 transition-transform"
+        >
+          <Instagram className="h-5 w-5" />
+          Siga-nos no Instagram
+        </a>
+        <p className="text-[11px] text-muted-foreground mt-10">coffeethrones.app</p>
       </div>
     );
   }
