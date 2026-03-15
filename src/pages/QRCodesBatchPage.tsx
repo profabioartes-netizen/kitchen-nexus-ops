@@ -25,6 +25,19 @@ export default function QRCodesBatchPage() {
     },
   });
 
+  // Group tables by sector
+  const grouped = tables.reduce<Record<string, typeof tables>>((acc, t) => {
+    const key = t.sector || "Mesas";
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
+
+  const sectorOrder = ["Mesas", "Quiosque"];
+  const sortedSectors = Object.keys(grouped).sort(
+    (a, b) => (sectorOrder.indexOf(a) === -1 ? 99 : sectorOrder.indexOf(a)) - (sectorOrder.indexOf(b) === -1 ? 99 : sectorOrder.indexOf(b))
+  );
+
   const handleExportPDF = async () => {
     setExporting(true);
     try {
@@ -96,39 +109,48 @@ export default function QRCodesBatchPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-        {tables.map((table) => {
-          const url = `${baseUrl}/auto-atendimento/${table.id}`;
-          return (
-            <div
-              key={table.id}
-              data-pdf-section
-              className="flex flex-col items-center border border-border rounded-lg p-4 bg-card"
-            >
-              <h3 className="font-semibold text-sm mb-1 text-foreground">{table.name}</h3>
-              {table.internal_number && (
-                <span className="text-[10px] text-muted-foreground mb-2">#{table.internal_number}</span>
-              )}
-              <div className="bg-white p-3 rounded-md">
-                <QRCodeSVG
-                  value={url}
-                  size={140}
-                  level="H"
-                  imageSettings={{
-                    src: logoSrc,
-                    height: 30,
-                    width: 30,
-                    excavate: true,
-                  }}
-                />
-              </div>
-              <p className="text-base text-foreground mt-3 font-bold text-center">
-                Escaneie e faça o seu pedido pelo celular
-              </p>
-            </div>
-          );
-        })}
-      </div>
+      {sortedSectors.map((sector) => (
+        <div key={sector} className="mb-8">
+          {/* Sector title — also captured as a PDF section */}
+          <div data-pdf-section className="mb-4 bg-white rounded-md px-4 py-2 inline-block">
+            <h2 className="text-lg font-bold text-gray-900">{sector}</h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+            {grouped[sector].map((table) => {
+              const url = `${baseUrl}/auto-atendimento/${table.id}`;
+              return (
+                <div
+                  key={table.id}
+                  data-pdf-section
+                  className="flex flex-col items-center border border-border rounded-lg p-4 bg-card"
+                >
+                  <h3 className="font-semibold text-sm mb-1 text-foreground">{table.name}</h3>
+                  {table.internal_number && (
+                    <span className="text-[10px] text-muted-foreground mb-2">#{table.internal_number}</span>
+                  )}
+                  <div className="bg-white p-3 rounded-md">
+                    <QRCodeSVG
+                      value={url}
+                      size={140}
+                      level="H"
+                      imageSettings={{
+                        src: logoSrc,
+                        height: 30,
+                        width: 30,
+                        excavate: true,
+                      }}
+                    />
+                  </div>
+                  <p className="text-base text-foreground mt-3 font-bold text-center">
+                    Escaneie e faça o seu pedido pelo celular
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
