@@ -183,7 +183,7 @@ export default function WaiterTablesPage() {
 
       {/* Table list */}
       <div className="space-y-2">
-        {tables.map((table) => {
+        {sortedTables.map((table) => {
           const order = ordersByTable[table.id];
           const status = table.status as TableStatus;
           const waterAlert = order ? waterAlertOrders[order.id] : undefined;
