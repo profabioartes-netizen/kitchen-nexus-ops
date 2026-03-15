@@ -288,7 +288,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
   const statusLabels: Record<string, { label: string; icon: any; color: string }> = {
     pending: { label: "Aguardando", icon: Clock, color: "text-muted-foreground" },
     preparing: { label: "Preparando", icon: UtensilsCrossed, color: "text-accent" },
-    ready: { label: "Pronto!", icon: CheckCircle2, color: "text-green-500" },
+    ready: { label: "Pedido a caminho", icon: CheckCircle2, color: "text-green-500" },
     delivered: { label: "Entregue", icon: CheckCircle2, color: "text-green-400" },
   };
 
@@ -352,7 +352,9 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
       <div className="space-y-2">
         {items.map((item) => {
-          const status = statusLabels[item.preparation_status] || statusLabels.pending;
+          // Check delivered_at first (admin "Marcar Entregue"), then preparation_status
+          const effectiveStatus = item.delivered_at ? "delivered" : item.preparation_status;
+          const status = statusLabels[effectiveStatus] || statusLabels.pending;
           const StatusIcon = status.icon;
           const complements = (item as any).order_item_complements || [];
 
