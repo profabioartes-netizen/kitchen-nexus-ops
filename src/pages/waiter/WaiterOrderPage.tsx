@@ -420,6 +420,8 @@ export default function WaiterOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       toast.success("Pedido salvo e enviado!");
       navigate(-1);
     },

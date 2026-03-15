@@ -799,6 +799,8 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       toast.success("Pedido salvo!");
       navigate("/");
     },
