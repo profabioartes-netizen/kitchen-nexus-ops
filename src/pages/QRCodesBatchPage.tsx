@@ -30,7 +30,7 @@ export default function QRCodesBatchPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto h-full overflow-auto">
       <div className="flex items-center justify-between mb-8 print:hidden">
         <div>
           <h1 className="text-2xl font-bold">QR Codes — Todas as Mesas</h1>
