@@ -709,13 +709,7 @@ export default function TableOrderPage() {
       const { error: orderErr } = await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
       if (orderErr) throw orderErr;
       // Reset table fully
-      const { data: tableData } = await supabase
-        .from("restaurant_tables")
-        .select("default_name")
-        .eq("id", tableId!)
-        .single();
-      const resetName = (tableData as any)?.default_name || table?.name;
-      const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", name: resetName, sector: null } as any).eq("id", tableId!);
+      const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       if (tableErr) throw tableErr;
       await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
     },

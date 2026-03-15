@@ -319,19 +319,21 @@ export default function TablesPage() {
 
   const quickEditMutation = useMutation({
     mutationFn: async (form: QuickEditForm) => {
-      const table = tables.find((t) => t.id === form.id);
-      const defaultName = (table as any)?.default_name || table?.name || "Comanda";
       const customerName = form.name.trim();
-      const tableName = customerName || defaultName;
+      // Update table metadata (seats/sector) without changing the default name
       const { error } = await supabase
         .from("restaurant_tables")
         .update({
-          name: tableName,
           seats: parseInt(form.seats) || 4,
           sector: form.sector.trim() || null,
         } as any)
         .eq("id", form.id);
       if (error) throw error;
+      // Update customer name on the order if there's an active one
+      const activeOrder = ordersByTable[form.id];
+      if (activeOrder) {
+        await supabase.from("orders").update({ customer_name: customerName || null }).eq("id", activeOrder.id);
+      }
       return customerName;
     },
     onSuccess: (customerName, variables) => {
