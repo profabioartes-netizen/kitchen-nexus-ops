@@ -413,25 +413,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
             <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
           </div>
 
-          {/* PIX paid — full-screen thank you */}
-          {pixPaid && (
-            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-6 animate-in fade-in">
-              <img src={coffeeLogo} alt="Coffee Thrones" className="h-32 object-contain drop-shadow-md mb-8" />
-              <h2 className="text-2xl font-display font-bold text-foreground text-center mb-2">
-                Obrigado pela preferência!
-              </h2>
-              <p className="text-lg text-muted-foreground text-center mb-10">Volte Sempre!</p>
-              <button
-                onClick={() => {
-                  localStorage.removeItem(`ss_session_${tableId}`);
-                  window.location.reload();
-                }}
-                className="rounded-md bg-accent text-accent-foreground px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                SAIR
-              </button>
-            </div>
-          )}
+          {/* PIX paid — thank-you is now handled by SelfServicePage */}
 
           {pixAvailable && total > 0 && !pixPaid && (
             <div className="space-y-3">
