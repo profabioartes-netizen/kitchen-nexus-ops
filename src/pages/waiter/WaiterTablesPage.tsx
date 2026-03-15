@@ -212,7 +212,7 @@ export default function WaiterTablesPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-base truncate">
-                    {order?.customer_name || (table as any).default_name || table.name}
+                    {order?.customer_name || visualLabels[table.id] || table.name}
                   </span>
                   {(order as any)?.current_location && (
                     <span className="text-[10px] bg-accent/15 text-accent rounded-full px-2 py-0.5 flex-shrink-0">
