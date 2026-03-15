@@ -85,7 +85,7 @@ export default function SelfServicePage() {
           return;
         } else {
           // Token expired or invalid — clean up
-          localStorage.removeItem(`ss_session_${tableId}`);
+          sessionStorage.removeItem(`ss_session_${tableId}`);
         }
       }
 
