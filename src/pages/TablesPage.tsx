@@ -526,7 +526,25 @@ export default function TablesPage() {
   }, {});
 
   const sortedTables = useMemo(() => {
+    // Active tables (occupied/bill/delivered) come first, then free ones
+    const statusPriority: Record<string, number> = {
+      occupied: 0,
+      bill: 1,
+      delivered: 2,
+      free: 3,
+    };
     return [...tables].sort((a, b) => {
+      const aHasOrder = !!ordersByTable[a.id];
+      const bHasOrder = !!ordersByTable[b.id];
+      // Tables with active orders always come first
+      if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
+      // Among active tables, sort by order creation time (oldest first)
+      if (aHasOrder && bHasOrder) {
+        const aOrder = ordersByTable[a.id];
+        const bOrder = ordersByTable[b.id];
+        return new Date(aOrder.created_at).getTime() - new Date(bOrder.created_at).getTime();
+      }
+      // Among free tables, keep original sort_order
       const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
       if (sortDiff !== 0) return sortDiff;
       return (a.internal_number || a.default_name || a.name).localeCompare(
@@ -534,7 +552,7 @@ export default function TablesPage() {
         "pt-BR"
       );
     });
-  }, [tables]);
+  }, [tables, ordersByTable]);
 
   const filteredTables = useMemo(() => {
     if (!searchQuery.trim()) return sortedTables;
