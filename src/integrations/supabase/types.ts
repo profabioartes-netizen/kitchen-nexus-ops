@@ -335,11 +335,13 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          current_location: string | null
           customer_name: string | null
           delivered_at: string | null
           guests: number | null
           id: string
           merged_from: string[] | null
+          origin_location: string | null
           status: string
           table_id: string | null
           total: number
@@ -349,11 +351,13 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_location?: string | null
           customer_name?: string | null
           delivered_at?: string | null
           guests?: number | null
           id?: string
           merged_from?: string[] | null
+          origin_location?: string | null
           status?: string
           table_id?: string | null
           total?: number
@@ -363,11 +367,13 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_location?: string | null
           customer_name?: string | null
           delivered_at?: string | null
           guests?: number | null
           id?: string
           merged_from?: string[] | null
+          origin_location?: string | null
           status?: string
           table_id?: string | null
           total?: number
@@ -777,35 +783,70 @@ export type Database = {
         }
         Returns: Json
       }
-      get_or_create_open_order: {
-        Args: {
-          p_customer_name?: string
-          p_guests?: number
-          p_table_id: string
-          p_waiter_name?: string
-          p_whatsapp_phone?: string
-        }
-        Returns: {
-          created_at: string
-          customer_name: string | null
-          delivered_at: string | null
-          guests: number | null
-          id: string
-          merged_from: string[] | null
-          status: string
-          table_id: string | null
-          total: number
-          updated_at: string
-          waiter_name: string | null
-          whatsapp_phone: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "orders"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      get_or_create_open_order:
+        | {
+            Args: {
+              p_customer_name?: string
+              p_guests?: number
+              p_table_id: string
+              p_waiter_name?: string
+              p_whatsapp_phone?: string
+            }
+            Returns: {
+              created_at: string
+              current_location: string | null
+              customer_name: string | null
+              delivered_at: string | null
+              guests: number | null
+              id: string
+              merged_from: string[] | null
+              origin_location: string | null
+              status: string
+              table_id: string | null
+              total: number
+              updated_at: string
+              waiter_name: string | null
+              whatsapp_phone: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "orders"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_customer_name?: string
+              p_guests?: number
+              p_location?: string
+              p_table_id: string
+              p_waiter_name?: string
+              p_whatsapp_phone?: string
+            }
+            Returns: {
+              created_at: string
+              current_location: string | null
+              customer_name: string | null
+              delivered_at: string | null
+              guests: number | null
+              id: string
+              merged_from: string[] | null
+              origin_location: string | null
+              status: string
+              table_id: string | null
+              total: number
+              updated_at: string
+              waiter_name: string | null
+              whatsapp_phone: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "orders"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       get_or_create_self_service_order: {
         Args: {
           p_customer_name?: string
@@ -816,11 +857,13 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          current_location: string | null
           customer_name: string | null
           delivered_at: string | null
           guests: number | null
           id: string
           merged_from: string[] | null
+          origin_location: string | null
           status: string
           table_id: string | null
           total: number
