@@ -566,6 +566,23 @@ export default function TablesPage() {
     });
   }, [sortedTables, ordersByTable, searchQuery]);
 
+  // Deterministic visual label: occupied tables keep their name, free tables get sequential "Comanda N"
+  const visualLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    let seq = 1;
+    for (const t of filteredTables) {
+      const order = ordersByTable[t.id];
+      if (order) {
+        // Occupied: use sequential number too (they come first)
+        labels[t.id] = `Comanda ${seq}`;
+      } else {
+        labels[t.id] = `Comanda ${seq}`;
+      }
+      seq++;
+    }
+    return labels;
+  }, [filteredTables, ordersByTable]);
+
   const tablesWithPositions = filteredTables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
     if (hasPosition) return t;
@@ -883,7 +900,7 @@ export default function TablesPage() {
                 {/* Table header */}
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-display text-base sm:text-lg leading-tight truncate">
-                    {order?.customer_name || (table as any).default_name || table.name}
+                    {order?.customer_name || visualLabels[table.id] || table.name}
                   </span>
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
@@ -1011,7 +1028,7 @@ export default function TablesPage() {
                 )}
 
 
-                <span className="font-display text-sm">{table.name}</span>
+                <span className="font-display text-sm">{visualLabels[table.id] || table.name}</span>
                 
                 {order && ((table as any).sector || (table as any).internal_number) && (
                   <span className="text-[8px] bg-accent/30 rounded px-1 mt-0.5" style={floorInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).sector || (table as any).internal_number}</span>

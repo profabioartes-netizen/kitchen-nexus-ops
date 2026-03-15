@@ -122,6 +122,30 @@ export default function WaiterTablesPage() {
 
   const occupied = tables.filter((t) => t.status === "occupied").length;
 
+  // Sort: occupied first, then free by sort_order
+  const sortedTables = useMemo(() => {
+    return [...tables].sort((a, b) => {
+      const aHasOrder = !!ordersByTable[a.id];
+      const bHasOrder = !!ordersByTable[b.id];
+      if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
+      if (aHasOrder && bHasOrder) {
+        return new Date(ordersByTable[a.id].created_at).getTime() - new Date(ordersByTable[b.id].created_at).getTime();
+      }
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
+  }, [tables, ordersByTable]);
+
+  // Deterministic visual labels
+  const visualLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    let seq = 1;
+    for (const t of sortedTables) {
+      labels[t.id] = `Comanda ${seq}`;
+      seq++;
+    }
+    return labels;
+  }, [sortedTables]);
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -159,7 +183,7 @@ export default function WaiterTablesPage() {
 
       {/* Table list */}
       <div className="space-y-2">
-        {tables.map((table) => {
+        {sortedTables.map((table) => {
           const order = ordersByTable[table.id];
           const status = table.status as TableStatus;
           const waterAlert = order ? waterAlertOrders[order.id] : undefined;
@@ -188,7 +212,7 @@ export default function WaiterTablesPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-base truncate">
-                    {order?.customer_name || (table as any).default_name || table.name}
+                    {order?.customer_name || visualLabels[table.id] || table.name}
                   </span>
                   {(order as any)?.current_location && (
                     <span className="text-[10px] bg-accent/15 text-accent rounded-full px-2 py-0.5 flex-shrink-0">
@@ -203,7 +227,7 @@ export default function WaiterTablesPage() {
                 </div>
                 <div className="flex items-center gap-3 mt-1">
                   {order?.customer_name && (
-                    <span className="text-[10px] text-muted-foreground">{(table as any).default_name || table.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{visualLabels[table.id] || table.name}</span>
                   )}
                   {(order as any)?.origin_location && (order as any)?.current_location !== (order as any)?.origin_location && (
                     <span className="text-[10px] text-muted-foreground italic">
