@@ -1059,9 +1059,9 @@ export default function TablesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Mesa</label>
+                <label className="text-xs font-medium text-muted-foreground">Local</label>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa Redonda Fora", "Mesa Quadrada Fora", "Quiosque"].map((opt) => (
+                  {["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa Redonda Fora", "Mesa Quadrada Fora"].map((opt) => (
                     <button
                       key={opt}
                       type="button"
@@ -1076,7 +1076,7 @@ export default function TablesPage() {
                   type="text"
                   value={quickEdit.sector}
                   onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
-                  placeholder="Ou digite manualmente..."
+                  placeholder="Ou digite o local..."
                   className="mt-2 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
