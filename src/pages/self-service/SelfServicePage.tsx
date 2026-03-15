@@ -297,6 +297,30 @@ export default function SelfServicePage() {
     );
   }
 
+  if (showThankYou) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+        <img src={coffeeLogo} alt="Coffee Thrones" className="h-36 object-contain drop-shadow-md mb-8" />
+        <h2 className="text-2xl font-display font-bold text-foreground text-center mb-2">
+          Obrigado pela preferência!
+        </h2>
+        <p className="text-base text-muted-foreground text-center mb-8">
+          Volte sempre! ☕
+        </p>
+        <a
+          href="https://www.instagram.com/coffeethrones/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-orange-400 text-white px-6 py-3 text-sm font-semibold shadow-lg hover:scale-105 transition-transform"
+        >
+          <Instagram className="h-5 w-5" />
+          Siga-nos no Instagram
+        </a>
+        <p className="text-[11px] text-muted-foreground mt-10">coffeethrones.app</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
