@@ -105,30 +105,41 @@ export function ComplementsManager() {
     mutationFn: async (id: string) => {
       // First remove product_complement_groups links
       await supabase.from("product_complement_groups").delete().eq("group_id", id);
-      // Try to delete all complements in this group
-      const group = groups.find((g) => g.id === id);
-      const comps = group?.complements || [];
-      for (const c of comps) {
+
+      // Get ALL complements in this group (including inactive ones)
+      const { data: allComps } = await supabase.from("complements").select("id").eq("group_id", id);
+      
+      let hasRemainingComps = false;
+      for (const c of (allComps || [])) {
         const { error: delErr } = await supabase.from("complements").delete().eq("id", c.id);
         if (delErr && delErr.message.includes("foreign key constraint")) {
           await supabase.from("complements").update({ active: false }).eq("id", c.id);
+          hasRemainingComps = true;
         }
       }
-      // Also deactivate any complements already hidden (active=false)
-      const { data: hiddenComps } = await supabase.from("complements").select("id").eq("group_id", id).eq("active", false);
-      for (const c of (hiddenComps || [])) {
-        const { error: delErr } = await supabase.from("complements").delete().eq("id", c.id);
-        if (delErr && delErr.message.includes("foreign key constraint")) {
-          // already inactive, that's fine
-        }
+
+      if (hasRemainingComps) {
+        // Can't delete group because some complements are still referenced
+        return "kept";
       }
+
       // Try to delete the group itself
       const { error } = await supabase.from("complement_groups").delete().eq("id", id);
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("foreign key constraint")) {
+          return "kept";
+        }
+        throw error;
+      }
+      return "deleted";
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
-      toast.success("Grupo removido!");
+      if (result === "kept") {
+        toast.success("Complementos desativados. O grupo será ocultado (usado em pedidos antigos).");
+      } else {
+        toast.success("Grupo removido!");
+      }
     },
     onError: (err) => toast.error((err as Error).message),
   });
