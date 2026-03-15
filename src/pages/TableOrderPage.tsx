@@ -77,7 +77,7 @@ export default function TableOrderPage() {
   const [mergeConfirm, setMergeConfirm] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
-
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // Concurrency lock
   const { lockInfo, loading: lockLoading } = useComandaLock(
     tableId,
