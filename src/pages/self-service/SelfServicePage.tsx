@@ -197,7 +197,7 @@ export default function SelfServicePage() {
   const handleOrderCreated = useCallback(async (orderId: string) => {
     setSessionOrderId(orderId);
     // Also update the session in DB
-    const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+    const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
     if (savedToken) {
       await supabase
         .from("self_service_sessions")
