@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, ChevronDown, ChevronRight, X, Edit2, Check, GripVertical } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronRight, X, Edit2, Check, GripVertical, Copy } from "lucide-react";
 
 function formatCurrency(value: string): string {
   const digits = value.replace(/\D/g, "");
@@ -160,6 +160,61 @@ export function ComplementsManager() {
       setEditingCompId(null);
       queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
       toast.success("Complemento atualizado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const duplicateComplement = useMutation({
+    mutationFn: async ({ comp, groupId }: { comp: any; groupId: string }) => {
+      const group = groups.find((g) => g.id === groupId);
+      const maxOrder = (group?.complements || []).reduce(
+        (max: number, c: any) => Math.max(max, c.sort_order ?? 0),
+        -1
+      );
+      const { error } = await supabase.from("complements").insert({
+        group_id: groupId,
+        name: `${comp.name} (cópia)`,
+        price: Number(comp.price),
+        sort_order: maxOrder + 1,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+      toast.success("Complemento duplicado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const duplicateGroup = useMutation({
+    mutationFn: async (group: any) => {
+      const { data: newGroup, error: gErr } = await supabase
+        .from("complement_groups")
+        .insert({
+          name: `${group.name} (cópia)`,
+          min_select: group.min_select,
+          max_select: group.max_select,
+          required: group.required,
+        })
+        .select()
+        .single();
+      if (gErr) throw gErr;
+      const comps = group.complements || [];
+      if (comps.length > 0) {
+        const { error: cErr } = await supabase.from("complements").insert(
+          comps.map((c: any, i: number) => ({
+            group_id: newGroup.id,
+            name: c.name,
+            price: Number(c.price),
+            sort_order: i,
+          })) as any
+        );
+        if (cErr) throw cErr;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+      toast.success("Grupo duplicado!");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -333,6 +388,9 @@ export function ComplementsManager() {
                   <button onClick={(e) => { e.stopPropagation(); startEditGroup(group); }} className="rounded p-1 hover:bg-secondary text-muted-foreground">
                     <Edit2 className="h-3.5 w-3.5" />
                   </button>
+                  <button onClick={(e) => { e.stopPropagation(); duplicateGroup.mutate(group); }} className="rounded p-1 hover:bg-secondary text-muted-foreground" title="Duplicar grupo">
+                    <Copy className="h-3.5 w-3.5" />
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); if (confirm(`Remover grupo "${group.name}" e todos os complementos?`)) deleteGroup.mutate(group.id); }} className="rounded p-1 hover:bg-destructive/10 text-destructive">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -382,6 +440,9 @@ export function ComplementsManager() {
                             </span>
                             <button onClick={() => { setEditingCompId(comp.id); setEditCompName(comp.name); setEditCompPrice(Number(comp.price).toFixed(2).replace(".", ",")); }} className="rounded p-1 hover:bg-secondary text-muted-foreground">
                               <Edit2 className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => duplicateComplement.mutate({ comp, groupId: group.id })} className="rounded p-1 hover:bg-secondary text-muted-foreground" title="Duplicar">
+                              <Copy className="h-3 w-3" />
                             </button>
                             <button onClick={() => { if (confirm(`Remover "${comp.name}"?`)) deleteComplement.mutate(comp.id); }} className="rounded p-1 hover:bg-destructive/10 text-destructive">
                               <Trash2 className="h-3 w-3" />
