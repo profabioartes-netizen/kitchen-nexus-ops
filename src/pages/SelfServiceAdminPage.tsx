@@ -181,6 +181,33 @@ export default function SelfServiceAdminPage() {
         Gerencie visibilidade, estoque, imagens e descrições dos produtos no autoatendimento.
       </p>
 
+      {/* Section tabs */}
+      <div className="flex gap-1 mb-6 rounded-lg bg-secondary/50 p-1 w-fit">
+        <button
+          onClick={() => setActiveSection("produtos")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeSection === "produtos"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Package className="h-4 w-4" />
+          Produtos
+        </button>
+        <button
+          onClick={() => setActiveSection("complementos")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeSection === "complementos"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Complementos
+        </button>
+      </div>
+
+      {activeSection === "produtos" && (
+        <>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="rounded-lg border bg-card p-3">
@@ -195,18 +222,6 @@ export default function SelfServiceAdminPage() {
           <p className="text-[11px] text-muted-foreground">Esgotados</p>
           <p className="text-xl font-bold text-destructive">{outOfStockCount}</p>
         </div>
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-md mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Buscar produto..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-md border bg-card pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
       </div>
 
       {/* Products by category */}
