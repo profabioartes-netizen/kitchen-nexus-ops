@@ -842,9 +842,18 @@ export default function TablesPage() {
                                 </p>
                                 <div className="space-y-1">
                                   {completedItems.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between text-xs gap-1">
-                                      <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
-                                      <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
+                                    <div key={item.id}>
+                                      <div className="flex items-center justify-between text-xs gap-1">
+                                        <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
+                                        <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
+                                      </div>
+                                      {(item as any).order_item_complements?.length > 0 && (
+                                        <div className="ml-2 mt-0.5 space-y-0.5">
+                                          {(item as any).order_item_complements.map((c: any, i: number) => (
+                                            <span key={i} className="block text-[10px] text-muted-foreground opacity-70">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
