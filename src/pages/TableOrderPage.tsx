@@ -100,7 +100,7 @@ export default function TableOrderPage() {
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
         queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
