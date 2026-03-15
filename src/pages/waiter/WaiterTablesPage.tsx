@@ -120,7 +120,7 @@ export default function WaiterTablesPage() {
     onError: () => toast.error("Erro ao marcar águas como entregues"),
   });
 
-  const occupied = tables.filter((t) => t.status === "occupied").length;
+  const occupied = openOrders.length;
 
   // Sort: occupied first, then free by sort_order
   const sortedTables = useMemo(() => {
