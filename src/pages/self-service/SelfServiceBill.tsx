@@ -5,6 +5,7 @@ import { Receipt, Clock, CheckCircle2, UtensilsCrossed, QrCode, Copy, Check, Ref
 import { QRCodeSVG } from "qrcode.react";
 import { generatePixBrCode } from "@/lib/pixBrCode";
 import { toast } from "sonner";
+import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 
 const PIX_EXPIRY_SECONDS = 10 * 60; // 10 minutes
 const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
