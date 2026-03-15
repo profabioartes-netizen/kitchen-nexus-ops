@@ -124,6 +124,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
             status: "open",
             customer_name: customerName,
             waiter_name: "Auto-atendimento",
+            whatsapp_phone: whatsappPhone || null,
           })
           .select("id")
           .single();
