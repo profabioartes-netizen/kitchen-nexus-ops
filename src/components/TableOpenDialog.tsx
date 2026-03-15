@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Users, User, StickyNote, Plus, Minus } from "lucide-react";
+import { Users, User, StickyNote, Plus, Minus, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +12,7 @@ import {
 interface TableOpenDialogProps {
   open: boolean;
   tableName: string;
-  onConfirm: (data: { customerName: string; guests: number; notes: string }) => void;
+  onConfirm: (data: { customerName: string; guests: number; notes: string; location: string }) => void;
   onCancel: () => void;
   isPending?: boolean;
 }
