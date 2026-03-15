@@ -12,6 +12,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
+import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import TableOpenDialog from "@/components/TableOpenDialog";
 
