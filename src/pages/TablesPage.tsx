@@ -891,13 +891,6 @@ export default function TablesPage() {
                     <span className="text-[10px] font-black uppercase leading-none">ÁGUA</span>
                   </button>
                 )}
-                {order?.customer_name && (
-                  <span className="text-[10px] text-muted-foreground">{(table as any).default_name || table.name}</span>
-                )}
-
-                {(table as any).internal_number && (
-                  <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>#{(table as any).internal_number}</span>
-                )}
 
                 {(table as any).sector && (
                   <div className="flex items-center gap-2 mt-0.5">
