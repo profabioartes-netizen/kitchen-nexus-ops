@@ -487,11 +487,7 @@ export default function TableOrderPage() {
           order?.id
         );
       }
-      const remaining = orderItems
-        .map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
-        .filter((i) => i.quantity > 0);
-      const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      await recalculateOrderTotal(order!.id);
     },
     onSuccess: () => {
       setConfirmDeleteId(null);
