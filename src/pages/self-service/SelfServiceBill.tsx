@@ -1,19 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Clock, CheckCircle2, UtensilsCrossed, QrCode, Copy, Check } from "lucide-react";
+import { Receipt, Clock, CheckCircle2, UtensilsCrossed, QrCode, Copy, Check, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { generatePixBrCode } from "@/lib/pixBrCode";
 import { toast } from "sonner";
+
+const PIX_EXPIRY_SECONDS = 10 * 60; // 10 minutes
 
 interface Props {
   tableId: string;
   customerName: string;
 }
 
+function usePixCountdown(active: boolean) {
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  const reset = useCallback(() => {
+    setExpiresAt(Date.now() + PIX_EXPIRY_SECONDS * 1000);
+    setSecondsLeft(PIX_EXPIRY_SECONDS);
+  }, []);
+
+  useEffect(() => {
+    if (!active || !expiresAt) return;
+    const interval = setInterval(() => {
+      const left = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [active, expiresAt]);
+
+  const expired = expiresAt !== null && secondsLeft <= 0;
+  const formatted = `${String(Math.floor(secondsLeft / 60)).padStart(2, "0")}:${String(secondsLeft % 60).padStart(2, "0")}`;
+
+  return { secondsLeft, expired, formatted, reset, started: expiresAt !== null };
+}
+
 export default function SelfServiceBill({ tableId, customerName }: Props) {
   const [showPix, setShowPix] = useState(false);
   const [copied, setCopied] = useState(false);
+  const countdown = usePixCountdown(showPix);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["self_service_order", tableId],
@@ -47,7 +75,6 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     refetchInterval: 10_000,
   });
 
-  // Fetch Pix settings
   const { data: pixSettings } = useQuery({
     queryKey: ["pix_settings"],
     queryFn: async () => {
@@ -101,6 +128,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     : "";
 
   const handleCopyPix = async () => {
+    if (countdown.expired) return;
     try {
       await navigator.clipboard.writeText(pixBrCode);
       setCopied(true);
@@ -109,6 +137,20 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     } catch {
       toast.error("Não foi possível copiar");
     }
+  };
+
+  const handleOpenPix = () => {
+    const next = !showPix;
+    setShowPix(next);
+    if (next && !countdown.started) {
+      countdown.reset();
+    }
+  };
+
+  const handleRefreshPix = () => {
+    countdown.reset();
+    setCopied(false);
+    toast.success("QR Code Pix renovado por mais 10 minutos!");
   };
 
   return (
@@ -163,11 +205,10 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
             <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
           </div>
 
-          {/* Pix Payment */}
           {pixConfigured && total > 0 && (
             <div className="space-y-3">
               <button
-                onClick={() => setShowPix(!showPix)}
+                onClick={handleOpenPix}
                 className="w-full rounded-lg border border-accent/30 bg-card p-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground hover:bg-accent/5 transition-colors"
               >
                 <QrCode className="h-5 w-5 text-accent" />
@@ -176,43 +217,80 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
               {showPix && (
                 <div className="rounded-lg border border-border bg-card p-4 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <p className="text-xs text-muted-foreground text-center">
-                    Escaneie o QR Code ou copie o código Pix abaixo
-                  </p>
+                  {countdown.expired ? (
+                    <>
+                      <div className="flex flex-col items-center gap-3 py-4">
+                        <Clock className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm font-medium text-foreground text-center">
+                          QR Code expirado
+                        </p>
+                        <p className="text-xs text-muted-foreground text-center">
+                          O código Pix expirou após 10 minutos. Gere um novo para continuar.
+                        </p>
+                        <button
+                          onClick={handleRefreshPix}
+                          className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Gerar novo QR Code
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Escaneie o QR Code ou copie o código Pix abaixo
+                      </p>
 
-                  <div className="bg-white p-3 rounded-lg">
-                    <QRCodeSVG value={pixBrCode} size={200} level="M" />
-                  </div>
+                      {/* Countdown */}
+                      <div className={`flex items-center gap-1.5 text-xs font-medium ${countdown.secondsLeft <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>Expira em {countdown.formatted}</span>
+                      </div>
 
-                  <div className="w-full space-y-2">
-                    <p className="text-[11px] text-muted-foreground text-center font-medium">
-                      {pixSettings!.pix_recipient_name}
-                    </p>
-                    <p className="text-lg font-bold text-center text-foreground">
-                      R$ {total.toFixed(2)}
-                    </p>
-                  </div>
+                      <div className="bg-white p-3 rounded-lg">
+                        <QRCodeSVG value={pixBrCode} size={200} level="M" />
+                      </div>
 
-                  <button
-                    onClick={handleCopyPix}
-                    className="w-full flex items-center justify-center gap-2 rounded-md border bg-secondary text-secondary-foreground py-2.5 text-sm font-medium hover:bg-secondary/80 transition-colors"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 text-green-500" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copiar Pix Copia e Cola
-                      </>
-                    )}
-                  </button>
+                      <div className="w-full space-y-2">
+                        <p className="text-[11px] text-muted-foreground text-center font-medium">
+                          {pixSettings!.pix_recipient_name}
+                        </p>
+                        <p className="text-lg font-bold text-center text-foreground">
+                          R$ {total.toFixed(2)}
+                        </p>
+                      </div>
 
-                  <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                    Após o pagamento, informe ao restaurante para confirmação.
-                  </p>
+                      <button
+                        onClick={handleCopyPix}
+                        className="w-full flex items-center justify-center gap-2 rounded-md border bg-secondary text-secondary-foreground py-2.5 text-sm font-medium hover:bg-secondary/80 transition-colors"
+                      >
+                        {copied ? (
+                          <>
+                            <Check className="h-4 w-4 text-green-500" />
+                            Copiado!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            Copiar Pix Copia e Cola
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={handleRefreshPix}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        Renovar tempo
+                      </button>
+
+                      <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                        Após o pagamento, informe ao restaurante para confirmação.
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
             </div>
