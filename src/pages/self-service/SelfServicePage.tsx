@@ -249,7 +249,7 @@ export default function SelfServicePage() {
             <img src={coffeeLogo} alt="Coffee Thrones" className="h-28 mx-auto mb-4 object-contain drop-shadow-md" />
             <h1 className="font-display text-2xl tracking-tight">Coffee Thrones</h1>
             <p className="text-sm text-muted-foreground mt-1.5 tracking-wide">
-              {table.internal_number || table.name} {table.sector ? `· ${table.sector}` : ""}
+              {table.internal_number || table.name}
             </p>
           </div>
 
