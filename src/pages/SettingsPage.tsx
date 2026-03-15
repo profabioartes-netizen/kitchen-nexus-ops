@@ -5,7 +5,10 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Settings, Loader2, Save, Eye, EyeOff, CreditCard, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Settings, Loader2, Save, Eye, EyeOff, CreditCard, AlertCircle, CheckCircle2, Lock, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+const ADMIN_PIN = "9135";
 
 function useSettingValue(key: string) {
   return useQuery({
