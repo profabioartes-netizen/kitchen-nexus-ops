@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Users, ChevronDown, ChevronUp,
-  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock,
+  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock, Smartphone,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
@@ -27,8 +27,9 @@ export default function CustomerSalesPage() {
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [expandedBalcaoOrder, setExpandedBalcaoOrder] = useState<string | null>(null);
+  const [expandedAutoOrder, setExpandedAutoOrder] = useState<string | null>(null);
   const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"clientes" | "balcao">("clientes");
+  const [activeTab, setActiveTab] = useState<"clientes" | "balcao" | "autoatendimento">("clientes");
 
   const reprintOrder = async (order: any, items: any[]) => {
     if (printingOrderId) return;
@@ -73,17 +74,25 @@ export default function CustomerSalesPage() {
     },
   });
 
-  // Split into counter sales vs named customer sales
-  const counterOrders = useMemo(
-    () => allOrders.filter((o) => !o.customer_name || o.customer_name.trim() === ""),
+  // Split: self-service (has whatsapp_phone) vs counter vs named customer
+  const selfServiceOrders = useMemo(
+    () => allOrders.filter((o) => o.whatsapp_phone && o.whatsapp_phone.trim() !== ""),
     [allOrders]
+  );
+  const nonSelfServiceOrders = useMemo(
+    () => allOrders.filter((o) => !o.whatsapp_phone || o.whatsapp_phone.trim() === ""),
+    [allOrders]
+  );
+  const counterOrders = useMemo(
+    () => nonSelfServiceOrders.filter((o) => !o.customer_name || o.customer_name.trim() === ""),
+    [nonSelfServiceOrders]
   );
   const customerOrders = useMemo(
     () =>
-      allOrders
+      nonSelfServiceOrders
         .filter((o) => o.customer_name && o.customer_name.trim() !== "")
         .map((o) => ({ ...o, customer_name: o.customer_name!.trim() })),
-    [allOrders]
+    [nonSelfServiceOrders]
   );
 
   // Fetch all order items for finalized orders
@@ -199,6 +208,7 @@ export default function CustomerSalesPage() {
 
   // Counter sales totals
   const counterTotal = useMemo(() => counterOrders.reduce((s, o) => s + Number(o.total), 0), [counterOrders]);
+  const selfServiceTotal = useMemo(() => selfServiceOrders.reduce((s, o) => s + Number(o.total), 0), [selfServiceOrders]);
 
   if (loadingOrders) {
     return <LoadingScreen />;
@@ -400,6 +410,20 @@ export default function CustomerSalesPage() {
             {counterOrders.length}
           </span>
         </button>
+        <button
+          onClick={() => setActiveTab("autoatendimento")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "autoatendimento"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Smartphone className="h-4 w-4" />
+          Autoatendimento
+          <span className="text-[10px] bg-accent/15 text-accent rounded-full px-1.5 py-0.5 font-bold">
+            {selfServiceOrders.length}
+          </span>
+        </button>
       </div>
 
       {/* Search */}
@@ -512,6 +536,81 @@ export default function CustomerSalesPage() {
                         <span className="text-xs text-muted-foreground">{items.length} ite{items.length !== 1 ? "ns" : "m"}</span>
                         {payments.length > 0 && (
                           <span className="text-[10px] bg-accent/10 text-accent rounded-full px-1.5 py-0.5 font-medium">
+                            {methodLabels[payments[0].method] || payments[0].method}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-sm font-bold">R$ {Number(order.total).toFixed(2)}</span>
+                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t px-4 pb-4 pt-2 space-y-3">
+                      {renderOrderDetail(order)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ── Tab: Autoatendimento ── */}
+      {activeTab === "autoatendimento" && (
+        <>
+          {/* Summary */}
+          <div className="flex items-center gap-4 mb-6 rounded-xl border bg-card p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent flex-shrink-0">
+              <Smartphone className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-muted-foreground">{selfServiceOrders.length} venda{selfServiceOrders.length !== 1 ? "s" : ""} via autoatendimento</p>
+              <p className="text-lg font-bold">R$ {selfServiceTotal.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {selfServiceOrders.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Smartphone className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Nenhuma venda de autoatendimento registrada.</p>
+              <p className="text-xs mt-1">As vendas aparecem aqui quando clientes finalizam pedidos via QR Code.</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {selfServiceOrders.map((order) => {
+              const isExpanded = expandedAutoOrder === order.id;
+              const items = itemsByOrder[order.id] || [];
+              const payments = paymentsByOrder[order.id] || [];
+              return (
+                <div key={order.id} className="rounded-xl border bg-card overflow-hidden">
+                  <button
+                    onClick={() => setExpandedAutoOrder(isExpanded ? null : order.id)}
+                    className="w-full flex items-center gap-4 p-4 text-left hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent font-bold text-sm flex-shrink-0">
+                      {(order.customer_name || "?").charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {order.customer_name || "Cliente"}
+                      </p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                        <span className="text-[10px] bg-accent/10 text-accent rounded-full px-1.5 py-0.5 font-medium">
+                          📱 {order.whatsapp_phone}
+                        </span>
+                        {items.length > 0 && (
+                          <span className="text-xs text-muted-foreground">{items.length} ite{items.length !== 1 ? "ns" : "m"}</span>
+                        )}
+                        {payments.length > 0 && (
+                          <span className="text-[10px] bg-secondary rounded-full px-1.5 py-0.5 text-muted-foreground">
                             {methodLabels[payments[0].method] || payments[0].method}
                           </span>
                         )}
