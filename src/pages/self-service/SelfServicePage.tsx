@@ -254,6 +254,15 @@ export default function SelfServicePage() {
           >
             Minha Conta
           </button>
+          <button
+            onClick={() => {
+              localStorage.removeItem(`ss_session_${tableId}`);
+              window.location.reload();
+            }}
+            className="px-3 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            Sair
+          </button>
         </div>
       </header>
 
