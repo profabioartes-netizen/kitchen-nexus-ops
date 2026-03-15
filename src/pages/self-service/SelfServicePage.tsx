@@ -129,7 +129,7 @@ export default function SelfServicePage() {
         (payload: any) => {
           if (payload.new?.status === "free") {
             const pixJustPaid = localStorage.getItem(`ss_pix_paid_${tableId}`);
-            localStorage.removeItem(`ss_session_${tableId}`);
+            sessionStorage.removeItem(`ss_session_${tableId}`);
             localStorage.removeItem(`ss_pix_paid_${tableId}`);
             if (pixJustPaid) {
               setShowThankYou(true);
