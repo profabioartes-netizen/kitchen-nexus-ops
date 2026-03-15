@@ -806,6 +806,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      recalculate_order_total: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       release_comanda_lock: {
         Args: { p_table_id: string; p_user_id: string }
         Returns: undefined
