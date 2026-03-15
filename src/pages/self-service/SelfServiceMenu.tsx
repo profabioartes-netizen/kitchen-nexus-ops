@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
-import { createSelfServiceOrder } from "@/lib/createSelfServiceOrder";
+import { getOrCreateSelfServiceOrder } from "@/lib/getOrCreateSelfServiceOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import { Search, ShoppingBag, Plus, Minus, X, Trash2 } from "lucide-react";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -18,6 +18,7 @@ type CartItem = {
 
 interface Props {
   tableId: string;
+  sessionId: string | null;
   customerName: string;
   table: any;
   whatsappPhone?: string;
@@ -25,7 +26,7 @@ interface Props {
   onOrderCreated: (orderId: string) => void;
 }
 
-export default function SelfServiceMenu({ tableId, customerName, table, whatsappPhone, orderId, onOrderCreated }: Props) {
+export default function SelfServiceMenu({ tableId, sessionId, customerName, table, whatsappPhone, orderId, onOrderCreated }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
