@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import TableOpenDialog from "@/components/TableOpenDialog";
+import OrderSelector from "@/components/OrderSelector";
 
 type TableStatus = "free" | "occupied" | "bill";
 const statusLabels: Record<TableStatus, string> = {
@@ -45,6 +46,7 @@ export default function WaiterOrderPage() {
   const autoCreatedRef = useRef(false);
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   // Realtime: sync order data instantly
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function WaiterOrderPage() {
         queryClient.invalidateQueries({ queryKey: ["order_items"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
         queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
@@ -77,15 +79,30 @@ export default function WaiterOrderPage() {
     enabled: !!tableId,
   });
 
-  const { data: order, isLoading: orderLoading } = useQuery({
-    queryKey: ["table_order", tableId],
+  const { data: tableOrders = [], isLoading: orderLoading } = useQuery({
+    queryKey: ["table_orders_all", tableId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await supabase.from("orders").select("*").eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!tableId,
   });
+
+  const order = useMemo(() => {
+    if (!tableOrders.length) return null;
+    if (selectedOrderId) {
+      const found = tableOrders.find((o) => o.id === selectedOrderId);
+      if (found) return found;
+    }
+    return tableOrders[0];
+  }, [tableOrders, selectedOrderId]);
+
+  useEffect(() => {
+    if (order && selectedOrderId !== order.id) {
+      setSelectedOrderId(order.id);
+    }
+  }, [order?.id]);
 
   const { data: orderItems = [] } = useQuery({
     queryKey: ["order_items", order?.id],
@@ -224,7 +241,7 @@ export default function WaiterOrderPage() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       setShowOpenDialog(false);
     },
@@ -267,7 +284,7 @@ export default function WaiterOrderPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -303,7 +320,7 @@ export default function WaiterOrderPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -340,7 +357,7 @@ export default function WaiterOrderPage() {
       setSelectedProduct(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -419,7 +436,7 @@ export default function WaiterOrderPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -449,7 +466,7 @@ export default function WaiterOrderPage() {
     onSuccess: () => {
       setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
     },
   });
 
@@ -469,7 +486,7 @@ export default function WaiterOrderPage() {
     onSuccess: () => {
       setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       toast.success("Item removido!");
     },
     onError: (err) => toast.error((err as Error).message),
@@ -571,6 +588,16 @@ export default function WaiterOrderPage() {
           <span className="text-[10px] text-muted-foreground">{orderItems.length} {orderItems.length === 1 ? "item" : "itens"}</span>
         </div>
       </div>
+
+      {/* Order selector when multiple comandas on same table */}
+      {tableOrders.length > 1 && (
+        <OrderSelector
+          orders={tableOrders}
+          selectedOrderId={selectedOrderId}
+          onSelect={setSelectedOrderId}
+          onCreateNew={() => setShowOpenDialog(true)}
+        />
+      )}
 
       {/* ── Quick Shortcuts Section ── */}
       <div className="flex-shrink-0 border-b bg-card/50">

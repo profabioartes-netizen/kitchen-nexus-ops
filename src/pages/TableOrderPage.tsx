@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
 import { useComandaLock } from "@/hooks/useComandaLock";
 import { Lock } from "lucide-react";
+import OrderSelector from "@/components/OrderSelector";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
@@ -79,6 +80,7 @@ export default function TableOrderPage() {
   const [mergeConfirm, setMergeConfirm] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // Concurrency lock
   const { lockInfo, loading: lockLoading } = useComandaLock(
@@ -98,7 +100,7 @@ export default function TableOrderPage() {
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+        queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
         queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
@@ -127,23 +129,38 @@ export default function TableOrderPage() {
     enabled: !!tableId,
   });
 
-  // Fetch active order for this table (open, billing_in_progress, or paid_pending_finalization)
-  const { data: order, isLoading: orderLoading } = useQuery({
-    queryKey: ["table_order", tableId],
+  // Fetch ALL active orders for this table (supports multiple comandas per table)
+  const { data: tableOrders = [], isLoading: orderLoading } = useQuery({
+    queryKey: ["table_orders_all", tableId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
         .eq("table_id", tableId!)
         .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!tableId,
   });
+
+  // Auto-select: pick selectedOrderId or fallback to first
+  const order = useMemo(() => {
+    if (!tableOrders.length) return null;
+    if (selectedOrderId) {
+      const found = tableOrders.find((o) => o.id === selectedOrderId);
+      if (found) return found;
+    }
+    return tableOrders[0];
+  }, [tableOrders, selectedOrderId]);
+
+  // Keep selectedOrderId in sync
+  useEffect(() => {
+    if (order && selectedOrderId !== order.id) {
+      setSelectedOrderId(order.id);
+    }
+  }, [order?.id]);
 
   // Fetch order items
   const { data: orderItems = [] } = useQuery({
@@ -363,7 +380,7 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
       invalidateLog();
@@ -392,7 +409,7 @@ export default function TableOrderPage() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
@@ -458,7 +475,7 @@ export default function TableOrderPage() {
       setSelectedProduct(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["order_item_complements"] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["table", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
@@ -492,7 +509,7 @@ export default function TableOrderPage() {
     onSuccess: () => {
       setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       invalidateLog();
     },
@@ -513,7 +530,7 @@ export default function TableOrderPage() {
     onSuccess: () => {
       setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       invalidateLog();
     },
@@ -650,7 +667,7 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       setShowPayment(false);
       toast.success("Pagamento registrado!");
@@ -706,7 +723,7 @@ export default function TableOrderPage() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success(
         result?.hasOtherActiveOrders
@@ -793,7 +810,7 @@ export default function TableOrderPage() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
       toast.success(
         result?.hasOtherActiveOrders
@@ -911,7 +928,7 @@ export default function TableOrderPage() {
     await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_added", `Venda rápida: ${product.name} ×${quantity} (R$ ${(product.price * quantity).toFixed(2)})`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
-    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
     queryClient.invalidateQueries({ queryKey: ["open_orders"] });
     toast.success(`${product.name} ×${quantity} adicionado!`);
   };
@@ -928,7 +945,7 @@ export default function TableOrderPage() {
     await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_removed", `Removido (venda rápida): ${item.product_name}`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
-    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
     queryClient.invalidateQueries({ queryKey: ["open_orders"] });
     toast.success(`${item.product_name} removido!`);
   };
@@ -1039,6 +1056,16 @@ export default function TableOrderPage() {
             )}
           </button>
         </div>
+      )}
+
+      {/* Order selector when multiple comandas on same table */}
+      {tableOrders.length > 1 && (
+        <OrderSelector
+          orders={tableOrders}
+          selectedOrderId={selectedOrderId}
+          onSelect={setSelectedOrderId}
+          onCreateNew={() => setShowOpenDialog(true)}
+        />
       )}
 
       {/* Left: Product selection */}
@@ -1175,7 +1202,7 @@ export default function TableOrderPage() {
               onBlur={async () => {
                 if (order && waiterName && waiterName !== order.waiter_name) {
                   await supabase.from("orders").update({ waiter_name: waiterName }).eq("id", order.id);
-                  queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+                  queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
                 }
               }}
               placeholder="Nome do garçom..."
