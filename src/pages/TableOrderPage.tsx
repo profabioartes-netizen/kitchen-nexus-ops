@@ -1215,9 +1215,14 @@ export default function TableOrderPage() {
                     <StickyNote className="h-4 w-4 md:h-3.5 md:w-3.5 text-muted-foreground" />
                   </button>
                   <button
-                    onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
-                    disabled={item.sent_to_kitchen && remainingQty <= 1}
-                    className={`rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation ${item.sent_to_kitchen && remainingQty <= 1 ? "opacity-30 cursor-not-allowed" : ""}`}
+                    onClick={() => {
+                      if (item.sent_to_kitchen && remainingQty <= 1) {
+                        setConfirmDeleteId(item.id);
+                      } else {
+                        updateQty.mutate({ itemId: item.id, delta: -1 });
+                      }
+                    }}
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation"
                   >
                     <Minus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
