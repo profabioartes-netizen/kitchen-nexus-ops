@@ -441,6 +441,9 @@ export function ComplementsManager() {
                             <button onClick={() => { setEditingCompId(comp.id); setEditCompName(comp.name); setEditCompPrice(Number(comp.price).toFixed(2).replace(".", ",")); }} className="rounded p-1 hover:bg-secondary text-muted-foreground">
                               <Edit2 className="h-3 w-3" />
                             </button>
+                            <button onClick={() => duplicateComplement.mutate({ comp, groupId: group.id })} className="rounded p-1 hover:bg-secondary text-muted-foreground" title="Duplicar">
+                              <Copy className="h-3 w-3" />
+                            </button>
                             <button onClick={() => { if (confirm(`Remover "${comp.name}"?`)) deleteComplement.mutate(comp.id); }} className="rounded p-1 hover:bg-destructive/10 text-destructive">
                               <Trash2 className="h-3 w-3" />
                             </button>
