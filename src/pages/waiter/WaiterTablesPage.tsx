@@ -67,14 +67,15 @@ export default function WaiterTablesPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
 
   const ordersByTable = openOrders.reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
-    if (o.table_id) acc[o.table_id] = o;
+    if (o.table_id && !acc[o.table_id]) acc[o.table_id] = o;
     return acc;
   }, {});
 

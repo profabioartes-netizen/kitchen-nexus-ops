@@ -777,6 +777,35 @@ export type Database = {
         }
         Returns: Json
       }
+      get_or_create_open_order: {
+        Args: {
+          p_customer_name?: string
+          p_guests?: number
+          p_table_id: string
+          p_waiter_name?: string
+          p_whatsapp_phone?: string
+        }
+        Returns: {
+          created_at: string
+          customer_name: string | null
+          delivered_at: string | null
+          guests: number | null
+          id: string
+          merged_from: string[] | null
+          status: string
+          table_id: string | null
+          total: number
+          updated_at: string
+          waiter_name: string | null
+          whatsapp_phone: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       release_comanda_lock: {
         Args: { p_table_id: string; p_user_id: string }
         Returns: undefined

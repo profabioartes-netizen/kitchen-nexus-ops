@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
+import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { Search, ShoppingBag, Plus, Minus, X, Trash2 } from "lucide-react";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 
@@ -114,25 +115,13 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
       }
 
       if (!currentOrderId) {
-        // Create a NEW order for THIS customer (separate comanda)
-        await supabase
-          .from("restaurant_tables")
-          .update({ status: "occupied" })
-          .eq("id", tableId);
+        const newOrder = await getOrCreateOpenOrder({
+          tableId,
+          waiterName: "Auto-atendimento",
+          customerName,
+          whatsappPhone: whatsappPhone || null,
+        });
 
-        const { data: newOrder, error: orderErr } = await supabase
-          .from("orders")
-          .insert({
-            table_id: tableId,
-            status: "open",
-            customer_name: customerName,
-            waiter_name: "Auto-atendimento",
-            whatsapp_phone: whatsappPhone || null,
-          })
-          .select("id")
-          .single();
-
-        if (orderErr) throw orderErr;
         currentOrderId = newOrder.id;
 
         // Link this order to the session

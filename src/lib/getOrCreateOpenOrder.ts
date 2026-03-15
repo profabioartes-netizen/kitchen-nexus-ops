@@ -1,0 +1,30 @@
+import { supabase } from "@/integrations/supabase/client";
+
+type GetOrCreateOpenOrderParams = {
+  tableId: string;
+  waiterName?: string | null;
+  customerName?: string | null;
+  whatsappPhone?: string | null;
+  guests?: number;
+};
+
+export async function getOrCreateOpenOrder({
+  tableId,
+  waiterName = null,
+  customerName = null,
+  whatsappPhone = null,
+  guests = 1,
+}: GetOrCreateOpenOrderParams) {
+  const { data, error } = await supabase.rpc("get_or_create_open_order" as any, {
+    p_table_id: tableId,
+    p_waiter_name: waiterName,
+    p_customer_name: customerName,
+    p_whatsapp_phone: whatsappPhone,
+    p_guests: guests,
+  });
+
+  if (error) throw error;
+  if (!data) throw new Error("Não foi possível abrir ou recuperar a comanda");
+
+  return data as any;
+}

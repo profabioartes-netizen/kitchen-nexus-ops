@@ -17,6 +17,7 @@ import { Lock } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
+import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -377,13 +378,14 @@ export default function TableOrderPage() {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
-      const { data, error } = await supabase
-        .from("orders")
-        .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
-        .select()
-        .single();
-      if (error) throw error;
-      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
+
+      const data = await getOrCreateOpenOrder({
+        tableId: tableId!,
+        waiterName: waiterLabel,
+        customerName,
+        guests,
+      });
+
       const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
