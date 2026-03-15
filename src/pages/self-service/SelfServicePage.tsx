@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { User, UtensilsCrossed, Loader2 } from "lucide-react";
+import { User, Phone, UtensilsCrossed, Loader2 } from "lucide-react";
 import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
@@ -12,6 +12,7 @@ const SESSION_DURATION_MINUTES = 90;
 export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
   const [customerName, setCustomerName] = useState("");
+  const [whatsappPhone, setWhatsappPhone] = useState("");
   const [entered, setEntered] = useState(false);
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
@@ -102,7 +103,7 @@ export default function SelfServicePage() {
   }, [tryAutoEnter]);
 
   const handleEnter = async () => {
-    if (!customerName.trim() || !tableId) return;
+    if (!customerName.trim() || !whatsappPhone.trim() || !tableId) return;
     const name = customerName.trim();
 
     // Create session
@@ -171,15 +172,29 @@ export default function SelfServicePage() {
                   type="text"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleEnter()}
                   placeholder="Digite seu nome..."
                   autoFocus
                   className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                  <Phone className="h-3.5 w-3.5" />
+                  WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  value={whatsappPhone}
+                  onChange={(e) => setWhatsappPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                  onKeyDown={(e) => e.key === "Enter" && handleEnter()}
+                  placeholder="(00) 00000-0000"
+                  maxLength={11}
+                  className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
               <button
                 onClick={handleEnter}
-                disabled={!customerName.trim()}
+                disabled={!customerName.trim() || !whatsappPhone.trim()}
                 className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Acessar Cardápio
@@ -221,7 +236,7 @@ export default function SelfServicePage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {view === "menu" ? (
-          <SelfServiceMenu tableId={tableId!} customerName={customerName} table={table} />
+          <SelfServiceMenu tableId={tableId!} customerName={customerName} table={table} whatsappPhone={whatsappPhone} />
         ) : (
           <SelfServiceBill tableId={tableId!} customerName={customerName} />
         )}
