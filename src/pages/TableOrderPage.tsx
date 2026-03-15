@@ -18,6 +18,7 @@ import { Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
+import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
