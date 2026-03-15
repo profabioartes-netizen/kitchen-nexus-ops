@@ -117,7 +117,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
         // Create a NEW order for THIS customer (separate comanda)
         await supabase
           .from("restaurant_tables")
-          .update({ status: "occupied", name: customerName })
+          .update({ status: "occupied" })
           .eq("id", tableId);
 
         const { data: newOrder, error: orderErr } = await supabase
