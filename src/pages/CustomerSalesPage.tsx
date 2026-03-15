@@ -27,8 +27,9 @@ export default function CustomerSalesPage() {
   const [search, setSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [expandedBalcaoOrder, setExpandedBalcaoOrder] = useState<string | null>(null);
+  const [expandedAutoOrder, setExpandedAutoOrder] = useState<string | null>(null);
   const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"clientes" | "balcao">("clientes");
+  const [activeTab, setActiveTab] = useState<"clientes" | "balcao" | "autoatendimento">("clientes");
 
   const reprintOrder = async (order: any, items: any[]) => {
     if (printingOrderId) return;
