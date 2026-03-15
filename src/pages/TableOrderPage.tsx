@@ -928,7 +928,7 @@ export default function TableOrderPage() {
     await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_added", `Venda rápida: ${product.name} ×${quantity} (R$ ${(product.price * quantity).toFixed(2)})`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
-    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
     queryClient.invalidateQueries({ queryKey: ["open_orders"] });
     toast.success(`${product.name} ×${quantity} adicionado!`);
   };
