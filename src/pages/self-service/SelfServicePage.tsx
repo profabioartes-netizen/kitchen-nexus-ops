@@ -13,7 +13,18 @@ export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
   const [customerName, setCustomerName] = useState("");
   const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [whatsappError, setWhatsappError] = useState("");
   const [entered, setEntered] = useState(false);
+
+  const formatWhatsapp = (digits: string) => {
+    const d = digits.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 2) return d;
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  };
+
+  const rawWhatsapp = whatsappPhone.replace(/\D/g, "");
+  const isWhatsappValid = rawWhatsapp.length === 11 && rawWhatsapp[2] === "9";
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
 
