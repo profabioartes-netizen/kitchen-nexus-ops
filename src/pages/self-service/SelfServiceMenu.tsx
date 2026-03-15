@@ -18,9 +18,10 @@ interface Props {
   tableId: string;
   customerName: string;
   table: any;
+  whatsappPhone?: string;
 }
 
-export default function SelfServiceMenu({ tableId, customerName, table }: Props) {
+export default function SelfServiceMenu({ tableId, customerName, table, whatsappPhone }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
