@@ -24,7 +24,7 @@ export async function getOrCreateOpenOrder({
   });
 
   if (error) throw error;
-  if (!data) throw new Error("Não foi possível abrir ou recuperar a comanda");
+  if (!data) throw new Error("Não foi possível criar a comanda");
 
   return data as any;
 }
