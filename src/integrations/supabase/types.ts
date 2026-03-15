@@ -806,6 +806,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_or_create_self_service_order: {
+        Args: {
+          p_customer_name?: string
+          p_guests?: number
+          p_session_id: string
+          p_table_id: string
+          p_whatsapp_phone?: string
+        }
+        Returns: {
+          created_at: string
+          customer_name: string | null
+          delivered_at: string | null
+          guests: number | null
+          id: string
+          merged_from: string[] | null
+          status: string
+          table_id: string | null
+          total: number
+          updated_at: string
+          waiter_name: string | null
+          whatsapp_phone: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       recalculate_order_total: {
         Args: { p_order_id: string }
         Returns: undefined

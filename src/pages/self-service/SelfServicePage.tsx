@@ -15,7 +15,8 @@ export default function SelfServicePage() {
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
   const [entered, setEntered] = useState(false);
-  // Track the order_id linked to this session (each customer gets their own)
+  // Track DB self-service session identity + linked order
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
   const formatWhatsapp = (digits: string) => {
@@ -78,13 +79,15 @@ export default function SelfServicePage() {
 
         if (session && new Date(session.expires_at) > new Date()) {
           // Session still valid — reconnect same customer
+          setSessionId(session.id);
           setCustomerName(session.customer_name);
           setSessionOrderId((session as any).order_id || null);
           setEntered(true);
           setCheckingSession(false);
           return;
         } else {
-          // Token expired or invalid — clean up
+          // Token expired ou inválido — limpar sessão local
+          setSessionId(null);
           sessionStorage.removeItem(`ss_session_${tableId}`);
         }
       }
@@ -172,7 +175,7 @@ export default function SelfServicePage() {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
 
-    // Create session (no order_id yet — created on first submit)
+    // Create session (order_id will be linked atomically by backend function on first item submit)
     const expiresAt = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
     const { data: session } = await supabase
       .from("self_service_sessions")
@@ -181,31 +184,23 @@ export default function SelfServicePage() {
         customer_name: name,
         expires_at: expiresAt,
       })
-      .select("session_token")
+      .select("id, session_token")
       .single();
 
     if (session) {
+      setSessionId(session.id);
       sessionStorage.setItem(`ss_session_${tableId}`, session.session_token);
     }
 
     setCustomerName(name);
-    setSessionOrderId(null); // will be set on first order submit
+    setSessionOrderId(null);
     setEntered(true);
   };
 
-  // Callback for SelfServiceMenu to set the order_id after creating an order
-  const handleOrderCreated = useCallback(async (orderId: string) => {
+  // Callback for SelfServiceMenu to sync current order in the local view
+  const handleOrderCreated = useCallback((orderId: string) => {
     setSessionOrderId(orderId);
-    // Also update the session in DB
-    const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
-    if (savedToken) {
-      await supabase
-        .from("self_service_sessions")
-        .update({ order_id: orderId } as any)
-        .eq("session_token", savedToken)
-        .eq("table_id", tableId!);
-    }
-  }, [tableId]);
+  }, []);
 
   if (tableLoading || checkingSession || loadingSelfServiceSetting) {
     return (
@@ -379,6 +374,7 @@ export default function SelfServicePage() {
         {view === "menu" ? (
           <SelfServiceMenu
             tableId={tableId!}
+            sessionId={sessionId}
             customerName={customerName}
             table={table}
             whatsappPhone={whatsappPhone}
