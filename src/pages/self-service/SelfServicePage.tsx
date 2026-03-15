@@ -39,6 +39,7 @@ export default function SelfServicePage() {
         .from("restaurant_tables")
         .select("*")
         .eq("id", tableId!)
+        .eq("active", true)
         .single();
       if (error) throw error;
       return data;

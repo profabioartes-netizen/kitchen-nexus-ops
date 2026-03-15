@@ -199,13 +199,8 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
         user_name: customerName,
       });
 
-      // Update order total
-      const { data: allItems } = await supabase
-        .from("order_items")
-        .select("price, quantity")
-        .eq("order_id", currentOrderId);
-      const total = (allItems || []).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total }).eq("id", currentOrderId);
+      // Sync total server-side (safe for concurrent writes)
+      await recalculateOrderTotal(currentOrderId);
 
       setCart([]);
       setShowCart(false);
