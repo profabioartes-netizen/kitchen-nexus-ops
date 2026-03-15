@@ -241,7 +241,7 @@ export default function WaiterOrderPage() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       setShowOpenDialog(false);
     },
