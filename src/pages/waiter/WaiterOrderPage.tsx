@@ -453,7 +453,6 @@ export default function WaiterOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
     },
   });
-  });
 
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
