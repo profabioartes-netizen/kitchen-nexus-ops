@@ -392,19 +392,21 @@ export default function TableOrderPage() {
   });
 
   const createOrder = useMutation({
-    mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string }) => {
+    mutationFn: async (params?: { customerName?: string; guests?: number; notes?: string; location?: string }) => {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
+      const location = params?.location || null;
 
       const data = await getOrCreateOpenOrder({
         tableId: tableId!,
         waiterName: waiterLabel,
         customerName,
         guests,
+        location,
       });
 
-      const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
+      const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${location ? ` | Local: ${location}` : ""}${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
     },

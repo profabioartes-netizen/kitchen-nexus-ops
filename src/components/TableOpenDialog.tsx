@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Users, User, StickyNote, Plus, Minus } from "lucide-react";
+import { Users, User, StickyNote, Plus, Minus, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +12,7 @@ import {
 interface TableOpenDialogProps {
   open: boolean;
   tableName: string;
-  onConfirm: (data: { customerName: string; guests: number; notes: string }) => void;
+  onConfirm: (data: { customerName: string; guests: number; notes: string; location: string }) => void;
   onCancel: () => void;
   isPending?: boolean;
 }
@@ -25,18 +27,36 @@ export default function TableOpenDialog({
   const [customerName, setCustomerName] = useState("");
   const [guests, setGuests] = useState(1);
   const [notes, setNotes] = useState("");
+  const [location, setLocation] = useState("");
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ["location_list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "location_list")
+        .single();
+      if (data?.value) {
+        try { return JSON.parse(data.value) as string[]; } catch { return []; }
+      }
+      return [];
+    },
+  });
 
   const handleConfirm = () => {
-    onConfirm({ customerName: customerName.trim(), guests, notes: notes.trim() });
+    onConfirm({ customerName: customerName.trim(), guests, notes: notes.trim(), location: location || "" });
     setCustomerName("");
     setGuests(1);
     setNotes("");
+    setLocation("");
   };
 
   const handleCancel = () => {
     setCustomerName("");
     setGuests(1);
     setNotes("");
+    setLocation("");
     onCancel();
   };
 
@@ -89,6 +109,33 @@ export default function TableOpenDialog({
               </button>
             </div>
           </div>
+
+          {/* Location */}
+          {locations.length > 0 && (
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-1.5">
+                <MapPin className="h-3.5 w-3.5" />
+                Local
+                <span className="text-xs font-normal">(opcional)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {locations.map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => setLocation(location === loc ? "" : loc)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      location === loc
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           <div>
