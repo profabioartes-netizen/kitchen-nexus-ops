@@ -23,6 +23,18 @@ const statusColors: Record<TableStatus, string> = {
   delivered: "border-l-[#16a34a] bg-[#16a34a/0.06]",
 };
 
+const getComandaNumberFromTable = (table: any): number | null => {
+  const sources = [table?.default_name, table?.name];
+  for (const source of sources) {
+    if (!source) continue;
+    const match = String(source).match(/(\d+)/);
+    if (!match) continue;
+    const value = Number.parseInt(match[1], 10);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+};
+
 export default function WaiterTablesPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
@@ -85,6 +97,14 @@ export default function WaiterTablesPage() {
     return acc;
   }, {});
 
+  const occupiedTableIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const table of tables) {
+      if (ordersByTable[table.id]) ids.add(table.id);
+    }
+    return ids;
+  }, [tables, ordersByTable]);
+
   const openOrderIds = useMemo(() => openOrders.map((o) => o.id), [openOrders]);
 
   const WATER_NAMES = ["água com gás", "água sem gás"];
@@ -126,13 +146,13 @@ export default function WaiterTablesPage() {
     onError: () => toast.error("Erro ao marcar águas como entregues"),
   });
 
-  const occupied = Object.keys(ordersByTable).length;
+  const occupied = occupiedTableIds.size;
 
   // Sort: occupied first, then free by sort_order
   const sortedTables = useMemo(() => {
     return [...tables].sort((a, b) => {
-      const aHasOrder = !!ordersByTable[a.id];
-      const bHasOrder = !!ordersByTable[b.id];
+      const aHasOrder = occupiedTableIds.has(a.id);
+      const bHasOrder = occupiedTableIds.has(b.id);
       if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
       if (aHasOrder && bHasOrder) {
         return new Date(ordersByTable[a.id].created_at).getTime() - new Date(ordersByTable[b.id].created_at).getTime();
@@ -145,18 +165,41 @@ export default function WaiterTablesPage() {
         { numeric: true, sensitivity: "base" }
       );
     });
-  }, [tables, ordersByTable]);
+  }, [tables, occupiedTableIds, ordersByTable]);
 
-  // Deterministic visual labels
+  // Deterministic visual labels: occupied keep their comanda number; free fill missing numbers in order
   const visualLabels = useMemo(() => {
     const labels: Record<string, string> = {};
-    let seq = 1;
-    for (const t of sortedTables) {
-      labels[t.id] = `Comanda ${seq}`;
-      seq++;
+    const usedNumbers = new Set<number>();
+
+    const reserveNumber = (preferred: number | null) => {
+      if (preferred && preferred > 0 && !usedNumbers.has(preferred)) {
+        usedNumbers.add(preferred);
+        return preferred;
+      }
+      let fallback = 1;
+      while (usedNumbers.has(fallback)) fallback += 1;
+      usedNumbers.add(fallback);
+      return fallback;
+    };
+
+    for (const table of sortedTables) {
+      if (!occupiedTableIds.has(table.id)) continue;
+      const occupiedNumber = getComandaNumberFromTable(table);
+      labels[table.id] = `Comanda ${reserveNumber(occupiedNumber)}`;
     }
+
+    let nextFree = 1;
+    for (const table of sortedTables) {
+      if (occupiedTableIds.has(table.id)) continue;
+      while (usedNumbers.has(nextFree)) nextFree += 1;
+      labels[table.id] = `Comanda ${nextFree}`;
+      usedNumbers.add(nextFree);
+      nextFree += 1;
+    }
+
     return labels;
-  }, [sortedTables]);
+  }, [sortedTables, occupiedTableIds]);
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -197,7 +240,11 @@ export default function WaiterTablesPage() {
       <div className="space-y-2">
         {sortedTables.map((table) => {
           const order = ordersByTable[table.id];
-          const status = table.status as TableStatus;
+          const status: TableStatus = order
+            ? (order.status === "billing_in_progress" || order.status === "paid_pending_finalization"
+              ? "bill"
+              : (table.status === "delivered" ? "delivered" : "occupied"))
+            : (table.status as TableStatus);
           const waterAlert = order ? waterAlertOrders[order.id] : undefined;
           return (
             <button
