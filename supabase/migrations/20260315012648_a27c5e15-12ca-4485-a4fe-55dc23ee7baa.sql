@@ -1,0 +1,14 @@
+UPDATE restaurant_tables SET internal_number = 'Mesa 1' WHERE default_name = 'Comanda 1';
+UPDATE restaurant_tables SET internal_number = 'Mesa 2' WHERE default_name = 'Comanda 2';
+UPDATE restaurant_tables SET internal_number = 'Mesa 3' WHERE default_name = 'Comanda 3';
+UPDATE restaurant_tables SET internal_number = 'Mesa 4' WHERE default_name = 'Comanda 4';
+UPDATE restaurant_tables SET internal_number = 'Mesa 5' WHERE default_name = 'Comanda 5';
+UPDATE restaurant_tables SET internal_number = 'Mesa 6' WHERE default_name = 'Comanda 6';
+UPDATE restaurant_tables SET internal_number = 'Mesa Redonda Fora' WHERE default_name = 'Comanda 7';
+UPDATE restaurant_tables SET internal_number = 'Mesa Quadrada Fora' WHERE default_name = 'Comanda 8';
+UPDATE restaurant_tables SET internal_number = 'Quiosque 1' WHERE default_name = 'Comanda 9';
+UPDATE restaurant_tables SET internal_number = 'Quiosque 2' WHERE default_name = 'Comanda 10';
+UPDATE restaurant_tables SET internal_number = 'Quiosque 3' WHERE default_name = 'Comanda 11';
+UPDATE restaurant_tables SET internal_number = 'Quiosque 4' WHERE default_name = 'Comanda 12';
+UPDATE restaurant_tables SET internal_number = 'Quiosque 5' WHERE default_name = 'Comanda 13';
+UPDATE restaurant_tables SET internal_number = 'Quiosque 6' WHERE default_name = 'Comanda 14';

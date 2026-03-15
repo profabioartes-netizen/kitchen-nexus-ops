@@ -157,7 +157,7 @@ export default function SelfServicePage() {
             <img src={coffeeLogo} alt="Coffee Thrones" className="h-28 mx-auto mb-4 object-contain drop-shadow-md" />
             <h1 className="font-display text-2xl tracking-tight">Coffee Thrones</h1>
             <p className="text-sm text-muted-foreground mt-1.5 tracking-wide">
-              {table.name} {table.sector ? `· ${table.sector}` : ""}
+              {table.internal_number || table.name} {table.sector ? `· ${table.sector}` : ""}
             </p>
           </div>
 
@@ -214,7 +214,7 @@ export default function SelfServicePage() {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">{table.name}</p>
+          <p className="text-xs text-muted-foreground">{table.internal_number || table.name}</p>
           <p className="text-sm font-semibold text-foreground">{customerName}</p>
         </div>
         <div className="flex gap-1">

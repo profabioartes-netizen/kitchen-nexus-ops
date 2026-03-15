@@ -125,10 +125,7 @@ export default function QRCodesBatchPage() {
                   data-pdf-section
                   className="flex flex-col items-center border border-border rounded-lg p-4 bg-card"
                 >
-                  <h3 className="font-semibold text-sm mb-1 text-foreground">{table.name}</h3>
-                  {table.internal_number && (
-                    <span className="text-[10px] text-muted-foreground mb-2">#{table.internal_number}</span>
-                  )}
+                  <h3 className="font-semibold text-sm mb-1 text-foreground">{table.internal_number || table.name}</h3>
                   <div className="bg-white p-3 rounded-md">
                     <QRCodeSVG
                       value={url}
