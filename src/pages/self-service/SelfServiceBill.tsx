@@ -249,12 +249,6 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
 
-            // Show thank-you screen immediately
-            onPaymentComplete?.();
-
-            // Set flag as backup for Realtime listener
-            localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
-
             // Delete only THIS customer's session, free table only if no other open orders remain
             const savedToken = localStorage.getItem(`ss_session_${tableId}`);
             if (savedToken) {
