@@ -208,6 +208,7 @@ export default function CustomerSalesPage() {
 
   // Counter sales totals
   const counterTotal = useMemo(() => counterOrders.reduce((s, o) => s + Number(o.total), 0), [counterOrders]);
+  const selfServiceTotal = useMemo(() => selfServiceOrders.reduce((s, o) => s + Number(o.total), 0), [selfServiceOrders]);
 
   if (loadingOrders) {
     return <LoadingScreen />;
