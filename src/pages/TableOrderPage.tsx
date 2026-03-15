@@ -1389,6 +1389,29 @@ export default function TableOrderPage() {
           </div>
         </div>
       )}
+      {/* Confirm delete sent item */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30" onClick={() => setConfirmDeleteId(null)}>
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold mb-1 text-destructive">⚠️ Item já enviado à cozinha</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Este item já foi enviado para preparo. Tem certeza que deseja removê-lo? Um ticket de cancelamento será impresso na cozinha.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 rounded-md border py-2 text-sm font-semibold hover:bg-secondary">
+                Cancelar
+              </button>
+              <button
+                onClick={() => removeItem.mutate(confirmDeleteId)}
+                disabled={removeItem.isPending}
+                className="flex-1 rounded-md bg-destructive text-destructive-foreground py-2 text-sm font-semibold hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {removeItem.isPending ? "Removendo..." : "Sim, remover"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Note dialog */}
       {noteItemId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
