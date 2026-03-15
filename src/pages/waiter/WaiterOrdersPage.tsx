@@ -32,9 +32,8 @@ export default function WaiterOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, restaurant_tables(name)")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
-        .order("created_at", { ascending: false });
+        .select("*, restaurant_tables(name, sort_order)")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
       if (error) throw error;
       return data;
     },
