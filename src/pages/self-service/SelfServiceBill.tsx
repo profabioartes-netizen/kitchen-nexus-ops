@@ -352,7 +352,9 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
       <div className="space-y-2">
         {items.map((item) => {
-          const status = statusLabels[item.preparation_status] || statusLabels.pending;
+          // Check delivered_at first (admin "Marcar Entregue"), then preparation_status
+          const effectiveStatus = item.delivered_at ? "delivered" : item.preparation_status;
+          const status = statusLabels[effectiveStatus] || statusLabels.pending;
           const StatusIcon = status.icon;
           const complements = (item as any).order_item_complements || [];
 
