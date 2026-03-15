@@ -465,11 +465,7 @@ export default function WaiterOrderPage() {
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
-
-      // Block removal of items already sent to kitchen
-      if (item?.sent_to_kitchen) {
-        throw new Error("SENT_ITEM");
-      }
+      if (!item) return;
 
       if (item) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
@@ -478,17 +474,16 @@ export default function WaiterOrderPage() {
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
       await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
-      if (item) await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} ×${item.quantity}`, order?.id, profile?.full_name);
+      const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
+      await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} ×${item.quantity}${sentLabel}`, order?.id, profile?.full_name);
     },
     onSuccess: () => {
+      setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      toast.success("Item removido!");
     },
-    onError: (err) => {
-      if ((err as Error).message === "SENT_ITEM") {
-        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
-      }
-    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const saveNote = useMutation({
