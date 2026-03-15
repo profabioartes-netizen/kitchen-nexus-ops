@@ -110,6 +110,33 @@ export default function TableOpenDialog({
             </div>
           </div>
 
+          {/* Location */}
+          {locations.length > 0 && (
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-1.5">
+                <MapPin className="h-3.5 w-3.5" />
+                Local
+                <span className="text-xs font-normal">(opcional)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {locations.map((loc) => (
+                  <button
+                    key={loc}
+                    type="button"
+                    onClick={() => setLocation(location === loc ? "" : loc)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      location === loc
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                    }`}
+                  >
+                    {loc}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground mb-1.5">

@@ -15,6 +15,7 @@ export async function getOrCreateOpenOrder({
   customerName = null,
   whatsappPhone = null,
   guests = 1,
+  location = null,
 }: GetOrCreateOpenOrderParams) {
   const { data, error } = await supabase.rpc("get_or_create_open_order" as any, {
     p_table_id: tableId,
@@ -22,6 +23,7 @@ export async function getOrCreateOpenOrder({
     p_customer_name: customerName,
     p_whatsapp_phone: whatsappPhone,
     p_guests: guests,
+    p_location: location,
   });
 
   if (error) throw error;
