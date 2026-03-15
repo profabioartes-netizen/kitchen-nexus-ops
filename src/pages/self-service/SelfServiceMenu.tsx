@@ -215,7 +215,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
       setShowCart(false);
       toast.success(
         requiresApproval
-          ? "Pedido enviado! Aguarde a confirmação do restaurante."
+          ? "Pedido enviado! Aguarde a confirmação da Cafeteria Coffee Thrones."
           : "Pedido enviado para a cozinha!",
       );
     } catch (err: any) {
