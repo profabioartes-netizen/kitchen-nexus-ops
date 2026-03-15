@@ -137,8 +137,14 @@ export default function SelfServicePage() {
         { event: "UPDATE", schema: "public", table: "restaurant_tables", filter: `id=eq.${tableId}` },
         (payload: any) => {
           if (payload.new?.status === "free") {
+            const pixJustPaid = localStorage.getItem(`ss_pix_paid_${tableId}`);
             localStorage.removeItem(`ss_session_${tableId}`);
-            window.location.reload();
+            localStorage.removeItem(`ss_pix_paid_${tableId}`);
+            if (pixJustPaid) {
+              setShowThankYou(true);
+            } else {
+              window.location.reload();
+            }
           }
         }
       )
