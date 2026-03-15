@@ -289,6 +289,8 @@ function buildBillTicket(job) {
     parts.push(cmd.text("PAGAMENTO CONFIRMADO!"));
     parts.push(cmd.doubleSize(false));
     parts.push(cmd.text(""));
+    parts.push(cmd.text("PAGAMENTO EFETUADO EM PIX AUTOMATICO!"));
+    parts.push(cmd.text(""));
     parts.push(cmd.text("PIX CONFIRMADO"));
     parts.push(cmd.bold(false));
     parts.push(cmd.text("Pagamento: PIX (Mercado Pago)"));
