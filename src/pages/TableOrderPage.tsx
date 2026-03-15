@@ -791,6 +791,9 @@ export default function TableOrderPage() {
       } else {
         await logActivity(tableId!, "order_saved", `Pedido salvo (sem novos itens para imprimir)`, order.id, profile?.full_name);
       }
+
+      // Always set table to "occupied" (purple) on save
+      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
