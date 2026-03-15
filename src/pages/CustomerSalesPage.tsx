@@ -74,17 +74,25 @@ export default function CustomerSalesPage() {
     },
   });
 
-  // Split into counter sales vs named customer sales
-  const counterOrders = useMemo(
-    () => allOrders.filter((o) => !o.customer_name || o.customer_name.trim() === ""),
+  // Split: self-service (has whatsapp_phone) vs counter vs named customer
+  const selfServiceOrders = useMemo(
+    () => allOrders.filter((o) => o.whatsapp_phone && o.whatsapp_phone.trim() !== ""),
     [allOrders]
+  );
+  const nonSelfServiceOrders = useMemo(
+    () => allOrders.filter((o) => !o.whatsapp_phone || o.whatsapp_phone.trim() === ""),
+    [allOrders]
+  );
+  const counterOrders = useMemo(
+    () => nonSelfServiceOrders.filter((o) => !o.customer_name || o.customer_name.trim() === ""),
+    [nonSelfServiceOrders]
   );
   const customerOrders = useMemo(
     () =>
-      allOrders
+      nonSelfServiceOrders
         .filter((o) => o.customer_name && o.customer_name.trim() !== "")
         .map((o) => ({ ...o, customer_name: o.customer_name!.trim() })),
-    [allOrders]
+    [nonSelfServiceOrders]
   );
 
   // Fetch all order items for finalized orders
