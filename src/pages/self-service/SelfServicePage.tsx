@@ -306,8 +306,8 @@ export default function SelfServicePage() {
             Cardápio
           </button>
           <button
-            onClick={() => setView("bill")}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${view === "bill" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary"}`}
+            onClick={() => { setView("bill"); setPulseBill(false); }}
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${view === "bill" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-secondary"} ${pulseBill && view !== "bill" ? "animate-pulse bg-accent text-accent-foreground ring-2 ring-accent/50" : ""}`}
           >
             Minha Conta
           </button>
