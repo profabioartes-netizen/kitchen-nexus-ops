@@ -1229,9 +1229,14 @@ export default function TableOrderPage() {
                     <Plus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
                   <button
-                    onClick={() => removeItem.mutate(item.id)}
-                    disabled={item.sent_to_kitchen}
-                    className={`rounded p-1.5 md:p-1 hover:bg-destructive/10 text-destructive ml-0.5 touch-manipulation ${item.sent_to_kitchen ? "opacity-30 cursor-not-allowed" : ""}`}
+                    onClick={() => {
+                      if (item.sent_to_kitchen) {
+                        setConfirmDeleteId(item.id);
+                      } else {
+                        removeItem.mutate(item.id);
+                      }
+                    }}
+                    className={`rounded p-1.5 md:p-1 hover:bg-destructive/10 ml-0.5 touch-manipulation ${item.sent_to_kitchen ? "text-orange-500" : "text-destructive"}`}
                   >
                     <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
