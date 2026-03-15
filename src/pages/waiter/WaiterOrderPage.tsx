@@ -486,7 +486,7 @@ export default function WaiterOrderPage() {
     onSuccess: () => {
       setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
-      queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+      queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       toast.success("Item removido!");
     },
     onError: (err) => toast.error((err as Error).message),
