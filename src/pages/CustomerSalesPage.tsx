@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Search, Users, ChevronDown, ChevronUp,
-  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock,
+  CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock, Smartphone,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
