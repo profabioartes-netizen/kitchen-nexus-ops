@@ -101,37 +101,20 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     setSubmitting(true);
 
     try {
-      let currentOrderId = orderId;
-
-      if (currentOrderId) {
-        // Verify the order still exists and is open
-        const { data: existingOrder } = await supabase
-          .from("orders")
-          .select("id, customer_name, waiter_name")
-          .eq("id", currentOrderId)
-          .eq("table_id", tableId)
-          .eq("status", "open")
-          .single();
-
-        const sameCustomer = normalize(existingOrder?.customer_name || "") === normalize(customerName || "");
-        const isSelfServiceOrder = existingOrder?.waiter_name === "Auto-atendimento";
-
-        if (!existingOrder || !sameCustomer || !isSelfServiceOrder) {
-          currentOrderId = null; // invalid or belongs to another customer → create a new one
-        }
+      if (!sessionId) {
+        throw new Error("Sessão de autoatendimento inválida");
       }
 
-      if (!currentOrderId) {
-        const newOrder = await createSelfServiceOrder({
-          tableId,
-          waiterName: "Auto-atendimento",
-          customerName,
-          whatsappPhone: whatsappPhone || null,
-        });
+      const ensuredOrder = await getOrCreateSelfServiceOrder({
+        tableId,
+        sessionId,
+        customerName,
+        whatsappPhone: whatsappPhone || null,
+      });
 
-        currentOrderId = newOrder.id;
+      const currentOrderId = ensuredOrder.id;
 
-        // Link this order to the session
+      if (currentOrderId !== orderId) {
         onOrderCreated(currentOrderId);
       }
 
