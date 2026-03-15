@@ -288,7 +288,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
   const statusLabels: Record<string, { label: string; icon: any; color: string }> = {
     pending: { label: "Aguardando", icon: Clock, color: "text-muted-foreground" },
     preparing: { label: "Preparando", icon: UtensilsCrossed, color: "text-accent" },
-    ready: { label: "Pedido a caminho", icon: CheckCircle2, color: "text-green-500" },
+    ready: { label: "Pronto!", icon: CheckCircle2, color: "text-green-500" },
     delivered: { label: "Entregue", icon: CheckCircle2, color: "text-green-400" },
   };
 
