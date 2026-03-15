@@ -426,108 +426,130 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
             <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
           </div>
 
-          {pixAvailable && total > 0 && !pixPaid && (
-            <div className="space-y-3">
-              <button
-                onClick={handleOpenPix}
-                disabled={creatingPix}
-                className="w-full rounded-lg border border-accent/30 bg-card p-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground hover:bg-accent/5 transition-colors disabled:opacity-50"
-              >
-                {creatingPix ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-accent" />
-                ) : (
-                  <QrCode className="h-5 w-5 text-accent" />
-                )}
-                {creatingPix ? "Gerando Pix..." : showPix ? "Fechar Pix" : "Pagar com Pix"}
-              </button>
+          {/* Check if all items have been delivered */}
+          {(() => {
+            const allDelivered = items.every((item) => !!item.delivered_at);
+            const hasPendingItems = items.some((item) => !item.delivered_at);
 
-              {showPix && !creatingPix && qrValue && (
-                <div className="rounded-lg border border-border bg-card p-4 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {countdown.expired && !useDynamicPix ? (
-                    <>
-                      <div className="flex flex-col items-center gap-3 py-4">
-                        <Clock className="h-8 w-8 text-muted-foreground" />
-                        <p className="text-sm font-medium text-foreground text-center">
-                          QR Code expirado
-                        </p>
-                        <p className="text-xs text-muted-foreground text-center">
-                          O código Pix expirou após 10 minutos. Gere um novo para continuar.
-                        </p>
-                        <button
-                          onClick={handleRefreshPix}
-                          className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                          Gerar novo QR Code
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Escaneie o QR Code ou copie o código Pix abaixo
+            return (
+              <>
+                {hasPendingItems && !pixPaid && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2.5">
+                    <Clock className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-foreground">Aguarde receber todos os pedidos</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        O pagamento será liberado após todos os itens serem entregues na sua mesa.
                       </p>
+                    </div>
+                  </div>
+                )}
 
-                      {/* Countdown */}
-                      <div className={`flex items-center gap-1.5 text-xs font-medium ${countdown.secondsLeft <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>Expira em {countdown.formatted}</span>
-                      </div>
-
-                      {useDynamicPix && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-green-600 font-medium">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Confirmação automática via Mercado Pago
-                        </div>
+                {pixAvailable && total > 0 && !pixPaid && allDelivered && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleOpenPix}
+                      disabled={creatingPix}
+                      className="w-full rounded-lg border border-accent/30 bg-card p-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground hover:bg-accent/5 transition-colors disabled:opacity-50"
+                    >
+                      {creatingPix ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-accent" />
+                      ) : (
+                        <QrCode className="h-5 w-5 text-accent" />
                       )}
+                      {creatingPix ? "Gerando Pix..." : showPix ? "Fechar Pix" : "Pagar com Pix"}
+                    </button>
 
-                      <div className="bg-white p-3 rounded-lg">
-                        <QRCodeSVG value={qrValue} size={200} level="M" />
-                      </div>
-
-                      <div className="w-full space-y-2">
-                        <p className="text-lg font-bold text-center text-foreground">
-                          R$ {total.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={handleCopyPix}
-                        className="w-full flex items-center justify-center gap-2 rounded-md border bg-secondary text-secondary-foreground py-2.5 text-sm font-medium hover:bg-secondary/80 transition-colors"
-                      >
-                        {copied ? (
+                    {showPix && !creatingPix && qrValue && (
+                      <div className="rounded-lg border border-border bg-card p-4 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {countdown.expired && !useDynamicPix ? (
                           <>
-                            <Check className="h-4 w-4 text-green-500" />
-                            Copiado!
+                            <div className="flex flex-col items-center gap-3 py-4">
+                              <Clock className="h-8 w-8 text-muted-foreground" />
+                              <p className="text-sm font-medium text-foreground text-center">
+                                QR Code expirado
+                              </p>
+                              <p className="text-xs text-muted-foreground text-center">
+                                O código Pix expirou após 10 minutos. Gere um novo para continuar.
+                              </p>
+                              <button
+                                onClick={handleRefreshPix}
+                                className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                                Gerar novo QR Code
+                              </button>
+                            </div>
                           </>
                         ) : (
                           <>
-                            <Copy className="h-4 w-4" />
-                            Copiar Pix Copia e Cola
+                            <p className="text-xs text-muted-foreground text-center">
+                              Escaneie o QR Code ou copie o código Pix abaixo
+                            </p>
+
+                            {/* Countdown */}
+                            <div className={`flex items-center gap-1.5 text-xs font-medium ${countdown.secondsLeft <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
+                              <Clock className="h-3.5 w-3.5" />
+                              <span>Expira em {countdown.formatted}</span>
+                            </div>
+
+                            {useDynamicPix && (
+                              <div className="flex items-center gap-1.5 text-[10px] text-green-600 font-medium">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Confirmação automática via Mercado Pago
+                              </div>
+                            )}
+
+                            <div className="bg-white p-3 rounded-lg">
+                              <QRCodeSVG value={qrValue} size={200} level="M" />
+                            </div>
+
+                            <div className="w-full space-y-2">
+                              <p className="text-lg font-bold text-center text-foreground">
+                                R$ {total.toFixed(2)}
+                              </p>
+                            </div>
+
+                            <button
+                              onClick={handleCopyPix}
+                              className="w-full flex items-center justify-center gap-2 rounded-md border bg-secondary text-secondary-foreground py-2.5 text-sm font-medium hover:bg-secondary/80 transition-colors"
+                            >
+                              {copied ? (
+                                <>
+                                  <Check className="h-4 w-4 text-green-500" />
+                                  Copiado!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-4 w-4" />
+                                  Copiar Pix Copia e Cola
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              onClick={handleRefreshPix}
+                              disabled={creatingPix}
+                              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                            >
+                              {creatingPix ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                              Renovar tempo
+                            </button>
+
+                            {!useDynamicPix && (
+                              <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                                Após o pagamento, informe à Cafeteria Coffee Thrones para confirmação.
+                              </p>
+                            )}
                           </>
                         )}
-                      </button>
-
-                      <button
-                        onClick={handleRefreshPix}
-                        disabled={creatingPix}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                      >
-                        {creatingPix ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                        Renovar tempo
-                      </button>
-
-                      {!useDynamicPix && (
-                        <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                          Após o pagamento, informe à Cafeteria Coffee Thrones para confirmação.
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
     </div>
