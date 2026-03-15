@@ -134,7 +134,7 @@ export default function TableOrderPage() {
         .select("*")
         .eq("table_id", tableId!)
         .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
@@ -689,6 +689,8 @@ export default function TableOrderPage() {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido");
       await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
+      // Close any other stale open orders for this table (prevent ghost orders)
+      await supabase.from("orders").update({ status: "finalized" }).eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).neq("id", order.id);
       await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
     },
@@ -726,6 +728,8 @@ export default function TableOrderPage() {
       // Set order status to cancelled (will NOT appear in reports)
       const { error: orderErr } = await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
       if (orderErr) throw orderErr;
+      // Close any other stale open orders for this table
+      await supabase.from("orders").update({ status: "canceled" }).eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).neq("id", order.id);
       // Reset table fully
       const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       if (tableErr) throw tableErr;

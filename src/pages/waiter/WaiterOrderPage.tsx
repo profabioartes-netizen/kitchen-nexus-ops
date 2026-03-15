@@ -77,7 +77,7 @@ export default function WaiterOrderPage() {
   const { data: order, isLoading: orderLoading } = useQuery({
     queryKey: ["table_order", tableId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).order("created_at", { ascending: true }).limit(1).maybeSingle();
+      const { data, error } = await supabase.from("orders").select("*").eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       return data;
     },
