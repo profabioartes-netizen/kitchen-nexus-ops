@@ -367,12 +367,26 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
 
   const qrValue = useDynamicPix ? mpQrCode : staticPixBrCode;
 
+  const hasSentItems = items.some((item) => item.sent_to_kitchen);
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Receipt className="h-5 w-5 text-accent" />
         <h2 className="text-base font-semibold text-foreground">Sua Conta</h2>
       </div>
+
+      {hasSentItems && (
+        <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 flex items-start gap-2.5">
+          <UtensilsCrossed className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-xs font-medium text-foreground">Seu pedido foi enviado para a cozinha.</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Para alterações ou cancelamentos, chame um atendente.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         {items.map((item) => {
