@@ -185,7 +185,7 @@ export default function SelfServicePage() {
       .single();
 
     if (session) {
-      localStorage.setItem(`ss_session_${tableId}`, session.session_token);
+      sessionStorage.setItem(`ss_session_${tableId}`, session.session_token);
     }
 
     setCustomerName(name);
