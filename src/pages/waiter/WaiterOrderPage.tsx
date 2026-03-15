@@ -839,11 +839,16 @@ export default function WaiterOrderPage() {
                           <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>
                         <button
-                          onClick={() => removeItem.mutate(item.id)}
-                          disabled={isSent}
-                          className={`rounded-lg p-2 active:bg-secondary ${isSent ? "opacity-30 cursor-not-allowed" : ""}`}
+                          onClick={() => {
+                            if (isSent) {
+                              setConfirmDeleteId(item.id);
+                            } else {
+                              removeItem.mutate(item.id);
+                            }
+                          }}
+                          className="rounded-lg p-2 active:bg-secondary"
                         >
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          <Trash2 className={`h-3.5 w-3.5 ${isSent ? "text-orange-500" : "text-destructive"}`} />
                         </button>
                       </div>
                     </div>
