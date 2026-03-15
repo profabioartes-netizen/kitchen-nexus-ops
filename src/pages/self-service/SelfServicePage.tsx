@@ -344,7 +344,7 @@ export default function SelfServicePage() {
       <header className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">
-            📍 {table.internal_number || table.name}{table.sector ? ` · ${table.sector}` : ""}
+            📍 {table.internal_number || table.name}
           </p>
           <p className="text-sm font-semibold text-foreground">{customerName}</p>
         </div>
