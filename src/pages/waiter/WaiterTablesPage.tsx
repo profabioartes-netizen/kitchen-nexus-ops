@@ -191,7 +191,7 @@ export default function WaiterTablesPage() {
                   </span>
                   {(table as any).sector && (
                     <span className="text-[10px] bg-secondary rounded-full px-2 py-0.5 text-muted-foreground flex-shrink-0">
-                      {(table as any).sector}
+                      📍 {(table as any).sector}
                     </span>
                   )}
                 </div>

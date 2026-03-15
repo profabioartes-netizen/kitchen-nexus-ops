@@ -901,7 +901,7 @@ export default function TablesPage() {
 
                 {(table as any).sector && (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>{(table as any).sector}</span>
+                    <span className="text-[9px] bg-accent/20 rounded-full px-1.5 py-0.5 font-medium" style={useInlineDelivered ? { color: "#15803d" } : undefined}>📍 {(table as any).sector}</span>
                   </div>
                 )}
 
@@ -1042,7 +1042,7 @@ export default function TablesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
           <div className="w-full max-w-xs rounded-lg border bg-background p-4 shadow-lg">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">Abrir Mesa</h3>
+              <h3 className="text-sm font-semibold">Abrir Comanda</h3>
               <button onClick={() => setQuickEdit(null)} className="rounded p-1 hover:bg-secondary">
                 <X className="h-4 w-4" />
               </button>
@@ -1059,9 +1059,9 @@ export default function TablesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Mesa</label>
+                <label className="text-xs font-medium text-muted-foreground">Local</label>
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa Redonda Fora", "Mesa Quadrada Fora", "Quiosque"].map((opt) => (
+                  {["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa Redonda Fora", "Mesa Quadrada Fora"].map((opt) => (
                     <button
                       key={opt}
                       type="button"
@@ -1076,7 +1076,7 @@ export default function TablesPage() {
                   type="text"
                   value={quickEdit.sector}
                   onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
-                  placeholder="Ou digite manualmente..."
+                  placeholder="Ou digite o local..."
                   className="mt-2 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
