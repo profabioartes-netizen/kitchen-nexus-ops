@@ -10,6 +10,8 @@ import {
   Package,
   Loader2,
   Smartphone,
+  ChevronDown,
+  ChevronRight,
   Minus,
   Plus,
   Infinity,
@@ -39,6 +41,9 @@ export default function SelfServiceAdminPage() {
   const [editImage, setEditImage] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  const [activeSection, setActiveSection] = useState<"produtos" | "complementos">("produtos");
+  const [expandedCompGroup, setExpandedCompGroup] = useState<string | null>(null);
+
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products_all"],
     queryFn: async () => {
@@ -50,6 +55,35 @@ export default function SelfServiceAdminPage() {
       if (error) throw error;
       return data as unknown as Product[];
     },
+  });
+
+  const { data: compGroups = [] } = useQuery({
+    queryKey: ["complement_groups_admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("complement_groups")
+        .select("*, complements(*)")
+        .order("name");
+      if (error) throw error;
+      return data.map((g: any) => ({
+        ...g,
+        complements: [...(g.complements || [])].sort(
+          (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+        ),
+      }));
+    },
+  });
+
+  const toggleCompMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const { error } = await supabase.from("complements").update({ active }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["complement_groups_admin"] });
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const toggleMutation = useMutation({
@@ -147,6 +181,33 @@ export default function SelfServiceAdminPage() {
         Gerencie visibilidade, estoque, imagens e descrições dos produtos no autoatendimento.
       </p>
 
+      {/* Section tabs */}
+      <div className="flex gap-1 mb-6 rounded-lg bg-secondary/50 p-1 w-fit">
+        <button
+          onClick={() => setActiveSection("produtos")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeSection === "produtos"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Package className="h-4 w-4" />
+          Produtos
+        </button>
+        <button
+          onClick={() => setActiveSection("complementos")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeSection === "complementos"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Complementos
+        </button>
+      </div>
+
+      {activeSection === "produtos" && (
+        <>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="rounded-lg border bg-card p-3">
@@ -434,6 +495,89 @@ export default function SelfServiceAdminPage() {
         <p className="text-center text-sm text-muted-foreground py-8">
           Nenhum produto encontrado
         </p>
+      )}
+        </>
+      )}
+
+      {/* Complementos section */}
+      {activeSection === "complementos" && (
+        <div className="space-y-3">
+          {compGroups.length === 0 && (
+            <p className="text-center text-sm text-muted-foreground py-8">
+              Nenhum grupo de complementos cadastrado.
+            </p>
+          )}
+          {compGroups.map((group: any) => {
+            const isExpanded = expandedCompGroup === group.id;
+            const comps = group.complements || [];
+            const activeComps = comps.filter((c: any) => c.active !== false);
+            return (
+              <div key={group.id} className="rounded-lg border bg-card overflow-hidden">
+                <button
+                  onClick={() => setExpandedCompGroup(isExpanded ? null : group.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/30"
+                >
+                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                  <span className="flex-1 font-medium text-sm">{group.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {activeComps.length}/{comps.length} visíveis
+                  </span>
+                </button>
+                {isExpanded && (
+                  <div className="border-t px-4 py-3 space-y-2">
+                    {comps.map((comp: any) => (
+                      <div
+                        key={comp.id}
+                        className={`flex items-center justify-between rounded-md border bg-background p-3 text-sm transition-opacity ${
+                          comp.active === false ? "opacity-50" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-medium truncate">{comp.name}</span>
+                          <span className="text-muted-foreground text-xs flex-shrink-0">
+                            {Number(comp.price) > 0
+                              ? `+R$ ${Number(comp.price).toFixed(2).replace(".", ",")}`
+                              : "Grátis"}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            toggleCompMutation.mutate({ id: comp.id, active: !comp.active });
+                            toast.success(
+                              comp.active !== false
+                                ? "Complemento ocultado do cardápio"
+                                : "Complemento visível no cardápio"
+                            );
+                          }}
+                          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors flex-shrink-0 ${
+                            comp.active !== false
+                              ? "bg-status-free/10 text-status-free hover:bg-status-free/20"
+                              : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                          }`}
+                        >
+                          {comp.active !== false ? (
+                            <>
+                              <Eye className="h-3.5 w-3.5" />
+                              Visível
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff className="h-3.5 w-3.5" />
+                              Oculto
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                    {comps.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-4">Nenhum complemento neste grupo.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
