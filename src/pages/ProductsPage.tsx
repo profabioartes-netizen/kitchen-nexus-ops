@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Plus, Edit2, Trash2, Package, Loader2, GripVertical } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Package, Loader2, GripVertical, Copy } from "lucide-react";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 import { ProductFormDialog } from "@/components/ProductFormDialog";
@@ -31,6 +31,23 @@ export default function ProductsPage() {
       if (error) throw error;
       return data;
     },
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (product: any) => {
+      const { id, created_at, updated_at, categories, ...rest } = product;
+      const { error } = await supabase.from("products").insert({
+        ...rest,
+        name: `${product.name} (cópia)`,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products_all"] });
+      queryClient.invalidateQueries({ queryKey: ["products_active"] });
+      toast.success("Produto duplicado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
   });
 
   const deleteMutation = useMutation({
@@ -250,6 +267,13 @@ export default function ProductsPage() {
                                 className="rounded p-1 hover:bg-secondary"
                               >
                                 <Edit2 className="h-4 w-4 text-muted-foreground" />
+                              </button>
+                              <button
+                                onClick={() => duplicateMutation.mutate(product)}
+                                className="rounded p-1 hover:bg-secondary"
+                                title="Duplicar produto"
+                              >
+                                <Copy className="h-4 w-4 text-muted-foreground" />
                               </button>
                               <button
                                 onClick={() => {
