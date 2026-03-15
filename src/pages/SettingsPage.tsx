@@ -239,13 +239,15 @@ export default function SettingsPage() {
     );
   }
 
-  if (loadingApproval) {
+  if (loadingApproval || loadingSelfService) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
+
+  const isSelfServiceOn = selfServiceEnabled !== "false"; // default true
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-2xl h-full overflow-auto">
