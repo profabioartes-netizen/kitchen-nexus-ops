@@ -114,7 +114,7 @@ export default function SelfServicePage() {
   }, [tryAutoEnter]);
 
   const handleEnter = async () => {
-    if (!customerName.trim() || !whatsappPhone.trim() || !tableId) return;
+    if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
 
     // Create session
