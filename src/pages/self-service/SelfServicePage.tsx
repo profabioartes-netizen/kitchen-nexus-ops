@@ -65,7 +65,7 @@ export default function SelfServicePage() {
     setCheckingSession(true);
 
     try {
-      const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+      const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
 
       if (savedToken) {
         // Validate token against DB
