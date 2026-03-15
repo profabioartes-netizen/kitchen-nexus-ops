@@ -11,14 +11,9 @@ export default function QRCodesBatchPage() {
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_qr"],
     queryFn: async () => {
-      const targetNames = [
-        "Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6",
-        "Quiosque", "Mesa Redonda Fora", "Mesa Quadrada Fora",
-      ];
       const { data, error } = await supabase
         .from("restaurant_tables")
-        .select("id, name, internal_number")
-        .in("name", targetNames)
+        .select("id, name, internal_number, sector")
         .eq("active", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
