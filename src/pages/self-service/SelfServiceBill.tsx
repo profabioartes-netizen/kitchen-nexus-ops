@@ -41,7 +41,7 @@ function usePixCountdown(active: boolean) {
   return { secondsLeft, expired, formatted, reset, started: expiresAt !== null };
 }
 
-export default function SelfServiceBill({ tableId, customerName }: Props) {
+export default function SelfServiceBill({ tableId, customerName, onPaymentComplete }: Props) {
   const queryClient = useQueryClient();
   const [showPix, setShowPix] = useState(false);
   const [copied, setCopied] = useState(false);
