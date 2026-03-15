@@ -148,6 +148,28 @@ export default function SelfServicePage() {
     };
   }, [entered, tableId]);
 
+  // Pulse "Minha Conta" when waiter approves items (sent_to_kitchen changes)
+  useEffect(() => {
+    if (!entered || !tableId) return;
+
+    const channel = supabase
+      .channel(`ss-pulse-bill-${tableId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "order_items" },
+        (payload: any) => {
+          if (payload.new?.sent_to_kitchen === true && payload.old?.sent_to_kitchen === false) {
+            setPulseBill(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [entered, tableId]);
+
   const handleEnter = async () => {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
