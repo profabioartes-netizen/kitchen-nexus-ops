@@ -945,7 +945,7 @@ export default function TableOrderPage() {
     await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_removed", `Removido (venda rápida): ${item.product_name}`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
-    queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
+    queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
     queryClient.invalidateQueries({ queryKey: ["open_orders"] });
     toast.success(`${item.product_name} removido!`);
   };
