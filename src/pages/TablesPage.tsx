@@ -558,7 +558,8 @@ export default function TablesPage() {
       if (sortDiff !== 0) return sortDiff;
       return (a.internal_number || a.default_name || a.name).localeCompare(
         b.internal_number || b.default_name || b.name,
-        "pt-BR"
+        "pt-BR",
+        { numeric: true, sensitivity: "base" }
       );
     });
   }, [tables, ordersByTable]);

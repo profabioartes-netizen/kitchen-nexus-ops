@@ -137,7 +137,13 @@ export default function WaiterTablesPage() {
       if (aHasOrder && bHasOrder) {
         return new Date(ordersByTable[a.id].created_at).getTime() - new Date(ordersByTable[b.id].created_at).getTime();
       }
-      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      if (sortDiff !== 0) return sortDiff;
+      return (a.internal_number || a.default_name || a.name).localeCompare(
+        b.internal_number || b.default_name || b.name,
+        "pt-BR",
+        { numeric: true, sensitivity: "base" }
+      );
     });
   }, [tables, ordersByTable]);
 
