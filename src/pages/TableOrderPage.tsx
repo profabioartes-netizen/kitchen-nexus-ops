@@ -658,26 +658,67 @@ export default function TableOrderPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Finalize — moves order to finalized (appears in reports) and frees table
+  // Finalize — moves only the current order to finalized and keeps sibling orders intact
   const finalizeMutation = useMutation({
     mutationFn: async () => {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido");
-      await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
-      // Close any other stale open orders for this table (prevent ghost orders)
-      await supabase.from("orders").update({ status: "finalized" }).eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).neq("id", order.id);
-      await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
-      await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
+
+      await supabase
+        .from("orders")
+        .update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) })
+        .eq("id", order.id);
+
+      const activeStatuses = ["open", "billing_in_progress", "paid_pending_finalization", "bill_requested", "delivered"];
+      const { data: remainingOrders, error: remainingErr } = await supabase
+        .from("orders")
+        .select("id, status")
+        .eq("table_id", tableId!)
+        .in("status", activeStatuses)
+        .neq("id", order.id);
+      if (remainingErr) throw remainingErr;
+
+      const hasOtherActiveOrders = (remainingOrders?.length ?? 0) > 0;
+      if (hasOtherActiveOrders) {
+        const hasBillingLikeOrder = (remainingOrders || []).some((o) =>
+          ["billing_in_progress", "paid_pending_finalization", "bill_requested"].includes(o.status)
+        );
+        await supabase
+          .from("restaurant_tables")
+          .update({ status: hasBillingLikeOrder ? "bill" : "occupied" } as any)
+          .eq("id", tableId!);
+      } else {
+        await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
+      }
+
+      await logActivity(
+        tableId!,
+        "table_finalized",
+        hasOtherActiveOrders
+          ? `Comanda finalizada na ${table?.name ?? ""} — outras comandas da mesa permaneceram abertas`
+          : `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`,
+        order.id,
+        profile?.full_name
+      );
+
+      return { hasOtherActiveOrders };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
-      toast.success("Comanda finalizada! Dados registrados nos relatórios.");
+      toast.success(
+        result?.hasOtherActiveOrders
+          ? "Comanda finalizada. Outras comandas da mesa foram preservadas."
+          : "Comanda finalizada! Dados registrados nos relatórios."
+      );
       navigate("/");
     },
-    onError: (err) => { leavingRef.current = false; toast.error((err as Error).message); },
+    onError: (err) => {
+      leavingRef.current = false;
+      toast.error((err as Error).message);
+    },
   });
 
   // Cancel / delete order without sending to reports
@@ -688,37 +729,83 @@ export default function TableOrderPage() {
     mutationFn: async () => {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido aberto");
+
       // Delete complements for all order items first (FK constraint)
       const itemIds = orderItems.map((i) => i.id);
       if (itemIds.length > 0) {
         const { error: compErr } = await supabase.from("order_item_complements").delete().in("order_item_id", itemIds);
         if (compErr) throw compErr;
       }
+
       // Delete all order items
       const { error: itemsErr } = await supabase.from("order_items").delete().eq("order_id", order.id);
       if (itemsErr) throw itemsErr;
+
       // Delete payments associated with this order
       const { error: payErr } = await supabase.from("payments").delete().eq("order_id", order.id);
       if (payErr) throw payErr;
-      // Set order status to cancelled (will NOT appear in reports)
-      const { error: orderErr } = await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
+
+      // Cancel only THIS order (never sibling orders from same table)
+      const { error: orderErr } = await supabase
+        .from("orders")
+        .update({ status: "canceled", total: 0, customer_name: null })
+        .eq("id", order.id);
       if (orderErr) throw orderErr;
-      // Close any other stale open orders for this table
-      await supabase.from("orders").update({ status: "canceled" }).eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).neq("id", order.id);
-      // Reset table fully
-      const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
-      if (tableErr) throw tableErr;
-      await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
+
+      const activeStatuses = ["open", "billing_in_progress", "paid_pending_finalization", "bill_requested", "delivered"];
+      const { data: remainingOrders, error: remainingErr } = await supabase
+        .from("orders")
+        .select("id, status")
+        .eq("table_id", tableId!)
+        .in("status", activeStatuses)
+        .neq("id", order.id);
+      if (remainingErr) throw remainingErr;
+
+      const hasOtherActiveOrders = (remainingOrders?.length ?? 0) > 0;
+      if (hasOtherActiveOrders) {
+        const hasBillingLikeOrder = (remainingOrders || []).some((o) =>
+          ["billing_in_progress", "paid_pending_finalization", "bill_requested"].includes(o.status)
+        );
+        await supabase
+          .from("restaurant_tables")
+          .update({ status: hasBillingLikeOrder ? "bill" : "occupied" } as any)
+          .eq("id", tableId!);
+      } else {
+        const { error: tableErr } = await supabase
+          .from("restaurant_tables")
+          .update({ status: "free", sector: null } as any)
+          .eq("id", tableId!);
+        if (tableErr) throw tableErr;
+      }
+
+      await logActivity(
+        tableId!,
+        "order_cancelled",
+        hasOtherActiveOrders
+          ? `Pedido cancelado — outras comandas da mesa ${table?.name ?? ""} foram mantidas ativas`
+          : `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`,
+        order.id,
+        profile?.full_name
+      );
+
+      return { hasOtherActiveOrders };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
-      toast.success("Pedido cancelado. Mesa liberada.");
+      toast.success(
+        result?.hasOtherActiveOrders
+          ? "Pedido cancelado. Outras comandas da mesa foram preservadas."
+          : "Pedido cancelado. Mesa liberada."
+      );
       navigate("/");
     },
-    onError: (err) => { leavingRef.current = false; toast.error((err as Error).message); },
+    onError: (err) => {
+      leavingRef.current = false;
+      toast.error((err as Error).message);
+    },
   });
 
   // Save order — print only NEW unsent items to their station printers (Cozinha, Bebidas, Sobremesa)
