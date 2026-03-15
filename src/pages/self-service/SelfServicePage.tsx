@@ -65,7 +65,7 @@ export default function SelfServicePage() {
     setCheckingSession(true);
 
     try {
-      const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+      const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
 
       if (savedToken) {
         // Validate token against DB
@@ -85,7 +85,7 @@ export default function SelfServicePage() {
           return;
         } else {
           // Token expired or invalid — clean up
-          localStorage.removeItem(`ss_session_${tableId}`);
+          sessionStorage.removeItem(`ss_session_${tableId}`);
         }
       }
 
@@ -118,7 +118,7 @@ export default function SelfServicePage() {
             sessionOrderId &&
             payload.new?.id === sessionOrderId
           ) {
-            localStorage.removeItem(`ss_session_${tableId}`);
+            sessionStorage.removeItem(`ss_session_${tableId}`);
             window.location.reload();
           }
         }
@@ -129,7 +129,7 @@ export default function SelfServicePage() {
         (payload: any) => {
           if (payload.new?.status === "free") {
             const pixJustPaid = localStorage.getItem(`ss_pix_paid_${tableId}`);
-            localStorage.removeItem(`ss_session_${tableId}`);
+            sessionStorage.removeItem(`ss_session_${tableId}`);
             localStorage.removeItem(`ss_pix_paid_${tableId}`);
             if (pixJustPaid) {
               setShowThankYou(true);
@@ -185,7 +185,7 @@ export default function SelfServicePage() {
       .single();
 
     if (session) {
-      localStorage.setItem(`ss_session_${tableId}`, session.session_token);
+      sessionStorage.setItem(`ss_session_${tableId}`, session.session_token);
     }
 
     setCustomerName(name);
@@ -197,7 +197,7 @@ export default function SelfServicePage() {
   const handleOrderCreated = useCallback(async (orderId: string) => {
     setSessionOrderId(orderId);
     // Also update the session in DB
-    const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+    const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
     if (savedToken) {
       await supabase
         .from("self_service_sessions")
@@ -364,7 +364,7 @@ export default function SelfServicePage() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem(`ss_session_${tableId}`);
+              sessionStorage.removeItem(`ss_session_${tableId}`);
               window.location.reload();
             }}
             className="px-3 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"

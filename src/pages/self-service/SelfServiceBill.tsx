@@ -250,10 +250,10 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
 
             // Delete only THIS customer's session, free table only if no other open orders remain
-            const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+            const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
             if (savedToken) {
               await supabase.from("self_service_sessions").delete().eq("session_token", savedToken);
-              localStorage.removeItem(`ss_session_${tableId}`);
+              sessionStorage.removeItem(`ss_session_${tableId}`);
             }
 
             // Check if other open orders remain on this table

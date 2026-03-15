@@ -106,13 +106,17 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
         // Verify the order still exists and is open
         const { data: existingOrder } = await supabase
           .from("orders")
-          .select("id")
+          .select("id, customer_name, waiter_name")
           .eq("id", currentOrderId)
           .eq("table_id", tableId)
           .eq("status", "open")
           .single();
-        if (!existingOrder) {
-          currentOrderId = null; // order was closed/cancelled, create new
+
+        const sameCustomer = normalize(existingOrder?.customer_name || "") === normalize(customerName || "");
+        const isSelfServiceOrder = existingOrder?.waiter_name === "Auto-atendimento";
+
+        if (!existingOrder || !sameCustomer || !isSelfServiceOrder) {
+          currentOrderId = null; // invalid or belongs to another customer → create a new one
         }
       }
 
