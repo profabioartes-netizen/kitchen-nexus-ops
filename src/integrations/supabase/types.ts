@@ -345,6 +345,7 @@ export type Database = {
           total: number
           updated_at: string
           waiter_name: string | null
+          whatsapp_phone: string | null
         }
         Insert: {
           created_at?: string
@@ -358,6 +359,7 @@ export type Database = {
           total?: number
           updated_at?: string
           waiter_name?: string | null
+          whatsapp_phone?: string | null
         }
         Update: {
           created_at?: string
@@ -371,6 +373,7 @@ export type Database = {
           total?: number
           updated_at?: string
           waiter_name?: string | null
+          whatsapp_phone?: string | null
         }
         Relationships: [
           {
