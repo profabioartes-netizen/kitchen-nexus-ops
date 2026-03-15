@@ -1,0 +1,1 @@
+ALTER TABLE public.self_service_sessions ADD COLUMN order_id uuid REFERENCES public.orders(id) ON DELETE SET NULL DEFAULT NULL;
