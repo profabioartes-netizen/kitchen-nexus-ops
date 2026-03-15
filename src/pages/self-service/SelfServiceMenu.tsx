@@ -19,9 +19,11 @@ interface Props {
   customerName: string;
   table: any;
   whatsappPhone?: string;
+  orderId: string | null;
+  onOrderCreated: (orderId: string) => void;
 }
 
-export default function SelfServiceMenu({ tableId, customerName, table, whatsappPhone }: Props) {
+export default function SelfServiceMenu({ tableId, customerName, table, whatsappPhone, orderId, onOrderCreated }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -96,22 +98,23 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
     setSubmitting(true);
 
     try {
-      // Find or create an open order for this table
-      let orderId: string;
+      let currentOrderId = orderId;
 
-      const { data: existingOrder } = await supabase
-        .from("orders")
-        .select("id")
-        .eq("table_id", tableId)
-        .eq("status", "open")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
+      if (currentOrderId) {
+        // Verify the order still exists and is open
+        const { data: existingOrder } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("id", currentOrderId)
+          .eq("status", "open")
+          .single();
+        if (!existingOrder) {
+          currentOrderId = null; // order was closed/cancelled, create new
+        }
+      }
 
-      if (existingOrder) {
-        orderId = existingOrder.id;
-      } else {
-        // Update table status + create order
+      if (!currentOrderId) {
+        // Create a NEW order for THIS customer (separate comanda)
         await supabase
           .from("restaurant_tables")
           .update({ status: "occupied", name: customerName })
@@ -130,7 +133,10 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
           .single();
 
         if (orderErr) throw orderErr;
-        orderId = newOrder.id;
+        currentOrderId = newOrder.id;
+
+        // Link this order to the session
+        onOrderCreated(currentOrderId);
       }
 
       // Insert items
@@ -138,7 +144,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
         const { data: inserted, error: itemErr } = await supabase
           .from("order_items")
           .insert({
-            order_id: orderId,
+            order_id: currentOrderId,
             product_id: item.product.id,
             product_name: item.product.name,
             price: Number(item.product.price) + item.complementsTotal,
@@ -197,7 +203,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
       // Log activity
       await supabase.from("table_activity_log").insert({
         table_id: tableId,
-        order_id: orderId,
+        order_id: currentOrderId,
         action: "self_service_order",
         description: `Pedido feito via auto-atendimento por ${customerName} (${cart.length} itens)`,
         user_name: customerName,
@@ -207,12 +213,14 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
       const { data: allItems } = await supabase
         .from("order_items")
         .select("price, quantity")
-        .eq("order_id", orderId);
+        .eq("order_id", currentOrderId);
       const total = (allItems || []).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total }).eq("id", orderId);
+      await supabase.from("orders").update({ total }).eq("id", currentOrderId);
 
       setCart([]);
       setShowCart(false);
+      queryClient.invalidateQueries({ queryKey: ["self_service_order"] });
+      queryClient.invalidateQueries({ queryKey: ["self_service_items"] });
       toast.success(
         requiresApproval
           ? "Pedido enviado! Aguarde a confirmação da Cafeteria Coffee Thrones."

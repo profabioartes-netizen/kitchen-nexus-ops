@@ -13,6 +13,7 @@ const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 interface Props {
   tableId: string;
   customerName: string;
+  orderId: string | null;
   onPaymentComplete?: () => void;
 }
 
@@ -41,7 +42,7 @@ function usePixCountdown(active: boolean) {
   return { secondsLeft, expired, formatted, reset, started: expiresAt !== null };
 }
 
-export default function SelfServiceBill({ tableId, customerName, onPaymentComplete }: Props) {
+export default function SelfServiceBill({ tableId, customerName, orderId, onPaymentComplete }: Props) {
   const queryClient = useQueryClient();
   const [showPix, setShowPix] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -54,20 +55,20 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
   const [creatingPix, setCreatingPix] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Query THIS customer's specific order (by orderId)
   const { data: order, isLoading } = useQuery({
-    queryKey: ["self_service_order", tableId],
+    queryKey: ["self_service_order", orderId],
     queryFn: async () => {
+      if (!orderId) return null;
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("table_id", tableId)
-        .in("status", ["open", "bill_requested", "delivered"])
-        .order("created_at", { ascending: true })
-        .limit(1)
+        .eq("id", orderId)
         .single();
       if (error && error.code !== "PGRST116") throw error;
       return data;
     },
+    enabled: !!orderId,
     refetchInterval: 10_000,
   });
 
@@ -174,7 +175,6 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
 
           // Record payment in DB
           if (order) {
-            // Record payment in DB
             await supabase.from("payments").insert({
               order_id: order.id,
               method: "pix",
@@ -241,19 +241,35 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
               user_name: customerName || "Cliente",
             });
 
-            queryClient.invalidateQueries({ queryKey: ["self_service_order", tableId] });
+            queryClient.invalidateQueries({ queryKey: ["self_service_order", orderId] });
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
 
-            // Show thank-you screen immediately (don't rely on Realtime)
+            // Show thank-you screen immediately
             onPaymentComplete?.();
 
             // Set flag as backup for Realtime listener
             localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
 
-            // Free table and clear session LAST
-            await supabase.from("self_service_sessions").delete().eq("table_id", tableId);
-            await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
+            // Delete only THIS customer's session, free table only if no other open orders remain
+            const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+            if (savedToken) {
+              await supabase.from("self_service_sessions").delete().eq("session_token", savedToken);
+              localStorage.removeItem(`ss_session_${tableId}`);
+            }
+
+            // Check if other open orders remain on this table
+            const { data: remainingOrders } = await supabase
+              .from("orders")
+              .select("id")
+              .eq("table_id", tableId)
+              .in("status", ["open", "bill_requested", "delivered"])
+              .limit(1);
+
+            if (!remainingOrders || remainingOrders.length === 0) {
+              // No more open orders → free the table
+              await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
+            }
           }
         }
       } catch (e) {
@@ -268,7 +284,7 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [mpPaymentId, pixPaid, order, items, total, tableId, customerName, queryClient]);
+  }, [mpPaymentId, pixPaid, order, items, total, tableId, customerName, queryClient, orderId]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -289,7 +305,7 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
         <UtensilsCrossed className="h-10 w-10 text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Você ainda não tem pedidos nesta mesa.</p>
+        <p className="text-sm text-muted-foreground">Você ainda não tem pedidos.</p>
         <p className="text-xs text-muted-foreground">Acesse o Cardápio para fazer seu primeiro pedido!</p>
       </div>
     );
@@ -362,11 +378,6 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
 
       <div className="space-y-2">
         {items.map((item) => {
-          // Derive effective status for the customer view:
-          // - delivered_at → "delivered"
-          // - ready_at or preparation_status=ready → "ready"
-          // - sent_to_kitchen (waiter approved) or preparation_status=preparing → "preparing"
-          // - else → "pending" (awaiting waiter approval)
           const effectiveStatus = item.delivered_at
             ? "delivered"
             : item.ready_at || item.preparation_status === "ready"
@@ -416,8 +427,6 @@ export default function SelfServiceBill({ tableId, customerName, onPaymentComple
             <span className="text-sm font-medium text-foreground">Total</span>
             <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
           </div>
-
-          {/* PIX paid — thank-you is now handled by SelfServicePage */}
 
           {pixAvailable && total > 0 && !pixPaid && (
             <div className="space-y-3">
