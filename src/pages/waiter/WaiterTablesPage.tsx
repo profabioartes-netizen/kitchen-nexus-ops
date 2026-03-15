@@ -66,11 +66,17 @@ export default function WaiterTablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
+        .select("*, order_items!inner(id)")
+        .not("status", "in", '("closed","finished")')
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+
+      const normalized = (data ?? []).map(({ order_items, ...order }: any) => order);
+      const unique = new Map<string, any>();
+      for (const order of normalized) {
+        unique.set(order.id, order);
+      }
+      return Array.from(unique.values());
     },
   });
 
@@ -120,7 +126,7 @@ export default function WaiterTablesPage() {
     onError: () => toast.error("Erro ao marcar águas como entregues"),
   });
 
-  const occupied = openOrders.length;
+  const occupied = Object.keys(ordersByTable).length;
 
   // Sort: occupied first, then free by sort_order
   const sortedTables = useMemo(() => {
@@ -131,7 +137,13 @@ export default function WaiterTablesPage() {
       if (aHasOrder && bHasOrder) {
         return new Date(ordersByTable[a.id].created_at).getTime() - new Date(ordersByTable[b.id].created_at).getTime();
       }
-      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      if (sortDiff !== 0) return sortDiff;
+      return (a.internal_number || a.default_name || a.name).localeCompare(
+        b.internal_number || b.default_name || b.name,
+        "pt-BR",
+        { numeric: true, sensitivity: "base" }
+      );
     });
   }, [tables, ordersByTable]);
 

@@ -137,10 +137,17 @@ export default function TablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
+        .select("*, order_items!inner(id)")
+        .not("status", "in", '("closed","finished")')
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+
+      const normalized = (data ?? []).map(({ order_items, ...order }: any) => order);
+      const unique = new Map<string, any>();
+      for (const order of normalized) {
+        unique.set(order.id, order);
+      }
+      return Array.from(unique.values());
     },
   });
 
@@ -518,12 +525,14 @@ export default function TablesPage() {
     setDraggingId(null);
   }, [draggingId, dragPos, didDrag, updatePosition]);
 
-  const occupied = openOrders.length;
-  const free = tables.filter((t) => t.status === "free").length;
-  const ordersByTable = [...openOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
-    if (o.table_id) acc[o.table_id] = o;
-    return acc;
-  }, {});
+  const ordersByTable = [...openOrders]
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
+      if (o.table_id && !acc[o.table_id]) acc[o.table_id] = o;
+      return acc;
+    }, {});
+  const occupied = Object.keys(ordersByTable).length;
+  const free = Math.max(0, tables.length - occupied);
 
   const sortedTables = useMemo(() => {
     // Active tables (occupied/bill/delivered) come first, then free ones
@@ -549,7 +558,8 @@ export default function TablesPage() {
       if (sortDiff !== 0) return sortDiff;
       return (a.internal_number || a.default_name || a.name).localeCompare(
         b.internal_number || b.default_name || b.name,
-        "pt-BR"
+        "pt-BR",
+        { numeric: true, sensitivity: "base" }
       );
     });
   }, [tables, ordersByTable]);
