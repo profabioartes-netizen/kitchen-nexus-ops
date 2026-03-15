@@ -103,6 +103,26 @@ export function ComplementsManager() {
 
   const deleteGroup = useMutation({
     mutationFn: async (id: string) => {
+      // First remove product_complement_groups links
+      await supabase.from("product_complement_groups").delete().eq("group_id", id);
+      // Try to delete all complements in this group
+      const group = groups.find((g) => g.id === id);
+      const comps = group?.complements || [];
+      for (const c of comps) {
+        const { error: delErr } = await supabase.from("complements").delete().eq("id", c.id);
+        if (delErr && delErr.message.includes("foreign key constraint")) {
+          await supabase.from("complements").update({ active: false }).eq("id", c.id);
+        }
+      }
+      // Also deactivate any complements already hidden (active=false)
+      const { data: hiddenComps } = await supabase.from("complements").select("id").eq("group_id", id).eq("active", false);
+      for (const c of (hiddenComps || [])) {
+        const { error: delErr } = await supabase.from("complements").delete().eq("id", c.id);
+        if (delErr && delErr.message.includes("foreign key constraint")) {
+          // already inactive, that's fine
+        }
+      }
+      // Try to delete the group itself
       const { error } = await supabase.from("complement_groups").delete().eq("id", id);
       if (error) throw error;
     },
