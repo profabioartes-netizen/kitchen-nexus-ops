@@ -141,12 +141,26 @@ export function ComplementsManager() {
 
   const deleteComplement = useMutation({
     mutationFn: async (id: string) => {
+      // Try hard delete first
       const { error } = await supabase.from("complements").delete().eq("id", id);
-      if (error) throw error;
+      if (error) {
+        // If FK constraint, soft-delete by deactivating
+        if (error.message.includes("foreign key constraint")) {
+          const { error: updateErr } = await supabase.from("complements").update({ active: false }).eq("id", id);
+          if (updateErr) throw updateErr;
+          return "deactivated";
+        }
+        throw error;
+      }
+      return "deleted";
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
-      toast.success("Complemento removido!");
+      if (result === "deactivated") {
+        toast.success("Complemento desativado (já foi usado em pedidos).");
+      } else {
+        toast.success("Complemento removido!");
+      }
     },
     onError: (err) => toast.error((err as Error).message),
   });
