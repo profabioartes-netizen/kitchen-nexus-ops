@@ -728,6 +728,8 @@ export default function TableOrderPage() {
       // Set order status to cancelled (will NOT appear in reports)
       const { error: orderErr } = await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
       if (orderErr) throw orderErr;
+      // Close any other stale open orders for this table
+      await supabase.from("orders").update({ status: "canceled" }).eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).neq("id", order.id);
       // Reset table fully
       const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       if (tableErr) throw tableErr;
