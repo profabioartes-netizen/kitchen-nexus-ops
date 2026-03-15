@@ -185,12 +185,15 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
             // Update order status
             await supabase.from("orders").update({
-              status: "paid_pending_finalization",
+              status: "finalized",
               total,
             }).eq("id", order.id);
 
-            // Update table status
-            await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId);
+            // Free the table since payment is complete
+            await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
+
+            // Clear self-service session
+            await supabase.from("self_service_sessions").delete().eq("table_id", tableId);
 
             // Get table info for print
             const { data: tableData } = await supabase
