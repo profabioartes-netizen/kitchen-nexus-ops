@@ -117,7 +117,7 @@ export default function SelfServiceMenu({ tableId, customerName, table, whatsapp
       }
 
       if (!currentOrderId) {
-        const newOrder = await getOrCreateOpenOrder({
+        const newOrder = await createSelfServiceOrder({
           tableId,
           waiterName: "Auto-atendimento",
           customerName,
