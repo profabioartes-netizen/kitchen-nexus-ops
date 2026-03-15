@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Clock, CheckCircle2, UtensilsCrossed, QrCode, Copy, Check, RefreshCw } from "lucide-react";
+import { Receipt, Clock, CheckCircle2, UtensilsCrossed, QrCode, Copy, Check, RefreshCw, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { generatePixBrCode } from "@/lib/pixBrCode";
 import { toast } from "sonner";
 
 const PIX_EXPIRY_SECONDS = 10 * 60; // 10 minutes
+const POLL_INTERVAL_MS = 5000; // poll every 5 seconds
 
 interface Props {
   tableId: string;
@@ -39,9 +40,17 @@ function usePixCountdown(active: boolean) {
 }
 
 export default function SelfServiceBill({ tableId, customerName }: Props) {
+  const queryClient = useQueryClient();
   const [showPix, setShowPix] = useState(false);
   const [copied, setCopied] = useState(false);
-  const countdown = usePixCountdown(showPix);
+  const [pixPaid, setPixPaid] = useState(false);
+  const countdown = usePixCountdown(showPix && !pixPaid);
+
+  // Mercado Pago dynamic PIX state
+  const [mpPaymentId, setMpPaymentId] = useState<number | null>(null);
+  const [mpQrCode, setMpQrCode] = useState<string>("");
+  const [creatingPix, setCreatingPix] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["self_service_order", tableId],
@@ -75,6 +84,20 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     refetchInterval: 10_000,
   });
 
+  // Check if MP is configured
+  const { data: mpConfigured } = useQuery({
+    queryKey: ["mp_configured"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "mercado_pago_access_token")
+        .single();
+      return !!(data?.value);
+    },
+  });
+
+  // Fallback: static PIX settings
   const { data: pixSettings } = useQuery({
     queryKey: ["pix_settings"],
     queryFn: async () => {
@@ -88,7 +111,161 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     },
   });
 
-  const pixConfigured = !!(pixSettings?.pix_key && pixSettings?.pix_recipient_name);
+  const staticPixConfigured = !!(pixSettings?.pix_key && pixSettings?.pix_recipient_name);
+  const useDynamicPix = !!mpConfigured;
+
+  const total = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+
+  // Create dynamic PIX via Mercado Pago
+  const createDynamicPix = useCallback(async () => {
+    if (!order || total <= 0) return;
+    setCreatingPix(true);
+    setPixPaid(false);
+    setMpPaymentId(null);
+    setMpQrCode("");
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-pix-payment`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            order_id: order.id,
+            amount: total,
+            description: `Pedido ${customerName || "Cliente"}`,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao criar Pix");
+      setMpPaymentId(data.payment_id);
+      setMpQrCode(data.qr_code || "");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar QR Code Pix");
+    } finally {
+      setCreatingPix(false);
+    }
+  }, [order, total, customerName]);
+
+  // Poll for payment confirmation
+  useEffect(() => {
+    if (!mpPaymentId || pixPaid) {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      return;
+    }
+
+    const checkPayment = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-pix-payment`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ payment_id: mpPaymentId }),
+          }
+        );
+        const data = await res.json();
+        if (data.status === "approved") {
+          setPixPaid(true);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          toast.success("Pagamento Pix confirmado! ✅");
+
+          // Record payment in DB
+          if (order) {
+            await supabase.from("payments").insert({
+              order_id: order.id,
+              method: "pix",
+              amount: total,
+            });
+
+            // Mark items as paid
+            for (const item of items) {
+              await supabase.from("order_items").update({ paid_quantity: item.quantity }).eq("id", item.id);
+            }
+
+            // Update order status
+            await supabase.from("orders").update({
+              status: "paid_pending_finalization",
+              total,
+            }).eq("id", order.id);
+
+            // Update table status
+            await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId);
+
+            // Get table info for print
+            const { data: tableData } = await supabase
+              .from("restaurant_tables")
+              .select("*")
+              .eq("id", tableId)
+              .single();
+
+            // Get complements for print
+            const complementsByItem: Record<string, string[]> = {};
+            for (const item of items) {
+              const comps = (item as any).order_item_complements || [];
+              if (comps.length > 0) {
+                complementsByItem[item.id] = comps.map((c: any) => c.complement_name);
+              }
+            }
+
+            // Print PIX confirmation receipt to Caixa
+            await supabase.from("print_jobs").insert({
+              station: "Caixa",
+              status: "pending",
+              payload: {
+                type: "bill",
+                table_name: tableData?.name || "—",
+                mesa_name: tableData?.default_name || null,
+                mesa_sector: tableData?.sector || null,
+                customer_name: order.customer_name || customerName || null,
+                waiter_name: "Auto-atendimento",
+                order_id: order.id,
+                pix_confirmed: true,
+                pix_payment_id: String(mpPaymentId),
+                items: items.map((i) => ({
+                  product_name: i.product_name,
+                  quantity: i.quantity,
+                  price: Number(i.price),
+                  complements: complementsByItem[i.id] || [],
+                })),
+                total,
+              },
+            });
+
+            // Log activity
+            await supabase.from("table_activity_log").insert({
+              table_id: tableId,
+              order_id: order.id,
+              action: "pix_payment_confirmed",
+              description: `Pagamento Pix confirmado via Mercado Pago — R$ ${total.toFixed(2)}`,
+              user_name: customerName || "Cliente",
+            });
+
+            queryClient.invalidateQueries({ queryKey: ["self_service_order", tableId] });
+            queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+            queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+          }
+        }
+      } catch (e) {
+        console.error("Error checking PIX payment:", e);
+      }
+    };
+
+    // Initial check
+    checkPayment();
+    pollingRef.current = setInterval(checkPayment, POLL_INTERVAL_MS);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [mpPaymentId, pixPaid, order, items, total, tableId, customerName, queryClient]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -115,9 +292,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     delivered: { label: "Entregue", icon: CheckCircle2, color: "text-green-400" },
   };
 
-  const total = items.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-
-  const pixBrCode = pixConfigured
+  const staticPixBrCode = staticPixConfigured
     ? generatePixBrCode({
         pixKey: pixSettings!.pix_key,
         recipientName: pixSettings!.pix_recipient_name,
@@ -127,10 +302,14 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
       })
     : "";
 
+  const pixAvailable = useDynamicPix || staticPixConfigured;
+
   const handleCopyPix = async () => {
-    if (countdown.expired) return;
+    if (countdown.expired && !useDynamicPix) return;
+    const code = useDynamicPix ? mpQrCode : staticPixBrCode;
+    if (!code) return;
     try {
-      await navigator.clipboard.writeText(pixBrCode);
+      await navigator.clipboard.writeText(code);
       setCopied(true);
       toast.success("Código Pix copiado!");
       setTimeout(() => setCopied(false), 3000);
@@ -139,19 +318,30 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
     }
   };
 
-  const handleOpenPix = () => {
+  const handleOpenPix = async () => {
+    if (pixPaid) return;
     const next = !showPix;
     setShowPix(next);
-    if (next && !countdown.started) {
-      countdown.reset();
+    if (next) {
+      if (useDynamicPix) {
+        await createDynamicPix();
+      }
+      if (!countdown.started) {
+        countdown.reset();
+      }
     }
   };
 
-  const handleRefreshPix = () => {
+  const handleRefreshPix = async () => {
+    if (useDynamicPix) {
+      await createDynamicPix();
+    }
     countdown.reset();
     setCopied(false);
     toast.success("QR Code Pix renovado por mais 10 minutos!");
   };
+
+  const qrValue = useDynamicPix ? mpQrCode : staticPixBrCode;
 
   return (
     <div className="p-4 space-y-4">
@@ -205,19 +395,35 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
             <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
           </div>
 
-          {pixConfigured && total > 0 && (
+          {/* PIX paid confirmation */}
+          {pixPaid && (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 flex flex-col items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="h-8 w-8 text-green-500" />
+              <p className="text-sm font-semibold text-green-600">Pagamento Pix confirmado!</p>
+              <p className="text-xs text-muted-foreground text-center">
+                O comprovante está sendo impresso no caixa.
+              </p>
+            </div>
+          )}
+
+          {pixAvailable && total > 0 && !pixPaid && (
             <div className="space-y-3">
               <button
                 onClick={handleOpenPix}
-                className="w-full rounded-lg border border-accent/30 bg-card p-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground hover:bg-accent/5 transition-colors"
+                disabled={creatingPix}
+                className="w-full rounded-lg border border-accent/30 bg-card p-3 flex items-center justify-center gap-2 text-sm font-medium text-foreground hover:bg-accent/5 transition-colors disabled:opacity-50"
               >
-                <QrCode className="h-5 w-5 text-accent" />
-                {showPix ? "Fechar Pix" : "Pagar com Pix"}
+                {creatingPix ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-accent" />
+                ) : (
+                  <QrCode className="h-5 w-5 text-accent" />
+                )}
+                {creatingPix ? "Gerando Pix..." : showPix ? "Fechar Pix" : "Pagar com Pix"}
               </button>
 
-              {showPix && (
+              {showPix && !creatingPix && qrValue && (
                 <div className="rounded-lg border border-border bg-card p-4 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {countdown.expired ? (
+                  {countdown.expired && !useDynamicPix ? (
                     <>
                       <div className="flex flex-col items-center gap-3 py-4">
                         <Clock className="h-8 w-8 text-muted-foreground" />
@@ -248,14 +454,18 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
                         <span>Expira em {countdown.formatted}</span>
                       </div>
 
+                      {useDynamicPix && (
+                        <div className="flex items-center gap-1.5 text-[10px] text-green-600 font-medium">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Confirmação automática via Mercado Pago
+                        </div>
+                      )}
+
                       <div className="bg-white p-3 rounded-lg">
-                        <QRCodeSVG value={pixBrCode} size={200} level="M" />
+                        <QRCodeSVG value={qrValue} size={200} level="M" />
                       </div>
 
                       <div className="w-full space-y-2">
-                        <p className="text-[11px] text-muted-foreground text-center font-medium">
-                          {pixSettings!.pix_recipient_name}
-                        </p>
                         <p className="text-lg font-bold text-center text-foreground">
                           R$ {total.toFixed(2)}
                         </p>
@@ -280,15 +490,18 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
                       <button
                         onClick={handleRefreshPix}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        disabled={creatingPix}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                       >
-                        <RefreshCw className="h-3 w-3" />
+                        {creatingPix ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                         Renovar tempo
                       </button>
 
-                      <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                        Após o pagamento, informe ao restaurante para confirmação.
-                      </p>
+                      {!useDynamicPix && (
+                        <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
+                          Após o pagamento, informe ao restaurante para confirmação.
+                        </p>
+                      )}
                     </>
                   )}
                 </div>

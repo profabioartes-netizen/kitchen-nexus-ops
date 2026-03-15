@@ -276,8 +276,21 @@ function buildBillTicket(job) {
   parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
 
-  // Payment method
-  if (p.payment_method) {
+  // Payment method / PIX confirmation
+  if (p.pix_confirmed) {
+    parts.push(cmd.separator());
+    parts.push(cmd.alignCenter);
+    parts.push(cmd.bold(true));
+    parts.push(cmd.doubleSize(true));
+    parts.push(cmd.text("PIX CONFIRMADO"));
+    parts.push(cmd.doubleSize(false));
+    parts.push(cmd.bold(false));
+    parts.push(cmd.text("Pagamento: PIX (Mercado Pago)"));
+    if (p.pix_payment_id) {
+      parts.push(cmd.text(`ID: ${p.pix_payment_id}`));
+    }
+    parts.push(cmd.text(""));
+  } else if (p.payment_method) {
     const methods = { credit: "CRÉDITO", debit: "DÉBITO", cash: "DINHEIRO", pix: "PIX" };
     parts.push(cmd.alignCenter);
     parts.push(cmd.text(`Pagamento: ${methods[p.payment_method] || p.payment_method}`));
