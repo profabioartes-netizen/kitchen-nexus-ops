@@ -377,15 +377,13 @@ export default function TableOrderPage() {
       const waiterLabel = profile?.full_name || null;
       const customerName = params?.customerName || null;
       const guests = params?.guests || 1;
-      const defaultName = (table as any)?.default_name || "Comanda";
       const { data, error } = await supabase
         .from("orders")
         .insert({ table_id: tableId!, status: "open", total: 0, waiter_name: waiterLabel, customer_name: customerName, guests } as any)
         .select()
         .single();
       if (error) throw error;
-      const tableName = customerName || defaultName;
-      await supabase.from("restaurant_tables").update({ status: "occupied", name: tableName }).eq("id", tableId!);
+      await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       const desc = `Mesa ${table?.name ?? ""} aberta${waiterLabel ? ` — Garçom: ${waiterLabel}` : ""}${customerName ? ` | Cliente: ${customerName}` : ""} | ${guests} pessoa(s)${params?.notes ? ` | Obs: ${params.notes}` : ""}`;
       await logActivity(tableId!, "table_opened", desc, data.id, waiterLabel);
       return data;
@@ -673,13 +671,7 @@ export default function TableOrderPage() {
       leavingRef.current = true;
       if (!order) throw new Error("Sem pedido");
       await supabase.from("orders").update({ status: "finalized", total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) }).eq("id", order.id);
-      const { data: tableData } = await supabase
-        .from("restaurant_tables")
-        .select("default_name")
-        .eq("id", tableId!)
-        .single();
-      const resetName = (tableData as any)?.default_name || table?.name;
-      await supabase.from("restaurant_tables").update({ status: "free", name: resetName, sector: null } as any).eq("id", tableId!);
+      await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       await logActivity(tableId!, "table_finalized", `Mesa ${table?.name ?? ""} finalizada — pedido registrado nos relatórios`, order.id, profile?.full_name);
     },
     onSuccess: () => {
@@ -717,13 +709,7 @@ export default function TableOrderPage() {
       const { error: orderErr } = await supabase.from("orders").update({ status: "canceled", total: 0, customer_name: null }).eq("id", order.id);
       if (orderErr) throw orderErr;
       // Reset table fully
-      const { data: tableData } = await supabase
-        .from("restaurant_tables")
-        .select("default_name")
-        .eq("id", tableId!)
-        .single();
-      const resetName = (tableData as any)?.default_name || table?.name;
-      const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", name: resetName, sector: null } as any).eq("id", tableId!);
+      const { error: tableErr } = await supabase.from("restaurant_tables").update({ status: "free", sector: null } as any).eq("id", tableId!);
       if (tableErr) throw tableErr;
       await logActivity(tableId!, "order_cancelled", `Pedido cancelado — Mesa ${table?.name ?? ""} liberada. Itens e pagamentos removidos.`, order.id, profile?.full_name);
     },
