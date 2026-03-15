@@ -27,6 +27,7 @@ export default function SelfServicePage() {
   const isWhatsappValid = rawWhatsapp.length === 11 && rawWhatsapp[2] === "9";
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
+  const [pulseBill, setPulseBill] = useState(false);
 
   const { data: table, isLoading: tableLoading } = useQuery({
     queryKey: ["self_service_table", tableId],
