@@ -69,15 +69,16 @@ function MercadoPagoCard({ upsert }: { upsert: ReturnType<typeof useUpsertSettin
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch("https://api.mercadopago.com/v1/payment_methods", {
-        headers: { Authorization: `Bearer ${localToken.trim()}` },
-      });
-      if (res.ok) {
-        setTestResult({ ok: true, message: "Conexão OK! Token válido." });
-      } else {
-        const body = await res.json().catch(() => ({}));
-        setTestResult({ ok: false, message: body.message || `Erro ${res.status}: Token inválido ou expirado.` });
-      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/test-mercadopago`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token: localToken.trim() }),
+        }
+      );
+      const result = await res.json();
+      setTestResult({ ok: result.ok, message: result.message });
     } catch {
       setTestResult({ ok: false, message: "Erro de rede. Verifique sua conexão." });
     } finally {
