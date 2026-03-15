@@ -173,7 +173,11 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
           if (pollingRef.current) clearInterval(pollingRef.current);
           toast.success("Pagamento Pix confirmado! ✅");
 
-          // Record payment in DB
+          // Redirect immediately to thank-you screen
+          onPaymentComplete?.();
+          localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
+
+          // Record payment in DB (background)
           if (order) {
             await supabase.from("payments").insert({
               order_id: order.id,
