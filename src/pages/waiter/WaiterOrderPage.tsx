@@ -15,6 +15,7 @@ import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import TableOpenDialog from "@/components/TableOpenDialog";
+import OrderSelector from "@/components/OrderSelector";
 
 type TableStatus = "free" | "occupied" | "bill";
 const statusLabels: Record<TableStatus, string> = {
