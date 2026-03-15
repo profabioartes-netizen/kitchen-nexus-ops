@@ -33,6 +33,23 @@ export default function ProductsPage() {
     },
   });
 
+  const duplicateMutation = useMutation({
+    mutationFn: async (product: any) => {
+      const { id, created_at, updated_at, categories, ...rest } = product;
+      const { error } = await supabase.from("products").insert({
+        ...rest,
+        name: `${product.name} (cópia)`,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products_all"] });
+      queryClient.invalidateQueries({ queryKey: ["products_active"] });
+      toast.success("Produto duplicado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("products").delete().eq("id", id);
