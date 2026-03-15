@@ -227,7 +227,7 @@ export default function WaiterTablesPage() {
                 </div>
                 <div className="flex items-center gap-3 mt-1">
                   {order?.customer_name && (
-                    <span className="text-[10px] text-muted-foreground">{(table as any).default_name || table.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{visualLabels[table.id] || table.name}</span>
                   )}
                   {(order as any)?.origin_location && (order as any)?.current_location !== (order as any)?.origin_location && (
                     <span className="text-[10px] text-muted-foreground italic">
