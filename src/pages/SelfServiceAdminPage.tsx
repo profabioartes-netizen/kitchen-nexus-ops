@@ -10,6 +10,8 @@ import {
   Package,
   Loader2,
   Smartphone,
+  ChevronDown,
+  ChevronRight,
   Minus,
   Plus,
   Infinity,
