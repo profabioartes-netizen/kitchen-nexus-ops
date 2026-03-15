@@ -518,7 +518,7 @@ export default function TablesPage() {
     setDraggingId(null);
   }, [draggingId, dragPos, didDrag, updatePosition]);
 
-  const occupied = tables.filter((t) => t.status === "occupied").length;
+  const occupied = openOrders.length;
   const free = tables.filter((t) => t.status === "free").length;
   const ordersByTable = [...openOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
     if (o.table_id) acc[o.table_id] = o;
