@@ -269,6 +269,13 @@ export default function ProductsPage() {
                                 <Edit2 className="h-4 w-4 text-muted-foreground" />
                               </button>
                               <button
+                                onClick={() => duplicateMutation.mutate(product)}
+                                className="rounded p-1 hover:bg-secondary"
+                                title="Duplicar produto"
+                              >
+                                <Copy className="h-4 w-4 text-muted-foreground" />
+                              </button>
+                              <button
                                 onClick={() => {
                                   if (confirm(`Remover "${product.name}"?`)) {
                                     deleteMutation.mutate(product.id);
