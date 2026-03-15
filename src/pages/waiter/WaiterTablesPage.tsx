@@ -240,7 +240,11 @@ export default function WaiterTablesPage() {
       <div className="space-y-2">
         {sortedTables.map((table) => {
           const order = ordersByTable[table.id];
-          const status = table.status as TableStatus;
+          const status: TableStatus = order
+            ? (order.status === "billing_in_progress" || order.status === "paid_pending_finalization"
+              ? "bill"
+              : (table.status === "delivered" ? "delivered" : "occupied"))
+            : (table.status as TableStatus);
           const waterAlert = order ? waterAlertOrders[order.id] : undefined;
           return (
             <button
