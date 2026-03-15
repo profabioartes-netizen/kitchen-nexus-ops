@@ -679,6 +679,7 @@ export type Database = {
           customer_name: string
           expires_at: string
           id: string
+          order_id: string | null
           session_token: string
           table_id: string
         }
@@ -687,6 +688,7 @@ export type Database = {
           customer_name?: string
           expires_at?: string
           id?: string
+          order_id?: string | null
           session_token?: string
           table_id: string
         }
@@ -695,10 +697,18 @@ export type Database = {
           customer_name?: string
           expires_at?: string
           id?: string
+          order_id?: string | null
           session_token?: string
           table_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "self_service_sessions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "self_service_sessions_table_id_fkey"
             columns: ["table_id"]

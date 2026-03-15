@@ -15,6 +15,8 @@ export default function SelfServicePage() {
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
   const [entered, setEntered] = useState(false);
+  // Track the order_id linked to this session (each customer gets their own)
+  const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
   const formatWhatsapp = (digits: string) => {
     const d = digits.replace(/\D/g, "").slice(0, 11);
@@ -44,13 +46,12 @@ export default function SelfServicePage() {
     enabled: !!tableId,
   });
 
-  // Check for existing valid session or open comanda on mount
+  // Check for existing valid session on mount (only reconnects the SAME customer via token)
   const tryAutoEnter = useCallback(async () => {
     if (!tableId) return;
     setCheckingSession(true);
 
     try {
-      // 1. Check localStorage for session token
       const savedToken = localStorage.getItem(`ss_session_${tableId}`);
 
       if (savedToken) {
@@ -63,47 +64,19 @@ export default function SelfServicePage() {
           .single();
 
         if (session && new Date(session.expires_at) > new Date()) {
-          // Session still valid
+          // Session still valid — reconnect same customer
           setCustomerName(session.customer_name);
+          setSessionOrderId((session as any).order_id || null);
           setEntered(true);
           setCheckingSession(false);
           return;
+        } else {
+          // Token expired or invalid — clean up
+          localStorage.removeItem(`ss_session_${tableId}`);
         }
       }
 
-      // 2. No valid session — check if there's an open comanda for this table
-      const { data: openOrder } = await supabase
-        .from("orders")
-        .select("id, customer_name")
-        .eq("table_id", tableId)
-        .eq("status", "open")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (openOrder && openOrder.customer_name) {
-        // Auto-reconnect: create new session for existing comanda
-        const expiresAt = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
-        const { data: newSession } = await supabase
-          .from("self_service_sessions")
-          .insert({
-            table_id: tableId,
-            customer_name: openOrder.customer_name,
-            expires_at: expiresAt,
-          })
-          .select("session_token")
-          .single();
-
-        if (newSession) {
-          localStorage.setItem(`ss_session_${tableId}`, newSession.session_token);
-        }
-        setCustomerName(openOrder.customer_name);
-        setEntered(true);
-        setCheckingSession(false);
-        return;
-      }
-
-      // 3. No session, no open comanda → show name input
+      // No valid session → show login screen (each customer creates their own)
     } catch (err) {
       console.error("Session check error:", err);
     }
@@ -126,7 +99,12 @@ export default function SelfServicePage() {
         { event: "UPDATE", schema: "public", table: "orders", filter: `table_id=eq.${tableId}` },
         (payload: any) => {
           const newStatus = payload.new?.status;
-          if (newStatus === "cancelado" || newStatus === "cancelled") {
+          // Only auto-logout if THIS customer's order was cancelled
+          if (
+            (newStatus === "cancelado" || newStatus === "cancelled") &&
+            sessionOrderId &&
+            payload.new?.id === sessionOrderId
+          ) {
             localStorage.removeItem(`ss_session_${tableId}`);
             window.location.reload();
           }
@@ -153,7 +131,7 @@ export default function SelfServicePage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [entered, tableId]);
+  }, [entered, tableId, sessionOrderId]);
 
   // Pulse "Minha Conta" when waiter approves items (sent_to_kitchen changes)
   useEffect(() => {
@@ -181,7 +159,7 @@ export default function SelfServicePage() {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
 
-    // Create session
+    // Create session (no order_id yet — created on first submit)
     const expiresAt = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
     const { data: session } = await supabase
       .from("self_service_sessions")
@@ -198,8 +176,23 @@ export default function SelfServicePage() {
     }
 
     setCustomerName(name);
+    setSessionOrderId(null); // will be set on first order submit
     setEntered(true);
   };
+
+  // Callback for SelfServiceMenu to set the order_id after creating an order
+  const handleOrderCreated = useCallback(async (orderId: string) => {
+    setSessionOrderId(orderId);
+    // Also update the session in DB
+    const savedToken = localStorage.getItem(`ss_session_${tableId}`);
+    if (savedToken) {
+      await supabase
+        .from("self_service_sessions")
+        .update({ order_id: orderId } as any)
+        .eq("session_token", savedToken)
+        .eq("table_id", tableId!);
+    }
+  }, [tableId]);
 
   if (tableLoading || checkingSession) {
     return (
@@ -359,9 +352,21 @@ export default function SelfServicePage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {view === "menu" ? (
-          <SelfServiceMenu tableId={tableId!} customerName={customerName} table={table} whatsappPhone={whatsappPhone} />
+          <SelfServiceMenu
+            tableId={tableId!}
+            customerName={customerName}
+            table={table}
+            whatsappPhone={whatsappPhone}
+            orderId={sessionOrderId}
+            onOrderCreated={handleOrderCreated}
+          />
         ) : (
-          <SelfServiceBill tableId={tableId!} customerName={customerName} onPaymentComplete={() => setShowThankYou(true)} />
+          <SelfServiceBill
+            tableId={tableId!}
+            customerName={customerName}
+            orderId={sessionOrderId}
+            onPaymentComplete={() => setShowThankYou(true)}
+          />
         )}
       </div>
     </div>
