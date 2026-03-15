@@ -14,6 +14,7 @@ import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
 import { useComandaLock } from "@/hooks/useComandaLock";
 import { Lock } from "lucide-react";
+import OrderSelector from "@/components/OrderSelector";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
