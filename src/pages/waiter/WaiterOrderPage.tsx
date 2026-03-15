@@ -12,6 +12,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
+import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import TableOpenDialog from "@/components/TableOpenDialog";
 
@@ -258,8 +259,7 @@ export default function WaiterOrderPage() {
       } as any);
       if (itemError) throw itemError;
 
-      const newTotal = [...orderItems, { price: unitPrice, quantity: 1 }].reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await recalculateOrderTotal(currentOrder.id);
       if (table?.status === "delivered") {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
@@ -295,8 +295,7 @@ export default function WaiterOrderPage() {
       await supabase.from("order_items").insert(orderItemRows as any);
 
       const addedTotal = previousOrder.items.reduce((s: number, i: any) => s + Number(i.price) * i.quantity, 0);
-      const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + addedTotal;
-      await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await recalculateOrderTotal(currentOrder.id);
       if (table?.status === "delivered") {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
@@ -331,8 +330,7 @@ export default function WaiterOrderPage() {
         );
       }
 
-      const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await recalculateOrderTotal(currentOrder.id);
       if (table?.status === "delivered") {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
@@ -446,9 +444,7 @@ export default function WaiterOrderPage() {
       } else {
         await supabase.from("order_items").update({ quantity: newQty }).eq("id", itemId);
       }
-      const remaining = orderItems.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i)).filter((i) => i.quantity > 0);
-      const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      await recalculateOrderTotal(order!.id);
     },
     onSuccess: () => {
       setConfirmDeleteId(null);
@@ -466,9 +462,7 @@ export default function WaiterOrderPage() {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
       }
       await supabase.from("order_items").delete().eq("id", itemId);
-      const remaining = orderItems.filter((i) => i.id !== itemId);
-      const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      await recalculateOrderTotal(order!.id);
       const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
       await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} ×${item.quantity}${sentLabel}`, order?.id, profile?.full_name);
     },

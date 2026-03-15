@@ -526,22 +526,15 @@ export default function TablesPage() {
   }, {});
 
   const sortedTables = useMemo(() => {
-    const activeStatuses = ["occupied", "delivered", "bill"];
     return [...tables].sort((a, b) => {
-      const aActive = activeStatuses.includes(a.status);
-      const bActive = activeStatuses.includes(b.status);
-      if (aActive && !bActive) return -1;
-      if (!aActive && bActive) return 1;
-      if (aActive && bActive) {
-        const aOrder = ordersByTable[a.id];
-        const bOrder = ordersByTable[b.id];
-        const aTime = aOrder ? new Date(aOrder.created_at).getTime() : 0;
-        const bTime = bOrder ? new Date(bOrder.created_at).getTime() : 0;
-        return aTime - bTime;
-      }
-      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+      if (sortDiff !== 0) return sortDiff;
+      return (a.internal_number || a.default_name || a.name).localeCompare(
+        b.internal_number || b.default_name || b.name,
+        "pt-BR"
+      );
     });
-  }, [tables, ordersByTable]);
+  }, [tables]);
 
   const filteredTables = useMemo(() => {
     if (!searchQuery.trim()) return sortedTables;

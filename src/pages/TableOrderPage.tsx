@@ -18,6 +18,7 @@ import { Lock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
+import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -443,10 +444,7 @@ export default function TableOrderPage() {
         );
       }
 
-      const newTotal = [...orderItems, { price: unitPrice, quantity }].reduce(
-        (s, i) => s + Number(i.price) * i.quantity, 0
-      );
-      await supabase.from("orders").update({ total: newTotal }).eq("id", currentOrder.id);
+      await recalculateOrderTotal(currentOrder.id);
 
       // If table is currently "delivered", reset to "occupied" since new items were added
       if (table?.status === "delivered") {
@@ -489,11 +487,7 @@ export default function TableOrderPage() {
           order?.id
         );
       }
-      const remaining = orderItems
-        .map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
-        .filter((i) => i.quantity > 0);
-      const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      await recalculateOrderTotal(order!.id);
     },
     onSuccess: () => {
       setConfirmDeleteId(null);
@@ -512,9 +506,7 @@ export default function TableOrderPage() {
 
       await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
       await supabase.from("order_items").delete().eq("id", itemId);
-      const remaining = orderItems.filter((i) => i.id !== itemId);
-      const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      await recalculateOrderTotal(order!.id);
       const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
       await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} (×${item.quantity})${sentLabel}`, order?.id);
     },
@@ -829,8 +821,7 @@ export default function TableOrderPage() {
         sent_to_kitchen: true,
       });
     }
-    const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + product.price * quantity;
-    await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
+    await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_added", `Venda rápida: ${product.name} ×${quantity} (R$ ${(product.price * quantity).toFixed(2)})`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
     queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
@@ -847,8 +838,7 @@ export default function TableOrderPage() {
 
     await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
     await supabase.from("order_items").delete().eq("id", item.id);
-    const newTotal = orderItems.filter((i) => i.id !== item.id).reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-    await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
+    await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_removed", `Removido (venda rápida): ${item.product_name}`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
     queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });

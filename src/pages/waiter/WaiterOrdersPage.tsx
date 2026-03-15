@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -32,17 +32,25 @@ export default function WaiterOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, restaurant_tables(name)")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
-        .order("created_at", { ascending: false });
+        .select("*, restaurant_tables(name, sort_order)")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
       if (error) throw error;
       return data;
     },
   });
 
+  const sortedOrders = useMemo(() => {
+    return [...orders].sort((a: any, b: any) => {
+      const aSort = (a as any)?.restaurant_tables?.sort_order ?? Number.MAX_SAFE_INTEGER;
+      const bSort = (b as any)?.restaurant_tables?.sort_order ?? Number.MAX_SAFE_INTEGER;
+      if (aSort !== bSort) return aSort - bSort;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [orders]);
+
   // Show all open orders but highlight waiter's own
-  const myOrders = orders.filter((o) => o.waiter_name === profile?.full_name);
-  const otherOrders = orders.filter((o) => o.waiter_name !== profile?.full_name);
+  const myOrders = sortedOrders.filter((o) => o.waiter_name === profile?.full_name);
+  const otherOrders = sortedOrders.filter((o) => o.waiter_name !== profile?.full_name);
 
   if (isLoading) {
     return <LoadingScreen />;
