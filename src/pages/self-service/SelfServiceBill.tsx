@@ -400,14 +400,23 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
             <span className="text-xl font-bold text-accent">R$ {total.toFixed(2)}</span>
           </div>
 
-          {/* PIX paid confirmation */}
+          {/* PIX paid — full-screen thank you */}
           {pixPaid && (
-            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4 flex flex-col items-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="h-8 w-8 text-green-500" />
-              <p className="text-sm font-semibold text-green-600">Pagamento Pix confirmado!</p>
-              <p className="text-xs text-muted-foreground text-center">
-                O comprovante está sendo impresso no caixa.
-              </p>
+            <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-6 animate-in fade-in">
+              <img src={coffeeLogo} alt="Coffee Thrones" className="h-32 object-contain drop-shadow-md mb-8" />
+              <h2 className="text-2xl font-display font-bold text-foreground text-center mb-2">
+                Obrigado pela preferência!
+              </h2>
+              <p className="text-lg text-muted-foreground text-center mb-10">Volte Sempre!</p>
+              <button
+                onClick={() => {
+                  localStorage.removeItem(`ss_session_${tableId}`);
+                  window.location.reload();
+                }}
+                className="rounded-md bg-accent text-accent-foreground px-8 py-3 text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                SAIR
+              </button>
             </div>
           )}
 
