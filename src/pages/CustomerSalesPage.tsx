@@ -410,6 +410,20 @@ export default function CustomerSalesPage() {
             {counterOrders.length}
           </span>
         </button>
+        <button
+          onClick={() => setActiveTab("autoatendimento")}
+          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+            activeTab === "autoatendimento"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Smartphone className="h-4 w-4" />
+          Autoatendimento
+          <span className="text-[10px] bg-accent/15 text-accent rounded-full px-1.5 py-0.5 font-bold">
+            {selfServiceOrders.length}
+          </span>
+        </button>
       </div>
 
       {/* Search */}
