@@ -79,15 +79,30 @@ export default function WaiterOrderPage() {
     enabled: !!tableId,
   });
 
-  const { data: order, isLoading: orderLoading } = useQuery({
-    queryKey: ["table_order", tableId],
+  const { data: tableOrders = [], isLoading: orderLoading } = useQuery({
+    queryKey: ["table_orders_all", tableId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await supabase.from("orders").select("*").eq("table_id", tableId!).in("status", ["open", "billing_in_progress", "paid_pending_finalization"]).order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!tableId,
   });
+
+  const order = useMemo(() => {
+    if (!tableOrders.length) return null;
+    if (selectedOrderId) {
+      const found = tableOrders.find((o) => o.id === selectedOrderId);
+      if (found) return found;
+    }
+    return tableOrders[0];
+  }, [tableOrders, selectedOrderId]);
+
+  useEffect(() => {
+    if (order && selectedOrderId !== order.id) {
+      setSelectedOrderId(order.id);
+    }
+  }, [order?.id]);
 
   const { data: orderItems = [] } = useQuery({
     queryKey: ["order_items", order?.id],
