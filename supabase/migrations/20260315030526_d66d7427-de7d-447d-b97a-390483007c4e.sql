@@ -1,0 +1,1 @@
+ALTER TABLE public.order_items REPLICA IDENTITY FULL;
