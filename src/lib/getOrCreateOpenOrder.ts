@@ -6,6 +6,7 @@ type GetOrCreateOpenOrderParams = {
   customerName?: string | null;
   whatsappPhone?: string | null;
   guests?: number;
+  location?: string | null;
 };
 
 export async function getOrCreateOpenOrder({
