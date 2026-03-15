@@ -19,6 +19,8 @@ const actionIcons: Record<string, typeof Clock> = {
   complement_added: Tag,
   discount_applied: MinusCircle,
   extra_charge: PlusCircle,
+  comanda_created: PlusCircle,
+  self_service_order: ShoppingCart,
 };
 
 const actionColors: Record<string, string> = {
