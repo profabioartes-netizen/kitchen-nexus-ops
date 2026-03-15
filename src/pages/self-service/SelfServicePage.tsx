@@ -28,6 +28,7 @@ export default function SelfServicePage() {
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
   const [pulseBill, setPulseBill] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
 
   const { data: table, isLoading: tableLoading } = useQuery({
     queryKey: ["self_service_table", tableId],
