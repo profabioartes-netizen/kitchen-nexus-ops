@@ -46,6 +46,18 @@ export default function SelfServicePage() {
     enabled: !!tableId,
   });
 
+  const { data: selfServiceEnabled, isLoading: loadingSelfServiceSetting } = useQuery({
+    queryKey: ["restaurant_setting", "self_service_enabled"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "self_service_enabled")
+        .single();
+      return data?.value ?? "true";
+    },
+  });
+
   // Check for existing valid session on mount (only reconnects the SAME customer via token)
   const tryAutoEnter = useCallback(async () => {
     if (!tableId) return;
