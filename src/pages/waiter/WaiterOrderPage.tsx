@@ -42,6 +42,7 @@ export default function WaiterOrderPage() {
   const [showShortcuts, setShowShortcuts] = useState(true);
   const autoCreatedRef = useRef(false);
   const [showOpenDialog, setShowOpenDialog] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Realtime: sync order data instantly
   useEffect(() => {
