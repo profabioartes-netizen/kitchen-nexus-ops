@@ -499,7 +499,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
                       {!useDynamicPix && (
                         <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                          Após o pagamento, informe ao restaurante para confirmação.
+                          Após o pagamento, informe à Cafeteria Coffee Thrones para confirmação.
                         </p>
                       )}
                     </>
