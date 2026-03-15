@@ -82,7 +82,10 @@ function buildBillHTML(job: any) {
     <div class="sep-double"></div>
     <div class="center total" style="margin:6px 0;"><b>TOTAL A PAGAR: R$ ${Number(p.total || subtotal).toFixed(2)}</b></div>
     <div class="sep-double"></div>
-    ${p.payment_method ? `<div>PAGAMENTO: ${methods[p.payment_method] || p.payment_method}</div>` : ""}
+    ${p.pix_confirmed ? `<div class="center bold" style="margin:6px 0; font-size:14px;">✅ PIX CONFIRMADO</div>
+    <div>PAGAMENTO: Pix (Mercado Pago)</div>
+    ${p.pix_payment_id ? `<div class="small">ID Pagamento: ${p.pix_payment_id}</div>` : ""}` :
+    (p.payment_method ? `<div>PAGAMENTO: ${methods[p.payment_method] || p.payment_method}</div>` : "")}
     ${p.change && Number(p.change) > 0 ? `<div>TROCO: R$ ${Number(p.change).toFixed(2)}</div>` : ""}
     <div class="sep"></div>
     <div class="center small">DOCUMENTO SEM VALOR FISCAL</div>
