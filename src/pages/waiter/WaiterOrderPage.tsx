@@ -870,6 +870,31 @@ export default function WaiterOrderPage() {
         </div>
       )}
 
+      {/* Confirm delete sent item */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30" onClick={() => setConfirmDeleteId(null)}>
+          <div className="w-full rounded-t-2xl border bg-background p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-3" />
+            <h3 className="text-sm font-semibold mb-1 text-destructive">⚠️ Item já enviado à cozinha</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Este item já foi enviado para preparo. Tem certeza que deseja removê-lo? Um ticket de cancelamento será impresso na cozinha.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 rounded-xl border py-3 text-sm font-semibold active:bg-secondary">
+                Cancelar
+              </button>
+              <button
+                onClick={() => removeItem.mutate(confirmDeleteId)}
+                disabled={removeItem.isPending}
+                className="flex-1 rounded-xl bg-destructive text-destructive-foreground py-3 text-sm font-semibold active:opacity-90 disabled:opacity-50"
+              >
+                {removeItem.isPending ? "Removendo..." : "Sim, remover"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Note modal */}
       {noteItemId && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30" onClick={() => setNoteItemId(null)}>
