@@ -462,9 +462,7 @@ export default function WaiterOrderPage() {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
       }
       await supabase.from("order_items").delete().eq("id", itemId);
-      const remaining = orderItems.filter((i) => i.id !== itemId);
-      const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
-      await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
+      await recalculateOrderTotal(order!.id);
       const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
       await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} ×${item.quantity}${sentLabel}`, order?.id, profile?.full_name);
     },
