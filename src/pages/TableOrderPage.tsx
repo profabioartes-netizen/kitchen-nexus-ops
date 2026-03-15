@@ -77,7 +77,7 @@ export default function TableOrderPage() {
   const [mergeConfirm, setMergeConfirm] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
-
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // Concurrency lock
   const { lockInfo, loading: lockLoading } = useComandaLock(
     tableId,
@@ -473,15 +473,11 @@ export default function TableOrderPage() {
       if (!item) return;
       const newQty = item.quantity + delta;
 
-      // Block removal of items already sent to kitchen
-      if (newQty <= 0 && item.sent_to_kitchen) {
-        throw new Error("SENT_ITEM");
-      }
-
       if (newQty <= 0) {
         await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
         await supabase.from("order_items").delete().eq("id", itemId);
-        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}`, order?.id);
+        const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
+        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}${sentLabel}`, order?.id);
       } else {
         await supabase.from("order_items").update({ quantity: newQty }).eq("id", itemId);
         await logActivity(
@@ -498,15 +494,11 @@ export default function TableOrderPage() {
       await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
     },
     onSuccess: () => {
+      setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       invalidateLog();
-    },
-    onError: (err) => {
-      if ((err as Error).message === "SENT_ITEM") {
-        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
-      }
     },
   });
 
@@ -514,33 +506,22 @@ export default function TableOrderPage() {
   const removeItem = useMutation({
     mutationFn: async (itemId: string) => {
       const item = orderItems.find((i) => i.id === itemId);
+      if (!item) return;
 
-      // Block removal of items already sent to kitchen
-      if (item?.sent_to_kitchen) {
-        throw new Error("SENT_ITEM");
-      }
-
-      if (item) {
-        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
-      }
+      await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
       await supabase.from("order_items").delete().eq("id", itemId);
       const remaining = orderItems.filter((i) => i.id !== itemId);
       const newTotal = remaining.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
       await supabase.from("orders").update({ total: newTotal }).eq("id", order!.id);
-      if (item) {
-        await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} (×${item.quantity})`, order?.id);
-      }
+      const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
+      await logActivity(tableId!, "item_removed", `Removido: ${item.product_name} (×${item.quantity})${sentLabel}`, order?.id);
     },
     onSuccess: () => {
+      setConfirmDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       invalidateLog();
-    },
-    onError: (err) => {
-      if ((err as Error).message === "SENT_ITEM") {
-        toast.error("Este item já foi enviado para a cozinha e não pode ser removido.");
-      }
     },
   });
 
@@ -1234,9 +1215,14 @@ export default function TableOrderPage() {
                     <StickyNote className="h-4 w-4 md:h-3.5 md:w-3.5 text-muted-foreground" />
                   </button>
                   <button
-                    onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
-                    disabled={item.sent_to_kitchen && remainingQty <= 1}
-                    className={`rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation ${item.sent_to_kitchen && remainingQty <= 1 ? "opacity-30 cursor-not-allowed" : ""}`}
+                    onClick={() => {
+                      if (item.sent_to_kitchen && remainingQty <= 1) {
+                        setConfirmDeleteId(item.id);
+                      } else {
+                        updateQty.mutate({ itemId: item.id, delta: -1 });
+                      }
+                    }}
+                    className="rounded p-1.5 md:p-1 hover:bg-secondary touch-manipulation"
                   >
                     <Minus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
@@ -1248,9 +1234,14 @@ export default function TableOrderPage() {
                     <Plus className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
                   <button
-                    onClick={() => removeItem.mutate(item.id)}
-                    disabled={item.sent_to_kitchen}
-                    className={`rounded p-1.5 md:p-1 hover:bg-destructive/10 text-destructive ml-0.5 touch-manipulation ${item.sent_to_kitchen ? "opacity-30 cursor-not-allowed" : ""}`}
+                    onClick={() => {
+                      if (item.sent_to_kitchen) {
+                        setConfirmDeleteId(item.id);
+                      } else {
+                        removeItem.mutate(item.id);
+                      }
+                    }}
+                    className={`rounded p-1.5 md:p-1 hover:bg-destructive/10 ml-0.5 touch-manipulation ${item.sent_to_kitchen ? "text-orange-500" : "text-destructive"}`}
                   >
                     <Trash2 className="h-4 w-4 md:h-3.5 md:w-3.5" />
                   </button>
@@ -1400,6 +1391,29 @@ export default function TableOrderPage() {
           </div>
           <div className="flex-1 overflow-auto">
             <ActivityTimeline tableId={tableId} />
+          </div>
+        </div>
+      )}
+      {/* Confirm delete sent item */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30" onClick={() => setConfirmDeleteId(null)}>
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold mb-1 text-destructive">⚠️ Item já enviado à cozinha</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Este item já foi enviado para preparo. Tem certeza que deseja removê-lo? Um ticket de cancelamento será impresso na cozinha.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmDeleteId(null)} className="flex-1 rounded-md border py-2 text-sm font-semibold hover:bg-secondary">
+                Cancelar
+              </button>
+              <button
+                onClick={() => removeItem.mutate(confirmDeleteId)}
+                disabled={removeItem.isPending}
+                className="flex-1 rounded-md bg-destructive text-destructive-foreground py-2 text-sm font-semibold hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {removeItem.isPending ? "Removendo..." : "Sim, remover"}
+              </button>
+            </div>
           </div>
         </div>
       )}
