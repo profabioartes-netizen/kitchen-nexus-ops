@@ -190,7 +190,12 @@ export default function WaiterTablesPage() {
                   <span className="font-semibold text-base truncate">
                     {order?.customer_name || (table as any).default_name || table.name}
                   </span>
-                  {(table as any).sector && (
+                  {(order as any)?.current_location && (
+                    <span className="text-[10px] bg-accent/15 text-accent rounded-full px-2 py-0.5 flex-shrink-0">
+                      📍 {(order as any).current_location}
+                    </span>
+                  )}
+                  {!(order as any)?.current_location && (table as any).sector && (
                     <span className="text-[10px] bg-secondary rounded-full px-2 py-0.5 text-muted-foreground flex-shrink-0">
                       📍 {(table as any).sector}
                     </span>
@@ -199,6 +204,11 @@ export default function WaiterTablesPage() {
                 <div className="flex items-center gap-3 mt-1">
                   {order?.customer_name && (
                     <span className="text-[10px] text-muted-foreground">{(table as any).default_name || table.name}</span>
+                  )}
+                  {(order as any)?.origin_location && (order as any)?.current_location !== (order as any)?.origin_location && (
+                    <span className="text-[10px] text-muted-foreground italic">
+                      origem: {(order as any).origin_location}
+                    </span>
                   )}
                   <span className="text-xs text-muted-foreground">{table.seats} lugares</span>
                   <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
