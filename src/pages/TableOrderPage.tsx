@@ -821,8 +821,7 @@ export default function TableOrderPage() {
         sent_to_kitchen: true,
       });
     }
-    const newTotal = orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0) + product.price * quantity;
-    await supabase.from("orders").update({ total: newTotal }).eq("id", order.id);
+    await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_added", `Venda rápida: ${product.name} ×${quantity} (R$ ${(product.price * quantity).toFixed(2)})`, order.id, profile?.full_name);
     queryClient.invalidateQueries({ queryKey: ["order_items", order.id] });
     queryClient.invalidateQueries({ queryKey: ["table_order", tableId] });
