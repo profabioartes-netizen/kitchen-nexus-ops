@@ -173,6 +173,7 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
 
           // Record payment in DB
           if (order) {
+            // Record payment in DB
             await supabase.from("payments").insert({
               order_id: order.id,
               method: "pix",
@@ -189,12 +190,6 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
               status: "finalized",
               total,
             }).eq("id", order.id);
-
-            // Free the table since payment is complete
-            await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
-
-            // Clear self-service session
-            await supabase.from("self_service_sessions").delete().eq("table_id", tableId);
 
             // Get table info for print
             const { data: tableData } = await supabase
@@ -248,6 +243,10 @@ export default function SelfServiceBill({ tableId, customerName }: Props) {
             queryClient.invalidateQueries({ queryKey: ["self_service_order", tableId] });
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+
+            // Free table and clear session LAST — this triggers realtime auto-logout
+            await supabase.from("self_service_sessions").delete().eq("table_id", tableId);
+            await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
           }
         }
       } catch (e) {
