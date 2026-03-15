@@ -15,7 +15,8 @@ export default function SelfServicePage() {
   const [whatsappPhone, setWhatsappPhone] = useState("");
   const [whatsappError, setWhatsappError] = useState("");
   const [entered, setEntered] = useState(false);
-  // Track the order_id linked to this session (each customer gets their own)
+  // Track DB self-service session identity + linked order
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
   const formatWhatsapp = (digits: string) => {
