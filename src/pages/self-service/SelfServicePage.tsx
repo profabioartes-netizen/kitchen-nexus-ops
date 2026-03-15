@@ -364,7 +364,7 @@ export default function SelfServicePage() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem(`ss_session_${tableId}`);
+              sessionStorage.removeItem(`ss_session_${tableId}`);
               window.location.reload();
             }}
             className="px-3 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
