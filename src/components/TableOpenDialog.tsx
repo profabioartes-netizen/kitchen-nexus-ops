@@ -27,18 +27,36 @@ export default function TableOpenDialog({
   const [customerName, setCustomerName] = useState("");
   const [guests, setGuests] = useState(1);
   const [notes, setNotes] = useState("");
+  const [location, setLocation] = useState("");
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ["location_list"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "location_list")
+        .single();
+      if (data?.value) {
+        try { return JSON.parse(data.value) as string[]; } catch { return []; }
+      }
+      return [];
+    },
+  });
 
   const handleConfirm = () => {
-    onConfirm({ customerName: customerName.trim(), guests, notes: notes.trim() });
+    onConfirm({ customerName: customerName.trim(), guests, notes: notes.trim(), location: location || "" });
     setCustomerName("");
     setGuests(1);
     setNotes("");
+    setLocation("");
   };
 
   const handleCancel = () => {
     setCustomerName("");
     setGuests(1);
     setNotes("");
+    setLocation("");
     onCancel();
   };
 
