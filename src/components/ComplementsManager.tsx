@@ -164,6 +164,61 @@ export function ComplementsManager() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const duplicateComplement = useMutation({
+    mutationFn: async ({ comp, groupId }: { comp: any; groupId: string }) => {
+      const group = groups.find((g) => g.id === groupId);
+      const maxOrder = (group?.complements || []).reduce(
+        (max: number, c: any) => Math.max(max, c.sort_order ?? 0),
+        -1
+      );
+      const { error } = await supabase.from("complements").insert({
+        group_id: groupId,
+        name: `${comp.name} (cópia)`,
+        price: Number(comp.price),
+        sort_order: maxOrder + 1,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+      toast.success("Complemento duplicado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const duplicateGroup = useMutation({
+    mutationFn: async (group: any) => {
+      const { data: newGroup, error: gErr } = await supabase
+        .from("complement_groups")
+        .insert({
+          name: `${group.name} (cópia)`,
+          min_select: group.min_select,
+          max_select: group.max_select,
+          required: group.required,
+        })
+        .select()
+        .single();
+      if (gErr) throw gErr;
+      const comps = group.complements || [];
+      if (comps.length > 0) {
+        const { error: cErr } = await supabase.from("complements").insert(
+          comps.map((c: any, i: number) => ({
+            group_id: newGroup.id,
+            name: c.name,
+            price: Number(c.price),
+            sort_order: i,
+          })) as any
+        );
+        if (cErr) throw cErr;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["complement_groups"] });
+      toast.success("Grupo duplicado!");
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const reorderMutation = useMutation({
     mutationFn: async (items: { id: string; sort_order: number }[]) => {
       for (const item of items) {
