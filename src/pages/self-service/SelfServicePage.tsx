@@ -13,7 +13,18 @@ export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
   const [customerName, setCustomerName] = useState("");
   const [whatsappPhone, setWhatsappPhone] = useState("");
+  const [whatsappError, setWhatsappError] = useState("");
   const [entered, setEntered] = useState(false);
+
+  const formatWhatsapp = (digits: string) => {
+    const d = digits.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 2) return d;
+    if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  };
+
+  const rawWhatsapp = whatsappPhone.replace(/\D/g, "");
+  const isWhatsappValid = rawWhatsapp.length === 11 && rawWhatsapp[2] === "9";
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
 
@@ -103,7 +114,7 @@ export default function SelfServicePage() {
   }, [tryAutoEnter]);
 
   const handleEnter = async () => {
-    if (!customerName.trim() || !whatsappPhone.trim() || !tableId) return;
+    if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
 
     // Create session
@@ -184,17 +195,30 @@ export default function SelfServicePage() {
                 </label>
                 <input
                   type="tel"
-                  value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value.replace(/[^0-9]/g, ""))}
-                  onKeyDown={(e) => e.key === "Enter" && handleEnter()}
-                  placeholder="(00) 00000-0000"
-                  maxLength={11}
-                  className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  value={formatWhatsapp(whatsappPhone)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    setWhatsappPhone(digits);
+                    if (digits.length === 11 && digits[2] !== "9") {
+                      setWhatsappError("O número deve começar com 9 após o DDD");
+                    } else if (digits.length > 0 && digits.length < 11) {
+                      setWhatsappError("Digite DDD + 9 + número (11 dígitos)");
+                    } else {
+                      setWhatsappError("");
+                    }
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && isWhatsappValid && handleEnter()}
+                  placeholder="(00) 90000-0000"
+                  maxLength={15}
+                  className={`w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring ${whatsappError ? "border-destructive" : ""}`}
                 />
+                {whatsappError && rawWhatsapp.length > 0 && (
+                  <p className="text-[11px] text-destructive mt-1">{whatsappError}</p>
+                )}
               </div>
               <button
                 onClick={handleEnter}
-                disabled={!customerName.trim() || !whatsappPhone.trim()}
+                disabled={!customerName.trim() || !isWhatsappValid}
                 className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Acessar Cardápio
