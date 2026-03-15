@@ -808,9 +808,14 @@ export default function WaiterOrderPage() {
                     <div key={item.id} className={`flex items-center gap-2 rounded-xl border bg-background p-2.5 ${isSent ? "border-accent/30" : ""}`}>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <button
-                          onClick={() => updateQty.mutate({ itemId: item.id, delta: -1 })}
-                          disabled={isSent && item.quantity <= 1}
-                          className={`rounded-xl border p-2.5 active:bg-secondary ${isSent && item.quantity <= 1 ? "opacity-30 cursor-not-allowed" : ""}`}
+                          onClick={() => {
+                            if (isSent && item.quantity <= 1) {
+                              setConfirmDeleteId(item.id);
+                            } else {
+                              updateQty.mutate({ itemId: item.id, delta: -1 });
+                            }
+                          }}
+                          className="rounded-xl border p-2.5 active:bg-secondary"
                         >
                           <Minus className="h-4 w-4" />
                         </button>
