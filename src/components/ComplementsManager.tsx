@@ -54,9 +54,9 @@ export function ComplementsManager() {
       // Sort complements by sort_order within each group
       return data.map((g: any) => ({
         ...g,
-        complements: [...(g.complements || [])].sort(
-          (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
-        ),
+        complements: [...(g.complements || [])]
+          .filter((c: any) => c.active !== false)
+          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
       }));
     },
   });
