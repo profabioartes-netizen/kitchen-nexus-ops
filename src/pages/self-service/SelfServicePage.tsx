@@ -103,7 +103,7 @@ export default function SelfServicePage() {
   }, [tryAutoEnter]);
 
   const handleEnter = async () => {
-    if (!customerName.trim() || !tableId) return;
+    if (!customerName.trim() || !whatsappPhone.trim() || !tableId) return;
     const name = customerName.trim();
 
     // Create session
