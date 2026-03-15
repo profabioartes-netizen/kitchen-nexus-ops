@@ -566,6 +566,23 @@ export default function TablesPage() {
     });
   }, [sortedTables, ordersByTable, searchQuery]);
 
+  // Deterministic visual label: occupied tables keep their name, free tables get sequential "Comanda N"
+  const visualLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    let seq = 1;
+    for (const t of filteredTables) {
+      const order = ordersByTable[t.id];
+      if (order) {
+        // Occupied: use sequential number too (they come first)
+        labels[t.id] = `Comanda ${seq}`;
+      } else {
+        labels[t.id] = `Comanda ${seq}`;
+      }
+      seq++;
+    }
+    return labels;
+  }, [filteredTables, ordersByTable]);
+
   const tablesWithPositions = filteredTables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
     if (hasPosition) return t;
