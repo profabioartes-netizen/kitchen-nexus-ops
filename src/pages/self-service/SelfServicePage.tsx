@@ -12,6 +12,7 @@ const SESSION_DURATION_MINUTES = 90;
 export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
   const [customerName, setCustomerName] = useState("");
+  const [whatsappPhone, setWhatsappPhone] = useState("");
   const [entered, setEntered] = useState(false);
   const [view, setView] = useState<"menu" | "bill">("menu");
   const [checkingSession, setCheckingSession] = useState(true);
