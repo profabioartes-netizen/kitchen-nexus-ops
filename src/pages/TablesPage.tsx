@@ -138,7 +138,7 @@ export default function TablesPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*, order_items!inner(id)")
-        .not("status", "in", '("closed","finished","finalized")')
+        .not("status", "in", '("closed","finished","finalized","canceled")')
         .order("created_at", { ascending: false });
       if (error) throw error;
 
