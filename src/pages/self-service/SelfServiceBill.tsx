@@ -173,102 +173,23 @@ export default function SelfServiceBill({ tableId, customerName, orderId, onPaym
           if (pollingRef.current) clearInterval(pollingRef.current);
           toast.success("Pagamento Pix confirmado! ✅");
 
-          // Redirect immediately to thank-you screen
+          // Server-side (edge function) already handles: payment recording,
+          // order finalization, table freeing, print job, and activity log.
+          // Client just needs to clean up session and redirect.
+
           onPaymentComplete?.();
           localStorage.setItem(`ss_pix_paid_${tableId}`, "1");
 
-          // Record payment in DB (background)
-          if (order) {
-            await supabase.from("payments").insert({
-              order_id: order.id,
-              method: "pix",
-              amount: total,
-            });
-
-            // Mark items as paid
-            for (const item of items) {
-              await supabase.from("order_items").update({ paid_quantity: item.quantity }).eq("id", item.id);
-            }
-
-            // Update order status
-            await supabase.from("orders").update({
-              status: "finalized",
-              total,
-            }).eq("id", order.id);
-
-            // Get table info for print
-            const { data: tableData } = await supabase
-              .from("restaurant_tables")
-              .select("*")
-              .eq("id", tableId)
-              .single();
-
-            // Get complements for print
-            const complementsByItem: Record<string, string[]> = {};
-            for (const item of items) {
-              const comps = (item as any).order_item_complements || [];
-              if (comps.length > 0) {
-                complementsByItem[item.id] = comps.map((c: any) => c.complement_name);
-              }
-            }
-
-            // Print PIX confirmation receipt to Caixa
-            await supabase.from("print_jobs").insert({
-              station: "Caixa",
-              status: "pending",
-              payload: {
-                type: "bill",
-                table_name: tableData?.name || "—",
-                mesa_name: tableData?.default_name || null,
-                mesa_sector: tableData?.sector || null,
-                customer_name: order.customer_name || customerName || null,
-                waiter_name: "Auto-atendimento",
-                order_id: order.id,
-                pix_confirmed: true,
-                pix_payment_id: String(mpPaymentId),
-                items: items.map((i) => ({
-                  product_name: i.product_name,
-                  quantity: i.quantity,
-                  price: Number(i.price),
-                  complements: complementsByItem[i.id] || [],
-                })),
-                total,
-              },
-            });
-
-            // Log activity
-            await supabase.from("table_activity_log").insert({
-              table_id: tableId,
-              order_id: order.id,
-              action: "pix_payment_confirmed",
-              description: `Pagamento Pix confirmado via Mercado Pago — R$ ${total.toFixed(2)}`,
-              user_name: customerName || "Cliente",
-            });
-
-            queryClient.invalidateQueries({ queryKey: ["self_service_order", orderId] });
-            queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-            queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-
-            // Delete only THIS customer's session, free table only if no other open orders remain
-            const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
-            if (savedToken) {
-              await supabase.from("self_service_sessions").delete().eq("session_token", savedToken);
-              sessionStorage.removeItem(`ss_session_${tableId}`);
-            }
-
-            // Check if other open orders remain on this table
-            const { data: remainingOrders } = await supabase
-              .from("orders")
-              .select("id")
-              .eq("table_id", tableId)
-              .in("status", ["open", "bill_requested", "delivered"])
-              .limit(1);
-
-            if (!remainingOrders || remainingOrders.length === 0) {
-              // No more open orders → free the table
-              await supabase.from("restaurant_tables").update({ status: "free" }).eq("id", tableId);
-            }
+          // Clean up self-service session
+          const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
+          if (savedToken) {
+            await supabase.from("self_service_sessions").delete().eq("session_token", savedToken);
+            sessionStorage.removeItem(`ss_session_${tableId}`);
           }
+
+          queryClient.invalidateQueries({ queryKey: ["self_service_order", orderId] });
+          queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+          queryClient.invalidateQueries({ queryKey: ["open_orders"] });
         }
       } catch (e) {
         console.error("Error checking PIX payment:", e);
