@@ -68,7 +68,7 @@ export default function WaiterTablesPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*, order_items!inner(id)")
-        .not("status", "in", '("closed","finished")')
+        .not("status", "in", '("closed","finished","finalized")')
         .order("created_at", { ascending: false });
       if (error) throw error;
 
