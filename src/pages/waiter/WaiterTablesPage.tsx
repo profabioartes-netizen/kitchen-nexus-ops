@@ -156,39 +156,14 @@ export default function WaiterTablesPage() {
     });
   }, [tables, occupiedTableIds, ordersByTable]);
 
-  // Deterministic visual labels: occupied keep their comanda number; free fill missing numbers in order
+  // Simple sequential labels: Comanda 1, 2, 3... based on sorted position
   const visualLabels = useMemo(() => {
     const labels: Record<string, string> = {};
-    const usedNumbers = new Set<number>();
-
-    const reserveNumber = (preferred: number | null) => {
-      if (preferred && preferred > 0 && !usedNumbers.has(preferred)) {
-        usedNumbers.add(preferred);
-        return preferred;
-      }
-      let fallback = 1;
-      while (usedNumbers.has(fallback)) fallback += 1;
-      usedNumbers.add(fallback);
-      return fallback;
-    };
-
-    for (const table of sortedTables) {
-      if (!occupiedTableIds.has(table.id)) continue;
-      const occupiedNumber = getComandaNumberFromTable(table);
-      labels[table.id] = `Comanda ${reserveNumber(occupiedNumber)}`;
-    }
-
-    let nextFree = 1;
-    for (const table of sortedTables) {
-      if (occupiedTableIds.has(table.id)) continue;
-      while (usedNumbers.has(nextFree)) nextFree += 1;
-      labels[table.id] = `Comanda ${nextFree}`;
-      usedNumbers.add(nextFree);
-      nextFree += 1;
-    }
-
+    sortedTables.forEach((table, i) => {
+      labels[table.id] = `Comanda ${i + 1}`;
+    });
     return labels;
-  }, [sortedTables, occupiedTableIds]);
+  }, [sortedTables]);
 
   if (isLoading) {
     return <LoadingScreen />;
