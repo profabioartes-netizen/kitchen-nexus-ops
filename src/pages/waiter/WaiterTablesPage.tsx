@@ -23,17 +23,6 @@ const statusColors: Record<TableStatus, string> = {
   delivered: "border-l-[#16a34a] bg-[#16a34a/0.06]",
 };
 
-const getComandaNumberFromTable = (table: any): number | null => {
-  const sources = [table?.default_name, table?.name];
-  for (const source of sources) {
-    if (!source) continue;
-    const match = String(source).match(/(\d+)/);
-    if (!match) continue;
-    const value = Number.parseInt(match[1], 10);
-    if (Number.isFinite(value) && value > 0) return value;
-  }
-  return null;
-};
 
 export default function WaiterTablesPage() {
   const navigate = useNavigate();
