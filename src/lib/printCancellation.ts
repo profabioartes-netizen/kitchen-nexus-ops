@@ -35,6 +35,7 @@ export async function printCancellationIfNeeded({
       table_name: table?.name || "—",
       mesa_name: table?.default_name || null,
       mesa_sector: table?.sector || null,
+      location: (order as any)?.current_location || (order as any)?.origin_location || table?.name || null,
       customer_name: order?.customer_name || null,
       waiter_name: waiterName || order?.waiter_name || null,
       order_id: order?.id || null,
