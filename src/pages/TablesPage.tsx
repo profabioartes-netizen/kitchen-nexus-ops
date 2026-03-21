@@ -583,9 +583,29 @@ export default function TablesPage() {
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
       const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
-      return customerMatch || tableNameMatch || waiterMatch;
+      // Search across ALL orders on this table (multiple self-service customers)
+      const allOrders = allOrdersByTable[t.id] || [];
+      const internalCustomerMatch = allOrders.some((o) => o.customer_name?.toLowerCase().includes(q));
+      return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch;
     });
-  }, [sortedTables, ordersByTable, searchQuery]);
+  }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery]);
+
+  // Map of matched internal customer names per table (for "Contém: X" label)
+  const searchMatchedCustomers = useMemo(() => {
+    if (!searchQuery.trim()) return {};
+    const q = searchQuery.toLowerCase().trim();
+    const map: Record<string, string[]> = {};
+    for (const t of filteredTables) {
+      const primaryOrder = ordersByTable[t.id];
+      const allOrders = allOrdersByTable[t.id] || [];
+      const matchedNames = allOrders
+        .filter((o) => o.customer_name?.toLowerCase().includes(q) && o.id !== primaryOrder?.id)
+        .map((o) => o.customer_name!)
+        .filter(Boolean);
+      if (matchedNames.length > 0) map[t.id] = matchedNames;
+    }
+    return map;
+  }, [filteredTables, ordersByTable, allOrdersByTable, searchQuery]);
 
   // Deterministic visual label: occupied tables keep their name, free tables get sequential "Comanda N"
   const visualLabels = useMemo(() => {
