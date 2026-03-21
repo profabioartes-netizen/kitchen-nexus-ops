@@ -109,6 +109,16 @@ export default function TableManagementPage() {
     },
   });
 
+  const toggleSelfService = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
+      const { error } = await supabase.from("restaurant_tables").update({ self_service_enabled: enabled } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
+    },
+  });
+
   const reorder = useMutation({
     mutationFn: async ({ id, direction }: { id: string; direction: "up" | "down" }) => {
       const idx = tables.findIndex((t) => t.id === id);

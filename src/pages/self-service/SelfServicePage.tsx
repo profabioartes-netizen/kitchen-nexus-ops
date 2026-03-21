@@ -237,6 +237,22 @@ export default function SelfServicePage() {
     );
   }
 
+  // Per-table self-service guard (isolated check, no existing logic modified)
+  if ((table as any).self_service_enabled === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="text-center space-y-3">
+          <UtensilsCrossed className="h-12 w-12 mx-auto text-muted-foreground" />
+          <h1 className="text-lg font-semibold text-foreground">Autoatendimento indisponível</h1>
+          <p className="text-sm text-muted-foreground">
+            O autoatendimento está temporariamente indisponível nesta mesa.<br />
+            Por favor, aguarde um atendente.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!entered) {
     return (
       <div className="h-screen overflow-hidden flex items-center justify-center bg-background p-4">
