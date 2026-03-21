@@ -353,12 +353,17 @@ function buildProductionTicket(job) {
     cmd.text(""),
   ];
 
-  // Customer name (bold header) + Mesa/sector location
-  const customerName = p.customer_name || p.table_name || null;
-  if (customerName && customerName !== "—") {
+  // Mesa/location (bold) — use location field, fallback to table_name
+  const locationName = p.location || p.table || p.table_name || null;
+  if (locationName && locationName !== "—") {
     parts.push(cmd.bold(true));
-    parts.push(cmd.text(upperPt(customerName)));
+    parts.push(cmd.text("MESA: " + upperPt(locationName)));
     parts.push(cmd.bold(false));
+  }
+  // Customer name
+  const customerName = p.customer_name || p.customerName || null;
+  if (customerName) {
+    parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
   if (p.mesa_sector) {
     parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));

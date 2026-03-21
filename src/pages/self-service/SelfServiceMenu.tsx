@@ -171,7 +171,9 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
             payload: {
               type: "production",
               table: table.name || "Mesa",
+              location: table.internal_number || table.name || "Mesa",
               customerName,
+              customer_name: customerName,
               items,
               selfService: true,
             },

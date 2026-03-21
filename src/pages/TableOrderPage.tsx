@@ -874,6 +874,7 @@ export default function TableOrderPage() {
               table_name: table?.name || "—",
               mesa_name: table?.default_name || null,
               mesa_sector: table?.sector || null,
+              location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.name || null,
               customer_name: order.customer_name || null,
               waiter_name: order.waiter_name || null,
               order_id: order.id,
