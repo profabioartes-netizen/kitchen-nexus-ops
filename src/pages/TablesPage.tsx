@@ -525,12 +525,23 @@ export default function TablesPage() {
     setDraggingId(null);
   }, [draggingId, dragPos, didDrag, updatePosition]);
 
-  const ordersByTable = [...openOrders]
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const sortedOpenOrders = [...openOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const ordersByTable = sortedOpenOrders
     .reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
       if (o.table_id && !acc[o.table_id]) acc[o.table_id] = o;
       return acc;
     }, {});
+  // All orders grouped by table (for search across all customers)
+  const allOrdersByTable = useMemo(() => {
+    const map: Record<string, typeof openOrders> = {};
+    for (const o of sortedOpenOrders) {
+      if (o.table_id) {
+        if (!map[o.table_id]) map[o.table_id] = [];
+        map[o.table_id].push(o);
+      }
+    }
+    return map;
+  }, [openOrders]);
   const occupied = Object.keys(ordersByTable).length;
   const free = Math.max(0, tables.length - occupied);
 
@@ -572,9 +583,29 @@ export default function TablesPage() {
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
       const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
-      return customerMatch || tableNameMatch || waiterMatch;
+      // Search across ALL orders on this table (multiple self-service customers)
+      const allOrders = allOrdersByTable[t.id] || [];
+      const internalCustomerMatch = allOrders.some((o) => o.customer_name?.toLowerCase().includes(q));
+      return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch;
     });
-  }, [sortedTables, ordersByTable, searchQuery]);
+  }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery]);
+
+  // Map of matched internal customer names per table (for "Contém: X" label)
+  const searchMatchedCustomers = useMemo(() => {
+    if (!searchQuery.trim()) return {};
+    const q = searchQuery.toLowerCase().trim();
+    const map: Record<string, string[]> = {};
+    for (const t of filteredTables) {
+      const primaryOrder = ordersByTable[t.id];
+      const allOrders = allOrdersByTable[t.id] || [];
+      const matchedNames = allOrders
+        .filter((o) => o.customer_name?.toLowerCase().includes(q) && o.id !== primaryOrder?.id)
+        .map((o) => o.customer_name!)
+        .filter(Boolean);
+      if (matchedNames.length > 0) map[t.id] = matchedNames;
+    }
+    return map;
+  }, [filteredTables, ordersByTable, allOrdersByTable, searchQuery]);
 
   // Deterministic visual label: occupied tables keep their name, free tables get sequential "Comanda N"
   const visualLabels = useMemo(() => {
@@ -944,6 +975,13 @@ export default function TablesPage() {
                 >
                   {statusLabels[effectiveStatus]}
                 </span>
+
+                {/* "Contém: Cliente X" indicator when search matches an internal customer */}
+                {searchMatchedCustomers[table.id] && (
+                  <p className="text-[9px] text-accent font-medium mt-1 truncate">
+                    Contém: {searchMatchedCustomers[table.id].join(", ")}
+                  </p>
+                )}
 
 {/* Order details */}
                 {order && (
