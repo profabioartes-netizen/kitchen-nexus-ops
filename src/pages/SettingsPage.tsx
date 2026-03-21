@@ -306,6 +306,8 @@ export default function SettingsPage() {
               />
             </div>
           )}
+
+          {isSelfServiceOn && <PerTableSelfServiceControl />}
         </CardContent>
       </Card>
 
