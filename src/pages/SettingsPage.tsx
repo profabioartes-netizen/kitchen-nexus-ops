@@ -201,10 +201,11 @@ function PerTableSelfServiceControl() {
     queryFn: async () => {
       const { data } = await supabase
         .from("restaurant_tables")
-        .select("id, name, self_service_enabled")
+        .select("id, name, internal_number, self_service_enabled")
         .eq("active", true)
+        .not("internal_number", "is", null)
         .order("sort_order", { ascending: true });
-      return data ?? [];
+      return (data ?? []).filter((t) => t.internal_number && t.internal_number.trim() !== "");
     },
   });
 
@@ -246,7 +247,7 @@ function PerTableSelfServiceControl() {
       <div className="space-y-2">
         {tables.map((table) => (
           <div key={table.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-            <span className="text-sm">{table.name}</span>
+            <span className="text-sm">{table.internal_number || table.name}</span>
             <Switch
               checked={table.self_service_enabled}
               onCheckedChange={(checked) =>
