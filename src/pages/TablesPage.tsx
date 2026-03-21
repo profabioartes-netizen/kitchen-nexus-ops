@@ -976,6 +976,13 @@ export default function TablesPage() {
                   {statusLabels[effectiveStatus]}
                 </span>
 
+                {/* "Contém: Cliente X" indicator when search matches an internal customer */}
+                {searchMatchedCustomers[table.id] && (
+                  <p className="text-[9px] text-accent font-medium mt-1 truncate">
+                    Contém: {searchMatchedCustomers[table.id].join(", ")}
+                  </p>
+                )}
+
 {/* Order details */}
                 {order && (
                   <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
