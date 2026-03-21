@@ -201,10 +201,11 @@ function PerTableSelfServiceControl() {
     queryFn: async () => {
       const { data } = await supabase
         .from("restaurant_tables")
-        .select("id, name, self_service_enabled")
+        .select("id, name, internal_number, self_service_enabled")
         .eq("active", true)
+        .not("internal_number", "is", null)
         .order("sort_order", { ascending: true });
-      return data ?? [];
+      return (data ?? []).filter((t) => t.internal_number && t.internal_number.trim() !== "");
     },
   });
 
