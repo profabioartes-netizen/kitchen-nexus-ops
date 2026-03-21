@@ -262,6 +262,7 @@ function PerTableSelfServiceControl() {
 }
 
 
+export default function SettingsPage() {
   const navigate = useNavigate();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
