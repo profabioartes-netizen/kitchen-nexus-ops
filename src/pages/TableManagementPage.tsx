@@ -239,6 +239,16 @@ export default function TableManagementPage() {
                     {table.active ? "Ativa" : "Inativa"}
                   </button>
                 </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={() => toggleSelfService.mutate({ id: table.id, enabled: !(table as any).self_service_enabled })}
+                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ${
+                      (table as any).self_service_enabled !== false ? "bg-status-free/10 text-status-free" : "bg-destructive/10 text-destructive"
+                    }`}
+                  >
+                    {(table as any).self_service_enabled !== false ? "Sim" : "Não"}
+                  </button>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => setQrTable({ id: table.id, name: table.name })} className="rounded p-1 hover:bg-secondary" title="QR Code">
