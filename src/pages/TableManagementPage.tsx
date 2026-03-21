@@ -109,6 +109,16 @@ export default function TableManagementPage() {
     },
   });
 
+  const toggleSelfService = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
+      const { error } = await supabase.from("restaurant_tables").update({ self_service_enabled: enabled } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
+    },
+  });
+
   const reorder = useMutation({
     mutationFn: async ({ id, direction }: { id: string; direction: "up" | "down" }) => {
       const idx = tables.findIndex((t) => t.id === id);
@@ -193,6 +203,7 @@ export default function TableManagementPage() {
               <th className="text-center px-4 py-2 font-medium">Setor</th>
               <th className="text-center px-4 py-2 font-medium">Lugares</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
+              <th className="text-center px-4 py-2 font-medium">Auto-atend.</th>
               <th className="px-4 py-2 w-32"></th>
             </tr>
           </thead>
@@ -236,6 +247,16 @@ export default function TableManagementPage() {
                     }`}
                   >
                     {table.active ? "Ativa" : "Inativa"}
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={() => toggleSelfService.mutate({ id: table.id, enabled: !(table as any).self_service_enabled })}
+                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ${
+                      (table as any).self_service_enabled !== false ? "bg-status-free/10 text-status-free" : "bg-destructive/10 text-destructive"
+                    }`}
+                  >
+                    {(table as any).self_service_enabled !== false ? "Sim" : "Não"}
                   </button>
                 </td>
                 <td className="px-4 py-3">

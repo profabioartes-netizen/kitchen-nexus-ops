@@ -643,6 +643,7 @@ export type Database = {
           position_y: number | null
           seats: number
           sector: string | null
+          self_service_enabled: boolean
           sort_order: number | null
           status: string
           updated_at: string
@@ -658,6 +659,7 @@ export type Database = {
           position_y?: number | null
           seats?: number
           sector?: string | null
+          self_service_enabled?: boolean
           sort_order?: number | null
           status?: string
           updated_at?: string
@@ -673,6 +675,7 @@ export type Database = {
           position_y?: number | null
           seats?: number
           sector?: string | null
+          self_service_enabled?: boolean
           sort_order?: number | null
           status?: string
           updated_at?: string

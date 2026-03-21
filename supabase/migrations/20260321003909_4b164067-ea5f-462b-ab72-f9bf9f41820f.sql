@@ -1,0 +1,1 @@
+ALTER TABLE public.restaurant_tables ADD COLUMN self_service_enabled boolean NOT NULL DEFAULT true;
