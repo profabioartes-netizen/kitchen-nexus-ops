@@ -247,7 +247,7 @@ function PerTableSelfServiceControl() {
       <div className="space-y-2">
         {tables.map((table) => (
           <div key={table.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-            <span className="text-sm">{table.name}</span>
+            <span className="text-sm">{table.internal_number || table.name}</span>
             <Switch
               checked={table.self_service_enabled}
               onCheckedChange={(checked) =>
