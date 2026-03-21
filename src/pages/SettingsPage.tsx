@@ -193,7 +193,75 @@ function MercadoPagoCard({ upsert }: { upsert: ReturnType<typeof useUpsertSettin
   );
 }
 
-export default function SettingsPage() {
+function PerTableSelfServiceControl() {
+  const queryClient = useQueryClient();
+
+  const { data: tables, isLoading } = useQuery({
+    queryKey: ["restaurant_tables_self_service"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_tables")
+        .select("id, name, self_service_enabled")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      return data ?? [];
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ self_service_enabled: enabled })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_self_service"] });
+    },
+    onError: () => toast.error("Erro ao atualizar mesa"),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-4 border-t">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!tables || tables.length === 0) return null;
+
+  return (
+    <div className="pt-3 border-t space-y-3">
+      <div className="space-y-1">
+        <p className="text-sm font-medium flex items-center gap-2">
+          <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
+          Controle por mesa
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Ative ou desative o autoatendimento individualmente para cada mesa.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {tables.map((table) => (
+          <div key={table.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+            <span className="text-sm">{table.name}</span>
+            <Switch
+              checked={table.self_service_enabled}
+              onCheckedChange={(checked) =>
+                toggleMutation.mutate({ id: table.id, enabled: checked })
+              }
+              disabled={toggleMutation.isPending}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
   const navigate = useNavigate();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
