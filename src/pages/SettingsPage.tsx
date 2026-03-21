@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Settings, Loader2, Save, Eye, EyeOff, CreditCard, AlertCircle, CheckCircle2, Lock, ArrowLeft, QrCode } from "lucide-react";
+import { Settings, Loader2, Save, Eye, EyeOff, CreditCard, AlertCircle, CheckCircle2, Lock, ArrowLeft, QrCode, UtensilsCrossed } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 
 const ADMIN_PIN = "9135";
