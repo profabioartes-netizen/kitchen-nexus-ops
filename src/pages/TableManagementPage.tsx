@@ -193,6 +193,7 @@ export default function TableManagementPage() {
               <th className="text-center px-4 py-2 font-medium">Setor</th>
               <th className="text-center px-4 py-2 font-medium">Lugares</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
+              <th className="text-center px-4 py-2 font-medium">Auto-atend.</th>
               <th className="px-4 py-2 w-32"></th>
             </tr>
           </thead>
