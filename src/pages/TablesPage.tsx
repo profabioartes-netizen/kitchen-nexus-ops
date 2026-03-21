@@ -525,12 +525,23 @@ export default function TablesPage() {
     setDraggingId(null);
   }, [draggingId, dragPos, didDrag, updatePosition]);
 
-  const ordersByTable = [...openOrders]
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const sortedOpenOrders = [...openOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const ordersByTable = sortedOpenOrders
     .reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
       if (o.table_id && !acc[o.table_id]) acc[o.table_id] = o;
       return acc;
     }, {});
+  // All orders grouped by table (for search across all customers)
+  const allOrdersByTable = useMemo(() => {
+    const map: Record<string, typeof openOrders> = {};
+    for (const o of sortedOpenOrders) {
+      if (o.table_id) {
+        if (!map[o.table_id]) map[o.table_id] = [];
+        map[o.table_id].push(o);
+      }
+    }
+    return map;
+  }, [openOrders]);
   const occupied = Object.keys(ordersByTable).length;
   const free = Math.max(0, tables.length - occupied);
 
