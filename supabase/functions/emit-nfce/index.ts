@@ -72,6 +72,7 @@ serve(async (req) => {
     const nfcePayload: Record<string, unknown> = {
       natureza_operacao: "Venda",
       forma_pagamento: "0",
+      data_emissao: new Date().toISOString(),
       modalidade_frete: 9,
       local_destino: 1,
       consumidor_final: 1,
