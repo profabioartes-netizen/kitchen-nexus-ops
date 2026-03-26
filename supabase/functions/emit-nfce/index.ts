@@ -170,12 +170,16 @@ serve(async (req) => {
       });
     }
 
-    // Success — update record
+    // Success — update record with DANFE URL (construct fallback from reference)
+    const danfeUrl = focusData.caminho_danfe
+      || focusData.url_danfe
+      || `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(reference)}.html`;
+
     await supabase.from("nfce_records")
       .update({
         status: "emitida",
         chave_acesso: focusData.chave_nfe || focusData.chave || null,
-        url_danfe: focusData.caminho_danfe || focusData.url_danfe || null,
+        url_danfe: danfeUrl,
         raw_response: focusData,
         updated_at: new Date().toISOString(),
       })
