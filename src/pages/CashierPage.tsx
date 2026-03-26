@@ -353,6 +353,14 @@ export default function CashierPage() {
               {payMutation.isPending ? "Processando..." : `Finalizar — ${methodLabels[selectedMethod]}`}
             </button>
           )}
+
+          {/* NFC-e fiscal module — isolated */}
+          {lastFinalizedOrderId && (
+            <NfceStatus
+              orderId={lastFinalizedOrderId}
+              onClose={() => setLastFinalizedOrderId(null)}
+            />
+          )}
         </div>
       </div>
     </div>
