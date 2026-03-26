@@ -120,7 +120,8 @@ export default function CashierPage() {
 
       return newOrder;
     },
-    onSuccess: () => {
+    onSuccess: (newOrder) => {
+      setLastFinalizedOrderId(newOrder.id);
       setOrder([]);
       setSelectedMethod(null);
       setCashGiven("");
