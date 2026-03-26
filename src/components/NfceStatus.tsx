@@ -49,10 +49,16 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
     },
   });
 
+  const getDanfeUrl = () => {
+    if (nfce?.url_danfe) return nfce.url_danfe;
+    if (nfce?.reference) return `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(nfce.reference)}.html`;
+    return null;
+  };
+
   const handlePrint = () => {
-    if (nfce?.url_danfe) {
-      window.open(nfce.url_danfe, "_blank");
-    }
+    const url = getDanfeUrl();
+    if (url) window.open(url, "_blank");
+    else toast.error("URL da DANFE não disponível.");
   };
 
   if (isLoading) {
@@ -96,15 +102,13 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
             <CheckCircle className="h-4 w-4" />
             Nota emitida
           </div>
-          {nfce.url_danfe && (
-            <button
-              onClick={handlePrint}
-              className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir Nota
-            </button>
-          )}
+          <button
+            onClick={handlePrint}
+            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir DANFE
+          </button>
         </>
       )}
 
