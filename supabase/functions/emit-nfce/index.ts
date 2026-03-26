@@ -143,8 +143,17 @@ serve(async (req) => {
     const focusData = await focusRes.json();
     console.log("Focus NFe response:", JSON.stringify(focusData));
 
-    if (!focusRes.ok || focusData.erros || focusData.codigo === "erro_validacao") {
-      const errorMsg = focusData.mensagem
+    const isError = !focusRes.ok
+      || focusData.erros
+      || focusData.codigo === "erro_validacao"
+      || focusData.codigo === "erro_validacao_schema"
+      || focusData.status === "erro_autorizacao"
+      || focusData.status === "erro_assinatura"
+      || (focusData.status_sefaz && focusData.status_sefaz !== "100");
+
+    if (isError) {
+      const errorMsg = focusData.mensagem_sefaz
+        || focusData.mensagem
         || (focusData.erros ? JSON.stringify(focusData.erros) : "Erro ao emitir NFC-e");
 
       await supabase.from("nfce_records")
