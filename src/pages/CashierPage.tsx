@@ -22,6 +22,7 @@ export default function CashierPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"credit" | "debit" | "cash" | "pix" | null>(null);
   const [cashGiven, setCashGiven] = useState("");
+  const [lastFinalizedOrderId, setLastFinalizedOrderId] = useState<string | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
