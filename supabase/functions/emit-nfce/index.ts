@@ -87,10 +87,14 @@ serve(async (req) => {
       cep_emitente: "35557000",
       municipio_emitente: "Carmo do Cajuru",
       uf_emitente: "MG",
-      items: (items || []).map((item, idx) => ({
+      items: (items || []).filter(item => {
+        const price = Number(item.price);
+        const qty = Number(item.quantity);
+        return item.product_name && price > 0 && qty > 0;
+      }).map((item, idx) => ({
         numero_item: idx + 1,
         codigo_produto: item.product_id,
-        descricao: item.product_name,
+        descricao: item.product_name.substring(0, 120),
         cfop: "5102",
         unidade_comercial: "UN",
         quantidade_comercial: item.quantity,
