@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone, Printer } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import NfceStatus from "@/components/NfceStatus";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ export default function CashierPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"credit" | "debit" | "cash" | "pix" | null>(null);
   const [cashGiven, setCashGiven] = useState("");
+  const [lastFinalizedOrderId, setLastFinalizedOrderId] = useState<string | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -118,7 +120,8 @@ export default function CashierPage() {
 
       return newOrder;
     },
-    onSuccess: () => {
+    onSuccess: (newOrder) => {
+      setLastFinalizedOrderId(newOrder.id);
       setOrder([]);
       setSelectedMethod(null);
       setCashGiven("");
@@ -349,6 +352,14 @@ export default function CashierPage() {
             >
               {payMutation.isPending ? "Processando..." : `Finalizar — ${methodLabels[selectedMethod]}`}
             </button>
+          )}
+
+          {/* NFC-e fiscal module — isolated */}
+          {lastFinalizedOrderId && (
+            <NfceStatus
+              orderId={lastFinalizedOrderId}
+              onClose={() => setLastFinalizedOrderId(null)}
+            />
           )}
         </div>
       </div>
