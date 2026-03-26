@@ -102,15 +102,13 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
             <CheckCircle className="h-4 w-4" />
             Nota emitida
           </div>
-          {nfce.url_danfe && (
-            <button
-              onClick={handlePrint}
-              className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir Nota
-            </button>
-          )}
+          <button
+            onClick={handlePrint}
+            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir DANFE
+          </button>
         </>
       )}
 
