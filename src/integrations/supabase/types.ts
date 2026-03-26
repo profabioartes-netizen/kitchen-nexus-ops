@@ -215,6 +215,45 @@ export type Database = {
           },
         ]
       }
+      nfce_records: {
+        Row: {
+          chave_acesso: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          order_id: string
+          raw_response: Json | null
+          reference: string
+          status: string
+          updated_at: string
+          url_danfe: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          order_id: string
+          raw_response?: Json | null
+          reference: string
+          status?: string
+          updated_at?: string
+          url_danfe?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          order_id?: string
+          raw_response?: Json | null
+          reference?: string
+          status?: string
+          updated_at?: string
+          url_danfe?: string | null
+        }
+        Relationships: []
+      }
       order_item_complements: {
         Row: {
           complement_id: string
