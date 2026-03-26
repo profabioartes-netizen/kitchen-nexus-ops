@@ -87,7 +87,32 @@ serve(async (req) => {
       cep_emitente: "35557000",
       municipio_emitente: "Carmo do Cajuru",
       uf_emitente: "MG",
-      items: (items || []).map((item, idx) => ({
+      items: (items || []).filter(item => {
+        const price = Number(item.price);
+        const qty = Number(item.quantity);
+        return item.product_name && price > 0 && qty > 0;
+      }).map((item, idx) => ({
+        numero_item: idx + 1,
+        codigo_produto: item.product_id,
+        descricao: item.product_name.substring(0, 120),
+        cfop: "5102",
+        unidade_comercial: "UN",
+        quantidade_comercial: item.quantity,
+        valor_unitario_comercial: Number(item.price).toFixed(2),
+        valor_bruto: (Number(item.price) * item.quantity).toFixed(2),
+        unidade_tributavel: "UN",
+        codigo_ncm: "21069090",
+        quantidade_tributavel: item.quantity,
+        valor_unitario_tributavel: Number(item.price).toFixed(2),
+        origem: "0",
+        icms_situacao_tributaria: "102",
+        pis_situacao_tributaria: "99",
+        pis_aliquota_porcentual: "0.00",
+        pis_base_calculo: "0.00",
+        cofins_situacao_tributaria: "99",
+        cofins_aliquota_porcentual: "0.00",
+        cofins_base_calculo: "0.00",
+      })),
         numero_item: idx + 1,
         codigo_produto: item.product_id,
         descricao: item.product_name,
