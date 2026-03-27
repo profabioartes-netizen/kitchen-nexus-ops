@@ -11,8 +11,14 @@ function buildNfcePayload(
   items: { product_id: string; product_name: string; quantity: number; price: number }[],
   paymentMethod: string,
 ) {
-  // Focus NFe: use UTC time directly, API handles timezone
-  const dataEmissao = new Date().toISOString().replace("Z", "-0300");
+  // Focus NFe: datetime in Brasília timezone (UTC-3), no timezone suffix
+  // Examples from docs: "2018-03-21T11:00:00"
+  const utcNow = Date.now();
+  const brtMs = utcNow - 3 * 3600000;
+  const brt = new Date(brtMs);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const dataEmissao = `${brt.getUTCFullYear()}-${pad(brt.getUTCMonth() + 1)}-${pad(brt.getUTCDate())}T${pad(brt.getUTCHours())}:${pad(brt.getUTCMinutes())}:${pad(brt.getUTCSeconds())}`;
+  console.log("data_emissao gerada:", dataEmissao, "| UTC now:", new Date(utcNow).toISOString());
 
   // Payment method mapping
   const paymentTypeMap: Record<string, string> = {
