@@ -11,6 +11,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line,
 } from "recharts";
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
+import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,46 +51,54 @@ export default function ReportsPage() {
   const [channel, setChannel] = useState<Channel>("all");
   const [productSort, setProductSort] = useState<SortMode>("revenue");
 
+  const { goLiveAt, isLoading: loadingGoLive } = useGoLiveDate();
+
   // ── Data fetching ──
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ["report_orders"],
+    queryKey: ["report_orders", goLiveAt],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders")
         .select("id, status, created_at, total, customer_name, whatsapp_phone, table_id, waiter_name")
         .eq("status", "finalized")
         .order("created_at", { ascending: true });
+      if (goLiveAt) q = q.gte("created_at", goLiveAt);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
-    enabled: unlocked,
+    enabled: unlocked && !loadingGoLive,
   });
 
   const { data: payments = [], isLoading: loadingPayments } = useQuery({
-    queryKey: ["payments_report"],
+    queryKey: ["payments_report", goLiveAt],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("payments")
         .select("*, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id)")
         .eq("orders.status", "finalized")
         .order("created_at", { ascending: true });
+      if (goLiveAt) q = q.gte("orders.created_at", goLiveAt);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
-    enabled: unlocked,
+    enabled: unlocked && !loadingGoLive,
   });
 
   const { data: orderItems = [], isLoading: loadingItems } = useQuery({
-    queryKey: ["order_items_report"],
+    queryKey: ["order_items_report", goLiveAt],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("order_items")
         .select("product_name, price, quantity, order_id, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id), product_id, products(category_id, categories(name))")
         .eq("orders.status", "finalized");
+      if (goLiveAt) q = q.gte("orders.created_at", goLiveAt);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
-    enabled: unlocked,
+    enabled: unlocked && !loadingGoLive,
   });
 
   const isLoading = loadingPayments || loadingItems || loadingOrders;
