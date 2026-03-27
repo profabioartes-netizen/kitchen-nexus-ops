@@ -487,33 +487,33 @@ export default function PaymentPanel({
     const canAdd = item.remainingQty - inPayment;
     return (
       <tr key={item.id} className="border-b border-border/50">
-        <td className="py-3">
+        <td className="py-2">
           {onUpdateItemQty ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => onUpdateItemQty(item.id, -1)} className="rounded p-0.5 hover:bg-secondary text-destructive"><Minus className="h-3.5 w-3.5" /></button>
-              <span className="text-sm font-bold w-6 text-center tabular-nums">
+              <button onClick={() => onUpdateItemQty(item.id, -1)} className="rounded p-0.5 hover:bg-secondary text-destructive"><Minus className="h-3 w-3" /></button>
+              <span className="text-xs font-bold w-6 text-center tabular-nums">
                 {item.remainingQty < item.quantity ? item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0) : item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}
               </span>
-              <button onClick={() => onUpdateItemQty(item.id, 1)} className="rounded p-0.5 hover:bg-secondary text-accent"><Plus className="h-3.5 w-3.5" /></button>
+              <button onClick={() => onUpdateItemQty(item.id, 1)} className="rounded p-0.5 hover:bg-secondary text-accent"><Plus className="h-3 w-3" /></button>
             </div>
           ) : (
-            <span className="text-sm tabular-nums">
+            <span className="text-xs tabular-nums">
               {item.remainingQty < item.quantity ? item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0) : item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}
             </span>
           )}
         </td>
-        <td className="py-3">
-          <span className="text-sm font-medium">{item.product_name}</span>
+        <td className="py-2">
+          <span className="text-xs font-medium">{item.product_name}</span>
           {itemComplements.filter(c => c.order_item_id === item.id).map(c => (
             <p key={c.id} className="text-[10px] text-muted-foreground">+ {c.complement_name}</p>
           ))}
         </td>
-        <td className="py-3 text-sm font-semibold text-right tabular-nums">R$ {(Number(item.price) * item.remainingQty).toFixed(2)}</td>
-        <td className="py-3 pl-3">
-          <div className="flex items-center gap-1.5 justify-end">
-            <button onClick={() => { setSplitItemDialog(item); setSplitMode("quantity"); setSplitQtyDivisor(2); }} disabled={canAdd <= 0} className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-[hsl(var(--status-reserved))] text-white hover:opacity-90 disabled:opacity-30 transition-opacity">DIVIDIR</button>
-            <button onClick={() => addItemToPayment(item.id, 1)} disabled={canAdd <= 0} className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">ADICIONAR 1</button>
-            <button onClick={() => addItemToPayment(item.id, canAdd)} disabled={canAdd <= 0} className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">ADICIONAR TODOS</button>
+        <td className="py-2 text-xs font-semibold text-right tabular-nums">R$ {(Number(item.price) * item.remainingQty).toFixed(2)}</td>
+        <td className="py-2 pl-2">
+          <div className="flex items-center gap-1 justify-end">
+            <button onClick={() => { setSplitItemDialog(item); setSplitMode("quantity"); setSplitQtyDivisor(2); }} disabled={canAdd <= 0} className="rounded px-2 py-1 text-[10px] font-bold bg-[hsl(var(--status-reserved))] text-white hover:opacity-90 disabled:opacity-30 transition-opacity">DIVIDIR</button>
+            <button onClick={() => addItemToPayment(item.id, 1)} disabled={canAdd <= 0} className="rounded px-2 py-1 text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">+1</button>
+            <button onClick={() => addItemToPayment(item.id, canAdd)} disabled={canAdd <= 0} className="rounded px-2 py-1 text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">TODOS</button>
           </div>
         </td>
       </tr>
@@ -522,14 +522,14 @@ export default function PaymentPanel({
 
   const renderPaymentMethodAndAmount = () => (
     <>
-      <div className={`grid ${isMobile ? "grid-cols-4" : "grid-cols-1"} gap-2 mb-4`}>
+      <div className={`grid ${isMobile ? "grid-cols-4" : "grid-cols-1"} gap-1.5 mb-3`}>
         {METHODS.map((method) => (
           <button
             key={method}
             onClick={() => setSelectedMethod(method)}
-            className={`w-full rounded-md py-3 text-sm font-bold transition-all touch-manipulation ${
+            className={`w-full rounded-md py-2 text-xs font-bold transition-all touch-manipulation ${
               selectedMethod === method
-                ? `${methodColors[method]} ring-2 ring-ring ring-offset-2 ring-offset-card`
+                ? `${methodColors[method]} ring-2 ring-ring ring-offset-1 ring-offset-card`
                 : `${methodColors[method]} opacity-70 hover:opacity-100`
             }`}
           >
@@ -537,9 +537,9 @@ export default function PaymentPanel({
           </button>
         ))}
       </div>
-      <div className="space-y-3 flex-1">
+      <div className="space-y-2 flex-1">
         <div>
-          <label className="text-xs text-muted-foreground">Valor a pagar</label>
+          <label className="text-[11px] text-muted-foreground">Valor a pagar</label>
           <input
             type="text"
             inputMode="decimal"
@@ -550,12 +550,12 @@ export default function PaymentPanel({
               const formatted = (cents / 100).toFixed(2).replace(".", ",");
               setCustomAmount(formatted);
             }}
-            className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
+            className="w-full mt-0.5 rounded-md border bg-background px-3 py-2 text-base text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
           />
         </div>
         {selectedMethod === "cash" && (
           <div>
-            <label className="text-xs text-muted-foreground">Troco para</label>
+            <label className="text-[11px] text-muted-foreground">Troco para</label>
             <input
               type="text"
               inputMode="decimal"
@@ -567,20 +567,20 @@ export default function PaymentPanel({
                 setCashGiven(formatted);
               }}
               placeholder="0,00"
-              className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
+              className="w-full mt-0.5 rounded-md border bg-background px-3 py-2 text-base text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
             />
             {cashChange > 0 && (
-              <div className="mt-2 rounded-md bg-accent/15 border border-accent/30 p-2.5 text-center">
-                <p className="text-xs text-accent uppercase tracking-wider font-semibold">Troco</p>
-                <p className="text-xl font-bold text-accent tabular-nums">R$ {cashChange.toFixed(2).replace(".", ",")}</p>
+              <div className="mt-1.5 rounded-md bg-accent/15 border border-accent/30 p-2 text-center">
+                <p className="text-[10px] text-accent uppercase tracking-wider font-semibold">Troco</p>
+                <p className="text-lg font-bold text-accent tabular-nums">R$ {cashChange.toFixed(2).replace(".", ",")}</p>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-1.5 mt-2">
+            <div className="grid grid-cols-3 gap-1 mt-1.5">
               {[10, 20, 50, 100, 200].filter(v => v >= amountToPay).slice(0, 3).map((val) => (
                 <button
                   key={val}
                   onClick={() => setCashGiven(String(val))}
-                  className="rounded border bg-background py-2 text-xs font-medium hover:bg-secondary transition-colors touch-manipulation"
+                  className="rounded border bg-background py-1.5 text-[11px] font-medium hover:bg-secondary transition-colors touch-manipulation"
                 >
                   R$ {val}
                 </button>
@@ -592,7 +592,7 @@ export default function PaymentPanel({
       <button
         onClick={addPayment}
         disabled={isPending || amountToPay <= 0 || amountToPay > remaining + 0.01}
-        className="w-full rounded-md bg-[hsl(var(--status-free))] text-white py-3.5 font-bold text-sm hover:opacity-90 disabled:opacity-40 transition-opacity mt-4 touch-manipulation"
+        className="w-full rounded-md bg-[hsl(var(--status-free))] text-white py-2.5 font-bold text-xs hover:opacity-90 disabled:opacity-40 transition-opacity mt-3 touch-manipulation"
       >
         ADICIONAR
       </button>
@@ -603,8 +603,8 @@ export default function PaymentPanel({
 
   const renderSummaryContent = () => (
     <>
-      <div className="text-center mb-3">
-        <p className="text-2xl font-bold tabular-nums">R$ {amountToPay.toFixed(2)}</p>
+      <div className="text-center mb-2">
+        <p className="text-xl font-bold tabular-nums">R$ {amountToPay.toFixed(2)}</p>
       </div>
       {hasSummaryItems ? (
         <div className="space-y-1">
@@ -693,36 +693,36 @@ export default function PaymentPanel({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-3 md:px-6 py-3">
-        <div className="flex items-center gap-2 md:gap-3">
-          <button onClick={onCancel} className="rounded-md border p-2 hover:bg-secondary transition-colors touch-manipulation">
-            <ArrowLeft className="h-5 w-5" />
+      <div className="flex items-center justify-between border-b px-3 md:px-5 py-1.5">
+        <div className="flex items-center gap-2">
+          <button onClick={onCancel} className="rounded-md border p-1.5 hover:bg-secondary transition-colors touch-manipulation">
+            <ArrowLeft className="h-4 w-4" />
           </button>
           <div>
-            <h1 className="text-base md:text-lg font-semibold">Fechamento de Conta</h1>
-            <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs text-muted-foreground flex-wrap">
+            <h1 className="text-sm md:text-base font-semibold leading-tight">Fechamento de Conta</h1>
+            <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-[11px] text-muted-foreground">
               <span>{orderItems.length} itens</span>
               <span>R$ {total.toFixed(2)}</span>
               {paidTotal > 0 && <span className="text-accent">Pago: R$ {paidTotal.toFixed(2)}</span>}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-xl md:text-2xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
-          <button onClick={onCancel} className="rounded-md p-2 hover:bg-secondary"><X className="h-5 w-5" /></button>
+        <div className="flex items-center gap-2">
+          <span className="text-lg md:text-xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
+          <button onClick={onCancel} className="rounded-md p-1.5 hover:bg-secondary"><X className="h-4 w-4" /></button>
         </div>
       </div>
 
       {/* Top action bar */}
-      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 border-b bg-card overflow-x-auto">
-        <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
-        <button onClick={() => { setSplitAllDivisor(2); setSplitAllStep("count"); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
-        <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
+      <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 border-b bg-card overflow-x-auto flex-shrink-0">
+        <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
+        <button onClick={() => { setSplitAllDivisor(2); setSplitAllStep("count"); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
+        <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+          <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
           {!isMobile && (
             <>
-              <button onClick={() => setExtraCharge(extraCharge > 0 ? 0 : 5)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors ${extraCharge > 0 ? "bg-accent text-accent-foreground" : "border hover:bg-secondary"}`}>ACRÉSCIMO</button>
-              <button onClick={() => onToggleServiceFee(!serviceFeeEnabled)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors ${serviceFeeEnabled ? "bg-[hsl(var(--status-reserved))] text-white" : "border hover:bg-secondary"}`}>T. SERVIÇO</button>
+              <button onClick={() => setExtraCharge(extraCharge > 0 ? 0 : 5)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${extraCharge > 0 ? "bg-accent text-accent-foreground" : "border hover:bg-secondary"}`}>ACRÉSCIMO</button>
+              <button onClick={() => onToggleServiceFee(!serviceFeeEnabled)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${serviceFeeEnabled ? "bg-[hsl(var(--status-reserved))] text-white" : "border hover:bg-secondary"}`}>T. SERVIÇO</button>
             </>
           )}
         </div>
@@ -730,7 +730,7 @@ export default function PaymentPanel({
 
       {/* Adjustment inputs (shown conditionally) */}
       {(discountValue > 0 || extraCharge > 0) && (
-        <div className="flex items-center gap-4 px-3 md:px-6 py-2 border-b bg-muted/50 text-sm flex-wrap">
+        <div className="flex items-center gap-3 px-3 md:px-5 py-1.5 border-b bg-muted/50 text-xs flex-wrap flex-shrink-0">
           {discountValue > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Desconto:</span>
@@ -822,32 +822,32 @@ export default function PaymentPanel({
         </>
       ) : (
         /* DESKTOP: 3-column layout */
-        <div className="flex-1 flex flex-row overflow-hidden">
+        <div className="flex-1 flex flex-row overflow-hidden min-h-0">
           {/* LEFT: Items list */}
-          <div className="flex-1 overflow-auto p-4 border-r">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do Pedido</h2>
+          <div className="flex-1 overflow-auto p-3 border-r">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Itens do Pedido</h2>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="text-xs text-muted-foreground border-b">
-                  <th className="text-left py-2 font-medium w-14">Qtd.</th>
-                  <th className="text-left py-2 font-medium">Item</th>
-                  <th className="text-right py-2 font-medium">Valor</th>
-                  <th className="py-2 w-64"></th>
+                <tr className="text-[11px] text-muted-foreground border-b">
+                  <th className="text-left py-1.5 font-medium w-14">Qtd.</th>
+                  <th className="text-left py-1.5 font-medium">Item</th>
+                  <th className="text-right py-1.5 font-medium">Valor</th>
+                  <th className="py-1.5 w-64"></th>
                 </tr>
               </thead>
               <tbody>
                 {unpaidItems.map(renderItemsTable)}
                 {unpaidItems.length === 0 && (
-                  <tr><td colSpan={4} className="py-8 text-center text-sm text-muted-foreground">Todos os itens foram pagos</td></tr>
+                  <tr><td colSpan={4} className="py-6 text-center text-sm text-muted-foreground">Todos os itens foram pagos</td></tr>
                 )}
               </tbody>
             </table>
             {onAddQuickItem && quickSaleProducts.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-border/50">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5"><Zap className="h-3 w-3" /> Venda Rápida</h3>
-                <div className="space-y-1.5">
+              <div className="mt-3 pt-2 border-t border-border/50">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5"><Zap className="h-3 w-3" /> Venda Rápida</h3>
+                <div className="space-y-1">
                   {quickSaleProducts.map((p) => {
                     const added = orderItems.find((i) => i.product_id === p.id);
                     return <QuickSaleRow key={p.id} product={p} onAdd={onAddQuickItem} onRemove={onRemoveQuickItem} addedQty={added ? added.quantity : 0} />;
@@ -856,10 +856,10 @@ export default function PaymentPanel({
               </div>
             )}
             {orderItems.some((i) => (i.paid_quantity ?? 0) > 0) && (
-              <div className="mt-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Itens pagos 🔒</h3>
+              <div className="mt-3">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Itens pagos 🔒</h3>
                 {orderItems.filter((i) => (i.paid_quantity ?? 0) > 0).map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm py-1.5 text-muted-foreground opacity-60">
+                  <div key={item.id} className="flex justify-between text-xs py-1 text-muted-foreground opacity-60">
                     <span className="line-through">{item.paid_quantity}× {item.product_name}</span>
                     <span>R$ {(Number(item.price) * (item.paid_quantity ?? 0)).toFixed(2)}</span>
                   </div>
@@ -869,21 +869,21 @@ export default function PaymentPanel({
           </div>
 
           {/* CENTER: Summary */}
-          <div className="w-80 flex flex-col border-r overflow-auto">
-            <div className="p-4 flex-1">{renderSummaryContent()}</div>
+          <div className="w-72 flex flex-col border-r overflow-auto">
+            <div className="p-3 flex-1">{renderSummaryContent()}</div>
           </div>
 
           {/* RIGHT: Payment */}
-          <div className="w-64 flex flex-col bg-card p-4">
+          <div className="w-60 flex flex-col bg-card p-3">
             {renderPaymentMethodAndAmount()}
           </div>
         </div>
       )}
 
       {/* Bottom bar — always visible */}
-      <div className="border-t flex items-center justify-between px-3 md:px-6 py-3 bg-card gap-2 flex-shrink-0">
-        <button onClick={onCancel} className="rounded-md bg-destructive/15 text-destructive px-4 md:px-6 py-2.5 text-xs md:text-sm font-bold hover:bg-destructive/25 transition-colors touch-manipulation">VOLTAR</button>
-        <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm">
+      <div className="border-t flex items-center justify-between px-3 md:px-5 py-2 bg-card gap-2 flex-shrink-0">
+        <button onClick={onCancel} className="rounded-md bg-destructive/15 text-destructive px-4 md:px-5 py-2 text-[11px] md:text-xs font-bold hover:bg-destructive/25 transition-colors touch-manipulation">VOLTAR</button>
+        <div className="flex items-center gap-2 md:gap-3 text-[11px] md:text-xs">
           {paidTotal > 0 && (
             <span className="text-muted-foreground">Pago: <span className="font-bold text-accent">R$ {paidTotal.toFixed(2)}</span></span>
           )}
@@ -893,12 +893,12 @@ export default function PaymentPanel({
           <button
             onClick={handleFinalize}
             disabled={isPending}
-            className="rounded-md bg-accent text-accent-foreground px-6 py-2.5 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 touch-manipulation animate-pulse"
+            className="rounded-md bg-accent text-accent-foreground px-5 py-2 text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 touch-manipulation animate-pulse"
           >
-            {isPending ? "Finalizando..." : (<><Check className="h-5 w-5" />FINALIZAR</>)}
+            {isPending ? "Finalizando..." : (<><Check className="h-4 w-4" />FINALIZAR</>)}
           </button>
         ) : !isMobile && payments.length > 0 ? (
-          <button className="rounded-md border bg-card px-6 py-2.5 text-sm font-bold hover:bg-secondary transition-colors">PAGAMENTOS ({payments.length})</button>
+          <button className="rounded-md border bg-card px-5 py-2 text-xs font-bold hover:bg-secondary transition-colors">PAGAMENTOS ({payments.length})</button>
         ) : null}
       </div>
 
