@@ -59,7 +59,7 @@ function buildNfcePayload(
       quantidade_tributavel: qty.toFixed(4),
       valor_unitario_tributavel: unitPrice.toFixed(2),
       codigo_ncm: "21069090",
-      origem: "0",
+      icms_origem: "0",
       icms_situacao_tributaria: "102",
       pis_situacao_tributaria: "99",
       pis_aliquota_porcentual: "0.00",
