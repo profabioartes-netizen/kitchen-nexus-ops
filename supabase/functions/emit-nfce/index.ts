@@ -11,13 +11,8 @@ function buildNfcePayload(
   items: { product_id: string; product_name: string; quantity: number; price: number }[],
   paymentMethod: string,
 ) {
-  // Focus NFe expects ISO with timezone offset for NFC-e
-  // Brasília = UTC-3
-  const now = new Date();
-  const brasiliaOffset = -3 * 60; // minutes
-  const local = new Date(now.getTime() + (brasiliaOffset + now.getTimezoneOffset()) * 60000);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const dataEmissao = `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}:${pad(local.getSeconds())}-03:00`;
+  // Use current UTC time in ISO format — Focus NFe handles conversion
+  const dataEmissao = new Date().toISOString();
 
   // Payment method mapping
   const paymentTypeMap: Record<string, string> = {
