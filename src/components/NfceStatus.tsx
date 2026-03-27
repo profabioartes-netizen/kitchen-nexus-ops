@@ -26,6 +26,8 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
     },
     refetchInterval: (query) => {
       const d = query.state.data;
+      // Keep polling while pending OR while no record yet (auto-emit may be in progress)
+      if (!d) return 2000;
       return d?.status === "pending" ? 3000 : false;
     },
   });
