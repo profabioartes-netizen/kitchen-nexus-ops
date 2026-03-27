@@ -21,7 +21,7 @@ export default function UsersPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "waiter">("waiter");
+  const [role, setRole] = useState<"admin" | "waiter" | "contabilidade">("waiter");
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
