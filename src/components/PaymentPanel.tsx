@@ -487,33 +487,33 @@ export default function PaymentPanel({
     const canAdd = item.remainingQty - inPayment;
     return (
       <tr key={item.id} className="border-b border-border/50">
-        <td className="py-3">
+        <td className="py-2">
           {onUpdateItemQty ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => onUpdateItemQty(item.id, -1)} className="rounded p-0.5 hover:bg-secondary text-destructive"><Minus className="h-3.5 w-3.5" /></button>
-              <span className="text-sm font-bold w-6 text-center tabular-nums">
+              <button onClick={() => onUpdateItemQty(item.id, -1)} className="rounded p-0.5 hover:bg-secondary text-destructive"><Minus className="h-3 w-3" /></button>
+              <span className="text-xs font-bold w-6 text-center tabular-nums">
                 {item.remainingQty < item.quantity ? item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0) : item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}
               </span>
-              <button onClick={() => onUpdateItemQty(item.id, 1)} className="rounded p-0.5 hover:bg-secondary text-accent"><Plus className="h-3.5 w-3.5" /></button>
+              <button onClick={() => onUpdateItemQty(item.id, 1)} className="rounded p-0.5 hover:bg-secondary text-accent"><Plus className="h-3 w-3" /></button>
             </div>
           ) : (
-            <span className="text-sm tabular-nums">
+            <span className="text-xs tabular-nums">
               {item.remainingQty < item.quantity ? item.remainingQty.toFixed(item.remainingQty % 1 ? 2 : 0) : item.quantity.toFixed(item.quantity % 1 ? 2 : 0)}
             </span>
           )}
         </td>
-        <td className="py-3">
-          <span className="text-sm font-medium">{item.product_name}</span>
+        <td className="py-2">
+          <span className="text-xs font-medium">{item.product_name}</span>
           {itemComplements.filter(c => c.order_item_id === item.id).map(c => (
             <p key={c.id} className="text-[10px] text-muted-foreground">+ {c.complement_name}</p>
           ))}
         </td>
-        <td className="py-3 text-sm font-semibold text-right tabular-nums">R$ {(Number(item.price) * item.remainingQty).toFixed(2)}</td>
-        <td className="py-3 pl-3">
-          <div className="flex items-center gap-1.5 justify-end">
-            <button onClick={() => { setSplitItemDialog(item); setSplitMode("quantity"); setSplitQtyDivisor(2); }} disabled={canAdd <= 0} className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-[hsl(var(--status-reserved))] text-white hover:opacity-90 disabled:opacity-30 transition-opacity">DIVIDIR</button>
-            <button onClick={() => addItemToPayment(item.id, 1)} disabled={canAdd <= 0} className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">ADICIONAR 1</button>
-            <button onClick={() => addItemToPayment(item.id, canAdd)} disabled={canAdd <= 0} className="rounded px-2.5 py-1.5 text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">ADICIONAR TODOS</button>
+        <td className="py-2 text-xs font-semibold text-right tabular-nums">R$ {(Number(item.price) * item.remainingQty).toFixed(2)}</td>
+        <td className="py-2 pl-2">
+          <div className="flex items-center gap-1 justify-end">
+            <button onClick={() => { setSplitItemDialog(item); setSplitMode("quantity"); setSplitQtyDivisor(2); }} disabled={canAdd <= 0} className="rounded px-2 py-1 text-[10px] font-bold bg-[hsl(var(--status-reserved))] text-white hover:opacity-90 disabled:opacity-30 transition-opacity">DIVIDIR</button>
+            <button onClick={() => addItemToPayment(item.id, 1)} disabled={canAdd <= 0} className="rounded px-2 py-1 text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">+1</button>
+            <button onClick={() => addItemToPayment(item.id, canAdd)} disabled={canAdd <= 0} className="rounded px-2 py-1 text-[10px] font-bold bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 transition-opacity">TODOS</button>
           </div>
         </td>
       </tr>
