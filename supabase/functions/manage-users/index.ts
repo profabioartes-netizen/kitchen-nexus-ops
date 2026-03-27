@@ -85,6 +85,8 @@ Deno.serve(async (req) => {
         user_metadata: { full_name },
       });
 
+      console.log("manage-users: createUser result", error ? `error: ${error.message}` : `ok: ${data.user.id}`);
+
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400,
