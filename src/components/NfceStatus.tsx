@@ -13,6 +13,8 @@ interface NfceStatusProps {
 
 export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
   const queryClient = useQueryClient();
+  const [timedOut, setTimedOut] = useState(false);
+  const mountTime = useRef(Date.now());
 
   const { data: nfce, isLoading } = useQuery({
     queryKey: ["nfce", orderId],
@@ -27,9 +29,15 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
       return (data as any)?.[0] || null;
     },
     refetchInterval: (query) => {
+      if (timedOut) return false;
       const d = query.state.data;
-      // Keep polling while pending OR while no record yet (auto-emit may be in progress)
-      if (!d) return 2000;
+      if (!d) {
+        if (Date.now() - mountTime.current > POLL_TIMEOUT_MS) {
+          setTimedOut(true);
+          return false;
+        }
+        return 2000;
+      }
       return d?.status === "pending" ? 3000 : false;
     },
   });
