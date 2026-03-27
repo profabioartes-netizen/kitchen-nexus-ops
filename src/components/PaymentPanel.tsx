@@ -682,15 +682,9 @@ export default function PaymentPanel({
           </div>
         </div>
       )}
-      {remaining <= 0.01 && payments.length > 0 && (
+      {remaining <= 0.01 && payments.length > 0 && !isMobile && (
         <div className="mt-4 pt-4 border-t">
-          <button
-            onClick={handleFinalize}
-            disabled={isPending}
-            className="w-full rounded-md bg-accent text-accent-foreground py-3.5 font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 touch-manipulation"
-          >
-            {isPending ? "Finalizando..." : (<><Check className="h-5 w-5" />FINALIZAR PAGAMENTO</>)}
-          </button>
+          <p className="text-center text-sm text-accent font-semibold">✓ Pagamento completo — finalize abaixo</p>
         </div>
       )}
     </>
