@@ -11,6 +11,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line,
 } from "recharts";
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
+import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
