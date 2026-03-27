@@ -1401,8 +1401,9 @@ export default function TableOrderPage() {
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
                 <p className="text-sm font-semibold text-accent">✓ Pagamento concluído</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Finalize para registrar nos relatórios</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Emita a NFC-e e finalize para registrar nos relatórios</p>
               </div>
+              <NfceStatus orderId={order.id} />
               <button
                 onClick={() => finalizeMutation.mutate()}
                 disabled={finalizeMutation.isPending}
