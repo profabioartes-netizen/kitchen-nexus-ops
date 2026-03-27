@@ -155,10 +155,14 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           </div>
           <button
             onClick={handlePrint}
-            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            disabled={isPrinting}
+            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Printer className="h-4 w-4" />
-            Imprimir DANFE
+            {isPrinting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+            ) : (
+              <><Printer className="h-4 w-4" /> Imprimir DANFE</>
+            )}
           </button>
         </>
       )}
