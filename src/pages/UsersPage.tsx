@@ -44,13 +44,20 @@ export default function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("manage-users", {
+      const res = await supabase.functions.invoke("manage-users", {
         body: { action: "create", email, password, full_name: fullName, role },
       });
+      console.log("manage-users response:", JSON.stringify(res));
+      const { data, error } = res;
       if (error) {
-        // Try to extract server error message
-        const serverMsg = data?.error || error.message || "Erro ao criar usuário";
-        throw new Error(serverMsg);
+        // supabase-js wraps non-2xx as FunctionsHttpError; body is in data
+        let msg = "Erro ao criar usuário";
+        if (data && typeof data === "object" && data.error) {
+          msg = data.error;
+        } else if (error.message) {
+          msg = error.message;
+        }
+        throw new Error(msg);
       }
       if (data?.error) throw new Error(data.error);
       return data;
