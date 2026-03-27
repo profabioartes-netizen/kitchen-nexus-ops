@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Printer, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const POLL_TIMEOUT_MS = 20000; // 20s timeout
 
 interface NfceStatusProps {
   orderId: string;
@@ -11,6 +13,8 @@ interface NfceStatusProps {
 
 export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
   const queryClient = useQueryClient();
+  const [timedOut, setTimedOut] = useState(false);
+  const mountTime = useRef(Date.now());
 
   const { data: nfce, isLoading } = useQuery({
     queryKey: ["nfce", orderId],
@@ -25,9 +29,15 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
       return (data as any)?.[0] || null;
     },
     refetchInterval: (query) => {
+      if (timedOut) return false;
       const d = query.state.data;
-      // Keep polling while pending OR while no record yet (auto-emit may be in progress)
-      if (!d) return 2000;
+      if (!d) {
+        if (Date.now() - mountTime.current > POLL_TIMEOUT_MS) {
+          setTimedOut(true);
+          return false;
+        }
+        return 2000;
+      }
       return d?.status === "pending" ? 3000 : false;
     },
   });
@@ -151,6 +161,27 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
 
   // No record yet — auto-emit is likely in progress, show waiting state
   if (!nfce) {
+    if (timedOut) {
+      return (
+        <div className="rounded-md border bg-background p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-destructive font-medium">
+            <AlertCircle className="h-4 w-4" />
+            Tempo esgotado aguardando NFC-e
+          </div>
+          <button
+            onClick={() => emitMutation.mutate()}
+            disabled={emitMutation.isPending}
+            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {emitMutation.isPending ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Emitindo...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4" /> Tentar emitir NFC-e</>
+            )}
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
