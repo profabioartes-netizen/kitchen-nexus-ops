@@ -351,6 +351,7 @@ export default function UsersPage() {
                 >
                   <option value="admin">Administrador</option>
                   <option value="waiter">Garçom</option>
+                  <option value="contabilidade">Contabilidade</option>
                 </select>
                 <button
                   onClick={() => setDeleteTarget(u)}
