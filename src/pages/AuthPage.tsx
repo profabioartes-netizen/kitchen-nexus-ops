@@ -12,10 +12,28 @@ export default function AuthPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      const userId = authData.user?.id;
+      if (!userId) throw new Error("Erro ao obter usuário");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+
+      if (profile?.role === "contabilidade") {
+        await supabase.auth.signOut();
+        toast.error("Acesso restrito. Use o painel de contabilidade em /contabilidade/login");
+        return;
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
