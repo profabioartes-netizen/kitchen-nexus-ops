@@ -730,7 +730,7 @@ export default function PaymentPanel({
 
       {/* Adjustment inputs (shown conditionally) */}
       {(discountValue > 0 || extraCharge > 0) && (
-        <div className="flex items-center gap-4 px-3 md:px-6 py-2 border-b bg-muted/50 text-sm flex-wrap">
+        <div className="flex items-center gap-3 px-3 md:px-5 py-1.5 border-b bg-muted/50 text-xs flex-wrap flex-shrink-0">
           {discountValue > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Desconto:</span>
