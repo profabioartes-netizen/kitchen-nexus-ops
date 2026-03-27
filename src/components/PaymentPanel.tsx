@@ -592,7 +592,7 @@ export default function PaymentPanel({
       <button
         onClick={addPayment}
         disabled={isPending || amountToPay <= 0 || amountToPay > remaining + 0.01}
-        className="w-full rounded-md bg-[hsl(var(--status-free))] text-white py-3.5 font-bold text-sm hover:opacity-90 disabled:opacity-40 transition-opacity mt-4 touch-manipulation"
+        className="w-full rounded-md bg-[hsl(var(--status-free))] text-white py-2.5 font-bold text-xs hover:opacity-90 disabled:opacity-40 transition-opacity mt-3 touch-manipulation"
       >
         ADICIONAR
       </button>
