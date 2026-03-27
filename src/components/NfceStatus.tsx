@@ -161,6 +161,27 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
 
   // No record yet — auto-emit is likely in progress, show waiting state
   if (!nfce) {
+    if (timedOut) {
+      return (
+        <div className="rounded-md border bg-background p-3 space-y-2">
+          <div className="flex items-center gap-2 text-sm text-destructive font-medium">
+            <AlertCircle className="h-4 w-4" />
+            Tempo esgotado aguardando NFC-e
+          </div>
+          <button
+            onClick={() => emitMutation.mutate()}
+            disabled={emitMutation.isPending}
+            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {emitMutation.isPending ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Emitindo...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4" /> Tentar emitir NFC-e</>
+            )}
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
