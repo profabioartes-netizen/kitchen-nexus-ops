@@ -324,12 +324,20 @@ serve(async (req) => {
       || focusData.url_danfe
       || `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(reference)}.html`;
 
+    const successDiag = {
+      http_status: focusRes.status,
+      endpoint: focusEndpoint,
+      ambiente: "producao",
+      payload_enviado: nfcePayload,
+      resposta_completa: focusData,
+    };
+
     await supabase.from("nfce_records")
       .update({
         status: "emitida",
         chave_acesso: focusData.chave_nfe || focusData.chave || null,
         url_danfe: danfeUrl,
-        raw_response: focusData,
+        raw_response: successDiag,
         updated_at: new Date().toISOString(),
       })
       .eq("reference", reference);
