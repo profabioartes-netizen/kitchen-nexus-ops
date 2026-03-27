@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Printer, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const POLL_TIMEOUT_MS = 20000; // 20s timeout
 
 interface NfceStatusProps {
   orderId: string;
