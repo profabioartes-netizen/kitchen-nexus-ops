@@ -522,10 +522,138 @@ function buildCancellationTicket(job) {
   return Buffer.concat(parts);
 }
 
+// ── 4) DANFE NFC-e ticket (fiscal receipt on thermal printer) ───────
+function buildDanfeTicket(job) {
+  const p = job.payload || {};
+  const now = new Date(job.created_at);
+  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const date = now.toLocaleDateString("pt-BR");
+  const items = p.items || [];
+
+  const qtyCol = 6;
+  const totalCol = 10;
+  const itemsCol = COLS - qtyCol - totalCol;
+
+  const parts = [
+    cmd.init,
+    cmd.codepage,
+    cmd.alignCenter,
+    cmd.text(""),
+    cmd.bold(true),
+    cmd.doubleSize(true),
+    cmd.text("DANFE NFC-e"),
+    cmd.doubleSize(false),
+    cmd.bold(false),
+    cmd.text(""),
+    cmd.bold(true),
+    cmd.text("COFFEE THRONES"),
+    cmd.bold(false),
+    cmd.text(`CNPJ: ${CNPJ}`),
+    cmd.text("DOCUMENTO AUXILIAR DA NOTA FISCAL"),
+    cmd.text("DE CONSUMIDOR ELETRONICA"),
+    cmd.text(""),
+    cmd.separator(),
+    cmd.text(""),
+  ];
+
+  // Customer
+  const customerName = p.customer_name || null;
+  if (customerName) {
+    parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
+  } else {
+    parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
+  }
+  parts.push(cmd.text(""));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Column headers
+  parts.push(cmd.alignLeft);
+  parts.push(cmd.bold(true));
+  const headerLine = "QTD".padEnd(qtyCol) + "PRODUTO".padEnd(itemsCol) + "TOTAL".padStart(totalCol);
+  parts.push(cmd.text(headerLine));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Items
+  for (const item of items) {
+    const qty = item.quantity || 1;
+    const price = Number(item.price || 0);
+    const itemTotal = price * qty;
+    const name = upperPt(item.product_name || item.name || "ITEM");
+    const totalStr = itemTotal.toFixed(2).replace(".", ",");
+
+    const wrappedName = wordWrap(name, itemsCol);
+    const firstLine = String(qty).padEnd(qtyCol) + wrappedName[0].padEnd(itemsCol) + totalStr.padStart(totalCol);
+    parts.push(cmd.text(firstLine));
+    for (let i = 1; i < wrappedName.length; i++) {
+      parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
+    }
+  }
+
+  parts.push(cmd.text(""));
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Total
+  const totalVal = Number(p.total || 0);
+  parts.push(cmd.alignRight);
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text(`TOTAL: R$ ${totalVal.toFixed(2).replace(".", ",")}`));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+
+  // Payment method
+  if (p.payment_method) {
+    parts.push(cmd.alignCenter);
+    parts.push(cmd.text(`PAGAMENTO: ${p.payment_method}`));
+    parts.push(cmd.text(""));
+  }
+
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+
+  // Chave de acesso
+  parts.push(cmd.alignCenter);
+  if (p.chave_acesso) {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text("CHAVE DE ACESSO"));
+    parts.push(cmd.bold(false));
+    // Format chave in groups of 4 for readability
+    const chave = String(p.chave_acesso).replace(/\s/g, "");
+    const groups = chave.match(/.{1,4}/g) || [chave];
+    parts.push(cmd.wrappedText(groups.join(" ")));
+    parts.push(cmd.text(""));
+  }
+
+  // DANFE URL for reference
+  if (p.danfe_url) {
+    parts.push(cmd.text("Consulte em:"));
+    parts.push(cmd.wrappedText(p.danfe_url));
+    parts.push(cmd.text(""));
+  }
+
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("NFC-e AUTORIZADA"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+  parts.push(cmd.text(`${date} ${time}`));
+  parts.push(cmd.text(""));
+
+  parts.push(cmd.feedLines(2));
+  parts.push(cmd.cut);
+
+  return Buffer.concat(parts);
+}
+
 // ── Dispatcher ──────────────────────────────────────────────────────
 function buildTicket(job) {
   const p = job.payload || {};
   if (p.type === "cancellation") return buildCancellationTicket(job);
+  if (p.type === "danfe") return buildDanfeTicket(job);
   if (p.type === "bill" || p.type === "full_bill") return buildBillTicket(job);
   return buildProductionTicket(job);
 }
