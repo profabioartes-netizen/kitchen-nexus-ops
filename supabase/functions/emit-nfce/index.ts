@@ -96,7 +96,7 @@ function buildNfcePayload(
     cep_emitente: "35557000",
     municipio_emitente: "Carmo do Cajuru",
     uf_emitente: "MG",
-    codigo_municipio_emitente: "3114303",
+    codigo_municipio_emitente: "3114204",
     telefone_emitente: "",
 
     // --- Destinatário (consumidor final não identificado) ---
