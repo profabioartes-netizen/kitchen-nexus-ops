@@ -10,6 +10,7 @@ import NfceStatus from "@/components/NfceStatus";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
+import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import { ptBR } from "date-fns/locale";
 
 const ADMIN_PIN = "9135";
