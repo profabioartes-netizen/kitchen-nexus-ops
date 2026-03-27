@@ -328,10 +328,12 @@ export default function UsersPage() {
                   className={`flex items-center justify-center h-9 w-9 rounded-full ${
                     u.role === "admin"
                       ? "bg-accent/20 text-accent"
+                      : u.role === "contabilidade"
+                      ? "bg-blue-500/20 text-blue-500"
                       : "bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  {u.role === "admin" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
+                  {u.role === "admin" ? <Shield className="h-4 w-4" /> : u.role === "contabilidade" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
