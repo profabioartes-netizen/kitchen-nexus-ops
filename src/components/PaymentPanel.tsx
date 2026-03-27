@@ -555,7 +555,7 @@ export default function PaymentPanel({
         </div>
         {selectedMethod === "cash" && (
           <div>
-            <label className="text-xs text-muted-foreground">Troco para</label>
+            <label className="text-[11px] text-muted-foreground">Troco para</label>
             <input
               type="text"
               inputMode="decimal"
@@ -567,20 +567,20 @@ export default function PaymentPanel({
                 setCashGiven(formatted);
               }}
               placeholder="0,00"
-              className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
+              className="w-full mt-0.5 rounded-md border bg-background px-3 py-2 text-base text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
             />
             {cashChange > 0 && (
-              <div className="mt-2 rounded-md bg-accent/15 border border-accent/30 p-2.5 text-center">
-                <p className="text-xs text-accent uppercase tracking-wider font-semibold">Troco</p>
-                <p className="text-xl font-bold text-accent tabular-nums">R$ {cashChange.toFixed(2).replace(".", ",")}</p>
+              <div className="mt-1.5 rounded-md bg-accent/15 border border-accent/30 p-2 text-center">
+                <p className="text-[10px] text-accent uppercase tracking-wider font-semibold">Troco</p>
+                <p className="text-lg font-bold text-accent tabular-nums">R$ {cashChange.toFixed(2).replace(".", ",")}</p>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-1.5 mt-2">
+            <div className="grid grid-cols-3 gap-1 mt-1.5">
               {[10, 20, 50, 100, 200].filter(v => v >= amountToPay).slice(0, 3).map((val) => (
                 <button
                   key={val}
                   onClick={() => setCashGiven(String(val))}
-                  className="rounded border bg-background py-2 text-xs font-medium hover:bg-secondary transition-colors touch-manipulation"
+                  className="rounded border bg-background py-1.5 text-[11px] font-medium hover:bg-secondary transition-colors touch-manipulation"
                 >
                   R$ {val}
                 </button>
