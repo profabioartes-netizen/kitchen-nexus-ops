@@ -120,13 +120,28 @@ export default function CashierPage() {
 
       return newOrder;
     },
-    onSuccess: (newOrder) => {
+    onSuccess: async (newOrder) => {
       setLastFinalizedOrderId(newOrder.id);
       setOrder([]);
       setSelectedMethod(null);
       setCashGiven("");
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       toast.success("Pagamento registrado com sucesso!");
+
+      // Auto-emit NFC-e
+      try {
+        const { data, error } = await supabase.functions.invoke("emit-nfce", {
+          body: { order_id: newOrder.id },
+        });
+        if (error || data?.error) {
+          toast.error("Erro ao emitir NFC-e: " + (data?.error || (error as Error).message));
+        } else {
+          toast.success("NFC-e emitida automaticamente!");
+        }
+      } catch (e) {
+        console.error("NFC-e auto-emit error:", e);
+        toast.error("Falha ao emitir NFC-e automaticamente.");
+      }
     },
     onError: (err) => {
       toast.error("Erro ao registrar pagamento: " + (err as Error).message);

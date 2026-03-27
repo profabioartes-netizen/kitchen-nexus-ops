@@ -723,11 +723,39 @@ export default function TableOrderPage() {
 
       return { hasOtherActiveOrders };
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
+
+      // Auto-emit NFC-e if not already emitted
+      if (order) {
+        try {
+          const { data: existing } = await supabase
+            .from("nfce_records")
+            .select("id, status")
+            .eq("order_id", order.id)
+            .in("status", ["emitida", "pending"])
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            const { data: emitData, error: emitError } = await supabase.functions.invoke("emit-nfce", {
+              body: { order_id: order.id },
+            });
+            if (emitError || emitData?.error) {
+              console.error("NFC-e auto-emit error:", emitError || emitData?.error);
+              toast.error("Comanda finalizada, mas erro ao emitir NFC-e: " + (emitData?.error || (emitError as Error).message));
+            } else {
+              toast.success("NFC-e emitida automaticamente!");
+            }
+          }
+        } catch (nfceErr) {
+          console.error("NFC-e auto-emit exception:", nfceErr);
+          toast.error("Comanda finalizada, mas falha ao emitir NFC-e.");
+        }
+      }
+
       toast.success(
         result?.hasOtherActiveOrders
           ? "Comanda finalizada. Outras comandas da mesa foram preservadas."
