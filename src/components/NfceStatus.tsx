@@ -1,10 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { FileText, Printer, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Printer, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-const POLL_TIMEOUT_MS = 20000; // 20s timeout
 
 interface NfceStatusProps {
   orderId: string;
@@ -13,66 +11,81 @@ interface NfceStatusProps {
 
 export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
   const queryClient = useQueryClient();
-  const [timedOut, setTimedOut] = useState(false);
-  const mountTime = useRef(Date.now());
+  const [nfce, setNfce] = useState<any>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [emitting, setEmitting] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
-  const { data: nfce, isLoading } = useQuery({
-    queryKey: ["nfce", orderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  // Initial fetch + realtime subscription — no polling
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchOnce = async () => {
+      const { data } = await supabase
         .from("nfce_records" as any)
         .select("*")
         .eq("order_id", orderId)
         .order("created_at", { ascending: false })
         .limit(1);
-      if (error) throw error;
-      return (data as any)?.[0] || null;
-    },
-    refetchInterval: (query) => {
-      if (timedOut) return false;
-      const d = query.state.data;
-      if (!d) {
-        if (Date.now() - mountTime.current > POLL_TIMEOUT_MS) {
-          setTimedOut(true);
-          return false;
-        }
-        return 2000;
+      if (!cancelled) {
+        setNfce((data as any)?.[0] || null);
+        setLoaded(true);
       }
-      return d?.status === "pending" ? 3000 : false;
-    },
-  });
+    };
 
-  const emitMutation = useMutation({
-    mutationFn: async () => {
+    fetchOnce();
+
+    // Subscribe to realtime changes on nfce_records for this order
+    const channel = supabase
+      .channel(`nfce-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "nfce_records",
+          filter: `order_id=eq.${orderId}`,
+        },
+        (payload: any) => {
+          if (payload.new) {
+            setNfce(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [orderId]);
+
+  const handleEmit = async () => {
+    setEmitting(true);
+    try {
       const { data, error } = await supabase.functions.invoke("emit-nfce", {
         body: { order_id: orderId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data;
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nfce", orderId] });
       toast.success("NFC-e emitida com sucesso!");
-    },
-    onError: (err) => {
-      queryClient.invalidateQueries({ queryKey: ["nfce", orderId] });
+    } catch (err) {
       toast.error("Erro ao emitir NFC-e: " + (err as Error).message);
-    },
-  });
+    } finally {
+      setEmitting(false);
+    }
+  };
 
   const getDanfeUrl = () => {
     if (nfce?.url_danfe) {
       const url = nfce.url_danfe as string;
-      // Fix relative paths from Focus NFe
       if (url.startsWith("http")) return url;
       return `https://api.focusnfe.com.br${url}`;
     }
     if (nfce?.reference) return `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(nfce.reference)}.html`;
     return null;
   };
-
-  const [isPrinting, setIsPrinting] = useState(false);
 
   const handlePrint = async () => {
     const danfeUrl = getDanfeUrl();
@@ -83,7 +96,6 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
 
     setIsPrinting(true);
     try {
-      // Fetch order items for the DANFE ticket
       const { data: orderItems } = await supabase
         .from("order_items")
         .select("product_name, quantity, price")
@@ -95,7 +107,6 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
         .eq("id", orderId)
         .single();
 
-      // Fetch table info for mesa/comanda
       let tableName: string | null = null;
       let internalNumber: string | null = null;
       if (order?.table_id) {
@@ -150,100 +161,83 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
     }
   };
 
-  if (isLoading) {
+  // Compact non-blocking display
+  if (!loaded) {
     return (
-      <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Verificando nota fiscal...
+      <div className="flex items-center gap-2 text-muted-foreground text-xs py-1">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        NFC-e...
       </div>
     );
   }
 
-  // No record yet — auto-emit is likely in progress, show waiting state
+  // No record yet — background emission in progress
   if (!nfce) {
-    if (timedOut) {
-      return (
-        <div className="rounded-md border bg-background p-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-destructive font-medium">
-            <AlertCircle className="h-4 w-4" />
-            Tempo esgotado aguardando NFC-e
-          </div>
-          <button
-            onClick={() => emitMutation.mutate()}
-            disabled={emitMutation.isPending}
-            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {emitMutation.isPending ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Emitindo...</>
-            ) : (
-              <><RefreshCw className="h-4 w-4" /> Tentar emitir NFC-e</>
-            )}
-          </button>
-        </div>
-      );
-    }
     return (
-      <div className="rounded-md border bg-background p-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Aguardando emissão da NFC-e...
+      <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          NFC-e emitindo em segundo plano...
         </div>
+        <button
+          onClick={handleEmit}
+          disabled={emitting}
+          className="text-xs text-accent hover:underline disabled:opacity-50"
+        >
+          {emitting ? "Emitindo..." : "Reemitir"}
+        </button>
       </div>
     );
   }
 
-  // Has record
-  return (
-    <div className="rounded-md border bg-background p-3 space-y-2">
-      {nfce.status === "emitida" && (
-        <>
-          <div className="flex items-center gap-2 text-sm text-green-500 font-medium">
-            <CheckCircle className="h-4 w-4" />
-            Nota emitida
-          </div>
-          <button
-            onClick={handlePrint}
-            disabled={isPrinting}
-            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isPrinting ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
-            ) : (
-              <><Printer className="h-4 w-4" /> Imprimir DANFE</>
-            )}
-          </button>
-        </>
-      )}
-
-      {nfce.status === "erro" && (
-        <>
-          <div className="flex items-center gap-2 text-sm text-destructive font-medium">
-            <AlertCircle className="h-4 w-4" />
-            Erro na emissão
-          </div>
-          {nfce.error_message && (
-            <p className="text-xs text-muted-foreground break-words">{nfce.error_message}</p>
-          )}
-          <button
-            onClick={() => emitMutation.mutate()}
-            disabled={emitMutation.isPending}
-            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {emitMutation.isPending ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Reemitindo...</>
-            ) : (
-              <><RefreshCw className="h-4 w-4" /> Tentar novamente</>
-            )}
-          </button>
-        </>
-      )}
-
-      {nfce.status === "pending" && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Processando NFC-e...
+  if (nfce.status === "emitida") {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-md border border-green-500/30 bg-green-500/5 px-3 py-2">
+        <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+          <CheckCircle className="h-3.5 w-3.5" />
+          Nota emitida
         </div>
-      )}
+        <button
+          onClick={handlePrint}
+          disabled={isPrinting}
+          className="flex items-center gap-1 rounded bg-accent text-accent-foreground px-3 py-1 text-xs font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          {isPrinting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
+          DANFE
+        </button>
+      </div>
+    );
+  }
+
+  if (nfce.status === "erro") {
+    return (
+      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-destructive font-medium">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Erro na NFC-e
+          </div>
+          <button
+            onClick={handleEmit}
+            disabled={emitting}
+            className="flex items-center gap-1 text-xs text-accent hover:underline disabled:opacity-50"
+          >
+            {emitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            Tentar novamente
+          </button>
+        </div>
+        {nfce.error_message && (
+          <p className="text-[10px] text-muted-foreground break-words line-clamp-2">{nfce.error_message}</p>
+        )}
+      </div>
+    );
+  }
+
+  // pending
+  return (
+    <div className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2">
+      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+      <span className="text-xs text-muted-foreground">Processando NFC-e...</span>
     </div>
   );
 }
