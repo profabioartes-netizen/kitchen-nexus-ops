@@ -50,9 +50,16 @@ export default function UsersPage() {
       console.log("manage-users response:", JSON.stringify(res));
       const { data, error } = res;
       if (error) {
-        // supabase-js wraps non-2xx as FunctionsHttpError; body is in data
         let msg = "Erro ao criar usuário";
-        if (data && typeof data === "object" && data.error) {
+        // For FunctionsHttpError, try to get the context body
+        if (error.name === "FunctionsHttpError") {
+          try {
+            const errBody = typeof error.context === "object" && error.context?.json
+              ? await error.context.json()
+              : data;
+            if (errBody?.error) msg = errBody.error;
+          } catch { /* ignore parse error */ }
+        } else if (data?.error) {
           msg = data.error;
         } else if (error.message) {
           msg = error.message;
