@@ -822,32 +822,32 @@ export default function PaymentPanel({
         </>
       ) : (
         /* DESKTOP: 3-column layout */
-        <div className="flex-1 flex flex-row overflow-hidden">
+        <div className="flex-1 flex flex-row overflow-hidden min-h-0">
           {/* LEFT: Items list */}
-          <div className="flex-1 overflow-auto p-4 border-r">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do Pedido</h2>
+          <div className="flex-1 overflow-auto p-3 border-r">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Itens do Pedido</h2>
             </div>
             <table className="w-full">
               <thead>
-                <tr className="text-xs text-muted-foreground border-b">
-                  <th className="text-left py-2 font-medium w-14">Qtd.</th>
-                  <th className="text-left py-2 font-medium">Item</th>
-                  <th className="text-right py-2 font-medium">Valor</th>
-                  <th className="py-2 w-64"></th>
+                <tr className="text-[11px] text-muted-foreground border-b">
+                  <th className="text-left py-1.5 font-medium w-14">Qtd.</th>
+                  <th className="text-left py-1.5 font-medium">Item</th>
+                  <th className="text-right py-1.5 font-medium">Valor</th>
+                  <th className="py-1.5 w-64"></th>
                 </tr>
               </thead>
               <tbody>
                 {unpaidItems.map(renderItemsTable)}
                 {unpaidItems.length === 0 && (
-                  <tr><td colSpan={4} className="py-8 text-center text-sm text-muted-foreground">Todos os itens foram pagos</td></tr>
+                  <tr><td colSpan={4} className="py-6 text-center text-sm text-muted-foreground">Todos os itens foram pagos</td></tr>
                 )}
               </tbody>
             </table>
             {onAddQuickItem && quickSaleProducts.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-border/50">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5"><Zap className="h-3 w-3" /> Venda Rápida</h3>
-                <div className="space-y-1.5">
+              <div className="mt-3 pt-2 border-t border-border/50">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5"><Zap className="h-3 w-3" /> Venda Rápida</h3>
+                <div className="space-y-1">
                   {quickSaleProducts.map((p) => {
                     const added = orderItems.find((i) => i.product_id === p.id);
                     return <QuickSaleRow key={p.id} product={p} onAdd={onAddQuickItem} onRemove={onRemoveQuickItem} addedQty={added ? added.quantity : 0} />;
@@ -856,10 +856,10 @@ export default function PaymentPanel({
               </div>
             )}
             {orderItems.some((i) => (i.paid_quantity ?? 0) > 0) && (
-              <div className="mt-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Itens pagos 🔒</h3>
+              <div className="mt-3">
+                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Itens pagos 🔒</h3>
                 {orderItems.filter((i) => (i.paid_quantity ?? 0) > 0).map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm py-1.5 text-muted-foreground opacity-60">
+                  <div key={item.id} className="flex justify-between text-xs py-1 text-muted-foreground opacity-60">
                     <span className="line-through">{item.paid_quantity}× {item.product_name}</span>
                     <span>R$ {(Number(item.price) * (item.paid_quantity ?? 0)).toFixed(2)}</span>
                   </div>
@@ -869,12 +869,12 @@ export default function PaymentPanel({
           </div>
 
           {/* CENTER: Summary */}
-          <div className="w-80 flex flex-col border-r overflow-auto">
-            <div className="p-4 flex-1">{renderSummaryContent()}</div>
+          <div className="w-72 flex flex-col border-r overflow-auto">
+            <div className="p-3 flex-1">{renderSummaryContent()}</div>
           </div>
 
           {/* RIGHT: Payment */}
-          <div className="w-64 flex flex-col bg-card p-4">
+          <div className="w-60 flex flex-col bg-card p-3">
             {renderPaymentMethodAndAmount()}
           </div>
         </div>
