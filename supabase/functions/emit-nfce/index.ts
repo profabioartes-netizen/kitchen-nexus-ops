@@ -126,6 +126,18 @@ serve(async (req) => {
       }],
     };
 
+    // Validate items before sending
+    if (!nfcePayload.items || (nfcePayload.items as any[]).length === 0) {
+      return new Response(JSON.stringify({ error: "Nenhum item válido para emissão de NFC-e" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Log full payload for debugging
+    console.log("=== PAYLOAD NFC-e COMPLETO ===");
+    console.log(JSON.stringify(nfcePayload, null, 2));
+    console.log("=== FIM PAYLOAD ===");
+
     // Save initial record
     const { error: insertErr } = await supabase.from("nfce_records").insert({
       order_id,
