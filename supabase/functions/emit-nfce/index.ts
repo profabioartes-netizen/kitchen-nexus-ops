@@ -75,7 +75,6 @@ function buildNfcePayload(
   const payload: Record<string, unknown> = {
     // --- Identificação ---
     natureza_operacao: "VENDA",
-    forma_pagamento: "0",              // 0 = à vista
     tipo_documento: 1,                 // 1 = saída
     finalidade_emissao: 1,             // 1 = normal
     consumidor_final: 1,               // 1 = sim
@@ -122,6 +121,50 @@ function buildNfcePayload(
     // --- Informações complementares ---
     informacoes_adicionais_contribuinte: "Documento emitido por ME/EPP optante pelo Simples Nacional.",
   };
+
+  if ("forma_pagamento" in payload) {
+    throw new Error("Payload NFC-e inválido: campo top-level forma_pagamento não é permitido");
+  }
+
+  const missingTopLevelFields = [
+    "natureza_operacao",
+    "tipo_documento",
+    "finalidade_emissao",
+    "consumidor_final",
+    "presenca_comprador",
+    "local_destino",
+    "modalidade_frete",
+    "cnpj_emitente",
+    "codigo_municipio_emitente",
+    "items",
+    "formas_pagamento",
+  ].filter((field) => payload[field] === undefined || payload[field] === null);
+
+  if (missingTopLevelFields.length > 0) {
+    throw new Error(`Payload NFC-e incompleto. Campos ausentes: ${missingTopLevelFields.join(", ")}`);
+  }
+
+  const requiredItemFields = [
+    "unidade_tributavel",
+    "quantidade_tributavel",
+    "valor_unitario_tributavel",
+    "codigo_ncm",
+    "icms_origem",
+    "icms_situacao_tributaria",
+    "pis_situacao_tributaria",
+    "pis_aliquota_porcentual",
+    "pis_base_calculo",
+    "cofins_situacao_tributaria",
+    "cofins_aliquota_porcentual",
+    "cofins_base_calculo",
+  ];
+
+  nfceItems.forEach((item, index) => {
+    const missingFields = requiredItemFields.filter((field) => item[field as keyof typeof item] === undefined || item[field as keyof typeof item] === null || item[field as keyof typeof item] === "");
+    if (missingFields.length > 0) {
+      throw new Error(`Item ${index + 1} inválido para NFC-e. Campos ausentes: ${missingFields.join(", ")}`);
+    }
+  });
 
   return { payload, totalNota };
 }
