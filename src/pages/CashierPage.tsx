@@ -249,7 +249,7 @@ export default function CashierPage() {
       </div>
 
       {/* Order panel */}
-      <div className="w-80 border-l bg-card flex flex-col">
+      <div className="w-80 border-l bg-card flex flex-col overflow-hidden">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-lg">Comanda</h2>
           <button
