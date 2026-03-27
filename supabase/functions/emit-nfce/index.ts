@@ -59,7 +59,7 @@ function buildNfcePayload(
       quantidade_tributavel: qty.toFixed(4),
       valor_unitario_tributavel: unitPrice.toFixed(2),
       codigo_ncm: "21069090",
-      origem: "0",
+      icms_origem: "0",
       icms_situacao_tributaria: "102",
       pis_situacao_tributaria: "99",
       pis_aliquota_porcentual: "0.00",
@@ -96,7 +96,7 @@ function buildNfcePayload(
     cep_emitente: "35557000",
     municipio_emitente: "Carmo do Cajuru",
     uf_emitente: "MG",
-    codigo_municipio_emitente: "3114303",
+    codigo_municipio_emitente: "3114204",
     telefone_emitente: "",
 
     // --- Destinatário (consumidor final não identificado) ---
