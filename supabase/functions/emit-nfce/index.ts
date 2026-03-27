@@ -189,11 +189,20 @@ serve(async (req) => {
     }
 
     const reference = `pedido_${order_id}_${Date.now()}`;
+    const focusEndpoint = `https://api.focusnfe.com.br/v2/nfce?ref=${encodeURIComponent(reference)}`;
 
-    // Log full payload
-    console.log("=== PAYLOAD NFC-e COMPLETO ===");
+    // === DIAGNÓSTICO COMPLETO ===
+    console.log("╔══════════════════════════════════════════════════╗");
+    console.log("║       DIAGNÓSTICO COMPLETO NFC-e                ║");
+    console.log("╚══════════════════════════════════════════════════╝");
+    console.log("📌 ENDPOINT:", focusEndpoint);
+    console.log("📌 AMBIENTE: PRODUÇÃO (api.focusnfe.com.br)");
+    console.log("📌 REFERÊNCIA:", reference);
+    console.log("📌 MÉTODO: POST");
+    console.log("📌 TOKEN (primeiros 8 chars):", focusToken.substring(0, 8) + "...");
+    console.log("═══ PAYLOAD ENVIADO (JSON completo) ═══");
     console.log(JSON.stringify(nfcePayload, null, 2));
-    console.log("=== FIM PAYLOAD ===");
+    console.log("═══ FIM PAYLOAD ═══");
 
     // Save initial record
     const { error: insertErr } = await supabase.from("nfce_records").insert({
@@ -205,20 +214,68 @@ serve(async (req) => {
 
     // Call Focus NFe API
     const basicAuth = btoa(`${focusToken}:`);
-    const focusRes = await fetch(
-      `https://api.focusnfe.com.br/v2/nfce?ref=${encodeURIComponent(reference)}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(nfcePayload),
+    const focusRes = await fetch(focusEndpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${basicAuth}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(nfcePayload),
+    });
 
-    const focusData = await focusRes.json();
-    console.log("Focus NFe response:", JSON.stringify(focusData));
+    // === RESPOSTA BRUTA COMPLETA ===
+    const rawBody = await focusRes.text();
+    console.log("╔══════════════════════════════════════════════════╗");
+    console.log("║       RESPOSTA BRUTA DA FOCUS NFe               ║");
+    console.log("╚══════════════════════════════════════════════════╝");
+    console.log("📌 HTTP STATUS:", focusRes.status, focusRes.statusText);
+    console.log("═══ HEADERS RELEVANTES ═══");
+    for (const [key, value] of focusRes.headers.entries()) {
+      if (["content-type", "x-rate-limit", "x-request-id", "x-runtime", "date", "server"].some(h => key.toLowerCase().includes(h))) {
+        console.log(`  ${key}: ${value}`);
+      }
+    }
+    console.log("═══ BODY BRUTO COMPLETO ═══");
+    console.log(rawBody);
+    console.log("═══ FIM BODY BRUTO ═══");
+
+    let focusData: Record<string, unknown>;
+    try {
+      focusData = JSON.parse(rawBody);
+    } catch {
+      console.error("❌ Body não é JSON válido!");
+      await supabase.from("nfce_records")
+        .update({
+          status: "erro",
+          error_message: `HTTP ${focusRes.status}: Body não-JSON: ${rawBody.substring(0, 500)}`,
+          raw_response: { http_status: focusRes.status, raw_body: rawBody.substring(0, 5000) },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("reference", reference);
+      return new Response(JSON.stringify({ error: `Resposta inesperada da Focus NFe (HTTP ${focusRes.status})`, reference }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Log cada campo relevante individualmente
+    console.log("═══ CAMPOS EXTRAÍDOS ═══");
+    const diagFields = ["status", "status_sefaz", "mensagem", "mensagem_sefaz", "codigo", "erros",
+      "caminho_xml_nota_fiscal", "caminho_danfe", "url_danfe", "chave_nfe", "chave",
+      "numero", "serie", "protocolo", "motivo", "requisicao", "requisicao_nota_fiscal"];
+    for (const f of diagFields) {
+      if (focusData[f] !== undefined) {
+        console.log(`  ${f}:`, JSON.stringify(focusData[f]));
+      }
+    }
+    // Log any field NOT in the known list
+    const unknownFields = Object.keys(focusData).filter(k => !diagFields.includes(k));
+    if (unknownFields.length > 0) {
+      console.log("  [outros campos]:", unknownFields.join(", "));
+      for (const f of unknownFields) {
+        console.log(`    ${f}:`, JSON.stringify(focusData[f]));
+      }
+    }
+    console.log("═══ FIM DIAGNÓSTICO ═══");
 
     const isError = !focusRes.ok
       || focusData.erros
@@ -229,20 +286,35 @@ serve(async (req) => {
       || (focusData.status_sefaz && focusData.status_sefaz !== "100");
 
     if (isError) {
-      const errorMsg = focusData.mensagem_sefaz
-        || focusData.mensagem
-        || (focusData.erros ? JSON.stringify(focusData.erros) : "Erro ao emitir NFC-e");
+      // Salvar TUDO no raw_response para análise
+      const fullDiag = {
+        http_status: focusRes.status,
+        http_status_text: focusRes.statusText,
+        endpoint: focusEndpoint,
+        ambiente: "producao",
+        payload_enviado: nfcePayload,
+        resposta_completa: focusData,
+      };
+
+      const errorMsg = [
+        focusData.status_sefaz ? `SEFAZ status: ${focusData.status_sefaz}` : null,
+        focusData.mensagem_sefaz ? `SEFAZ msg: ${focusData.mensagem_sefaz}` : null,
+        focusData.mensagem ? `Focus msg: ${focusData.mensagem}` : null,
+        focusData.codigo ? `Código: ${focusData.codigo}` : null,
+        focusData.motivo ? `Motivo: ${focusData.motivo}` : null,
+        focusData.erros ? `Erros: ${JSON.stringify(focusData.erros)}` : null,
+      ].filter(Boolean).join(" | ") || "Erro desconhecido";
 
       await supabase.from("nfce_records")
         .update({
           status: "erro",
           error_message: errorMsg.substring(0, 1000),
-          raw_response: focusData,
+          raw_response: fullDiag,
           updated_at: new Date().toISOString(),
         })
         .eq("reference", reference);
 
-      return new Response(JSON.stringify({ error: errorMsg, reference }), {
+      return new Response(JSON.stringify({ error: errorMsg, reference, diagnostico: fullDiag }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
