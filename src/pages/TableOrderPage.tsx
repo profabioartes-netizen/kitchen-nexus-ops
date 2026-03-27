@@ -8,6 +8,7 @@ import {
   Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save, ShoppingBag, UtensilsCrossed,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import NfceStatus from "@/components/NfceStatus";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
