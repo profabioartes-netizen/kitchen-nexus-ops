@@ -724,7 +724,7 @@ const PRODUCTION_STATIONS = ["Cozinha", "Bebidas", "Sobremesa"];
 function isGroupedProductionJob(job) {
   if (!PRODUCTION_STATIONS.includes(job.station)) return true;
   const payload = job.payload || {};
-  if (payload.type === "cancellation") return true;
+  if (payload.type === "cancellation" || payload.type === "danfe") return true;
   return Array.isArray(payload.items) && payload.items.length > 0;
 }
 
