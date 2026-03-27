@@ -112,7 +112,7 @@ export default function UsersPage() {
     }
   };
 
-  const roleLabel = (r: string) => (r === "admin" ? "Administrador" : "Garçom");
+  const roleLabel = (r: string) => r === "admin" ? "Administrador" : r === "contabilidade" ? "Contabilidade" : "Garçom";
 
   if (!unlocked) {
     return (
