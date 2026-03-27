@@ -95,6 +95,13 @@ const App = () => (
               <Route path="perfil" element={<WaiterProfilePage />} />
             </Route>
 
+            {/* Accounting panel */}
+            <Route path="/contabilidade/login" element={<AccountingLoginPage />} />
+            <Route path="/contabilidade" element={<AccountingLayout />}>
+              <Route index element={<AccountingDashboard />} />
+              <Route path="vendas" element={<AccountingSalesPage />} />
+            </Route>
+
             {/* Admin-only routes */}
             <Route
               element={
