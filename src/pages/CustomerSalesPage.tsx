@@ -6,6 +6,7 @@ import {
   CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock, Smartphone,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import NfceStatus from "@/components/NfceStatus";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
@@ -299,6 +300,14 @@ export default function CustomerSalesPage() {
             </div>
           </div>
         )}
+
+        {/* NFC-e */}
+        <div>
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+            <Receipt className="h-3 w-3" /> Nota Fiscal
+          </h4>
+          <NfceStatus orderId={order.id} />
+        </div>
 
         {/* Activity log */}
         {logs.length > 0 && (
