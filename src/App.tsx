@@ -30,6 +30,10 @@ import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
 import SelfServicePage from "@/pages/self-service/SelfServicePage";
+import AccountingLoginPage from "@/pages/accounting/AccountingLoginPage";
+import AccountingLayout from "@/pages/accounting/AccountingLayout";
+import AccountingDashboard from "@/pages/accounting/AccountingDashboard";
+import AccountingSalesPage from "@/pages/accounting/AccountingSalesPage";
 import LoadingScreen from "@/components/LoadingScreen";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -89,6 +93,13 @@ const App = () => (
               <Route path="mesa/:tableId" element={<WaiterOrderPage />} />
               <Route path="pedidos" element={<WaiterOrdersPage />} />
               <Route path="perfil" element={<WaiterProfilePage />} />
+            </Route>
+
+            {/* Accounting panel */}
+            <Route path="/contabilidade/login" element={<AccountingLoginPage />} />
+            <Route path="/contabilidade" element={<AccountingLayout />}>
+              <Route index element={<AccountingDashboard />} />
+              <Route path="vendas" element={<AccountingSalesPage />} />
             </Route>
 
             {/* Admin-only routes */}

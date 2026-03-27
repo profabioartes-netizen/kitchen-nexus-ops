@@ -21,7 +21,7 @@ export default function UsersPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "waiter">("waiter");
+  const [role, setRole] = useState<"admin" | "waiter" | "contabilidade">("waiter");
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
@@ -112,7 +112,7 @@ export default function UsersPage() {
     }
   };
 
-  const roleLabel = (r: string) => (r === "admin" ? "Administrador" : "Garçom");
+  const roleLabel = (r: string) => r === "admin" ? "Administrador" : r === "contabilidade" ? "Contabilidade" : "Garçom";
 
   if (!unlocked) {
     return (
@@ -217,7 +217,7 @@ export default function UsersPage() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">Função</label>
               <div className="flex gap-2">
-                {(["waiter", "admin"] as const).map((r) => (
+                {(["waiter", "admin", "contabilidade"] as const).map((r) => (
                   <button
                     key={r}
                     type="button"
@@ -328,10 +328,12 @@ export default function UsersPage() {
                   className={`flex items-center justify-center h-9 w-9 rounded-full ${
                     u.role === "admin"
                       ? "bg-accent/20 text-accent"
+                      : u.role === "contabilidade"
+                      ? "bg-blue-500/20 text-blue-500"
                       : "bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  {u.role === "admin" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
+                  {u.role === "admin" ? <Shield className="h-4 w-4" /> : u.role === "contabilidade" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
@@ -349,6 +351,7 @@ export default function UsersPage() {
                 >
                   <option value="admin">Administrador</option>
                   <option value="waiter">Garçom</option>
+                  <option value="contabilidade">Contabilidade</option>
                 </select>
                 <button
                   onClick={() => setDeleteTarget(u)}
