@@ -6,6 +6,7 @@ import {
   CreditCard, Clock, CalendarDays, Receipt, Package, Printer, Store, Loader2, Lock, Smartphone,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import NfceStatus from "@/components/NfceStatus";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { format } from "date-fns";
