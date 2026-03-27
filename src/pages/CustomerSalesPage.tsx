@@ -62,18 +62,23 @@ export default function CustomerSalesPage() {
     }
   };
 
+  const { goLiveAt, isLoading: loadingGoLive } = useGoLiveDate();
+
   // Fetch all finalized orders
   const { data: allOrders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ["customer_sales_orders"],
+    queryKey: ["customer_sales_orders", goLiveAt],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders")
         .select("*")
         .eq("status", "finalized")
         .order("created_at", { ascending: false });
+      if (goLiveAt) q = q.gte("created_at", goLiveAt);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
+    enabled: !loadingGoLive,
   });
 
   // Split: self-service (has whatsapp_phone) vs counter vs named customer

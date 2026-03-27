@@ -168,18 +168,20 @@ export default function TablesPage() {
 
   // Today's revenue and client count from finalized orders
   // Date key resets queries at midnight
+  const { goLiveAt } = useGoLiveDate();
   const todayDateKey = new Date().toISOString().slice(0, 10);
 
   const { data: todayStats = { revenue: 0, clients: 0 } } = useQuery({
-    queryKey: ["today_revenue", todayDateKey],
+    queryKey: ["today_revenue", todayDateKey, goLiveAt],
     queryFn: async () => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
+      const cutoff = goLiveAt && new Date(goLiveAt) > todayStart ? goLiveAt : todayStart.toISOString();
       const { data, error } = await supabase
         .from("orders")
         .select("total, guests")
         .eq("status", "finalized")
-        .gte("created_at", todayStart.toISOString());
+        .gte("created_at", cutoff);
       if (error) throw error;
       return {
         revenue: data.reduce((sum, o) => sum + Number(o.total), 0),
@@ -191,15 +193,16 @@ export default function TablesPage() {
 
   // Average service time for today (delivered comandas)
   const { data: avgServiceTime = null } = useQuery({
-    queryKey: ["avg_service_time", todayDateKey],
+    queryKey: ["avg_service_time", todayDateKey, goLiveAt],
     queryFn: async () => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
+      const cutoff = goLiveAt && new Date(goLiveAt) > todayStart ? goLiveAt : todayStart.toISOString();
       const { data, error } = await supabase
         .from("orders")
         .select("created_at, delivered_at")
         .not("delivered_at", "is", null)
-        .gte("created_at", todayStart.toISOString())
+        .gte("created_at", cutoff)
         .not("status", "eq", "canceled");
       if (error) throw error;
       if (!data || data.length === 0) return null;
