@@ -301,6 +301,14 @@ export default function CustomerSalesPage() {
           </div>
         )}
 
+        {/* NFC-e */}
+        <div>
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 flex items-center gap-1.5">
+            <Receipt className="h-3 w-3" /> Nota Fiscal
+          </h4>
+          <NfceStatus orderId={order.id} />
+        </div>
+
         {/* Activity log */}
         {logs.length > 0 && (
           <div>
