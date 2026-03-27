@@ -729,31 +729,31 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
 
-      // Auto-emit NFC-e if not already emitted
+      // Fire-and-forget NFC-e emission (non-blocking)
       if (order) {
-        try {
-          const { data: existing } = await supabase
-            .from("nfce_records")
-            .select("id, status")
-            .eq("order_id", order.id)
-            .in("status", ["emitida", "pending"])
-            .limit(1);
-
-          if (!existing || existing.length === 0) {
-            const { data: emitData, error: emitError } = await supabase.functions.invoke("emit-nfce", {
-              body: { order_id: order.id },
-            });
-            if (emitError || emitData?.error) {
-              console.error("NFC-e auto-emit error:", emitError || emitData?.error);
-              toast.error("Comanda finalizada, mas erro ao emitir NFC-e: " + (emitData?.error || (emitError as Error).message));
-            } else {
-              toast.success("NFC-e emitida automaticamente!");
+        supabase
+          .from("nfce_records")
+          .select("id, status")
+          .eq("order_id", order.id)
+          .in("status", ["emitida", "pending"])
+          .limit(1)
+          .then(({ data: existing }) => {
+            if (!existing || existing.length === 0) {
+              supabase.functions.invoke("emit-nfce", {
+                body: { order_id: order.id },
+              }).then(({ data: emitData, error: emitError }) => {
+                if (emitError || emitData?.error) {
+                  console.error("NFC-e auto-emit error:", emitError || emitData?.error);
+                  toast.error("Erro ao emitir NFC-e: " + (emitData?.error || (emitError as Error).message));
+                } else {
+                  toast.success("NFC-e emitida automaticamente!");
+                }
+              }).catch((e) => {
+                console.error("NFC-e auto-emit exception:", e);
+                toast.error("Falha ao emitir NFC-e.");
+              });
             }
-          }
-        } catch (nfceErr) {
-          console.error("NFC-e auto-emit exception:", nfceErr);
-          toast.error("Comanda finalizada, mas falha ao emitir NFC-e.");
-        }
+          });
       }
 
       toast.success(
