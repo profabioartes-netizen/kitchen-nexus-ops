@@ -293,7 +293,7 @@ export default function CashierPage() {
           ))}
         </div>
 
-        <div className="border-t p-4 space-y-3">
+        <div className="border-t p-4 space-y-3 flex-shrink-0 max-h-[50vh] overflow-auto">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Subtotal</span>
             <span className="font-semibold">R$ {subtotal.toFixed(2)}</span>

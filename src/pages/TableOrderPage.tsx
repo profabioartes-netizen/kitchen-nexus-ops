@@ -1423,8 +1423,8 @@ export default function TableOrderPage() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="border-t p-3 md:p-4 space-y-3">
+        {/* Footer — sticky at bottom, never scrolls away */}
+        <div className="border-t p-3 md:p-4 space-y-3 flex-shrink-0 max-h-[45vh] overflow-auto">
           {order?.status === "paid_pending_finalization" ? (
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
