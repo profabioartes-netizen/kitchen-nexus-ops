@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
     }
 
     const { action, ...payload } = await req.json();
+    console.log("manage-users: action=", action, "payload keys=", Object.keys(payload));
 
     if (action === "create") {
       const { email, password, full_name, role } = payload;
