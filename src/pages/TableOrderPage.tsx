@@ -1222,8 +1222,8 @@ export default function TableOrderPage() {
       </div>
 
       {/* Right: Order panel */}
-      <div className={`md:w-80 md:border-l bg-card flex flex-col ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
-        <div className="p-4 border-b">
+      <div className={`md:w-80 md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
+        <div className="p-4 border-b flex-shrink-0">
           <h2 className="font-semibold text-lg">Comanda</h2>
           <div className="flex items-center gap-1.5 mt-1">
             <User className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1423,8 +1423,8 @@ export default function TableOrderPage() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="border-t p-3 md:p-4 space-y-3">
+        {/* Footer — sticky at bottom, never scrolls away */}
+        <div className="border-t p-3 md:p-4 space-y-3 flex-shrink-0 max-h-[45vh] overflow-auto">
           {order?.status === "paid_pending_finalization" ? (
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">

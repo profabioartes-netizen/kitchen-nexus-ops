@@ -682,15 +682,9 @@ export default function PaymentPanel({
           </div>
         </div>
       )}
-      {remaining <= 0.01 && payments.length > 0 && (
+      {remaining <= 0.01 && payments.length > 0 && !isMobile && (
         <div className="mt-4 pt-4 border-t">
-          <button
-            onClick={handleFinalize}
-            disabled={isPending}
-            className="w-full rounded-md bg-accent text-accent-foreground py-3.5 font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 touch-manipulation"
-          >
-            {isPending ? "Finalizando..." : (<><Check className="h-5 w-5" />FINALIZAR PAGAMENTO</>)}
-          </button>
+          <p className="text-center text-sm text-accent font-semibold">✓ Pagamento completo — finalize abaixo</p>
         </div>
       )}
     </>
@@ -886,8 +880,8 @@ export default function PaymentPanel({
         </div>
       )}
 
-      {/* Bottom bar */}
-      <div className="border-t flex items-center justify-between px-3 md:px-6 py-3 bg-card gap-2">
+      {/* Bottom bar — always visible */}
+      <div className="border-t flex items-center justify-between px-3 md:px-6 py-3 bg-card gap-2 flex-shrink-0">
         <button onClick={onCancel} className="rounded-md bg-destructive/15 text-destructive px-4 md:px-6 py-2.5 text-xs md:text-sm font-bold hover:bg-destructive/25 transition-colors touch-manipulation">VOLTAR</button>
         <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm">
           {paidTotal > 0 && (
@@ -895,9 +889,17 @@ export default function PaymentPanel({
           )}
           <span className="text-muted-foreground">Restante: <span className="font-bold text-foreground">R$ {remaining.toFixed(2)}</span></span>
         </div>
-        {!isMobile && payments.length > 0 && (
+        {remaining <= 0.01 && payments.length > 0 ? (
+          <button
+            onClick={handleFinalize}
+            disabled={isPending}
+            className="rounded-md bg-accent text-accent-foreground px-6 py-2.5 text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 touch-manipulation animate-pulse"
+          >
+            {isPending ? "Finalizando..." : (<><Check className="h-5 w-5" />FINALIZAR</>)}
+          </button>
+        ) : !isMobile && payments.length > 0 ? (
           <button className="rounded-md border bg-card px-6 py-2.5 text-sm font-bold hover:bg-secondary transition-colors">PAGAMENTOS ({payments.length})</button>
-        )}
+        ) : null}
       </div>
 
       {/* Split item dialog */}

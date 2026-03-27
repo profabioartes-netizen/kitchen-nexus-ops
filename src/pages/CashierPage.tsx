@@ -249,7 +249,7 @@ export default function CashierPage() {
       </div>
 
       {/* Order panel */}
-      <div className="w-80 border-l bg-card flex flex-col">
+      <div className="w-80 border-l bg-card flex flex-col overflow-hidden">
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-lg">Comanda</h2>
           <button
@@ -293,7 +293,7 @@ export default function CashierPage() {
           ))}
         </div>
 
-        <div className="border-t p-4 space-y-3">
+        <div className="border-t p-4 space-y-3 flex-shrink-0 max-h-[50vh] overflow-auto">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Subtotal</span>
             <span className="font-semibold">R$ {subtotal.toFixed(2)}</span>

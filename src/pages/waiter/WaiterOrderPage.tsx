@@ -808,8 +808,8 @@ export default function WaiterOrderPage() {
 
       {/* Bottom order drawer */}
       {orderItems.length > 0 && (
-        <div className={`fixed bottom-0 left-0 right-0 z-40 bg-card border-t shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-2xl transition-all duration-300 ${drawerOpen ? "max-h-[70vh]" : "max-h-[76px]"}`}>
-          <button onClick={() => setDrawerOpen(!drawerOpen)} className="w-full flex items-center justify-between px-4 py-4 active:bg-secondary/30">
+        <div className={`fixed bottom-0 left-0 right-0 z-40 bg-card border-t shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-2xl transition-all duration-300 flex flex-col ${drawerOpen ? "max-h-[70vh]" : "max-h-[76px]"}`}>
+          <button onClick={() => setDrawerOpen(!drawerOpen)} className="w-full flex items-center justify-between px-4 py-4 active:bg-secondary/30 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <ShoppingBag className="h-6 w-6 text-accent" />
@@ -826,70 +826,74 @@ export default function WaiterOrderPage() {
           </button>
 
           {drawerOpen && (
-            <div className="overflow-auto px-3 pb-4 max-h-[calc(70vh-76px)]">
-              <div className="space-y-2">
-                {orderItems.map((item) => {
-                  const comps = itemComplements.filter((c) => c.order_item_id === item.id);
-                  const isSent = item.sent_to_kitchen;
-                  return (
-                    <div key={item.id} className={`flex items-center gap-2 rounded-xl border bg-background p-2.5 ${isSent ? "border-accent/30" : ""}`}>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => {
-                            if (isSent && item.quantity <= 1) {
-                              setConfirmDeleteId(item.id);
-                            } else {
-                              updateQty.mutate({ itemId: item.id, delta: -1 });
-                            }
-                          }}
-                          className="rounded-xl border p-2.5 active:bg-secondary"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="text-base font-bold w-7 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })} className="rounded-xl border p-2.5 active:bg-secondary">
-                          <Plus className="h-4 w-4" />
-                        </button>
+            <>
+              <div className="overflow-auto px-3 flex-1 min-h-0">
+                <div className="space-y-2 pb-2">
+                  {orderItems.map((item) => {
+                    const comps = itemComplements.filter((c) => c.order_item_id === item.id);
+                    const isSent = item.sent_to_kitchen;
+                    return (
+                      <div key={item.id} className={`flex items-center gap-2 rounded-xl border bg-background p-2.5 ${isSent ? "border-accent/30" : ""}`}>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <button
+                            onClick={() => {
+                              if (isSent && item.quantity <= 1) {
+                                setConfirmDeleteId(item.id);
+                              } else {
+                                updateQty.mutate({ itemId: item.id, delta: -1 });
+                              }
+                            }}
+                            className="rounded-xl border p-2.5 active:bg-secondary"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <span className="text-base font-bold w-7 text-center">{item.quantity}</span>
+                          <button onClick={() => updateQty.mutate({ itemId: item.id, delta: 1 })} className="rounded-xl border p-2.5 active:bg-secondary">
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs truncate">{item.product_name}</p>
+                          {comps.length > 0 && <p className="text-[9px] text-muted-foreground truncate">{comps.map((c) => c.complement_name).join(", ")}</p>}
+                          {item.notes && <p className="text-[9px] text-accent truncate">📝 {item.notes}</p>}
+                          {isSent && <p className="text-[8px] text-accent font-medium">✓ Enviado</p>}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="text-xs font-semibold mr-1">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
+                          <button onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }} className="rounded-lg p-2 active:bg-secondary">
+                            <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (isSent) {
+                                setConfirmDeleteId(item.id);
+                              } else {
+                                removeItem.mutate(item.id);
+                              }
+                            }}
+                            className="rounded-lg p-2 active:bg-secondary"
+                          >
+                            <Trash2 className={`h-3.5 w-3.5 ${isSent ? "text-orange-500" : "text-destructive"}`} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-xs truncate">{item.product_name}</p>
-                        {comps.length > 0 && <p className="text-[9px] text-muted-foreground truncate">{comps.map((c) => c.complement_name).join(", ")}</p>}
-                        {item.notes && <p className="text-[9px] text-accent truncate">📝 {item.notes}</p>}
-                        {isSent && <p className="text-[8px] text-accent font-medium">✓ Enviado</p>}
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <span className="text-xs font-semibold mr-1">R$ {(Number(item.price) * item.quantity).toFixed(2)}</span>
-                        <button onClick={() => { setNoteItemId(item.id); setNoteText(item.notes ?? ""); }} className="rounded-lg p-2 active:bg-secondary">
-                          <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (isSent) {
-                              setConfirmDeleteId(item.id);
-                            } else {
-                              removeItem.mutate(item.id);
-                            }
-                          }}
-                          className="rounded-lg p-2 active:bg-secondary"
-                        >
-                          <Trash2 className={`h-3.5 w-3.5 ${isSent ? "text-orange-500" : "text-destructive"}`} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-              {/* Save button */}
+              {/* Save button — always visible at bottom */}
               {orderItems.some((i) => !i.sent_to_kitchen) && (
-                <button
-                  onClick={() => saveOrder.mutate()}
-                  disabled={saveOrder.isPending}
-                  className="w-full mt-3 rounded-xl bg-accent text-accent-foreground py-4 text-base font-semibold active:opacity-90 disabled:opacity-50"
-                >
-                  {saveOrder.isPending ? "Enviando..." : `Salvar Pedido (${orderItems.filter((i) => !i.sent_to_kitchen).length} novo${orderItems.filter((i) => !i.sent_to_kitchen).length > 1 ? "s" : ""})`}
-                </button>
+                <div className="flex-shrink-0 px-3 pb-4 pt-2 border-t">
+                  <button
+                    onClick={() => saveOrder.mutate()}
+                    disabled={saveOrder.isPending}
+                    className="w-full rounded-xl bg-accent text-accent-foreground py-4 text-base font-semibold active:opacity-90 disabled:opacity-50"
+                  >
+                    {saveOrder.isPending ? "Enviando..." : `Salvar Pedido (${orderItems.filter((i) => !i.sent_to_kitchen).length} novo${orderItems.filter((i) => !i.sent_to_kitchen).length > 1 ? "s" : ""})`}
+                  </button>
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       )}
