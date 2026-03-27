@@ -6,6 +6,120 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function buildNfcePayload(
+  order: { id: string; total: number; customer_name: string | null },
+  items: { product_id: string; product_name: string; quantity: number; price: number }[],
+  paymentMethod: string,
+) {
+  const now = new Date();
+  const dataEmissao = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+  // Payment method mapping
+  const paymentTypeMap: Record<string, string> = {
+    cash: "01", pix: "17", card: "03", credit: "03", debit: "04",
+  };
+
+  // Filter and validate items
+  const validItems = items.filter((item) => {
+    const price = Number(item.price);
+    const qty = Number(item.quantity);
+    const valid = item.product_name?.trim() && price > 0 && qty >= 1;
+    if (!valid) console.warn("Item filtrado (inválido):", JSON.stringify(item));
+    return valid;
+  });
+
+  if (validItems.length === 0) {
+    throw new Error("Nenhum item válido para emissão de NFC-e");
+  }
+
+  // Calculate totals from items
+  let totalProdutos = 0;
+  const nfceItems = validItems.map((item, idx) => {
+    const qty = Number(item.quantity);
+    const unitPrice = Math.round(Number(item.price) * 100) / 100;
+    const gross = Math.round(unitPrice * qty * 100) / 100;
+    totalProdutos += gross;
+
+    return {
+      numero_item: idx + 1,
+      codigo_produto: item.product_id || String(idx + 1),
+      descricao: item.product_name.trim().substring(0, 120),
+      cfop: "5102",
+      unidade_comercial: "UN",
+      quantidade_comercial: qty.toFixed(4),
+      valor_unitario_comercial: unitPrice.toFixed(2),
+      valor_bruto: gross.toFixed(2),
+      unidade_tributavel: "UN",
+      quantidade_tributavel: qty.toFixed(4),
+      valor_unitario_tributavel: unitPrice.toFixed(2),
+      codigo_ncm: "21069090",
+      origem: "0",
+      icms_situacao_tributaria: "102",
+      pis_situacao_tributaria: "99",
+      pis_aliquota_porcentual: "0.00",
+      pis_base_calculo: "0.00",
+      cofins_situacao_tributaria: "99",
+      cofins_aliquota_porcentual: "0.00",
+      cofins_base_calculo: "0.00",
+    };
+  });
+
+  const totalNota = Math.round(totalProdutos * 100) / 100;
+
+  const payload: Record<string, unknown> = {
+    // --- Identificação ---
+    natureza_operacao: "VENDA",
+    forma_pagamento: "0",              // 0 = à vista
+    tipo_documento: 1,                 // 1 = saída
+    finalidade_emissao: 1,             // 1 = normal
+    consumidor_final: 1,               // 1 = sim
+    presenca_comprador: 1,             // 1 = presencial
+    local_destino: 1,                  // 1 = interna
+    modalidade_frete: 9,               // 9 = sem frete
+    data_emissao: dataEmissao,
+
+    // --- Emitente ---
+    cnpj_emitente: "59132954000109",
+    nome_emitente: "CAFETERIA COFFEE THRONES LTDA",
+    nome_fantasia_emitente: "Cafeteria Coffee Thrones",
+    inscricao_estadual_emitente: "0051004120010",
+    regime_tributario_emitente: 1,     // 1 = Simples Nacional
+    logradouro_emitente: "Sitio Vila do Sossego",
+    numero_emitente: "SN",
+    bairro_emitente: "Rural",
+    cep_emitente: "35557000",
+    municipio_emitente: "Carmo do Cajuru",
+    uf_emitente: "MG",
+    codigo_municipio_emitente: "3114303",
+    telefone_emitente: "",
+
+    // --- Destinatário (consumidor final não identificado) ---
+    // NFC-e permite omitir destinatário para valores <= R$10.000
+
+    // --- Itens ---
+    items: nfceItems,
+
+    // --- Totais (calculados automaticamente pela API, mas informamos para segurança) ---
+    valor_produtos: totalNota.toFixed(2),
+    valor_total: totalNota.toFixed(2),
+    icms_base_calculo: "0.00",
+    icms_valor_total: "0.00",
+    valor_pis: "0.00",
+    valor_cofins: "0.00",
+
+    // --- Pagamento ---
+    formas_pagamento: [{
+      forma_pagamento: paymentTypeMap[paymentMethod] || "01",
+      valor_pagamento: totalNota.toFixed(2),
+    }],
+
+    // --- Informações complementares ---
+    informacoes_adicionais_contribuinte: "Documento emitido por ME/EPP optante pelo Simples Nacional.",
+  };
+
+  return { payload, totalNota };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -55,85 +169,22 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(1);
 
-    const payment = payments?.[0];
+    const paymentMethod = payments?.[0]?.method || "cash";
 
-    // Map payment method to NFC-e code
-    const paymentTypeMap: Record<string, string> = {
-      cash: "01",      // Dinheiro
-      pix: "17",       // Pix
-      card: "03",      // Cartão de crédito
-      credit: "03",    // Cartão de crédito
-      debit: "04",     // Cartão de débito
-    };
-
-    const reference = `pedido_${order_id}_${Date.now()}`;
-
-    // Build NFC-e payload
-    const nfcePayload: Record<string, unknown> = {
-      natureza_operacao: "Venda",
-      forma_pagamento: "0",
-      data_emissao: new Date().toISOString(),
-      modalidade_frete: 9,
-      local_destino: 1,
-      consumidor_final: 1,
-      presenca_comprador: 1,
-      cnpj_emitente: "59132954000109",
-      nome_emitente: "CAFETERIA COFFEE THRONES LTDA",
-      nome_fantasia_emitente: "Cafeteria Coffee Thrones",
-      inscricao_estadual_emitente: "0051004120010",
-      logradouro_emitente: "Sítio Vila do Sossego",
-      numero_emitente: "S/N",
-      bairro_emitente: "Rural",
-      cep_emitente: "35557000",
-      municipio_emitente: "Carmo do Cajuru",
-      uf_emitente: "MG",
-    items: (items || []).filter(item => {
-      const price = Number(item.price);
-      const qty = Number(item.quantity);
-      const valid = item.product_name && item.product_name.trim() !== "" && price > 0 && qty >= 1;
-      if (!valid) console.warn("Item filtrado (inválido):", JSON.stringify(item));
-      return valid;
-    }).map((item, idx) => {
-      const qty = Number(item.quantity);
-      const unitPrice = Number(Number(item.price).toFixed(2));
-      const gross = Number((unitPrice * qty).toFixed(2));
-      return {
-        numero_item: idx + 1,
-        codigo_produto: item.product_id || String(idx + 1),
-        descricao: item.product_name.trim().substring(0, 120),
-        cfop: "5102",
-        unidade_comercial: "UN",
-        quantidade_comercial: qty,
-        valor_unitario_comercial: unitPrice.toFixed(2),
-        valor_bruto: gross.toFixed(2),
-        unidade_tributavel: "UN",
-        codigo_ncm: "22021000",
-        quantidade_tributavel: qty,
-        valor_unitario_tributavel: unitPrice.toFixed(2),
-        origem: "0",
-        icms_situacao_tributaria: "102",
-        pis_situacao_tributaria: "99",
-        pis_aliquota_porcentual: "0.00",
-        pis_base_calculo: "0.00",
-        cofins_situacao_tributaria: "99",
-        cofins_aliquota_porcentual: "0.00",
-        cofins_base_calculo: "0.00",
-      };
-    }),
-      formas_pagamento: [{
-        forma_pagamento: paymentTypeMap[payment?.method || "cash"] || "01",
-        valor_pagamento: Number(order.total).toFixed(2),
-      }],
-    };
-
-    // Validate items before sending
-    if (!nfcePayload.items || (nfcePayload.items as any[]).length === 0) {
-      return new Response(JSON.stringify({ error: "Nenhum item válido para emissão de NFC-e" }), {
+    // Build payload
+    let nfcePayload: Record<string, unknown>;
+    try {
+      const result = buildNfcePayload(order, items || [], paymentMethod);
+      nfcePayload = result.payload;
+    } catch (validationErr) {
+      return new Response(JSON.stringify({ error: (validationErr as Error).message }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Log full payload for debugging
+    const reference = `pedido_${order_id}_${Date.now()}`;
+
+    // Log full payload
     console.log("=== PAYLOAD NFC-e COMPLETO ===");
     console.log(JSON.stringify(nfcePayload, null, 2));
     console.log("=== FIM PAYLOAD ===");
@@ -144,10 +195,7 @@ serve(async (req) => {
       reference,
       status: "pending",
     });
-
-    if (insertErr) {
-      console.error("Error inserting nfce_records:", insertErr);
-    }
+    if (insertErr) console.error("Error inserting nfce_records:", insertErr);
 
     // Call Focus NFe API
     const basicAuth = btoa(`${focusToken}:`);
@@ -160,7 +208,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(nfcePayload),
-      }
+      },
     );
 
     const focusData = await focusRes.json();
@@ -193,7 +241,7 @@ serve(async (req) => {
       });
     }
 
-    // Success — update record with DANFE URL (construct fallback from reference)
+    // Success
     const danfeUrl = focusData.caminho_danfe
       || focusData.url_danfe
       || `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(reference)}.html`;
