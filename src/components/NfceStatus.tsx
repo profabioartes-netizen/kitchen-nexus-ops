@@ -50,7 +50,12 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
   });
 
   const getDanfeUrl = () => {
-    if (nfce?.url_danfe) return nfce.url_danfe;
+    if (nfce?.url_danfe) {
+      const url = nfce.url_danfe as string;
+      // Fix relative paths from Focus NFe
+      if (url.startsWith("http")) return url;
+      return `https://api.focusnfe.com.br${url}`;
+    }
     if (nfce?.reference) return `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(nfce.reference)}.html`;
     return null;
   };

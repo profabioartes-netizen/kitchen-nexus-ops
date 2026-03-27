@@ -362,10 +362,13 @@ serve(async (req) => {
       });
     }
 
-    // Success
-    const danfeUrl = focusData.caminho_danfe
-      || focusData.url_danfe
-      || `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(reference)}.html`;
+    // Success — ensure full URL for DANFE
+    const rawDanfe = (focusData.caminho_danfe || focusData.url_danfe || "") as string;
+    const danfeUrl = rawDanfe.startsWith("http")
+      ? rawDanfe
+      : rawDanfe
+        ? `https://api.focusnfe.com.br${rawDanfe}`
+        : `https://api.focusnfe.com.br/v2/nfce/${encodeURIComponent(reference)}.html`;
 
     const successDiag = {
       http_status: focusRes.status,
