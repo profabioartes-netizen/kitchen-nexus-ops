@@ -522,14 +522,14 @@ export default function PaymentPanel({
 
   const renderPaymentMethodAndAmount = () => (
     <>
-      <div className={`grid ${isMobile ? "grid-cols-4" : "grid-cols-1"} gap-2 mb-4`}>
+      <div className={`grid ${isMobile ? "grid-cols-4" : "grid-cols-1"} gap-1.5 mb-3`}>
         {METHODS.map((method) => (
           <button
             key={method}
             onClick={() => setSelectedMethod(method)}
-            className={`w-full rounded-md py-3 text-sm font-bold transition-all touch-manipulation ${
+            className={`w-full rounded-md py-2 text-xs font-bold transition-all touch-manipulation ${
               selectedMethod === method
-                ? `${methodColors[method]} ring-2 ring-ring ring-offset-2 ring-offset-card`
+                ? `${methodColors[method]} ring-2 ring-ring ring-offset-1 ring-offset-card`
                 : `${methodColors[method]} opacity-70 hover:opacity-100`
             }`}
           >
