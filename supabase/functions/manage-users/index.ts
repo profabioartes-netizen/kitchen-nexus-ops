@@ -14,6 +14,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    console.log("manage-users: start");
     
     // Verify caller authentication
     const authHeader = req.headers.get("Authorization");
@@ -57,6 +59,7 @@ Deno.serve(async (req) => {
     }
 
     const { action, ...payload } = await req.json();
+    console.log("manage-users: action=", action, "payload keys=", Object.keys(payload));
 
     if (action === "create") {
       const { email, password, full_name, role } = payload;
@@ -81,6 +84,8 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: { full_name },
       });
+
+      console.log("manage-users: createUser result", error ? `error: ${error.message}` : `ok: ${data.user.id}`);
 
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
