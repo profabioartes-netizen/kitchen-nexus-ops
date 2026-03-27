@@ -26,6 +26,8 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
     },
     refetchInterval: (query) => {
       const d = query.state.data;
+      // Keep polling while pending OR while no record yet (auto-emit may be in progress)
+      if (!d) return 2000;
       return d?.status === "pending" ? 3000 : false;
     },
   });
@@ -75,25 +77,14 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
     );
   }
 
-  // No record yet — show emit button
+  // No record yet — auto-emit is likely in progress, show waiting state
   if (!nfce) {
     return (
-      <div className="rounded-md border bg-background p-3 space-y-2">
+      <div className="rounded-md border bg-background p-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <FileText className="h-4 w-4" />
-          NFC-e não emitida
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Aguardando emissão da NFC-e...
         </div>
-        <button
-          onClick={() => emitMutation.mutate()}
-          disabled={emitMutation.isPending}
-          className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {emitMutation.isPending ? (
-            <><Loader2 className="h-4 w-4 animate-spin" /> Emitindo...</>
-          ) : (
-            <><FileText className="h-4 w-4" /> Emitir NFC-e</>
-          )}
-        </button>
       </div>
     );
   }
