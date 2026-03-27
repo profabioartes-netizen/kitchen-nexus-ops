@@ -11,11 +11,8 @@ function buildNfcePayload(
   items: { product_id: string; product_name: string; quantity: number; price: number }[],
   paymentMethod: string,
 ) {
-  // Focus NFe expects local datetime without timezone (Brasília time)
-  // Server runs in UTC, subtract 3 hours for BRT
-  const nowUtc = new Date();
-  const brt = new Date(nowUtc.getTime() - 3 * 60 * 60 * 1000);
-  const dataEmissao = brt.toISOString().replace(/\.\d{3}Z$/, "");
+  // Focus NFe: use UTC time directly, API handles timezone
+  const dataEmissao = new Date().toISOString().replace("Z", "-0300");
 
   // Payment method mapping
   const paymentTypeMap: Record<string, string> = {
