@@ -87,23 +87,29 @@ serve(async (req) => {
       cep_emitente: "35557000",
       municipio_emitente: "Carmo do Cajuru",
       uf_emitente: "MG",
-      items: (items || []).filter(item => {
-        const price = Number(item.price);
-        const qty = Number(item.quantity);
-        return item.product_name && price > 0 && qty > 0;
-      }).map((item, idx) => ({
+    items: (items || []).filter(item => {
+      const price = Number(item.price);
+      const qty = Number(item.quantity);
+      const valid = item.product_name && item.product_name.trim() !== "" && price > 0 && qty >= 1;
+      if (!valid) console.warn("Item filtrado (inválido):", JSON.stringify(item));
+      return valid;
+    }).map((item, idx) => {
+      const qty = Number(item.quantity);
+      const unitPrice = Number(Number(item.price).toFixed(2));
+      const gross = Number((unitPrice * qty).toFixed(2));
+      return {
         numero_item: idx + 1,
-        codigo_produto: item.product_id,
-        descricao: item.product_name.substring(0, 120),
+        codigo_produto: item.product_id || String(idx + 1),
+        descricao: item.product_name.trim().substring(0, 120),
         cfop: "5102",
         unidade_comercial: "UN",
-        quantidade_comercial: item.quantity,
-        valor_unitario_comercial: Number(item.price).toFixed(2),
-        valor_bruto: (Number(item.price) * item.quantity).toFixed(2),
+        quantidade_comercial: qty,
+        valor_unitario_comercial: unitPrice.toFixed(2),
+        valor_bruto: gross.toFixed(2),
         unidade_tributavel: "UN",
-        codigo_ncm: "21069090",
-        quantidade_tributavel: item.quantity,
-        valor_unitario_tributavel: Number(item.price).toFixed(2),
+        codigo_ncm: "22021000",
+        quantidade_tributavel: qty,
+        valor_unitario_tributavel: unitPrice.toFixed(2),
         origem: "0",
         icms_situacao_tributaria: "102",
         pis_situacao_tributaria: "99",
@@ -112,7 +118,8 @@ serve(async (req) => {
         cofins_situacao_tributaria: "99",
         cofins_aliquota_porcentual: "0.00",
         cofins_base_calculo: "0.00",
-      })),
+      };
+    }),
       formas_pagamento: [{
         forma_pagamento: paymentTypeMap[payment?.method || "cash"] || "01",
         valor_pagamento: Number(order.total).toFixed(2),
