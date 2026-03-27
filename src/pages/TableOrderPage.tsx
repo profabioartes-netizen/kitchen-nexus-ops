@@ -8,6 +8,7 @@ import {
   Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save, ShoppingBag, UtensilsCrossed,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import NfceStatus from "@/components/NfceStatus";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -1400,8 +1401,9 @@ export default function TableOrderPage() {
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
                 <p className="text-sm font-semibold text-accent">✓ Pagamento concluído</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Finalize para registrar nos relatórios</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Emita a NFC-e e finalize para registrar nos relatórios</p>
               </div>
+              <NfceStatus orderId={order.id} />
               <button
                 onClick={() => finalizeMutation.mutate()}
                 disabled={finalizeMutation.isPending}
