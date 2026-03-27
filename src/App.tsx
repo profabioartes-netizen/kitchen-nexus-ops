@@ -42,7 +42,7 @@ import SplashScreen from "@/components/SplashScreen";
 const queryClient = new QueryClient();
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const handleSplashFinished = useCallback(() => setShowSplash(false), []);
 
@@ -52,6 +52,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (profile?.role === "contabilidade") {
+    return <Navigate to="/contabilidade" replace />;
   }
 
   return (
