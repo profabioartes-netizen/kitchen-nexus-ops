@@ -537,9 +537,9 @@ export default function PaymentPanel({
           </button>
         ))}
       </div>
-      <div className="space-y-3 flex-1">
+      <div className="space-y-2 flex-1">
         <div>
-          <label className="text-xs text-muted-foreground">Valor a pagar</label>
+          <label className="text-[11px] text-muted-foreground">Valor a pagar</label>
           <input
             type="text"
             inputMode="decimal"
@@ -550,7 +550,7 @@ export default function PaymentPanel({
               const formatted = (cents / 100).toFixed(2).replace(".", ",");
               setCustomAmount(formatted);
             }}
-            className="w-full mt-1 rounded-md border bg-background px-3 py-3 text-lg text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
+            className="w-full mt-0.5 rounded-md border bg-background px-3 py-2 text-base text-right font-semibold outline-none focus:ring-2 focus:ring-ring tabular-nums"
           />
         </div>
         {selectedMethod === "cash" && (
