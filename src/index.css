@@ -159,10 +159,8 @@
 
   .nav-rail {
     @apply items-center py-4 gap-1;
-    background: hsl(var(--nav-bg));
-    color: hsl(var(--nav-foreground));
-    width: 88px;
-    min-height: 100vh;
+    background: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground));
   }
 
   .table-status-free {
