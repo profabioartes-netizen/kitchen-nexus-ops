@@ -603,8 +603,8 @@ export default function PaymentPanel({
 
   const renderSummaryContent = () => (
     <>
-      <div className="text-center mb-3">
-        <p className="text-2xl font-bold tabular-nums">R$ {amountToPay.toFixed(2)}</p>
+      <div className="text-center mb-2">
+        <p className="text-xl font-bold tabular-nums">R$ {amountToPay.toFixed(2)}</p>
       </div>
       {hasSummaryItems ? (
         <div className="space-y-1">
