@@ -217,7 +217,7 @@ export default function UsersPage() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">Função</label>
               <div className="flex gap-2">
-                {(["waiter", "admin"] as const).map((r) => (
+                {(["waiter", "admin", "contabilidade"] as const).map((r) => (
                   <button
                     key={r}
                     type="button"
