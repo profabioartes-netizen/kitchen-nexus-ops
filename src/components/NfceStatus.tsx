@@ -62,10 +62,65 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
     return null;
   };
 
-  const handlePrint = () => {
-    const url = getDanfeUrl();
-    if (url) window.open(url, "_blank");
-    else toast.error("URL da DANFE não disponível.");
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrint = async () => {
+    const danfeUrl = getDanfeUrl();
+    if (!danfeUrl) {
+      toast.error("URL da DANFE não disponível.");
+      return;
+    }
+
+    setIsPrinting(true);
+    try {
+      // Fetch order items for the DANFE ticket
+      const { data: orderItems } = await supabase
+        .from("order_items")
+        .select("product_name, quantity, price")
+        .eq("order_id", orderId);
+
+      const { data: order } = await supabase
+        .from("orders")
+        .select("total, customer_name, created_at")
+        .eq("id", orderId)
+        .single();
+
+      const { data: payments } = await supabase
+        .from("payments")
+        .select("method, amount")
+        .eq("order_id", orderId);
+
+      const methodMap: Record<string, string> = { cash: "DINHEIRO", card: "CARTAO", pix: "PIX" };
+      const paymentMethod = payments?.[0]?.method
+        ? methodMap[payments[0].method] || payments[0].method.toUpperCase()
+        : null;
+
+      const { error } = await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "danfe",
+          danfe_url: danfeUrl,
+          chave_acesso: nfce.chave_acesso || null,
+          customer_name: order?.customer_name || null,
+          items: (orderItems || []).map((i: any) => ({
+            product_name: i.product_name,
+            quantity: i.quantity,
+            price: Number(i.price),
+          })),
+          total: Number(order?.total || 0),
+          payment_method: paymentMethod,
+          order_created_at: order?.created_at || null,
+        },
+      });
+
+      if (error) throw error;
+      toast.success("DANFE enviado para impressão!");
+    } catch (err) {
+      toast.error("Erro ao enviar DANFE para impressão: " + (err as Error).message);
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   if (isLoading) {
@@ -100,10 +155,14 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           </div>
           <button
             onClick={handlePrint}
-            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            disabled={isPrinting}
+            className="w-full rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Printer className="h-4 w-4" />
-            Imprimir DANFE
+            {isPrinting ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+            ) : (
+              <><Printer className="h-4 w-4" /> Imprimir DANFE</>
+            )}
           </button>
         </>
       )}
