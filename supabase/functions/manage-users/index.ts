@@ -58,7 +58,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, ...payload } = await req.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+      console.log("manage-users: parsed body keys=", Object.keys(body));
+    } catch (parseErr) {
+      console.error("manage-users: failed to parse body", parseErr);
+      return new Response(JSON.stringify({ error: "Corpo da requisição inválido" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { action, ...payload } = body;
     console.log("manage-users: action=", action, "payload keys=", Object.keys(payload));
 
     if (action === "create") {
