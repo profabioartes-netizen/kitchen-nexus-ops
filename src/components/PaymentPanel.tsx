@@ -714,15 +714,15 @@ export default function PaymentPanel({
       </div>
 
       {/* Top action bar */}
-      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-6 py-2 border-b bg-card overflow-x-auto">
-        <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
-        <button onClick={() => { setSplitAllDivisor(2); setSplitAllStep("count"); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-3 md:px-4 py-2 text-xs md:text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
-        <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
+      <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 border-b bg-card overflow-x-auto flex-shrink-0">
+        <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
+        <button onClick={() => { setSplitAllDivisor(2); setSplitAllStep("count"); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
+        <div className="ml-auto flex items-center gap-1.5 md:gap-2">
+          <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
           {!isMobile && (
             <>
-              <button onClick={() => setExtraCharge(extraCharge > 0 ? 0 : 5)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors ${extraCharge > 0 ? "bg-accent text-accent-foreground" : "border hover:bg-secondary"}`}>ACRÉSCIMO</button>
-              <button onClick={() => onToggleServiceFee(!serviceFeeEnabled)} className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors ${serviceFeeEnabled ? "bg-[hsl(var(--status-reserved))] text-white" : "border hover:bg-secondary"}`}>T. SERVIÇO</button>
+              <button onClick={() => setExtraCharge(extraCharge > 0 ? 0 : 5)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${extraCharge > 0 ? "bg-accent text-accent-foreground" : "border hover:bg-secondary"}`}>ACRÉSCIMO</button>
+              <button onClick={() => onToggleServiceFee(!serviceFeeEnabled)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${serviceFeeEnabled ? "bg-[hsl(var(--status-reserved))] text-white" : "border hover:bg-secondary"}`}>T. SERVIÇO</button>
             </>
           )}
         </div>
