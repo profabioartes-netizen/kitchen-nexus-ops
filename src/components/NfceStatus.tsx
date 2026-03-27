@@ -81,9 +81,22 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
 
       const { data: order } = await supabase
         .from("orders")
-        .select("total, customer_name, created_at")
+        .select("total, customer_name, created_at, waiter_name, table_id")
         .eq("id", orderId)
         .single();
+
+      // Fetch table info for mesa/comanda
+      let tableName: string | null = null;
+      let internalNumber: string | null = null;
+      if (order?.table_id) {
+        const { data: table } = await supabase
+          .from("restaurant_tables")
+          .select("name, internal_number")
+          .eq("id", order.table_id)
+          .single();
+        tableName = table?.name || null;
+        internalNumber = table?.internal_number || null;
+      }
 
       const { data: payments } = await supabase
         .from("payments")
@@ -103,6 +116,9 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           danfe_url: danfeUrl,
           chave_acesso: nfce.chave_acesso || null,
           customer_name: order?.customer_name || null,
+          waiter_name: order?.waiter_name || null,
+          table_name: tableName,
+          comanda_number: internalNumber,
           items: (orderItems || []).map((i: any) => ({
             product_name: i.product_name,
             quantity: i.quantity,
@@ -110,6 +126,7 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           })),
           total: Number(order?.total || 0),
           payment_method: paymentMethod,
+          payment_amount: payments?.[0] ? Number(payments[0].amount) : null,
           order_created_at: order?.created_at || null,
         },
       });

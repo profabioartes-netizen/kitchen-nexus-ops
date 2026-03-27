@@ -525,68 +525,94 @@ function buildCancellationTicket(job) {
 // ── 4) DANFE NFC-e ticket (fiscal receipt on thermal printer) ───────
 function buildDanfeTicket(job) {
   const p = job.payload || {};
-  const now = new Date(job.created_at);
-  const time = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  const date = now.toLocaleDateString("pt-BR");
+  // Use order_created_at for the sale date, fallback to job created_at
+  const saleDate = p.order_created_at ? new Date(p.order_created_at) : new Date(job.created_at);
+  const time = saleDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const date = saleDate.toLocaleDateString("pt-BR");
   const items = p.items || [];
 
-  const qtyCol = 6;
+  const qtyCol = 4;
+  const priceCol = 10;
   const totalCol = 10;
-  const itemsCol = COLS - qtyCol - totalCol;
+  const itemsCol = COLS - qtyCol - priceCol - totalCol;
 
   const parts = [
     cmd.init,
     cmd.codepage,
     cmd.alignCenter,
     cmd.text(""),
+    // ── Brand header ──
     cmd.bold(true),
     cmd.doubleSize(true),
-    cmd.text("DANFE NFC-e"),
+    cmd.text("COFFEE THRONES"),
     cmd.doubleSize(false),
     cmd.bold(false),
     cmd.text(""),
-    cmd.bold(true),
-    cmd.text("COFFEE THRONES"),
-    cmd.bold(false),
     cmd.text(`CNPJ: ${CNPJ}`),
+    cmd.text(""),
+    cmd.separator(),
+    // ── DANFE title ──
+    cmd.bold(true),
+    cmd.text("DANFE NFC-e"),
+    cmd.bold(false),
     cmd.text("DOCUMENTO AUXILIAR DA NOTA FISCAL"),
     cmd.text("DE CONSUMIDOR ELETRONICA"),
-    cmd.text(""),
     cmd.separator(),
     cmd.text(""),
   ];
 
-  // Customer
-  const customerName = p.customer_name || null;
-  if (customerName) {
-    parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
+  // ── Sale info block ──
+  parts.push(cmd.alignLeft);
+  const tableName = p.table_name || p.location || p.table || null;
+  const comanda = p.comanda_number || null;
+  const waiter = p.waiter_name || null;
+  const customer = p.customer_name || null;
+
+  if (tableName && tableName !== "—") {
+    parts.push(cmd.padRow("MESA:", upperPt(tableName)));
+  }
+  if (comanda) {
+    parts.push(cmd.padRow("COMANDA:", comanda));
+  }
+  if (waiter) {
+    parts.push(cmd.padRow("ATENDENTE:", upperPt(waiter)));
+  }
+  if (customer) {
+    parts.push(cmd.padRow("CLIENTE:", upperPt(customer)));
   } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
+  parts.push(cmd.padRow("DATA:", `${date}  ${time}`));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
-  parts.push(cmd.text(""));
 
-  // Column headers
+  // ── Column headers ──
   parts.push(cmd.alignLeft);
   parts.push(cmd.bold(true));
-  const headerLine = "QTD".padEnd(qtyCol) + "PRODUTO".padEnd(itemsCol) + "TOTAL".padStart(totalCol);
-  parts.push(cmd.text(headerLine));
+  const hdrLine = "QTD".padEnd(qtyCol) + "PRODUTO".padEnd(itemsCol) + "UNIT".padStart(priceCol) + "TOTAL".padStart(totalCol);
+  parts.push(cmd.text(hdrLine));
   parts.push(cmd.bold(false));
   parts.push(cmd.separator());
-  parts.push(cmd.text(""));
 
-  // Items
+  // ── Items ──
+  let subtotal = 0;
   for (const item of items) {
     const qty = item.quantity || 1;
     const price = Number(item.price || 0);
     const itemTotal = price * qty;
+    subtotal += itemTotal;
     const name = upperPt(item.product_name || item.name || "ITEM");
+    const unitStr = price.toFixed(2).replace(".", ",");
     const totalStr = itemTotal.toFixed(2).replace(".", ",");
 
     const wrappedName = wordWrap(name, itemsCol);
-    const firstLine = String(qty).padEnd(qtyCol) + wrappedName[0].padEnd(itemsCol) + totalStr.padStart(totalCol);
+    // First line with all columns
+    const firstLine = String(qty).padEnd(qtyCol)
+      + wrappedName[0].padEnd(itemsCol)
+      + unitStr.padStart(priceCol)
+      + totalStr.padStart(totalCol);
     parts.push(cmd.text(firstLine));
+    // Continuation lines (name only, indented)
     for (let i = 1; i < wrappedName.length; i++) {
       parts.push(cmd.text(" ".repeat(qtyCol) + wrappedName[i]));
     }
@@ -594,29 +620,44 @@ function buildDanfeTicket(job) {
 
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
-  parts.push(cmd.text(""));
 
-  // Total
-  const totalVal = Number(p.total || 0);
+  // ── Subtotal + Total ──
+  const totalVal = Number(p.total || subtotal);
   parts.push(cmd.alignRight);
+  if (items.length > 1) {
+    parts.push(cmd.text(`SUBTOTAL:  R$ ${subtotal.toFixed(2).replace(".", ",")}`));
+  }
+  parts.push(cmd.text(""));
   parts.push(cmd.bold(true));
+  parts.push(cmd.doubleW(true));
   parts.push(cmd.text(`TOTAL: R$ ${totalVal.toFixed(2).replace(".", ",")}`));
+  parts.push(cmd.doubleW(false));
   parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
 
-  // Payment method
-  if (p.payment_method) {
-    parts.push(cmd.alignCenter);
-    parts.push(cmd.text(`PAGAMENTO: ${p.payment_method}`));
-    parts.push(cmd.text(""));
-  }
-
+  // ── Payment section ──
   parts.push(cmd.separator());
+  parts.push(cmd.alignLeft);
+  if (p.payment_method) {
+    const payLabel = p.payment_method;
+    const payAmount = p.payment_amount ? Number(p.payment_amount) : totalVal;
+    parts.push(cmd.bold(true));
+    parts.push(cmd.padRow("FORMA PGTO:", payLabel));
+    parts.push(cmd.padRow("VALOR PAGO:", `R$ ${payAmount.toFixed(2).replace(".", ",")}`));
+    parts.push(cmd.bold(false));
+    // Show change if cash and overpaid
+    if ((payLabel === "DINHEIRO" || payLabel === "cash") && payAmount > totalVal) {
+      const change = payAmount - totalVal;
+      parts.push(cmd.padRow("TROCO:", `R$ ${change.toFixed(2).replace(".", ",")}`));
+    }
+  }
   parts.push(cmd.text(""));
 
-  // Chave de acesso
+  // ── Access key ──
+  parts.push(cmd.separator());
   parts.push(cmd.alignCenter);
   if (p.chave_acesso) {
+    parts.push(cmd.text(""));
     parts.push(cmd.bold(true));
     parts.push(cmd.text("CHAVE DE ACESSO"));
     parts.push(cmd.bold(false));
@@ -627,23 +668,55 @@ function buildDanfeTicket(job) {
     parts.push(cmd.text(""));
   }
 
-  // DANFE URL for reference
-  if (p.danfe_url) {
-    parts.push(cmd.text("Consulte em:"));
-    parts.push(cmd.wrappedText(p.danfe_url));
+  // ── QR Code for NFC-e consultation ──
+  const consultUrl = p.danfe_url || (p.chave_acesso
+    ? `https://www.nfce.fazenda.gov.br/portal/consultarNFCe.aspx?chNFe=${p.chave_acesso}`
+    : null);
+  if (consultUrl) {
+    // ESC/POS QR Code commands (GS ( k)
+    const urlBuf = toPC860(consultUrl);
+    const storeLen = urlBuf.length + 3;
+    const pL = storeLen & 0xFF;
+    const pH = (storeLen >> 8) & 0xFF;
+    parts.push(
+      // QR model 2
+      Buffer.from([GS, 0x28, 0x6B, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00]),
+      // QR size (module size 4)
+      Buffer.from([GS, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x43, 0x04]),
+      // QR error correction L
+      Buffer.from([GS, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x45, 0x30]),
+      // Store data
+      Buffer.from([GS, 0x28, 0x6B, pL, pH, 0x31, 0x50, 0x30]),
+      urlBuf,
+      // Print QR
+      Buffer.from([GS, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30]),
+    );
+    parts.push(cmd.text(""));
+    parts.push(cmd.text("Consulte via QR Code acima"));
     parts.push(cmd.text(""));
   }
 
+  // ── Authorization ──
   parts.push(cmd.separator());
-  parts.push(cmd.text(""));
+  parts.push(cmd.alignCenter);
   parts.push(cmd.bold(true));
   parts.push(cmd.text("NFC-e AUTORIZADA"));
   parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
-  parts.push(cmd.text(`${date} ${time}`));
+
+  // ── Footer message ──
+  parts.push(cmd.separator());
+  parts.push(cmd.text(""));
+  parts.push(cmd.bold(true));
+  parts.push(cmd.text("Obrigado pela preferencia!"));
+  parts.push(cmd.text("Volte sempre ao Reino"));
+  parts.push(cmd.text("Coffee Thrones!"));
+  parts.push(cmd.bold(false));
+  parts.push(cmd.text(""));
+  parts.push(cmd.text("@coffeethrones"));
   parts.push(cmd.text(""));
 
-  parts.push(cmd.feedLines(2));
+  parts.push(cmd.feedLines(3));
   parts.push(cmd.cut);
 
   return Buffer.concat(parts);
