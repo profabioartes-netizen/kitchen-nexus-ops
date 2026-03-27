@@ -693,23 +693,23 @@ export default function PaymentPanel({
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-3 md:px-6 py-3">
-        <div className="flex items-center gap-2 md:gap-3">
-          <button onClick={onCancel} className="rounded-md border p-2 hover:bg-secondary transition-colors touch-manipulation">
-            <ArrowLeft className="h-5 w-5" />
+      <div className="flex items-center justify-between border-b px-3 md:px-5 py-1.5">
+        <div className="flex items-center gap-2">
+          <button onClick={onCancel} className="rounded-md border p-1.5 hover:bg-secondary transition-colors touch-manipulation">
+            <ArrowLeft className="h-4 w-4" />
           </button>
           <div>
-            <h1 className="text-base md:text-lg font-semibold">Fechamento de Conta</h1>
-            <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs text-muted-foreground flex-wrap">
+            <h1 className="text-sm md:text-base font-semibold leading-tight">Fechamento de Conta</h1>
+            <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-[11px] text-muted-foreground">
               <span>{orderItems.length} itens</span>
               <span>R$ {total.toFixed(2)}</span>
               {paidTotal > 0 && <span className="text-accent">Pago: R$ {paidTotal.toFixed(2)}</span>}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="text-xl md:text-2xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
-          <button onClick={onCancel} className="rounded-md p-2 hover:bg-secondary"><X className="h-5 w-5" /></button>
+        <div className="flex items-center gap-2">
+          <span className="text-lg md:text-xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
+          <button onClick={onCancel} className="rounded-md p-1.5 hover:bg-secondary"><X className="h-4 w-4" /></button>
         </div>
       </div>
 
