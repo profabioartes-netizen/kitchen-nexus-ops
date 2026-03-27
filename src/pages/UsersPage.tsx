@@ -47,8 +47,12 @@ export default function UsersPage() {
       const { data, error } = await supabase.functions.invoke("manage-users", {
         body: { action: "create", email, password, full_name: fullName, role },
       });
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (error) {
+        // Try to extract server error message
+        const serverMsg = data?.error || error.message || "Erro ao criar usuário";
+        throw new Error(serverMsg);
+      }
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
