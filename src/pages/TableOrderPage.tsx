@@ -1205,11 +1205,7 @@ export default function TableOrderPage() {
               disabled={addItem.isPending}
               className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden touch-manipulation"
             >
-              {product.image_url && (
-                <div className="w-full aspect-[4/3] bg-secondary">
-                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                </div>
-              )}
+              {/* No image in operational view */}
               <div className="p-2 md:p-3">
                 <span className="font-medium text-xs md:text-sm">{product.name}</span>
                 <span className="text-accent font-semibold mt-0.5 md:mt-1 block text-sm">

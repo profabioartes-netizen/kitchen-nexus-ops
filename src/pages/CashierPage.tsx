@@ -230,11 +230,7 @@ export default function CashierPage() {
                 onClick={() => addItem(item)}
                 className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden"
               >
-                {item.image_url && (
-                  <div className="w-full aspect-[4/3] bg-secondary">
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                )}
+              {/* No image in operational view */}
                 <div className="p-3">
                   <span className="font-medium text-sm">{item.name}</span>
                   <span className="text-accent font-semibold mt-1 block">
