@@ -273,9 +273,9 @@ export default function SelfServiceAdminPage() {
                       {/* Main row */}
                       <div className="p-4 flex items-center gap-4">
                         {/* Product image or icon */}
-                        {product.image_url ? (
+                        {product.menu_image_url ? (
                           <img
-                            src={product.image_url}
+                            src={product.menu_image_url}
                             alt={product.name}
                             className="h-12 w-12 rounded-md object-cover flex-shrink-0"
                           />
