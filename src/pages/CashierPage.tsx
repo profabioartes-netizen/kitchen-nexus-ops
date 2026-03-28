@@ -435,23 +435,45 @@ export default function CashierPage() {
             </div>
           )}
 
-          {/* Confirm payment button */}
+          {/* Confirm payment buttons */}
           {selectedMethod && (
-            <button
-              disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate(selectedMethod)}
-              className="w-full rounded-md bg-accent text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {payMutation.isPending ? "Processando..." : `Finalizar — ${methodLabels[selectedMethod]}`}
-            </button>
+            <div className="flex gap-2">
+              <button
+                disabled={order.length === 0 || payMutation.isPending}
+                onClick={() => payMutation.mutate(selectedMethod)}
+                className="flex-1 rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {payMutation.isPending ? "Processando..." : `✅ Finalizar`}
+              </button>
+              <button
+                disabled={order.length === 0 || payMutation.isPending}
+                onClick={handleFinalizeAndPrint}
+                className="flex-1 rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                🧾 Finalizar + Imprimir
+              </button>
+            </div>
           )}
 
-          {/* NFC-e fiscal module — isolated */}
+          {/* Post-payment: receipt print + NFC-e */}
           {lastFinalizedOrderId && (
-            <NfceStatus
-              orderId={lastFinalizedOrderId}
-              onClose={() => setLastFinalizedOrderId(null)}
-            />
+            <div className="space-y-2">
+              {lastOrderSnapshot && (
+                <button
+                  onClick={printReceipt}
+                  className="w-full rounded-md border border-border bg-secondary text-secondary-foreground py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+                >
+                  🧾 Imprimir Comprovante
+                </button>
+              )}
+              <NfceStatus
+                orderId={lastFinalizedOrderId}
+                onClose={() => {
+                  setLastFinalizedOrderId(null);
+                  setLastOrderSnapshot(null);
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
