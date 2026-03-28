@@ -7,6 +7,8 @@ import { getOrCreateSelfServiceOrder } from "@/lib/getOrCreateSelfServiceOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import { Search, ShoppingBag, X, Trash2, Flame } from "lucide-react";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
+import ProductCard from "@/components/self-service/ProductCard";
+import CartSuggestions from "@/components/self-service/CartSuggestions";
 
 type CartItem = {
   product: { id: string; name: string; price: number; station: string; category_id: string | null };
@@ -53,12 +55,20 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .eq("active", true)
         .order("sort_order");
       if (error) throw error;
-      // Filter to only menu-visible products (client-side since column is new)
       return data.filter((p: any) => p.visible_on_menu !== false);
     },
   });
 
-  // Check approval setting
+  // Products that have complement groups (need the dialog)
+  const { data: productsWithComplements = new Set<string>() } = useQuery({
+    queryKey: ["product_complement_ids"],
+    queryFn: async () => {
+      const { data } = await supabase.from("product_complement_groups").select("product_id");
+      return new Set((data || []).map((r) => r.product_id));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: requiresApproval } = useQuery({
     queryKey: ["self_service_requires_approval"],
     queryFn: async () => {
@@ -71,28 +81,22 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     },
   });
 
-  // Fetch trending product IDs (top sellers last 15 days, R$15+ only, with featured fallback)
+  // Trending product IDs (top sellers last 15 days, R$15+ only, with featured fallback)
   const { data: trendingIds = [] } = useQuery({
     queryKey: ["trending_products_15d"],
     queryFn: async () => {
       const fifteenDaysAgo = new Date();
       fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
 
-      // Get active + visible products with price >= 15
       const { data: activeProducts } = await supabase
         .from("products")
         .select("*")
         .eq("active", true);
 
       const visibleProducts = (activeProducts || []).filter((p: any) => p.visible_on_menu !== false);
-
       const eligibleIds = new Set(
-        visibleProducts
-          .filter((p: any) => p.price >= 15)
-          .map((p: any) => p.id)
+        visibleProducts.filter((p: any) => p.price >= 15).map((p: any) => p.id)
       );
-
-      // Get manually featured products as fallback
       const featuredIds = visibleProducts
         .filter((p: any) => (p as any).featured_on_menu === true)
         .map((p: any) => p.id);
@@ -105,7 +109,7 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .gte("created_at", fifteenDaysAgo.toISOString());
       if (error) throw error;
 
-      const orderIds = [...new Set((data || []).map(i => i.order_id))];
+      const orderIds = [...new Set((data || []).map((i) => i.order_id))];
       if (orderIds.length === 0) return featuredIds.slice(0, 10);
 
       const { data: closedOrders } = await supabase
@@ -114,12 +118,10 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .in("id", orderIds)
         .eq("status", "closed");
 
-      const closedSet = new Set((closedOrders || []).map(o => o.id));
-
+      const closedSet = new Set((closedOrders || []).map((o) => o.id));
       const counts = new Map<string, number>();
       for (const item of data || []) {
-        if (!closedSet.has(item.order_id)) continue;
-        if (!eligibleIds.has(item.product_id)) continue;
+        if (!closedSet.has(item.order_id) || !eligibleIds.has(item.product_id)) continue;
         counts.set(item.product_id, (counts.get(item.product_id) || 0) + item.quantity);
       }
 
@@ -128,7 +130,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .slice(0, 10)
         .map(([id]) => id);
 
-      // Fallback: fill remaining slots with featured products
       if (result.length < 10) {
         const resultSet = new Set(result);
         for (const fid of featuredIds) {
@@ -139,20 +140,27 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
           }
         }
       }
-
       return result;
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  // Detect "new" products (created in last 7 days)
+  const newProductIds = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return new Set(products.filter((p) => new Date(p.created_at).getTime() > sevenDaysAgo).map((p) => p.id));
+  }, [products]);
+
+  const trendingSet = useMemo(() => new Set(trendingIds), [trendingIds]);
 
   const TRENDING_ID = "__trending__";
 
   const filtered = useMemo(() => {
     let list = products;
     if (activeCategory === TRENDING_ID) {
-      if (trendingIds.length === 0) return list; // fallback: show all
+      if (trendingIds.length === 0) return list;
       const idxMap = new Map(trendingIds.map((id, i) => [id, i]));
-      list = list.filter(p => idxMap.has(p.id));
+      list = list.filter((p) => idxMap.has(p.id));
       list.sort((a, b) => (idxMap.get(a.id) ?? 99) - (idxMap.get(b.id) ?? 99));
       return list;
     }
@@ -164,16 +172,29 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     return list;
   }, [products, activeCategory, search, trendingIds]);
 
-  const cartTotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + (Number(item.product.price) + item.complementsTotal) * item.quantity, 0);
-  }, [cart]);
-
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + (Number(item.product.price) + item.complementsTotal) * item.quantity, 0),
+    [cart]
+  );
   const cartCount = useMemo(() => cart.reduce((s, i) => s + i.quantity, 0), [cart]);
+  const cartProductIds = useMemo(() => new Set(cart.map((c) => c.product.id)), [cart]);
 
   const handleAddItem = (payload: AddItemPayload) => {
     setCart((prev) => [...prev, payload]);
     setSelectedProduct(null);
     toast.success(`${payload.product.name} adicionado ao carrinho`);
+  };
+
+  const handleQuickAdd = (product: any) => {
+    const payload: AddItemPayload = {
+      product: { id: product.id, name: product.name, price: product.price, station: product.station, category_id: product.category_id },
+      quantity: 1,
+      notes: "",
+      complements: [],
+      complementsTotal: 0,
+    };
+    setCart((prev) => [...prev, payload]);
+    toast.success(`${product.name} adicionado ao carrinho`);
   };
 
   const removeFromCart = (index: number) => {
@@ -185,9 +206,7 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     setSubmitting(true);
 
     try {
-      if (!sessionId) {
-        throw new Error("Sessão de autoatendimento inválida");
-      }
+      if (!sessionId) throw new Error("Sessão de autoatendimento inválida");
 
       const ensuredOrder = await getOrCreateSelfServiceOrder({
         tableId,
@@ -197,12 +216,8 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       });
 
       const currentOrderId = ensuredOrder.id;
+      if (currentOrderId !== orderId) onOrderCreated(currentOrderId);
 
-      if (currentOrderId !== orderId) {
-        onOrderCreated(currentOrderId);
-      }
-
-      // Insert items
       for (const item of cart) {
         const { data: inserted, error: itemErr } = await supabase
           .from("order_items")
@@ -215,14 +230,13 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
             notes: item.notes || null,
             sent_to_kitchen: !requiresApproval,
             sent_at: !requiresApproval ? new Date().toISOString() : null,
-            preparation_status: !requiresApproval ? "pending" : "pending",
+            preparation_status: "pending",
           })
           .select("id")
           .single();
 
         if (itemErr) throw itemErr;
 
-        // Insert complements
         if (item.complements.length > 0 && inserted) {
           const compInserts = item.complements.map((c) => ({
             order_item_id: inserted.id,
@@ -235,7 +249,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         }
       }
 
-      // Create print jobs for kitchen if auto-approved
       if (!requiresApproval) {
         const stations = new Map<string, any[]>();
         for (const item of cart) {
@@ -248,7 +261,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
             complements: item.complements.map((c) => `${c.name}${c.quantity > 1 ? ` x${c.quantity}` : ""}`),
           });
         }
-
         for (const [station, items] of stations) {
           await supabase.from("print_jobs").insert({
             station,
@@ -265,7 +277,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         }
       }
 
-      // Log activity
       await supabase.from("table_activity_log").insert({
         table_id: tableId,
         order_id: currentOrderId,
@@ -274,7 +285,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         user_name: customerName,
       });
 
-      // Sync total server-side (safe for concurrent writes)
       await recalculateOrderTotal(currentOrderId);
 
       setCart([]);
@@ -284,7 +294,7 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       toast.success(
         requiresApproval
           ? "Pedido enviado! Aguarde a confirmação da Cafeteria Coffee Thrones."
-          : "Pedido enviado para a cozinha!",
+          : "Pedido enviado para a cozinha!"
       );
     } catch (err: any) {
       console.error("Erro ao enviar pedido:", err);
@@ -310,8 +320,8 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
+      {/* Categories — sticky */}
+      <div className="sticky top-0 z-10 bg-background px-4 pb-2 pt-1 flex gap-2 overflow-x-auto scrollbar-hide">
         <button
           onClick={() => setActiveCategory(TRENDING_ID)}
           className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
@@ -338,41 +348,18 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       <div className="flex-1 overflow-auto px-4 pb-24">
         <div className="grid grid-cols-2 gap-3">
           {filtered.map((product) => {
-            const isOutOfStock = product.stock !== null && product.stock === 0;
+            const trendingIdx = trendingIds.indexOf(product.id);
             return (
-              <button
+              <ProductCard
                 key={product.id}
-                onClick={() => !isOutOfStock && setSelectedProduct(product)}
-                disabled={isOutOfStock}
-                className={`rounded-lg border border-border bg-card p-3 text-left transition-colors ${
-                  isOutOfStock
-                    ? "opacity-60 cursor-not-allowed"
-                    : "hover:border-accent/40"
-                }`}
-              >
-                {(product as any).menu_image_url && (
-                  <img
-                    src={(product as any).menu_image_url}
-                    alt={product.name}
-                    className="w-full h-24 object-cover rounded-md mb-2"
-                    loading="lazy"
-                  />
-                )}
-              <h3 className="text-sm font-medium text-foreground line-clamp-2">{product.name}</h3>
-              {(product as any).description && (
-                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                  {(product as any).description}
-                </p>
-              )}
-              <p className="text-sm font-semibold text-accent mt-1">
-                R$ {Number(product.price).toFixed(2)}
-              </p>
-              {product.stock !== null && product.stock >= 0 && product.stock <= 5 && (
-                <p className={`text-[10px] mt-0.5 ${product.stock === 0 ? "text-destructive font-medium" : "text-muted-foreground"}`}>
-                  {product.stock === 0 ? "Esgotado" : `Restam ${product.stock}`}
-                  </p>
-                )}
-              </button>
+                product={product as any}
+                isTrending={trendingSet.has(product.id)}
+                trendingRank={trendingIdx >= 0 ? trendingIdx : null}
+                isNew={newProductIds.has(product.id)}
+                onSelect={setSelectedProduct}
+                onQuickAdd={handleQuickAdd}
+                hasComplements={productsWithComplements.has(product.id)}
+              />
             );
           })}
         </div>
@@ -433,6 +420,13 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
               </div>
             ))}
           </div>
+
+          {/* Cross-sell suggestions */}
+          <CartSuggestions
+            cartProductIds={cartProductIds}
+            allProducts={products as any}
+            onQuickAdd={handleQuickAdd}
+          />
 
           <div className="border-t border-border p-4 space-y-3">
             <div className="flex items-center justify-between">
