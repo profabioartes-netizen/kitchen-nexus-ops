@@ -11,6 +11,8 @@ interface ProductFormData {
   station: string;
   stock: string;
   active: boolean;
+  visible_on_menu: boolean;
+  featured_on_menu: boolean;
   prep_time_minutes: string;
   image_url: string;
 }
@@ -22,6 +24,8 @@ const emptyForm: ProductFormData = {
   station: "",
   stock: "-1",
   active: true,
+  visible_on_menu: true,
+  featured_on_menu: false,
   prep_time_minutes: "15",
   image_url: "",
 };
