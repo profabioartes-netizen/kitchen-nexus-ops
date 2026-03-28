@@ -126,7 +126,13 @@ export default function CashierPage() {
 
       return newOrder;
     },
-    onSuccess: (newOrder) => {
+    onSuccess: (newOrder, method) => {
+      setLastOrderSnapshot({
+        items: [...order],
+        total: subtotal,
+        method: methodLabels[method] || method,
+        change: method === "cash" ? cashChange : 0,
+      });
       setLastFinalizedOrderId(newOrder.id);
       setOrder([]);
       setSelectedMethod(null);
