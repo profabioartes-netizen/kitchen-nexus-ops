@@ -81,9 +81,8 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       // Get active + visible products with price >= 15
       const { data: activeProducts } = await supabase
         .from("products")
-        .select("id, price, featured_on_menu")
-        .eq("active", true)
-        .eq("visible_on_menu" as any, true);
+        .select("id, price, featured_on_menu, visible_on_menu")
+        .eq("active", true);
 
       const eligibleIds = new Set(
         (activeProducts || [])
