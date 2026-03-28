@@ -51,10 +51,10 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .from("products")
         .select("*")
         .eq("active", true)
-        .eq("visible_on_menu" as any, true)
         .order("sort_order");
       if (error) throw error;
-      return data;
+      // Filter to only menu-visible products (client-side since column is new)
+      return data.filter((p: any) => p.visible_on_menu !== false);
     },
   });
 
