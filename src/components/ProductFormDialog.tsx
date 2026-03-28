@@ -109,6 +109,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
       station: existingProduct.station,
       stock: String(existingProduct.stock ?? -1),
       active: existingProduct.active,
+      visible_on_menu: (existingProduct as any).visible_on_menu ?? true,
+      featured_on_menu: (existingProduct as any).featured_on_menu ?? false,
       prep_time_minutes: String((existingProduct as any).prep_time_minutes ?? 15),
       image_url: (existingProduct as any).image_url || "",
     });
