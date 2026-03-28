@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { getOrCreateSelfServiceOrder } from "@/lib/getOrCreateSelfServiceOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
-import { Search, ShoppingBag, Plus, Minus, X, Trash2 } from "lucide-react";
+import { Search, ShoppingBag, X, Trash2, Flame } from "lucide-react";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 
 type CartItem = {
@@ -29,7 +29,7 @@ interface Props {
 export default function SelfServiceMenu({ tableId, sessionId, customerName, table, whatsappPhone, orderId, onOrderCreated }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>("__trending__");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -70,15 +70,63 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     },
   });
 
+  // Fetch trending product IDs (top sellers last 7 days)
+  const { data: trendingIds = [] } = useQuery({
+    queryKey: ["trending_products_7d"],
+    queryFn: async () => {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("product_id, quantity, order_id")
+        .gte("created_at", sevenDaysAgo.toISOString());
+      if (error) throw error;
+
+      // Get closed orders to filter
+      const orderIds = [...new Set((data || []).map(i => i.order_id))];
+      if (orderIds.length === 0) return [];
+
+      const { data: closedOrders } = await supabase
+        .from("orders")
+        .select("id")
+        .in("id", orderIds)
+        .eq("status", "closed");
+
+      const closedSet = new Set((closedOrders || []).map(o => o.id));
+
+      // Aggregate quantities per product from closed orders only
+      const counts = new Map<string, number>();
+      for (const item of data || []) {
+        if (!closedSet.has(item.order_id)) continue;
+        counts.set(item.product_id, (counts.get(item.product_id) || 0) + item.quantity);
+      }
+
+      return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([id]) => id);
+    },
+    staleTime: 5 * 60 * 1000, // cache 5 min
+  });
+
+  const TRENDING_ID = "__trending__";
+
   const filtered = useMemo(() => {
     let list = products;
+    if (activeCategory === TRENDING_ID) {
+      if (trendingIds.length === 0) return list; // fallback: show all
+      const idxMap = new Map(trendingIds.map((id, i) => [id, i]));
+      list = list.filter(p => idxMap.has(p.id));
+      list.sort((a, b) => (idxMap.get(a.id) ?? 99) - (idxMap.get(b.id) ?? 99));
+      return list;
+    }
     if (activeCategory) list = list.filter((p) => p.category_id === activeCategory);
     if (search.trim()) {
       const q = normalize(search);
       list = list.filter((p) => normalize(p.name).includes(q));
     }
     return list;
-  }, [products, activeCategory, search]);
+  }, [products, activeCategory, search, trendingIds]);
 
   const cartTotal = useMemo(() => {
     return cart.reduce((sum, item) => sum + (Number(item.product.price) + item.complementsTotal) * item.quantity, 0);
@@ -228,6 +276,15 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
 
       {/* Categories */}
       <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
+        <button
+          onClick={() => setActiveCategory(TRENDING_ID)}
+          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+            activeCategory === TRENDING_ID ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
+          }`}
+        >
+          <Flame className="h-3 w-3" />
+          Em Alta no Reino
+        </button>
         <button
           onClick={() => setActiveCategory(null)}
           className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
