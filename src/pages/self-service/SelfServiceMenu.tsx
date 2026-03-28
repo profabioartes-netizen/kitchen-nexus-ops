@@ -70,15 +70,63 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     },
   });
 
+  // Fetch trending product IDs (top sellers last 7 days)
+  const { data: trendingIds = [] } = useQuery({
+    queryKey: ["trending_products_7d"],
+    queryFn: async () => {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("product_id, quantity, order_id")
+        .gte("created_at", sevenDaysAgo.toISOString());
+      if (error) throw error;
+
+      // Get closed orders to filter
+      const orderIds = [...new Set((data || []).map(i => i.order_id))];
+      if (orderIds.length === 0) return [];
+
+      const { data: closedOrders } = await supabase
+        .from("orders")
+        .select("id")
+        .in("id", orderIds)
+        .eq("status", "closed");
+
+      const closedSet = new Set((closedOrders || []).map(o => o.id));
+
+      // Aggregate quantities per product from closed orders only
+      const counts = new Map<string, number>();
+      for (const item of data || []) {
+        if (!closedSet.has(item.order_id)) continue;
+        counts.set(item.product_id, (counts.get(item.product_id) || 0) + item.quantity);
+      }
+
+      return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([id]) => id);
+    },
+    staleTime: 5 * 60 * 1000, // cache 5 min
+  });
+
+  const TRENDING_ID = "__trending__";
+
   const filtered = useMemo(() => {
     let list = products;
+    if (activeCategory === TRENDING_ID) {
+      if (trendingIds.length === 0) return list; // fallback: show all
+      const idxMap = new Map(trendingIds.map((id, i) => [id, i]));
+      list = list.filter(p => idxMap.has(p.id));
+      list.sort((a, b) => (idxMap.get(a.id) ?? 99) - (idxMap.get(b.id) ?? 99));
+      return list;
+    }
     if (activeCategory) list = list.filter((p) => p.category_id === activeCategory);
     if (search.trim()) {
       const q = normalize(search);
       list = list.filter((p) => normalize(p.name).includes(q));
     }
     return list;
-  }, [products, activeCategory, search]);
+  }, [products, activeCategory, search, trendingIds]);
 
   const cartTotal = useMemo(() => {
     return cart.reduce((sum, item) => sum + (Number(item.product.price) + item.complementsTotal) * item.quantity, 0);
