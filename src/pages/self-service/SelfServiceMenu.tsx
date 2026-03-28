@@ -277,6 +277,15 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       {/* Categories */}
       <div className="px-4 pb-2 flex gap-2 overflow-x-auto scrollbar-hide">
         <button
+          onClick={() => setActiveCategory(TRENDING_ID)}
+          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+            activeCategory === TRENDING_ID ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
+          }`}
+        >
+          <Flame className="h-3 w-3" />
+          Em Alta no Reino
+        </button>
+        <button
           onClick={() => setActiveCategory(null)}
           className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
             !activeCategory ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
