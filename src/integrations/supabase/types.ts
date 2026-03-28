@@ -577,6 +577,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          menu_image_url: string | null
           name: string
           prep_time_minutes: number
           price: number
@@ -592,6 +593,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          menu_image_url?: string | null
           name: string
           prep_time_minutes?: number
           price?: number
@@ -607,6 +609,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          menu_image_url?: string | null
           name?: string
           prep_time_minutes?: number
           price?: number
