@@ -321,14 +321,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
           <Flame className="h-3 w-3" />
           Em Alta no Reino
         </button>
-        <button
-          onClick={() => setActiveCategory(null)}
-          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            !activeCategory ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
-          }`}
-        >
-          Todos
-        </button>
         {categories.map((cat) => (
           <button
             key={cat.id}
