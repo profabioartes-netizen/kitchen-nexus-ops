@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN menu_image_url text DEFAULT NULL;

@@ -28,6 +28,7 @@ type Product = {
   active: boolean;
   stock: number | null;
   image_url: string | null;
+  menu_image_url: string | null;
   description?: string | null;
   sort_order: number | null;
   categories?: { name: string; sort_order: number | null } | null;
@@ -111,10 +112,10 @@ export default function SelfServiceAdminPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, description, image_url }: { id: string; description: string; image_url: string }) => {
+    mutationFn: async ({ id, description, menu_image_url }: { id: string; description: string; menu_image_url: string }) => {
       const { error } = await supabase
         .from("products")
-        .update({ description, image_url: image_url || null } as any)
+        .update({ description, menu_image_url: menu_image_url || null } as any)
         .eq("id", id);
       if (error) throw error;
     },
@@ -130,7 +131,7 @@ export default function SelfServiceAdminPage() {
   const handleStartEdit = (product: Product) => {
     setEditingId(product.id);
     setEditDesc((product as any).description || "");
-    setEditImage(product.image_url || "");
+    setEditImage(product.menu_image_url || "");
   };
 
   const handleImageUpload = async (file: File) => {
@@ -272,9 +273,9 @@ export default function SelfServiceAdminPage() {
                       {/* Main row */}
                       <div className="p-4 flex items-center gap-4">
                         {/* Product image or icon */}
-                        {product.image_url ? (
+                        {product.menu_image_url ? (
                           <img
-                            src={product.image_url}
+                            src={product.menu_image_url}
                             alt={product.name}
                             className="h-12 w-12 rounded-md object-cover flex-shrink-0"
                           />
@@ -472,7 +473,7 @@ export default function SelfServiceAdminPage() {
                                 updateMutation.mutate({
                                   id: product.id,
                                   description: editDesc,
-                                  image_url: editImage,
+                                  menu_image_url: editImage,
                                 })
                               }
                               disabled={updateMutation.isPending}
