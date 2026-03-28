@@ -45,7 +45,7 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
   });
 
   const { data: products = [] } = useQuery({
-    queryKey: ["products_active"],
+    queryKey: ["products_active_menu"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
@@ -53,7 +53,8 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .eq("active", true)
         .order("sort_order");
       if (error) throw error;
-      return data;
+      // Filter to only menu-visible products (client-side since column is new)
+      return data.filter((p: any) => p.visible_on_menu !== false);
     },
   });
 
@@ -70,57 +71,42 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     },
   });
 
-  // Fetch trending product IDs (top sellers last 7 days, filtered strategically)
+  // Fetch trending product IDs (top sellers last 15 days, R$15+ only, with featured fallback)
   const { data: trendingIds = [] } = useQuery({
-    queryKey: ["trending_products_7d"],
+    queryKey: ["trending_products_15d"],
     queryFn: async () => {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const fifteenDaysAgo = new Date();
+      fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
 
-      // Fetch settings for excluded categories and min price
-      const { data: settings } = await supabase
-        .from("restaurant_settings")
-        .select("key, value")
-        .in("key", ["trending_excluded_categories", "trending_min_price"]);
-
-      const settingsMap = new Map((settings || []).map(s => [s.key, s.value]));
-      const excludedCatNames = (settingsMap.get("trending_excluded_categories") || "")
-        .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-      const minPrice = parseFloat(settingsMap.get("trending_min_price") || "6");
-
-      // Build excluded category IDs set
-      let excludedCatIds = new Set<string>();
-      if (excludedCatNames.length > 0) {
-        const { data: cats } = await supabase.from("categories").select("id, name");
-        for (const cat of cats || []) {
-          if (excludedCatNames.some(exc => cat.name.toLowerCase().includes(exc))) {
-            excludedCatIds.add(cat.id);
-          }
-        }
-      }
-
-      // Get active products, pre-filter by price and category
+      // Get active + visible products with price >= 15
       const { data: activeProducts } = await supabase
         .from("products")
-        .select("id, price, category_id")
+        .select("*")
         .eq("active", true);
 
+      const visibleProducts = (activeProducts || []).filter((p: any) => p.visible_on_menu !== false);
+
       const eligibleIds = new Set(
-        (activeProducts || [])
-          .filter(p => p.price >= minPrice && (!p.category_id || !excludedCatIds.has(p.category_id)))
-          .map(p => p.id)
+        visibleProducts
+          .filter((p: any) => p.price >= 15)
+          .map((p: any) => p.id)
       );
 
-      if (eligibleIds.size === 0) return [];
+      // Get manually featured products as fallback
+      const featuredIds = visibleProducts
+        .filter((p: any) => (p as any).featured_on_menu === true)
+        .map((p: any) => p.id);
+
+      if (eligibleIds.size === 0) return featuredIds.slice(0, 10);
 
       const { data, error } = await supabase
         .from("order_items")
         .select("product_id, quantity, order_id")
-        .gte("created_at", sevenDaysAgo.toISOString());
+        .gte("created_at", fifteenDaysAgo.toISOString());
       if (error) throw error;
 
       const orderIds = [...new Set((data || []).map(i => i.order_id))];
-      if (orderIds.length === 0) return [];
+      if (orderIds.length === 0) return featuredIds.slice(0, 10);
 
       const { data: closedOrders } = await supabase
         .from("orders")
@@ -130,7 +116,6 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
 
       const closedSet = new Set((closedOrders || []).map(o => o.id));
 
-      // Aggregate only eligible products from closed orders
       const counts = new Map<string, number>();
       for (const item of data || []) {
         if (!closedSet.has(item.order_id)) continue;
@@ -138,10 +123,24 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         counts.set(item.product_id, (counts.get(item.product_id) || 0) + item.quantity);
       }
 
-      return [...counts.entries()]
+      let result = [...counts.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([id]) => id);
+
+      // Fallback: fill remaining slots with featured products
+      if (result.length < 10) {
+        const resultSet = new Set(result);
+        for (const fid of featuredIds) {
+          if (result.length >= 10) break;
+          if (!resultSet.has(fid)) {
+            result.push(fid);
+            resultSet.add(fid);
+          }
+        }
+      }
+
+      return result;
     },
     staleTime: 5 * 60 * 1000,
   });
