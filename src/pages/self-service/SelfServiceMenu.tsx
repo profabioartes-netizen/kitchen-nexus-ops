@@ -29,7 +29,7 @@ interface Props {
 export default function SelfServiceMenu({ tableId, sessionId, customerName, table, whatsappPhone, orderId, onOrderCreated }: Props) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>("__trending__");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
