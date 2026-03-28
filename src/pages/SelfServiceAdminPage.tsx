@@ -112,10 +112,10 @@ export default function SelfServiceAdminPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, description, image_url }: { id: string; description: string; image_url: string }) => {
+    mutationFn: async ({ id, description, menu_image_url }: { id: string; description: string; menu_image_url: string }) => {
       const { error } = await supabase
         .from("products")
-        .update({ description, image_url: image_url || null } as any)
+        .update({ description, menu_image_url: menu_image_url || null } as any)
         .eq("id", id);
       if (error) throw error;
     },
