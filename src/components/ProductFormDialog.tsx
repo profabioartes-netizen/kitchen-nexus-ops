@@ -264,6 +264,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
         station: form.station,
         stock: parseInt(form.stock) || -1,
         active: form.active,
+        visible_on_menu: form.visible_on_menu,
+        featured_on_menu: form.featured_on_menu,
         prep_time_minutes: parseInt(form.prep_time_minutes) || 15,
         image_url: form.image_url || null,
       };
