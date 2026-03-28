@@ -265,9 +265,9 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
                     : "hover:border-accent/40"
                 }`}
               >
-                {product.image_url && (
+                {(product as any).menu_image_url && (
                   <img
-                    src={product.image_url}
+                    src={(product as any).menu_image_url}
                     alt={product.name}
                     className="w-full h-24 object-cover rounded-md mb-2"
                     loading="lazy"

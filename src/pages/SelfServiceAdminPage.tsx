@@ -473,7 +473,7 @@ export default function SelfServiceAdminPage() {
                                 updateMutation.mutate({
                                   id: product.id,
                                   description: editDesc,
-                                  image_url: editImage,
+                                  menu_image_url: editImage,
                                 })
                               }
                               disabled={updateMutation.isPending}
