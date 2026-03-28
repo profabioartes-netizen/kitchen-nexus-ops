@@ -81,19 +81,21 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       // Get active + visible products with price >= 15
       const { data: activeProducts } = await supabase
         .from("products")
-        .select("id, price, featured_on_menu, visible_on_menu")
+        .select("*")
         .eq("active", true);
 
+      const visibleProducts = (activeProducts || []).filter((p: any) => p.visible_on_menu !== false);
+
       const eligibleIds = new Set(
-        (activeProducts || [])
-          .filter(p => p.price >= 15)
-          .map(p => p.id)
+        visibleProducts
+          .filter((p: any) => p.price >= 15)
+          .map((p: any) => p.id)
       );
 
       // Get manually featured products as fallback
-      const featuredIds = (activeProducts || [])
-        .filter(p => (p as any).featured_on_menu === true)
-        .map(p => p.id);
+      const featuredIds = visibleProducts
+        .filter((p: any) => (p as any).featured_on_menu === true)
+        .map((p: any) => p.id);
 
       if (eligibleIds.size === 0) return featuredIds.slice(0, 10);
 
