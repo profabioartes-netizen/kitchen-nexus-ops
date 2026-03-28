@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { normalize } from "@/lib/normalize";
 import { getOrCreateSelfServiceOrder } from "@/lib/getOrCreateSelfServiceOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
-import { Search, ShoppingBag, Plus, Minus, X, Trash2 } from "lucide-react";
+import { Search, ShoppingBag, X, Trash2, Flame } from "lucide-react";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 
 type CartItem = {
