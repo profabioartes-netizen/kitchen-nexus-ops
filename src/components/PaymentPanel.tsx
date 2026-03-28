@@ -2,9 +2,10 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   CreditCard, Banknote, Smartphone, ArrowLeft,
-  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins, ListChecks, ChevronDown, Zap,
+  Check, Minus, Plus, Percent, DollarSign, X, Trash2, Users, Hash, Coins, ListChecks, ChevronDown, Zap, Printer,
 } from "lucide-react";
 import {
   Dialog,
@@ -890,13 +891,46 @@ export default function PaymentPanel({
           <span className="text-muted-foreground">Restante: <span className="font-bold text-foreground">R$ {remaining.toFixed(2)}</span></span>
         </div>
         {remaining <= 0.01 && payments.length > 0 ? (
-          <button
-            onClick={handleFinalize}
-            disabled={isPending}
-            className="rounded-md bg-accent text-accent-foreground px-5 py-2 text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 touch-manipulation animate-pulse"
-          >
-            {isPending ? "Finalizando..." : (<><Check className="h-4 w-4" />FINALIZAR</>)}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                const now = new Date();
+                await supabase.from("print_jobs").insert({
+                  station: "Caixa",
+                  status: "pending",
+                  payload: {
+                    type: "receipt",
+                    business_name: "COFFEE THRONES",
+                    table_name: "Comanda",
+                    customer_name: null,
+                    items: orderItems.map((o) => ({
+                      product_name: o.product_name,
+                      quantity: o.quantity,
+                      price: Number(o.price),
+                      subtotal: Number(o.price) * o.quantity,
+                    })),
+                    total: grandTotal,
+                    payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
+                    change: null,
+                    date: now.toLocaleDateString("pt-BR"),
+                    time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                    footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+                  },
+                });
+                toast.success("Comprovante enviado para impressão!");
+              }}
+              className="rounded-md border bg-secondary text-secondary-foreground px-3 py-2 text-xs font-bold hover:bg-secondary/80 transition-colors flex items-center gap-1.5 touch-manipulation"
+            >
+              <Printer className="h-3.5 w-3.5" />🧾
+            </button>
+            <button
+              onClick={handleFinalize}
+              disabled={isPending}
+              className="rounded-md bg-accent text-accent-foreground px-5 py-2 text-xs font-bold hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center gap-2 touch-manipulation animate-pulse"
+            >
+              {isPending ? "Finalizando..." : (<><Check className="h-4 w-4" />FINALIZAR</>)}
+            </button>
+          </div>
         ) : !isMobile && payments.length > 0 ? (
           <button className="rounded-md border bg-card px-5 py-2 text-xs font-bold hover:bg-secondary transition-colors">PAGAMENTOS ({payments.length})</button>
         ) : null}
