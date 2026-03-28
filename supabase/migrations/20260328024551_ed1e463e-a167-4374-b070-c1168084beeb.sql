@@ -1,0 +1,2 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS visible_on_menu boolean NOT NULL DEFAULT true;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS featured_on_menu boolean NOT NULL DEFAULT false;

@@ -575,6 +575,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          featured_on_menu: boolean
           id: string
           image_url: string | null
           menu_image_url: string | null
@@ -585,12 +586,14 @@ export type Database = {
           station: string
           stock: number | null
           updated_at: string
+          visible_on_menu: boolean
         }
         Insert: {
           active?: boolean
           category_id?: string | null
           created_at?: string
           description?: string | null
+          featured_on_menu?: boolean
           id?: string
           image_url?: string | null
           menu_image_url?: string | null
@@ -601,12 +604,14 @@ export type Database = {
           station?: string
           stock?: number | null
           updated_at?: string
+          visible_on_menu?: boolean
         }
         Update: {
           active?: boolean
           category_id?: string | null
           created_at?: string
           description?: string | null
+          featured_on_menu?: boolean
           id?: string
           image_url?: string | null
           menu_image_url?: string | null
@@ -617,6 +622,7 @@ export type Database = {
           station?: string
           stock?: number | null
           updated_at?: string
+          visible_on_menu?: boolean
         }
         Relationships: [
           {
