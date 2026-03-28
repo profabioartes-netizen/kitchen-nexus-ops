@@ -45,12 +45,13 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
   });
 
   const { data: products = [] } = useQuery({
-    queryKey: ["products_active"],
+    queryKey: ["products_active_menu"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("active", true)
+        .eq("visible_on_menu" as any, true)
         .order("sort_order");
       if (error) throw error;
       return data;
