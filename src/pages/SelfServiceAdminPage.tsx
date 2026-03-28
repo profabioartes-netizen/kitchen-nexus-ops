@@ -131,7 +131,7 @@ export default function SelfServiceAdminPage() {
   const handleStartEdit = (product: Product) => {
     setEditingId(product.id);
     setEditDesc((product as any).description || "");
-    setEditImage(product.image_url || "");
+    setEditImage(product.menu_image_url || "");
   };
 
   const handleImageUpload = async (file: File) => {
