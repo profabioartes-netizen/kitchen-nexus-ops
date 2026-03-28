@@ -28,6 +28,7 @@ type Product = {
   active: boolean;
   stock: number | null;
   image_url: string | null;
+  menu_image_url: string | null;
   description?: string | null;
   sort_order: number | null;
   categories?: { name: string; sort_order: number | null } | null;
