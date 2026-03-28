@@ -23,6 +23,12 @@ export default function CashierPage() {
   const [selectedMethod, setSelectedMethod] = useState<"credit" | "debit" | "cash" | "pix" | null>(null);
   const [cashGiven, setCashGiven] = useState("");
   const [lastFinalizedOrderId, setLastFinalizedOrderId] = useState<string | null>(null);
+  const [lastOrderSnapshot, setLastOrderSnapshot] = useState<{
+    items: OrderItem[];
+    total: number;
+    method: string;
+    change: number;
+  } | null>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -120,7 +126,13 @@ export default function CashierPage() {
 
       return newOrder;
     },
-    onSuccess: (newOrder) => {
+    onSuccess: (newOrder, method) => {
+      setLastOrderSnapshot({
+        items: [...order],
+        total: subtotal,
+        method: methodLabels[method] || method,
+        change: method === "cash" ? cashChange : 0,
+      });
       setLastFinalizedOrderId(newOrder.id);
       setOrder([]);
       setSelectedMethod(null);
@@ -172,6 +184,76 @@ export default function CashierPage() {
       },
     });
     toast.success("Nota enviada para impressão!");
+  };
+
+  // Print non-fiscal receipt after finalization
+  const printReceipt = async () => {
+    if (!lastOrderSnapshot) return;
+    const now = new Date();
+    await supabase.from("print_jobs").insert({
+      station: "Caixa",
+      status: "pending",
+      payload: {
+        type: "receipt",
+        business_name: "COFFEE THRONES",
+        table_name: "Balcão",
+        customer_name: null,
+        items: lastOrderSnapshot.items.map((o) => ({
+          product_name: o.name,
+          quantity: o.qty,
+          price: o.price,
+          subtotal: o.price * o.qty,
+        })),
+        total: lastOrderSnapshot.total,
+        payment_method: lastOrderSnapshot.method,
+        change: lastOrderSnapshot.change > 0 ? lastOrderSnapshot.change : null,
+        date: now.toLocaleDateString("pt-BR"),
+        time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+      },
+    });
+    toast.success("Comprovante enviado para impressão!");
+  };
+
+  // Finalize + Print in one action
+  const handleFinalizeAndPrint = () => {
+    if (!selectedMethod || order.length === 0) return;
+    // Store snapshot before mutation clears order
+    const snapshot = {
+      items: [...order],
+      total: subtotal,
+      method: methodLabels[selectedMethod] || selectedMethod,
+      change: selectedMethod === "cash" ? cashChange : 0,
+    };
+    payMutation.mutate(selectedMethod, {
+      onSuccess: () => {
+        // Print receipt from snapshot
+        const now = new Date();
+        supabase.from("print_jobs").insert({
+          station: "Caixa",
+          status: "pending",
+          payload: {
+            type: "receipt",
+            business_name: "COFFEE THRONES",
+            table_name: "Balcão",
+            customer_name: null,
+            items: snapshot.items.map((o) => ({
+              product_name: o.name,
+              quantity: o.qty,
+              price: o.price,
+              subtotal: o.price * o.qty,
+            })),
+            total: snapshot.total,
+            payment_method: snapshot.method,
+            change: snapshot.change > 0 ? snapshot.change : null,
+            date: now.toLocaleDateString("pt-BR"),
+            time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+          },
+        });
+        toast.success("Comprovante enviado para impressão!");
+      },
+    });
   };
 
   const filtered = products.filter(
@@ -353,23 +435,45 @@ export default function CashierPage() {
             </div>
           )}
 
-          {/* Confirm payment button */}
+          {/* Confirm payment buttons */}
           {selectedMethod && (
-            <button
-              disabled={order.length === 0 || payMutation.isPending}
-              onClick={() => payMutation.mutate(selectedMethod)}
-              className="w-full rounded-md bg-accent text-accent-foreground py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {payMutation.isPending ? "Processando..." : `Finalizar — ${methodLabels[selectedMethod]}`}
-            </button>
+            <div className="flex gap-2">
+              <button
+                disabled={order.length === 0 || payMutation.isPending}
+                onClick={() => payMutation.mutate(selectedMethod)}
+                className="flex-1 rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {payMutation.isPending ? "Processando..." : `✅ Finalizar`}
+              </button>
+              <button
+                disabled={order.length === 0 || payMutation.isPending}
+                onClick={handleFinalizeAndPrint}
+                className="flex-1 rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                🧾 Finalizar + Imprimir
+              </button>
+            </div>
           )}
 
-          {/* NFC-e fiscal module — isolated */}
+          {/* Post-payment: receipt print + NFC-e */}
           {lastFinalizedOrderId && (
-            <NfceStatus
-              orderId={lastFinalizedOrderId}
-              onClose={() => setLastFinalizedOrderId(null)}
-            />
+            <div className="space-y-2">
+              {lastOrderSnapshot && (
+                <button
+                  onClick={printReceipt}
+                  className="w-full rounded-md border border-border bg-secondary text-secondary-foreground py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+                >
+                  🧾 Imprimir Comprovante
+                </button>
+              )}
+              <NfceStatus
+                orderId={lastFinalizedOrderId}
+                onClose={() => {
+                  setLastFinalizedOrderId(null);
+                  setLastOrderSnapshot(null);
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
