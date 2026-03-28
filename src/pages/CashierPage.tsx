@@ -186,6 +186,76 @@ export default function CashierPage() {
     toast.success("Nota enviada para impressão!");
   };
 
+  // Print non-fiscal receipt after finalization
+  const printReceipt = async () => {
+    if (!lastOrderSnapshot) return;
+    const now = new Date();
+    await supabase.from("print_jobs").insert({
+      station: "Caixa",
+      status: "pending",
+      payload: {
+        type: "receipt",
+        business_name: "COFFEE THRONES",
+        table_name: "Balcão",
+        customer_name: null,
+        items: lastOrderSnapshot.items.map((o) => ({
+          product_name: o.name,
+          quantity: o.qty,
+          price: o.price,
+          subtotal: o.price * o.qty,
+        })),
+        total: lastOrderSnapshot.total,
+        payment_method: lastOrderSnapshot.method,
+        change: lastOrderSnapshot.change > 0 ? lastOrderSnapshot.change : null,
+        date: now.toLocaleDateString("pt-BR"),
+        time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+      },
+    });
+    toast.success("Comprovante enviado para impressão!");
+  };
+
+  // Finalize + Print in one action
+  const handleFinalizeAndPrint = () => {
+    if (!selectedMethod || order.length === 0) return;
+    // Store snapshot before mutation clears order
+    const snapshot = {
+      items: [...order],
+      total: subtotal,
+      method: methodLabels[selectedMethod] || selectedMethod,
+      change: selectedMethod === "cash" ? cashChange : 0,
+    };
+    payMutation.mutate(selectedMethod, {
+      onSuccess: () => {
+        // Print receipt from snapshot
+        const now = new Date();
+        supabase.from("print_jobs").insert({
+          station: "Caixa",
+          status: "pending",
+          payload: {
+            type: "receipt",
+            business_name: "COFFEE THRONES",
+            table_name: "Balcão",
+            customer_name: null,
+            items: snapshot.items.map((o) => ({
+              product_name: o.name,
+              quantity: o.qty,
+              price: o.price,
+              subtotal: o.price * o.qty,
+            })),
+            total: snapshot.total,
+            payment_method: snapshot.method,
+            change: snapshot.change > 0 ? snapshot.change : null,
+            date: now.toLocaleDateString("pt-BR"),
+            time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+            footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+          },
+        });
+        toast.success("Comprovante enviado para impressão!");
+      },
+    });
+  };
+
   const filtered = products.filter(
     (p) =>
       p.category_id === activeCategory &&
