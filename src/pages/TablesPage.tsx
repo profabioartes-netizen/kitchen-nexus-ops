@@ -344,6 +344,78 @@ export default function TablesPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Toggle delivery for a single ORDER (not table)
+  const toggleOrderDelivered = useMutation({
+    mutationFn: async ({ orderId, tableId, isDelivered }: { orderId: string; tableId: string; isDelivered: boolean }) => {
+      const now = new Date().toISOString();
+      if (!isDelivered) {
+        // Mark order as delivered
+        await supabase.from("orders").update({ delivered_at: now } as any).eq("id", orderId);
+        await supabase.from("order_items")
+          .update({ delivered_at: now } as any)
+          .eq("order_id", orderId)
+          .is("delivered_at", null);
+      } else {
+        // Revert delivery
+        await supabase.from("orders").update({ delivered_at: null } as any).eq("id", orderId);
+        await supabase.from("order_items")
+          .update({ delivered_at: null } as any)
+          .eq("order_id", orderId);
+      }
+      // Recalculate table status based on all orders
+      await recalcTableDeliveryStatus(tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+    },
+    onError: () => toast.error("Erro ao atualizar status de entrega"),
+  });
+
+  // Toggle ALL orders on a table as delivered
+  const toggleAllOrdersDelivered = useMutation({
+    mutationFn: async ({ tableId, markDelivered }: { tableId: string; markDelivered: boolean }) => {
+      const tableOrders = allOrdersByTable[tableId] || [];
+      const now = new Date().toISOString();
+      for (const ord of tableOrders) {
+        if (markDelivered) {
+          await supabase.from("orders").update({ delivered_at: now } as any).eq("id", ord.id);
+          await supabase.from("order_items")
+            .update({ delivered_at: now } as any)
+            .eq("order_id", ord.id)
+            .is("delivered_at", null);
+        } else {
+          await supabase.from("orders").update({ delivered_at: null } as any).eq("id", ord.id);
+          await supabase.from("order_items")
+            .update({ delivered_at: null } as any)
+            .eq("order_id", ord.id);
+        }
+      }
+      await recalcTableDeliveryStatus(tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+    },
+    onError: () => toast.error("Erro ao atualizar status de entrega"),
+  });
+
+  // Recalculate table status based on its orders' delivered_at
+  const recalcTableDeliveryStatus = async (tableId: string) => {
+    const { data: tableOrders } = await supabase
+      .from("orders")
+      .select("id, delivered_at")
+      .eq("table_id", tableId)
+      .not("status", "in", '("closed","finished","finalized","canceled")');
+    if (!tableOrders || tableOrders.length === 0) return;
+    const allDelivered = tableOrders.every(o => !!o.delivered_at);
+    const newStatus = allDelivered ? "delivered" : "occupied";
+    await supabase.from("restaurant_tables").update({ status: newStatus }).eq("id", tableId);
+  };
+
+  // Legacy single-order toggle (for waiter single-order tables)
   const toggleDelivered = useMutation({
     mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
       const newStatus = currentStatus === "delivered" ? "occupied" : "delivered";
@@ -353,26 +425,21 @@ export default function TablesPage() {
         .eq("id", id);
       if (error) throw error;
 
-      // Track delivered_at on the order for service time metrics
       const tableOrder = ordersByTable[id];
       if (tableOrder) {
         if (newStatus === "delivered") {
           await supabase.from("orders").update({ delivered_at: new Date().toISOString() } as any).eq("id", tableOrder.id);
-          // Mark all non-delivered order items as delivered
           await supabase.from("order_items")
             .update({ delivered_at: new Date().toISOString() } as any)
             .eq("order_id", tableOrder.id)
             .is("delivered_at", null);
         } else {
-          // Reverted from delivered — clear delivered_at
           await supabase.from("orders").update({ delivered_at: null } as any).eq("id", tableOrder.id);
-          // Clear delivered_at on all order items
           await supabase.from("order_items")
             .update({ delivered_at: null } as any)
             .eq("order_id", tableOrder.id);
         }
       }
-
       return newStatus;
     },
     onMutate: async ({ id, currentStatus }) => {
