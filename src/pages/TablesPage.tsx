@@ -961,15 +961,39 @@ export default function TablesPage() {
                               const newItems = ordItems.filter((i) => !(i as any).delivered_at);
                               const completedItems = ordItems.filter((i) => !!(i as any).delivered_at);
                               if (ordItems.length === 0) return null;
+                              const isOrderDelivered = !!(ord as any).delivered_at;
                               return (
                                 <div key={ord.id} className="p-2">
-                                  <p className="text-[10px] font-bold text-foreground mb-1.5 flex items-center gap-1 flex-wrap">
-                                    👤 {ord.customer_name || ord.waiter_name || "Cliente"}
-                                    <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
-                                    {(ord as any).origin === "self_service" && (
-                                      <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
-                                    )}
-                                  </p>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <p className="text-[10px] font-bold text-foreground flex items-center gap-1 flex-wrap">
+                                      👤 {ord.customer_name || ord.waiter_name || "Cliente"}
+                                      <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
+                                      {(ord as any).origin === "self_service" && (
+                                        <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
+                                      )}
+                                    </p>
+                                    {/* Per-order delivery status badge */}
+                                    <span
+                                      className={`text-[8px] font-bold uppercase rounded-full px-1.5 py-0.5 ${isOrderDelivered ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]" : "bg-[#7c6bc4]/15 text-[#7c6bc4]"}`}
+                                    >
+                                      {isOrderDelivered ? "ENTREGUE" : "PENDENTE"}
+                                    </span>
+                                  </div>
+                                  {/* Per-order delivery toggle */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleOrderDelivered.mutate({ orderId: ord.id, tableId: table.id, isDelivered: isOrderDelivered });
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1 rounded py-1 mb-1.5 text-[9px] font-bold uppercase transition-colors"
+                                    style={{
+                                      backgroundColor: isOrderDelivered ? "#166534" : "#7c6bc4",
+                                      color: isOrderDelivered ? "#bbf7d6" : "white",
+                                    }}
+                                  >
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    {isOrderDelivered ? "Entregue ✓" : "Marcar entregue"}
+                                  </button>
                                   {newItems.length > 0 && (
                                     <div className="bg-accent/15 rounded-md p-2 ring-1 ring-accent/20 mb-1">
                                       <div className="space-y-1">
@@ -1011,6 +1035,30 @@ export default function TablesPage() {
                                 </div>
                               );
                             })}
+                            {/* "Entregar todos" button for multi-order tables */}
+                            {(() => {
+                              const tableOrders2 = allOrdersByTable[table.id] || [];
+                              if (tableOrders2.length <= 1) return null;
+                              const allDone = tableOrders2.every(o => !!(o as any).delivered_at);
+                              return (
+                                <div className="p-2 border-t border-border">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleAllOrdersDelivered.mutate({ tableId: table.id, markDelivered: !allDone });
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1.5 rounded py-1.5 text-[10px] font-bold uppercase transition-colors"
+                                    style={{
+                                      backgroundColor: allDone ? "#166534" : "#7c6bc4",
+                                      color: allDone ? "#bbf7d6" : "white",
+                                    }}
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    {allDone ? "Todos entregues ✓" : "Entregar todos"}
+                                  </button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })()}
