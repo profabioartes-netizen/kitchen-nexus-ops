@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import {
   X,
   Upload,
   Trash2,
+  QrCode,
 } from "lucide-react";
 
 type Product = {
