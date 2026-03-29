@@ -13,6 +13,10 @@ import html2canvas from "html2canvas";
 export default function QRCodesBatchPage() {
   const baseUrl = "https://coffeethrones.app";
   const [exporting, setExporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_qr"],
