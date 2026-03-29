@@ -380,6 +380,7 @@ export type Database = {
           guests: number | null
           id: string
           merged_from: string[] | null
+          origin: string
           origin_location: string | null
           status: string
           table_id: string | null
@@ -396,6 +397,7 @@ export type Database = {
           guests?: number | null
           id?: string
           merged_from?: string[] | null
+          origin?: string
           origin_location?: string | null
           status?: string
           table_id?: string | null
@@ -412,6 +414,7 @@ export type Database = {
           guests?: number | null
           id?: string
           merged_from?: string[] | null
+          origin?: string
           origin_location?: string | null
           status?: string
           table_id?: string | null
@@ -851,6 +854,7 @@ export type Database = {
               guests: number | null
               id: string
               merged_from: string[] | null
+              origin: string
               origin_location: string | null
               status: string
               table_id: string | null
@@ -883,6 +887,7 @@ export type Database = {
               guests: number | null
               id: string
               merged_from: string[] | null
+              origin: string
               origin_location: string | null
               status: string
               table_id: string | null
@@ -914,6 +919,7 @@ export type Database = {
           guests: number | null
           id: string
           merged_from: string[] | null
+          origin: string
           origin_location: string | null
           status: string
           table_id: string | null
