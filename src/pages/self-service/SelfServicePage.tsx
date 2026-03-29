@@ -307,17 +307,6 @@ export default function SelfServicePage() {
   }
 
   if (!entered) {
-    const handleRecovery = () => {
-      if (!recoverySession || !tableId) return;
-      saveSessionToken(tableId, recoverySession.token);
-      setSessionId(recoverySession.sessionId);
-      setCustomerName(recoverySession.customerName);
-      setSessionOrderId(recoverySession.orderId);
-      setRecoverySession(null);
-      setEntered(true);
-      console.log("[SS] Session recovered by user:", recoverySession.orderId);
-    };
-
     return (
       <div className="h-screen overflow-hidden flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm flex-shrink-0">
@@ -329,29 +318,8 @@ export default function SelfServicePage() {
             </p>
           </div>
 
-          {/* Recovery prompt — open order found for this table */}
-          {recoverySession && (
-            <div className="rounded-lg border-2 border-accent bg-accent/10 p-4 mb-4 shadow-sm">
-              <p className="text-sm font-semibold text-foreground mb-1">
-                📋 Comanda aberta encontrada
-              </p>
-              <p className="text-xs text-muted-foreground mb-3">
-                {recoverySession.customerName}, você já possui um pedido em andamento nesta mesa.
-              </p>
-              <button
-                onClick={handleRecovery}
-                className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                Retomar meu pedido
-              </button>
-            </div>
-          )}
-
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <div className="space-y-4">
-              {recoverySession && (
-                <p className="text-xs text-muted-foreground text-center">ou entre como novo cliente:</p>
-              )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5" />
@@ -362,7 +330,7 @@ export default function SelfServicePage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Digite seu nome..."
-                  autoFocus={!recoverySession}
+                  autoFocus
                   className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -399,7 +367,7 @@ export default function SelfServicePage() {
                 disabled={!customerName.trim() || !isWhatsappValid}
                 className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {recoverySession ? "Entrar como novo cliente" : "Acessar Cardápio"}
+                Acessar Cardápio
               </button>
               <p className="text-[10px] text-muted-foreground text-center">
                 coffeethrones.app
