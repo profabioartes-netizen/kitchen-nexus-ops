@@ -7,7 +7,24 @@ import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
 
-const SESSION_DURATION_MINUTES = 90;
+const SESSION_DURATION_MINUTES = 480; // 8 hours — real expiration is order lifecycle
+
+// Helper: persist session token in localStorage (survives tab close / browser restart)
+const ssKey = (tableId: string) => `ss_session_${tableId}`;
+const saveSessionToken = (tableId: string, token: string) => {
+  try {
+    localStorage.setItem(ssKey(tableId), token);
+    // Also keep in sessionStorage for backwards compat
+    sessionStorage.setItem(ssKey(tableId), token);
+  } catch { /* quota */ }
+};
+const loadSessionToken = (tableId: string): string | null => {
+  return localStorage.getItem(ssKey(tableId)) || sessionStorage.getItem(ssKey(tableId)) || null;
+};
+const clearSessionToken = (tableId: string) => {
+  localStorage.removeItem(ssKey(tableId));
+  sessionStorage.removeItem(ssKey(tableId));
+};
 
 export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
@@ -18,6 +35,13 @@ export default function SelfServicePage() {
   // Track DB self-service session identity + linked order
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
+  // Recovery: show "retomar pedido" prompt when orphan open order found
+  const [recoverySession, setRecoverySession] = useState<{
+    sessionId: string;
+    orderId: string;
+    customerName: string;
+    token: string;
+  } | null>(null);
 
   const formatWhatsapp = (digits: string) => {
     const d = digits.replace(/\D/g, "").slice(0, 11);
