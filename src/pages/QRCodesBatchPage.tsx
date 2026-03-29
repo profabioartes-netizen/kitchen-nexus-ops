@@ -92,6 +92,31 @@ export default function QRCodesBatchPage() {
     }
   };
 
+  const handleStartEdit = (tableId: string, currentName: string) => {
+    setEditingId(tableId);
+    setEditValue(currentName);
+  };
+
+  const handleSaveEdit = async (tableId: string) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ internal_number: trimmed })
+        .eq("id", tableId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_qr"] });
+      toast.success(`Renomeado para "${trimmed}"`);
+      setEditingId(null);
+    } catch {
+      toast.error("Erro ao renomear");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
