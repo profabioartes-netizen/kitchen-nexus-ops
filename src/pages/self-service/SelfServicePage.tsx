@@ -35,13 +35,6 @@ export default function SelfServicePage() {
   // Track DB self-service session identity + linked order
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
-  // Recovery: show "retomar pedido" prompt when orphan open order found
-  const [recoverySession, setRecoverySession] = useState<{
-    sessionId: string;
-    orderId: string;
-    customerName: string;
-    token: string;
-  } | null>(null);
 
   const formatWhatsapp = (digits: string) => {
     const d = digits.replace(/\D/g, "").slice(0, 11);
