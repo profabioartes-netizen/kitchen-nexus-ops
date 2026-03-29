@@ -7,7 +7,24 @@ import coffeeLogo from "@/assets/coffee-thrones-logo.png";
 import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
 
-const SESSION_DURATION_MINUTES = 90;
+const SESSION_DURATION_MINUTES = 480; // 8 hours — real expiration is order lifecycle
+
+// Helper: persist session token in localStorage (survives tab close / browser restart)
+const ssKey = (tableId: string) => `ss_session_${tableId}`;
+const saveSessionToken = (tableId: string, token: string) => {
+  try {
+    localStorage.setItem(ssKey(tableId), token);
+    // Also keep in sessionStorage for backwards compat
+    sessionStorage.setItem(ssKey(tableId), token);
+  } catch { /* quota */ }
+};
+const loadSessionToken = (tableId: string): string | null => {
+  return localStorage.getItem(ssKey(tableId)) || sessionStorage.getItem(ssKey(tableId)) || null;
+};
+const clearSessionToken = (tableId: string) => {
+  localStorage.removeItem(ssKey(tableId));
+  sessionStorage.removeItem(ssKey(tableId));
+};
 
 export default function SelfServicePage() {
   const { tableId } = useParams<{ tableId: string }>();
@@ -18,6 +35,13 @@ export default function SelfServicePage() {
   // Track DB self-service session identity + linked order
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
+  // Recovery: show "retomar pedido" prompt when orphan open order found
+  const [recoverySession, setRecoverySession] = useState<{
+    sessionId: string;
+    orderId: string;
+    customerName: string;
+    token: string;
+  } | null>(null);
 
   const formatWhatsapp = (digits: string) => {
     const d = digits.replace(/\D/g, "").slice(0, 11);
@@ -60,13 +84,13 @@ export default function SelfServicePage() {
     },
   });
 
-  // Check for existing valid session on mount (only reconnects the SAME customer via token)
+  // Check for existing valid session on mount — uses localStorage for persistence
   const tryAutoEnter = useCallback(async () => {
     if (!tableId) return;
     setCheckingSession(true);
 
     try {
-      const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
+      const savedToken = loadSessionToken(tableId);
 
       if (savedToken) {
         // Validate token against DB
@@ -77,24 +101,83 @@ export default function SelfServicePage() {
           .eq("table_id", tableId)
           .single();
 
-        if (session && new Date(session.expires_at) > new Date()) {
-          // Session still valid — reconnect same customer
-          setSessionId(session.id);
-          setCustomerName(session.customer_name);
-          setSessionOrderId((session as any).order_id || null);
-          setEntered(true);
-          setCheckingSession(false);
-          return;
+        if (session) {
+          // Check if the linked order is still open (takes priority over expires_at)
+          let orderStillOpen = false;
+          if (session.order_id) {
+            const { data: order } = await supabase
+              .from("orders")
+              .select("id, status")
+              .eq("id", session.order_id)
+              .single();
+            orderStillOpen = !!order && order.status === "open";
+          }
+
+          if (orderStillOpen || new Date(session.expires_at) > new Date()) {
+            // Session valid — reconnect same customer
+            setSessionId(session.id);
+            setCustomerName(session.customer_name);
+            setSessionOrderId(session.order_id || null);
+            setEntered(true);
+
+            // Auto-extend session expiration while order is open
+            if (orderStillOpen) {
+              const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+              await supabase
+                .from("self_service_sessions")
+                .update({ expires_at: newExpiry })
+                .eq("id", session.id);
+              console.log("[SS] Session auto-extended, order still open:", session.order_id);
+            }
+
+            setCheckingSession(false);
+            return;
+          } else {
+            // Token expired AND no open order — clear
+            console.log("[SS] Session expired, clearing token");
+            setSessionId(null);
+            clearSessionToken(tableId);
+          }
         } else {
-          // Token expired ou inválido — limpar sessão local
-          setSessionId(null);
-          sessionStorage.removeItem(`ss_session_${tableId}`);
+          // Token not found in DB
+          clearSessionToken(tableId);
         }
       }
 
-      // No valid session → show login screen (each customer creates their own)
+      // No valid saved token — try to find ANY open session for this table (recovery)
+      // This handles the case where localStorage was cleared but session+order exist
+      const { data: openSessions } = await supabase
+        .from("self_service_sessions")
+        .select("id, customer_name, order_id, session_token")
+        .eq("table_id", tableId)
+        .not("order_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (openSessions && openSessions.length > 0) {
+        // Check which sessions have open orders
+        for (const sess of openSessions) {
+          if (!sess.order_id) continue;
+          const { data: order } = await supabase
+            .from("orders")
+            .select("id, status")
+            .eq("id", sess.order_id)
+            .single();
+          if (order && order.status === "open") {
+            // Found an open order — offer recovery
+            setRecoverySession({
+              sessionId: sess.id,
+              orderId: order.id,
+              customerName: sess.customer_name,
+              token: sess.session_token,
+            });
+            console.log("[SS] Recovery session found for table:", tableId, "order:", order.id);
+            break;
+          }
+        }
+      }
     } catch (err) {
-      console.error("Session check error:", err);
+      console.error("[SS] Session check error:", err);
     }
 
     setCheckingSession(false);
@@ -121,7 +204,7 @@ export default function SelfServicePage() {
             sessionOrderId &&
             payload.new?.id === sessionOrderId
           ) {
-            sessionStorage.removeItem(`ss_session_${tableId}`);
+            clearSessionToken(tableId);
             window.location.reload();
           }
         }
@@ -132,7 +215,7 @@ export default function SelfServicePage() {
         (payload: any) => {
           if (payload.new?.status === "free") {
             const pixJustPaid = localStorage.getItem(`ss_pix_paid_${tableId}`);
-            sessionStorage.removeItem(`ss_session_${tableId}`);
+            clearSessionToken(tableId);
             localStorage.removeItem(`ss_pix_paid_${tableId}`);
             if (pixJustPaid) {
               setShowThankYou(true);
@@ -189,7 +272,7 @@ export default function SelfServicePage() {
 
     if (session) {
       setSessionId(session.id);
-      sessionStorage.setItem(`ss_session_${tableId}`, session.session_token);
+      saveSessionToken(tableId, session.session_token);
     }
 
     setCustomerName(name);
@@ -254,6 +337,17 @@ export default function SelfServicePage() {
   }
 
   if (!entered) {
+    const handleRecovery = () => {
+      if (!recoverySession || !tableId) return;
+      saveSessionToken(tableId, recoverySession.token);
+      setSessionId(recoverySession.sessionId);
+      setCustomerName(recoverySession.customerName);
+      setSessionOrderId(recoverySession.orderId);
+      setRecoverySession(null);
+      setEntered(true);
+      console.log("[SS] Session recovered by user:", recoverySession.orderId);
+    };
+
     return (
       <div className="h-screen overflow-hidden flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm flex-shrink-0">
@@ -265,8 +359,29 @@ export default function SelfServicePage() {
             </p>
           </div>
 
+          {/* Recovery prompt — open order found for this table */}
+          {recoverySession && (
+            <div className="rounded-lg border-2 border-accent bg-accent/10 p-4 mb-4 shadow-sm">
+              <p className="text-sm font-semibold text-foreground mb-1">
+                📋 Comanda aberta encontrada
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                {recoverySession.customerName}, você já possui um pedido em andamento nesta mesa.
+              </p>
+              <button
+                onClick={handleRecovery}
+                className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                Retomar meu pedido
+              </button>
+            </div>
+          )}
+
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <div className="space-y-4">
+              {recoverySession && (
+                <p className="text-xs text-muted-foreground text-center">ou entre como novo cliente:</p>
+              )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5" />
@@ -277,7 +392,7 @@ export default function SelfServicePage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Digite seu nome..."
-                  autoFocus
+                  autoFocus={!recoverySession}
                   className="w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -314,7 +429,7 @@ export default function SelfServicePage() {
                 disabled={!customerName.trim() || !isWhatsappValid}
                 className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                Acessar Cardápio
+                {recoverySession ? "Entrar como novo cliente" : "Acessar Cardápio"}
               </button>
               <p className="text-[10px] text-muted-foreground text-center">
                 coffeethrones.app
@@ -375,7 +490,7 @@ export default function SelfServicePage() {
           </button>
           <button
             onClick={() => {
-              sessionStorage.removeItem(`ss_session_${tableId}`);
+              clearSessionToken(tableId!);
               window.location.reload();
             }}
             className="px-3 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
