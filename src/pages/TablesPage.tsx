@@ -65,7 +65,7 @@ export default function TablesPage() {
   const [didDrag, setDidDrag] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
-  const [previewOrderId, setPreviewOrderId] = useState<string | null>(null);
+  const [previewTableId, setPreviewTableId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [tableCountOpen, setTableCountOpen] = useState(false);
   const [tableCountValue, setTableCountValue] = useState("");
@@ -216,20 +216,7 @@ export default function TablesPage() {
     refetchInterval: 60_000,
   });
 
-  // Fetch items for the previewed order
-  const { data: previewItems = [] } = useQuery({
-    queryKey: ["preview_order_items", previewOrderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("id, product_name, quantity, sent_to_kitchen, viewed_at, delivered_at, order_item_complements(complement_name, quantity)")
-        .eq("order_id", previewOrderId!)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!previewOrderId,
-  });
+  // Preview query moved below allOrdersByTable (see below)
 
   // Derive open order IDs to scope item queries
   const openOrderIds = useMemo(() => openOrders.map((o) => o.id), [openOrders]);
@@ -546,6 +533,31 @@ export default function TablesPage() {
     }
     return map;
   }, [openOrders]);
+
+
+  // Fetch items for ALL orders of the previewed table
+  const previewTableOrders = useMemo(() => {
+    if (!previewTableId) return [];
+    return allOrdersByTable[previewTableId] || [];
+  }, [previewTableId, allOrdersByTable]);
+
+  const previewTableOrderIds = useMemo(() => previewTableOrders.map(o => o.id), [previewTableOrders]);
+
+  const { data: previewItems = [] } = useQuery({
+    queryKey: ["preview_order_items", previewTableOrderIds],
+    queryFn: async () => {
+      if (previewTableOrderIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("id, order_id, product_name, quantity, sent_to_kitchen, viewed_at, delivered_at, order_item_complements(complement_name, quantity)")
+        .in("order_id", previewTableOrderIds)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: previewTableOrderIds.length > 0,
+  });
+
   const occupied = Object.keys(ordersByTable).length;
   const free = Math.max(0, tables.length - occupied);
 
@@ -843,21 +855,21 @@ export default function TablesPage() {
                   </span>
                 )}
 
-                {/* Preview popover for occupied tables */}
+                {/* Preview popover for occupied tables — shows ALL orders */}
                 {order && (
                   <Popover
-                    open={previewOrderId === order.id}
-                    onOpenChange={(open) => setPreviewOrderId(open ? order.id : null)}
+                    open={previewTableId === table.id}
+                    onOpenChange={(open) => setPreviewTableId(open ? table.id : null)}
                   >
                     <PopoverTrigger asChild>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPreviewOrderId((prev) => (prev === order.id ? null : order.id));
+                          setPreviewTableId((prev) => (prev === table.id ? null : table.id));
                         }}
-                        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewOrderId(order.id); } }}
-                        onPointerLeave={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewOrderId(null); } }}
-                        className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${previewOrderId === order.id ? "bg-accent/20" : ""} hover:bg-secondary/80`}
+                        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewTableId(table.id); } }}
+                        onPointerLeave={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewTableId(null); } }}
+                        className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${previewTableId === table.id ? "bg-accent/20" : ""} hover:bg-secondary/80`}
                       >
                         <Eye className="h-3 w-3 text-muted-foreground" />
                       </button>
@@ -866,75 +878,69 @@ export default function TablesPage() {
                       side="right"
                       align="start"
                       sideOffset={8}
-                      className="w-52 p-0 shadow-md max-h-[320px] overflow-y-auto"
+                      className="w-56 p-0 shadow-md max-h-[400px] overflow-y-auto"
                       onClick={(e) => e.stopPropagation()}
-                      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setPreviewOrderId(order.id); }}
-                      onPointerLeave={(e) => { if (e.pointerType === 'mouse') setPreviewOrderId(null); }}
+                      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setPreviewTableId(table.id); }}
+                      onPointerLeave={(e) => { if (e.pointerType === 'mouse') setPreviewTableId(null); }}
                     >
                       {previewItems.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
                       ) : (() => {
-                        const newItems = previewItems.filter((i) => !(i as any).delivered_at);
-                        const completedItems = previewItems.filter((i) => !!(i as any).delivered_at);
+                        const tableOrders = allOrdersByTable[table.id] || [order];
                         return (
-                          <div>
-                            {newItems.length > 0 && (
-                              <>
-                                <div className="bg-accent/15 rounded-md m-2 mb-0 p-2.5 ring-1 ring-accent/20">
-                                  <p className="text-[10px] text-accent uppercase tracking-widest font-black mb-1.5">● Novos Pedidos</p>
-                                  <div className="space-y-1">
-                                    {newItems.map((item) => (
-                                      <div key={item.id}>
-                                        <div className="flex items-center justify-between text-xs gap-1">
-                                          <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
-                                          {!(item as any).viewed_at && (
-                                            <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
-                                          )}
-                                          <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
-                                        </div>
-                                        {(item as any).order_item_complements?.length > 0 && (
-                                          <div className="ml-2 mt-0.5 space-y-0.5">
-                                            {(item as any).order_item_complements.map((c: any, i: number) => (
-                                              <span key={i} className="block text-[10px] text-muted-foreground">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
-                                            ))}
+                          <div className="divide-y divide-border">
+                            {tableOrders.map((ord) => {
+                              const ordItems = previewItems.filter((i) => (i as any).order_id === ord.id);
+                              const newItems = ordItems.filter((i) => !(i as any).delivered_at);
+                              const completedItems = ordItems.filter((i) => !!(i as any).delivered_at);
+                              if (ordItems.length === 0) return null;
+                              return (
+                                <div key={ord.id} className="p-2">
+                                  <p className="text-[10px] font-bold text-foreground mb-1.5 flex items-center gap-1">
+                                    👤 {ord.customer_name || ord.waiter_name || "Cliente"}
+                                    <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
+                                  </p>
+                                  {newItems.length > 0 && (
+                                    <div className="bg-accent/15 rounded-md p-2 ring-1 ring-accent/20 mb-1">
+                                      <div className="space-y-1">
+                                        {newItems.map((item) => (
+                                          <div key={item.id}>
+                                            <div className="flex items-center justify-between text-xs gap-1">
+                                              <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
+                                              {!(item as any).viewed_at && (
+                                                <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                              )}
+                                              <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
+                                            </div>
+                                            {(item as any).order_item_complements?.length > 0 && (
+                                              <div className="ml-2 mt-0.5 space-y-0.5">
+                                                {(item as any).order_item_complements.map((c: any, ci: number) => (
+                                                  <span key={ci} className="block text-[10px] text-muted-foreground">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
+                                                ))}
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                                {completedItems.length > 0 && (
-                                  <div className="mx-2.5 my-1.5 border-t border-border" />
-                                )}
-                              </>
-                            )}
-                            {completedItems.length > 0 && (
-                              <div className="bg-[hsl(var(--status-free)/0.08)] rounded-md m-2 mt-0 p-2.5 ring-1 ring-[hsl(var(--status-free)/0.18)]">
-                                <p className="text-[10px] text-[hsl(var(--status-free))] uppercase tracking-widest font-black mb-1.5 flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3" /> Concluído
-                                </p>
-                                <div className="space-y-1">
-                                  {completedItems.map((item) => (
-                                    <div key={item.id}>
-                                      <div className="flex items-center justify-between text-xs gap-1">
-                                        <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
-                                        <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
-                                      </div>
-                                      {(item as any).order_item_complements?.length > 0 && (
-                                        <div className="ml-2 mt-0.5 space-y-0.5">
-                                          {(item as any).order_item_complements.map((c: any, i: number) => (
-                                            <span key={i} className="block text-[10px] text-muted-foreground opacity-70">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
-                                          ))}
-                                        </div>
-                                      )}
                                     </div>
-                                  ))}
+                                  )}
+                                  {completedItems.length > 0 && (
+                                    <div className="bg-[hsl(var(--status-free)/0.08)] rounded-md p-2 ring-1 ring-[hsl(var(--status-free)/0.18)]">
+                                      <div className="space-y-1">
+                                        {completedItems.map((item) => (
+                                          <div key={item.id}>
+                                            <div className="flex items-center justify-between text-xs gap-1">
+                                              <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
+                                              <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            )}
-                            {newItems.length === 0 && completedItems.length === 0 && (
-                              <p className="text-xs text-muted-foreground italic p-2.5">Sem itens</p>
-                            )}
+                              );
+                            })}
                           </div>
                         );
                       })()}
@@ -973,12 +979,23 @@ export default function TablesPage() {
                   </div>
                 )}
 
-                <span
-                  className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1.5 rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
-                >
-                  {statusLabels[effectiveStatus]}
-                </span>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span
+                    className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
+                  >
+                    {statusLabels[effectiveStatus]}
+                  </span>
+                  {/* Multi-order badge */}
+                  {(() => {
+                    const tableOrders = allOrdersByTable[table.id] || [];
+                    return tableOrders.length > 1 ? (
+                      <span className="text-[9px] font-bold bg-accent/20 text-accent rounded-full px-1.5 py-0.5">
+                        {tableOrders.length} clientes
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
 
                 {/* "Contém: Cliente X" indicator when search matches an internal customer */}
                 {searchMatchedCustomers[table.id] && (
@@ -987,20 +1004,33 @@ export default function TablesPage() {
                   </p>
                 )}
 
-{/* Order details */}
-                {order && (
-                  <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
-                      <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
-                        {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
-                      </span>
+{/* Order details — aggregated across all orders */}
+                {order && (() => {
+                  const tableOrders = allOrdersByTable[table.id] || [order];
+                  const totalValue = tableOrders.reduce((sum, o) => sum + Number(o.total), 0);
+                  const totalItems = tableOrders.reduce((sum, o) => sum + (orderItemCounts[o.id] || 0), 0);
+                  const customerNames = tableOrders.length > 1
+                    ? tableOrders.map(o => o.customer_name || o.waiter_name).filter(Boolean)
+                    : [];
+                  return (
+                    <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold tabular-nums">R$ {totalValue.toFixed(2)}</span>
+                        <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
+                          {totalItems} {totalItems === 1 ? "item" : "itens"}
+                        </span>
+                      </div>
+                      {tableOrders.length > 1 && customerNames.length > 0 && (
+                        <p className="text-[9px] text-muted-foreground truncate">
+                          {customerNames.slice(0, 3).join(", ")}{customerNames.length > 3 ? ` +${customerNames.length - 3}` : ""}
+                        </p>
+                      )}
+                      {tableOrders.length === 1 && order?.waiter_name && (
+                        <p className="text-[10px] truncate" style={{ color: useInlineOccupied ? "#4f46e5" : useInlineDelivered ? "#15803d" : undefined }}>{order.waiter_name}</p>
+                      )}
                     </div>
-                    {order?.waiter_name && (
-                      <p className="text-[10px] truncate" style={{ color: useInlineOccupied ? "#4f46e5" : useInlineDelivered ? "#15803d" : undefined }}>{order.waiter_name}</p>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Delivery toggle - below order details */}
                 {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
