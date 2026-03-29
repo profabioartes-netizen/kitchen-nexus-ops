@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import logoSrc from "@/assets/coffee-thrones-logo.png";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
@@ -11,6 +13,10 @@ import html2canvas from "html2canvas";
 export default function QRCodesBatchPage() {
   const baseUrl = "https://coffeethrones.app";
   const [exporting, setExporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_qr"],
@@ -86,6 +92,31 @@ export default function QRCodesBatchPage() {
     }
   };
 
+  const handleStartEdit = (tableId: string, currentName: string) => {
+    setEditingId(tableId);
+    setEditValue(currentName);
+  };
+
+  const handleSaveEdit = async (tableId: string) => {
+    const trimmed = editValue.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("restaurant_tables")
+        .update({ internal_number: trimmed })
+        .eq("id", tableId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_qr"] });
+      toast.success(`Renomeado para "${trimmed}"`);
+      setEditingId(null);
+    } catch {
+      toast.error("Erro ao renomear");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -119,13 +150,56 @@ export default function QRCodesBatchPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
             {grouped[sector].map((table) => {
               const url = `${baseUrl}/auto-atendimento/${table.id}`;
+              const displayName = table.internal_number || table.name;
+              const isEditing = editingId === table.id;
               return (
                 <div
                   key={table.id}
                   data-pdf-section
-                  className="flex flex-col items-center border border-border rounded-lg p-4 bg-card"
+                  className="flex flex-col items-center border border-border rounded-lg p-4 bg-card relative group"
                 >
-                  <h3 className="font-semibold text-sm mb-1 text-foreground">{table.internal_number || table.name}</h3>
+                  {isEditing ? (
+                    <div className="flex items-center gap-1 mb-1 w-full">
+                      <Input
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="h-7 text-sm text-center"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveEdit(table.id);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => handleSaveEdit(table.id)}
+                        disabled={saving}
+                      >
+                        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => setEditingId(null)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 mb-1">
+                      <h3 className="font-semibold text-sm text-foreground">{displayName}</h3>
+                      <button
+                        onClick={() => handleStartEdit(table.id, displayName)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-secondary"
+                        title="Renomear"
+                      >
+                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    </div>
+                  )}
                   <div className="bg-white p-3 rounded-md">
                     <QRCodeSVG
                       value={url}
