@@ -144,38 +144,8 @@ export default function SelfServicePage() {
         }
       }
 
-      // No valid saved token — try to find ANY open session for this table (recovery)
-      // This handles the case where localStorage was cleared but session+order exist
-      const { data: openSessions } = await supabase
-        .from("self_service_sessions")
-        .select("id, customer_name, order_id, session_token")
-        .eq("table_id", tableId)
-        .not("order_id", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(5);
-
-      if (openSessions && openSessions.length > 0) {
-        // Check which sessions have open orders
-        for (const sess of openSessions) {
-          if (!sess.order_id) continue;
-          const { data: order } = await supabase
-            .from("orders")
-            .select("id, status")
-            .eq("id", sess.order_id)
-            .single();
-          if (order && order.status === "open") {
-            // Found an open order — offer recovery
-            setRecoverySession({
-              sessionId: sess.id,
-              orderId: order.id,
-              customerName: sess.customer_name,
-              token: sess.session_token,
-            });
-            console.log("[SS] Recovery session found for table:", tableId, "order:", order.id);
-            break;
-          }
-        }
-      }
+      // No valid saved token — show login screen
+      // Do NOT auto-recover other clients' sessions (isolation)
     } catch (err) {
       console.error("[SS] Session check error:", err);
     }
