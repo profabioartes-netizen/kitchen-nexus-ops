@@ -258,6 +258,44 @@ export default function SelfServicePage() {
     };
   }, [entered, tableId]);
 
+  // Heartbeat: periodically extend session expiration while client is active
+  useEffect(() => {
+    if (!entered || !sessionId || !tableId) return;
+
+    const interval = setInterval(async () => {
+      const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+      await supabase
+        .from("self_service_sessions")
+        .update({ expires_at: newExpiry })
+        .eq("id", sessionId);
+      console.log("[SS] Heartbeat: session extended", { sessionId, tableId, ts: new Date().toISOString() });
+    }, HEARTBEAT_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [entered, sessionId, tableId]);
+
+  // Recover an orphan session (client lost localStorage)
+  const handleRecoverSession = useCallback(async (session: any) => {
+    if (!tableId) return;
+    saveSessionToken(tableId, session.session_token);
+    setSessionId(session.id);
+    setCustomerName(session.customer_name);
+    setSessionOrderId(session.order_id);
+    setOrphanSessions([]);
+    setEntered(true);
+
+    const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+    await supabase
+      .from("self_service_sessions")
+      .update({ expires_at: newExpiry })
+      .eq("id", session.id);
+    console.log("[SS] Orphan session recovered", {
+      sessionId: session.id,
+      orderId: session.order_id,
+      customer: session.customer_name,
+    });
+  }, [tableId]);
+
   const handleEnter = async () => {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
     const name = customerName.trim();
