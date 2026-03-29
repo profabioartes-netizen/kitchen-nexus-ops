@@ -272,7 +272,7 @@ export default function SelfServicePage() {
 
     if (session) {
       setSessionId(session.id);
-      sessionStorage.setItem(`ss_session_${tableId}`, session.session_token);
+      saveSessionToken(tableId, session.session_token);
     }
 
     setCustomerName(name);
