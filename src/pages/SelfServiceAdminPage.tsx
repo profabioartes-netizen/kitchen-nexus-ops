@@ -37,6 +37,7 @@ type Product = {
 };
 
 export default function SelfServiceAdminPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
