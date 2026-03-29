@@ -208,6 +208,20 @@ export default function SelfServiceAdminPage() {
         >
           Complementos
         </button>
+        <button
+          onClick={() => {
+            const pin = prompt("Digite o PIN de segurança:");
+            if (pin === "9135") {
+              navigate("/qrcodes");
+            } else if (pin !== null) {
+              toast.error("PIN incorreto");
+            }
+          }}
+          className="flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <QrCode className="h-4 w-4" />
+          QR Codes
+        </button>
       </div>
 
       {activeSection === "produtos" && (
