@@ -896,9 +896,12 @@ export default function TablesPage() {
                               if (ordItems.length === 0) return null;
                               return (
                                 <div key={ord.id} className="p-2">
-                                  <p className="text-[10px] font-bold text-foreground mb-1.5 flex items-center gap-1">
+                                  <p className="text-[10px] font-bold text-foreground mb-1.5 flex items-center gap-1 flex-wrap">
                                     👤 {ord.customer_name || ord.waiter_name || "Cliente"}
                                     <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
+                                    {(ord as any).origin === "self_service" && (
+                                      <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
+                                    )}
                                   </p>
                                   {newItems.length > 0 && (
                                     <div className="bg-accent/15 rounded-md p-2 ring-1 ring-accent/20 mb-1">
