@@ -204,7 +204,7 @@ export default function SelfServicePage() {
             sessionOrderId &&
             payload.new?.id === sessionOrderId
           ) {
-            sessionStorage.removeItem(`ss_session_${tableId}`);
+            clearSessionToken(tableId);
             window.location.reload();
           }
         }
