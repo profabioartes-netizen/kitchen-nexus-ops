@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import logoSrc from "@/assets/coffee-thrones-logo.png";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
