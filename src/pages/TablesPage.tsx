@@ -1098,20 +1098,47 @@ export default function TablesPage() {
                 )}
 
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <span
-                    className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
-                    style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
-                  >
-                    {statusLabels[effectiveStatus]}
-                  </span>
+                  {/* Aggregated delivery status for multi-order tables */}
+                  {(() => {
+                    const tableOrders = allOrdersByTable[table.id] || [];
+                    if (tableOrders.length > 1 && order) {
+                      const deliveredCount = tableOrders.filter(o => !!(o as any).delivered_at).length;
+                      const allDone = deliveredCount === tableOrders.length;
+                      const partial = deliveredCount > 0 && !allDone;
+                      const aggregatedLabel = allDone ? "ENTREGUE" : partial ? "PARCIAL" : statusLabels[effectiveStatus];
+                      const aggregatedStyle = allDone
+                        ? badgeStyles.delivered
+                        : partial
+                          ? { bg: "hsl(40 90% 50% / 0.15)", color: "hsl(40 90% 30%)" }
+                          : (badgeStyles[effectiveStatus] ?? badgeStyles.free);
+                      return (
+                        <span
+                          className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
+                          style={{ backgroundColor: aggregatedStyle.bg, color: aggregatedStyle.color }}
+                        >
+                          {aggregatedLabel}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span
+                        className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
+                        style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
+                      >
+                        {statusLabels[effectiveStatus]}
+                      </span>
+                    );
+                  })()}
                   {/* Multi-order badge */}
                   {(() => {
                     const tableOrders = allOrdersByTable[table.id] || [];
-                    return tableOrders.length > 1 ? (
+                    if (tableOrders.length <= 1) return null;
+                    const deliveredCount = tableOrders.filter(o => !!(o as any).delivered_at).length;
+                    return (
                       <span className="text-[9px] font-bold bg-accent/20 text-accent rounded-full px-1.5 py-0.5">
-                        {tableOrders.length} clientes
+                        {tableOrders.length} clientes · {deliveredCount}/{tableOrders.length}
                       </span>
-                    ) : null;
+                    );
                   })()}
                 </div>
 
@@ -1150,25 +1177,51 @@ export default function TablesPage() {
                   );
                 })()}
 
-                {/* Delivery toggle - below order details */}
-                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
-                    }}
-                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
-                    style={{
-                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
-                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
-                    }}
-                    title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
-                  </button>
-                )}
+                {/* Delivery toggle - multi-order aware */}
+                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (() => {
+                  const tableOrders = allOrdersByTable[table.id] || [];
+                  const isMulti = tableOrders.length > 1;
+                  if (isMulti) {
+                    const allDone = tableOrders.every(o => !!(o as any).delivered_at);
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          toggleAllOrdersDelivered.mutate({ tableId: table.id, markDelivered: !allDone });
+                        }}
+                        className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
+                        style={{
+                          backgroundColor: allDone ? "#166534" : "#7c6bc4",
+                          color: allDone ? "#bbf7d6" : "white",
+                        }}
+                        title={allDone ? "Desmarcar todos" : "Entregar todos"}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {allDone ? "Todos entregues ✓" : "Entregar todos"}
+                      </button>
+                    );
+                  }
+                  // Single order — use legacy toggle
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                      }}
+                      className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
+                      style={{
+                        backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
+                        color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
+                      }}
+                      title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
+                    </button>
+                  );
+                })()}
               </motion.div>
             );
           })}
