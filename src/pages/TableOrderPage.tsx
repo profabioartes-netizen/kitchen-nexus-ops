@@ -1181,12 +1181,12 @@ export default function TableOrderPage() {
           />
         </div>
 
-        <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-2 mb-3 overflow-x-auto flex-shrink-0 scrollbar-hide">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap touch-manipulation ${
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 touch-manipulation ${
                 activeCategory === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-card text-foreground hover:bg-secondary"

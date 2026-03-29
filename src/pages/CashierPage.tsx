@@ -286,12 +286,12 @@ export default function CashierPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-4 overflow-x-auto flex-shrink-0 scrollbar-hide">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeCategory === cat.id
                   ? "bg-accent text-accent-foreground"
                   : "bg-card text-foreground hover:bg-secondary"
