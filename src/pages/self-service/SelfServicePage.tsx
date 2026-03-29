@@ -78,6 +78,9 @@ export default function SelfServicePage() {
     },
   });
 
+  // State for orphan recovery (token lost but order exists)
+  const [orphanSessions, setOrphanSessions] = useState<any[]>([]);
+
   // Check for existing valid session on mount — uses localStorage for persistence
   const tryAutoEnter = useCallback(async () => {
     if (!tableId) return;
@@ -85,6 +88,7 @@ export default function SelfServicePage() {
 
     try {
       const savedToken = loadSessionToken(tableId);
+      console.log("[SS] Session check start", { tableId, hasToken: !!savedToken, ts: new Date().toISOString() });
 
       if (savedToken) {
         // Validate token against DB
@@ -115,14 +119,17 @@ export default function SelfServicePage() {
             setEntered(true);
 
             // Auto-extend session expiration while order is open
-            if (orderStillOpen) {
-              const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
-              await supabase
-                .from("self_service_sessions")
-                .update({ expires_at: newExpiry })
-                .eq("id", session.id);
-              console.log("[SS] Session auto-extended, order still open:", session.order_id);
-            }
+            const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+            await supabase
+              .from("self_service_sessions")
+              .update({ expires_at: newExpiry })
+              .eq("id", session.id);
+            console.log("[SS] Session restored & extended", {
+              sessionId: session.id,
+              orderId: session.order_id,
+              customer: session.customer_name,
+              orderOpen: orderStillOpen,
+            });
 
             setCheckingSession(false);
             return;
@@ -133,13 +140,46 @@ export default function SelfServicePage() {
             clearSessionToken(tableId);
           }
         } else {
-          // Token not found in DB
+          // Token not found in DB — clear
+          console.log("[SS] Token not found in DB, clearing");
           clearSessionToken(tableId);
         }
       }
 
-      // No valid saved token — show login screen
-      // Do NOT auto-recover other clients' sessions (isolation)
+      // --- FALLBACK: orphan recovery ---
+      // If no valid token, check for open sessions with open orders on THIS table
+      // This allows a client who lost localStorage to recover their order
+      const { data: activeSessions } = await supabase
+        .from("self_service_sessions")
+        .select("id, customer_name, session_token, order_id, expires_at")
+        .eq("table_id", tableId)
+        .not("order_id", "is", null)
+        .order("created_at", { ascending: false });
+
+      if (activeSessions && activeSessions.length > 0) {
+        // Filter to only those whose order is actually open
+        const openSessions: any[] = [];
+        for (const s of activeSessions) {
+          const { data: order } = await supabase
+            .from("orders")
+            .select("id, status")
+            .eq("id", s.order_id!)
+            .eq("status", "open")
+            .single();
+          if (order) {
+            openSessions.push({ ...s, order });
+          }
+        }
+
+        if (openSessions.length > 0) {
+          console.log("[SS] Found orphan sessions for recovery", openSessions.map(s => ({
+            sessionId: s.id,
+            customer: s.customer_name,
+            orderId: s.order_id,
+          })));
+          setOrphanSessions(openSessions);
+        }
+      }
     } catch (err) {
       console.error("[SS] Session check error:", err);
     }
