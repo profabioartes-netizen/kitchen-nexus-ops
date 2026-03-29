@@ -979,12 +979,23 @@ export default function TablesPage() {
                   </div>
                 )}
 
-                <span
-                  className="inline-block text-[9px] font-bold uppercase tracking-wider mt-1.5 rounded-full px-2 py-0.5"
-                  style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
-                >
-                  {statusLabels[effectiveStatus]}
-                </span>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span
+                    className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
+                    style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
+                  >
+                    {statusLabels[effectiveStatus]}
+                  </span>
+                  {/* Multi-order badge */}
+                  {(() => {
+                    const tableOrders = allOrdersByTable[table.id] || [];
+                    return tableOrders.length > 1 ? (
+                      <span className="text-[9px] font-bold bg-accent/20 text-accent rounded-full px-1.5 py-0.5">
+                        {tableOrders.length} clientes
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
 
                 {/* "Contém: Cliente X" indicator when search matches an internal customer */}
                 {searchMatchedCustomers[table.id] && (
@@ -993,20 +1004,33 @@ export default function TablesPage() {
                   </p>
                 )}
 
-{/* Order details */}
-                {order && (
-                  <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold tabular-nums">R$ {Number(order.total).toFixed(2)}</span>
-                      <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
-                        {orderItemCounts[order.id] || 0} {orderItemCounts[order.id] === 1 ? "item" : "itens"}
-                      </span>
+{/* Order details — aggregated across all orders */}
+                {order && (() => {
+                  const tableOrders = allOrdersByTable[table.id] || [order];
+                  const totalValue = tableOrders.reduce((sum, o) => sum + Number(o.total), 0);
+                  const totalItems = tableOrders.reduce((sum, o) => sum + (orderItemCounts[o.id] || 0), 0);
+                  const customerNames = tableOrders.length > 1
+                    ? tableOrders.map(o => o.customer_name || o.waiter_name).filter(Boolean)
+                    : [];
+                  return (
+                    <div className="mt-auto pt-2 border-t border-border/50 space-y-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold tabular-nums">R$ {totalValue.toFixed(2)}</span>
+                        <span className="text-[10px]" style={useInlineDelivered ? { color: "#15803d" } : undefined}>
+                          {totalItems} {totalItems === 1 ? "item" : "itens"}
+                        </span>
+                      </div>
+                      {tableOrders.length > 1 && customerNames.length > 0 && (
+                        <p className="text-[9px] text-muted-foreground truncate">
+                          {customerNames.slice(0, 3).join(", ")}{customerNames.length > 3 ? ` +${customerNames.length - 3}` : ""}
+                        </p>
+                      )}
+                      {tableOrders.length === 1 && order?.waiter_name && (
+                        <p className="text-[10px] truncate" style={{ color: useInlineOccupied ? "#4f46e5" : useInlineDelivered ? "#15803d" : undefined }}>{order.waiter_name}</p>
+                      )}
                     </div>
-                    {order?.waiter_name && (
-                      <p className="text-[10px] truncate" style={{ color: useInlineOccupied ? "#4f46e5" : useInlineDelivered ? "#15803d" : undefined }}>{order.waiter_name}</p>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Delivery toggle - below order details */}
                 {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
