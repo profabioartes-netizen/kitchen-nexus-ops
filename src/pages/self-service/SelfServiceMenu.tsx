@@ -208,6 +208,8 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
     try {
       if (!sessionId) throw new Error("Sessão de autoatendimento inválida");
 
+      console.log("[SS] submitOrder: tableId=%s sessionId=%s", tableId, sessionId);
+
       const ensuredOrder = await getOrCreateSelfServiceOrder({
         tableId,
         sessionId,
@@ -216,6 +218,13 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       });
 
       const currentOrderId = ensuredOrder.id;
+      console.log("[SS] submitOrder: orderId=%s orderTableId=%s", currentOrderId, ensuredOrder.table_id);
+
+      // Frontend safety: abort if order belongs to wrong table
+      if (ensuredOrder.table_id && ensuredOrder.table_id !== tableId) {
+        throw new Error(`Erro de segurança: comanda pertence a outra mesa`);
+      }
+
       if (currentOrderId !== orderId) onOrderCreated(currentOrderId);
 
       for (const item of cart) {
