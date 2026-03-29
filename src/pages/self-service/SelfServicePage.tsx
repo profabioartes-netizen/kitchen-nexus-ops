@@ -8,6 +8,7 @@ import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
 
 const SESSION_DURATION_MINUTES = 480; // 8 hours — real expiration is order lifecycle
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // extend session every 5 minutes
 
 // Helper: persist session token in localStorage (survives tab close / browser restart)
 const ssKey = (tableId: string) => `ss_session_${tableId}`;
