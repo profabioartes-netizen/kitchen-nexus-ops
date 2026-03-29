@@ -533,6 +533,31 @@ export default function TablesPage() {
     }
     return map;
   }, [openOrders]);
+
+
+  // Fetch items for ALL orders of the previewed table
+  const previewTableOrders = useMemo(() => {
+    if (!previewTableId) return [];
+    return allOrdersByTable[previewTableId] || [];
+  }, [previewTableId, allOrdersByTable]);
+
+  const previewTableOrderIds = useMemo(() => previewTableOrders.map(o => o.id), [previewTableOrders]);
+
+  const { data: previewItems = [] } = useQuery({
+    queryKey: ["preview_order_items", previewTableOrderIds],
+    queryFn: async () => {
+      if (previewTableOrderIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("id, order_id, product_name, quantity, sent_to_kitchen, viewed_at, delivered_at, order_item_complements(complement_name, quantity)")
+        .in("order_id", previewTableOrderIds)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: previewTableOrderIds.length > 0,
+  });
+
   const occupied = Object.keys(ordersByTable).length;
   const free = Math.max(0, tables.length - occupied);
 
