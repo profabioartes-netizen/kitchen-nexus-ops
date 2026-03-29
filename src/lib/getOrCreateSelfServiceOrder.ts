@@ -23,8 +23,20 @@ export async function getOrCreateSelfServiceOrder({
     p_guests: guests,
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error("[SS] get_or_create_self_service_order ERRO:", { tableId, sessionId, error });
+    throw error;
+  }
   if (!data) throw new Error("Não foi possível criar ou recuperar a comanda da sessão");
 
-  return data as any;
+  // SAFETY: validate returned order belongs to the requested table
+  const order = data as any;
+  if (order.table_id && order.table_id !== tableId) {
+    const msg = `CRÍTICO: comanda ${order.id} retornada para mesa errada (${order.table_id} ≠ ${tableId})`;
+    console.error("[SS]", msg);
+    throw new Error(msg);
+  }
+
+  console.log("[SS] Comanda obtida:", { orderId: order.id, tableId, sessionId, orderTableId: order.table_id });
+  return order;
 }
