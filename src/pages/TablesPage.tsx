@@ -344,6 +344,78 @@ export default function TablesPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  // Toggle delivery for a single ORDER (not table)
+  const toggleOrderDelivered = useMutation({
+    mutationFn: async ({ orderId, tableId, isDelivered }: { orderId: string; tableId: string; isDelivered: boolean }) => {
+      const now = new Date().toISOString();
+      if (!isDelivered) {
+        // Mark order as delivered
+        await supabase.from("orders").update({ delivered_at: now } as any).eq("id", orderId);
+        await supabase.from("order_items")
+          .update({ delivered_at: now } as any)
+          .eq("order_id", orderId)
+          .is("delivered_at", null);
+      } else {
+        // Revert delivery
+        await supabase.from("orders").update({ delivered_at: null } as any).eq("id", orderId);
+        await supabase.from("order_items")
+          .update({ delivered_at: null } as any)
+          .eq("order_id", orderId);
+      }
+      // Recalculate table status based on all orders
+      await recalcTableDeliveryStatus(tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+    },
+    onError: () => toast.error("Erro ao atualizar status de entrega"),
+  });
+
+  // Toggle ALL orders on a table as delivered
+  const toggleAllOrdersDelivered = useMutation({
+    mutationFn: async ({ tableId, markDelivered }: { tableId: string; markDelivered: boolean }) => {
+      const tableOrders = allOrdersByTable[tableId] || [];
+      const now = new Date().toISOString();
+      for (const ord of tableOrders) {
+        if (markDelivered) {
+          await supabase.from("orders").update({ delivered_at: now } as any).eq("id", ord.id);
+          await supabase.from("order_items")
+            .update({ delivered_at: now } as any)
+            .eq("order_id", ord.id)
+            .is("delivered_at", null);
+        } else {
+          await supabase.from("orders").update({ delivered_at: null } as any).eq("id", ord.id);
+          await supabase.from("order_items")
+            .update({ delivered_at: null } as any)
+            .eq("order_id", ord.id);
+        }
+      }
+      await recalcTableDeliveryStatus(tableId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
+    },
+    onError: () => toast.error("Erro ao atualizar status de entrega"),
+  });
+
+  // Recalculate table status based on its orders' delivered_at
+  const recalcTableDeliveryStatus = async (tableId: string) => {
+    const { data: tableOrders } = await supabase
+      .from("orders")
+      .select("id, delivered_at")
+      .eq("table_id", tableId)
+      .not("status", "in", '("closed","finished","finalized","canceled")');
+    if (!tableOrders || tableOrders.length === 0) return;
+    const allDelivered = tableOrders.every(o => !!o.delivered_at);
+    const newStatus = allDelivered ? "delivered" : "occupied";
+    await supabase.from("restaurant_tables").update({ status: newStatus }).eq("id", tableId);
+  };
+
+  // Legacy single-order toggle (for waiter single-order tables)
   const toggleDelivered = useMutation({
     mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: string }) => {
       const newStatus = currentStatus === "delivered" ? "occupied" : "delivered";
@@ -353,26 +425,21 @@ export default function TablesPage() {
         .eq("id", id);
       if (error) throw error;
 
-      // Track delivered_at on the order for service time metrics
       const tableOrder = ordersByTable[id];
       if (tableOrder) {
         if (newStatus === "delivered") {
           await supabase.from("orders").update({ delivered_at: new Date().toISOString() } as any).eq("id", tableOrder.id);
-          // Mark all non-delivered order items as delivered
           await supabase.from("order_items")
             .update({ delivered_at: new Date().toISOString() } as any)
             .eq("order_id", tableOrder.id)
             .is("delivered_at", null);
         } else {
-          // Reverted from delivered — clear delivered_at
           await supabase.from("orders").update({ delivered_at: null } as any).eq("id", tableOrder.id);
-          // Clear delivered_at on all order items
           await supabase.from("order_items")
             .update({ delivered_at: null } as any)
             .eq("order_id", tableOrder.id);
         }
       }
-
       return newStatus;
     },
     onMutate: async ({ id, currentStatus }) => {
@@ -894,15 +961,39 @@ export default function TablesPage() {
                               const newItems = ordItems.filter((i) => !(i as any).delivered_at);
                               const completedItems = ordItems.filter((i) => !!(i as any).delivered_at);
                               if (ordItems.length === 0) return null;
+                              const isOrderDelivered = !!(ord as any).delivered_at;
                               return (
                                 <div key={ord.id} className="p-2">
-                                  <p className="text-[10px] font-bold text-foreground mb-1.5 flex items-center gap-1 flex-wrap">
-                                    👤 {ord.customer_name || ord.waiter_name || "Cliente"}
-                                    <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
-                                    {(ord as any).origin === "self_service" && (
-                                      <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
-                                    )}
-                                  </p>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <p className="text-[10px] font-bold text-foreground flex items-center gap-1 flex-wrap">
+                                      👤 {ord.customer_name || ord.waiter_name || "Cliente"}
+                                      <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
+                                      {(ord as any).origin === "self_service" && (
+                                        <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
+                                      )}
+                                    </p>
+                                    {/* Per-order delivery status badge */}
+                                    <span
+                                      className={`text-[8px] font-bold uppercase rounded-full px-1.5 py-0.5 ${isOrderDelivered ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]" : "bg-[#7c6bc4]/15 text-[#7c6bc4]"}`}
+                                    >
+                                      {isOrderDelivered ? "ENTREGUE" : "PENDENTE"}
+                                    </span>
+                                  </div>
+                                  {/* Per-order delivery toggle */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleOrderDelivered.mutate({ orderId: ord.id, tableId: table.id, isDelivered: isOrderDelivered });
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1 rounded py-1 mb-1.5 text-[9px] font-bold uppercase transition-colors"
+                                    style={{
+                                      backgroundColor: isOrderDelivered ? "#166534" : "#7c6bc4",
+                                      color: isOrderDelivered ? "#bbf7d6" : "white",
+                                    }}
+                                  >
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    {isOrderDelivered ? "Entregue ✓" : "Marcar entregue"}
+                                  </button>
                                   {newItems.length > 0 && (
                                     <div className="bg-accent/15 rounded-md p-2 ring-1 ring-accent/20 mb-1">
                                       <div className="space-y-1">
@@ -944,6 +1035,30 @@ export default function TablesPage() {
                                 </div>
                               );
                             })}
+                            {/* "Entregar todos" button for multi-order tables */}
+                            {(() => {
+                              const tableOrders2 = allOrdersByTable[table.id] || [];
+                              if (tableOrders2.length <= 1) return null;
+                              const allDone = tableOrders2.every(o => !!(o as any).delivered_at);
+                              return (
+                                <div className="p-2 border-t border-border">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleAllOrdersDelivered.mutate({ tableId: table.id, markDelivered: !allDone });
+                                    }}
+                                    className="w-full flex items-center justify-center gap-1.5 rounded py-1.5 text-[10px] font-bold uppercase transition-colors"
+                                    style={{
+                                      backgroundColor: allDone ? "#166534" : "#7c6bc4",
+                                      color: allDone ? "#bbf7d6" : "white",
+                                    }}
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    {allDone ? "Todos entregues ✓" : "Entregar todos"}
+                                  </button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         );
                       })()}
@@ -983,20 +1098,47 @@ export default function TablesPage() {
                 )}
 
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  <span
-                    className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
-                    style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
-                  >
-                    {statusLabels[effectiveStatus]}
-                  </span>
+                  {/* Aggregated delivery status for multi-order tables */}
+                  {(() => {
+                    const tableOrders = allOrdersByTable[table.id] || [];
+                    if (tableOrders.length > 1 && order) {
+                      const deliveredCount = tableOrders.filter(o => !!(o as any).delivered_at).length;
+                      const allDone = deliveredCount === tableOrders.length;
+                      const partial = deliveredCount > 0 && !allDone;
+                      const aggregatedLabel = allDone ? "ENTREGUE" : partial ? "PARCIAL" : statusLabels[effectiveStatus];
+                      const aggregatedStyle = allDone
+                        ? badgeStyles.delivered
+                        : partial
+                          ? { bg: "hsl(40 90% 50% / 0.15)", color: "hsl(40 90% 30%)" }
+                          : (badgeStyles[effectiveStatus] ?? badgeStyles.free);
+                      return (
+                        <span
+                          className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
+                          style={{ backgroundColor: aggregatedStyle.bg, color: aggregatedStyle.color }}
+                        >
+                          {aggregatedLabel}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span
+                        className="inline-block text-[9px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
+                        style={{ backgroundColor: (badgeStyles[effectiveStatus] ?? badgeStyles.free).bg, color: (badgeStyles[effectiveStatus] ?? badgeStyles.free).color }}
+                      >
+                        {statusLabels[effectiveStatus]}
+                      </span>
+                    );
+                  })()}
                   {/* Multi-order badge */}
                   {(() => {
                     const tableOrders = allOrdersByTable[table.id] || [];
-                    return tableOrders.length > 1 ? (
+                    if (tableOrders.length <= 1) return null;
+                    const deliveredCount = tableOrders.filter(o => !!(o as any).delivered_at).length;
+                    return (
                       <span className="text-[9px] font-bold bg-accent/20 text-accent rounded-full px-1.5 py-0.5">
-                        {tableOrders.length} clientes
+                        {tableOrders.length} clientes · {deliveredCount}/{tableOrders.length}
                       </span>
-                    ) : null;
+                    );
                   })()}
                 </div>
 
@@ -1035,25 +1177,51 @@ export default function TablesPage() {
                   );
                 })()}
 
-                {/* Delivery toggle - below order details */}
-                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
-                    }}
-                    className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
-                    style={{
-                      backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
-                      color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
-                    }}
-                    title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
-                  </button>
-                )}
+                {/* Delivery toggle - multi-order aware */}
+                {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (() => {
+                  const tableOrders = allOrdersByTable[table.id] || [];
+                  const isMulti = tableOrders.length > 1;
+                  if (isMulti) {
+                    const allDone = tableOrders.every(o => !!(o as any).delivered_at);
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          toggleAllOrdersDelivered.mutate({ tableId: table.id, markDelivered: !allDone });
+                        }}
+                        className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
+                        style={{
+                          backgroundColor: allDone ? "#166534" : "#7c6bc4",
+                          color: allDone ? "#bbf7d6" : "white",
+                        }}
+                        title={allDone ? "Desmarcar todos" : "Entregar todos"}
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {allDone ? "Todos entregues ✓" : "Entregar todos"}
+                      </button>
+                    );
+                  }
+                  // Single order — use legacy toggle
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        toggleDelivered.mutate({ id: table.id, currentStatus: table.status });
+                      }}
+                      className="mt-2 flex items-center justify-center gap-1.5 w-full rounded-lg py-2.5 sm:py-1.5 text-[11px] sm:text-[10px] font-bold uppercase tracking-wider transition-transform hover:scale-[1.02] active:scale-[0.97] touch-manipulation"
+                      style={{
+                        backgroundColor: effectiveStatus === "delivered" ? "#166534" : "#7c6bc4",
+                        color: effectiveStatus === "delivered" ? "#bbf7d6" : "white",
+                      }}
+                      title={effectiveStatus === "delivered" ? "Desmarcar entregue" : "Marcar como entregue"}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {effectiveStatus === "delivered" ? "Entregue ✓" : "Marcar entregue"}
+                    </button>
+                  );
+                })()}
               </motion.div>
             );
           })}
