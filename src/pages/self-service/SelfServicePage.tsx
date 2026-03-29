@@ -8,6 +8,7 @@ import SelfServiceMenu from "./SelfServiceMenu";
 import SelfServiceBill from "./SelfServiceBill";
 
 const SESSION_DURATION_MINUTES = 480; // 8 hours — real expiration is order lifecycle
+const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000; // extend session every 5 minutes
 
 // Helper: persist session token in localStorage (survives tab close / browser restart)
 const ssKey = (tableId: string) => `ss_session_${tableId}`;
@@ -77,6 +78,9 @@ export default function SelfServicePage() {
     },
   });
 
+  // State for orphan recovery (token lost but order exists)
+  const [orphanSessions, setOrphanSessions] = useState<any[]>([]);
+
   // Check for existing valid session on mount — uses localStorage for persistence
   const tryAutoEnter = useCallback(async () => {
     if (!tableId) return;
@@ -84,6 +88,7 @@ export default function SelfServicePage() {
 
     try {
       const savedToken = loadSessionToken(tableId);
+      console.log("[SS] Session check start", { tableId, hasToken: !!savedToken, ts: new Date().toISOString() });
 
       if (savedToken) {
         // Validate token against DB
@@ -114,14 +119,17 @@ export default function SelfServicePage() {
             setEntered(true);
 
             // Auto-extend session expiration while order is open
-            if (orderStillOpen) {
-              const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
-              await supabase
-                .from("self_service_sessions")
-                .update({ expires_at: newExpiry })
-                .eq("id", session.id);
-              console.log("[SS] Session auto-extended, order still open:", session.order_id);
-            }
+            const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+            await supabase
+              .from("self_service_sessions")
+              .update({ expires_at: newExpiry })
+              .eq("id", session.id);
+            console.log("[SS] Session restored & extended", {
+              sessionId: session.id,
+              orderId: session.order_id,
+              customer: session.customer_name,
+              orderOpen: orderStillOpen,
+            });
 
             setCheckingSession(false);
             return;
@@ -132,13 +140,46 @@ export default function SelfServicePage() {
             clearSessionToken(tableId);
           }
         } else {
-          // Token not found in DB
+          // Token not found in DB — clear
+          console.log("[SS] Token not found in DB, clearing");
           clearSessionToken(tableId);
         }
       }
 
-      // No valid saved token — show login screen
-      // Do NOT auto-recover other clients' sessions (isolation)
+      // --- FALLBACK: orphan recovery ---
+      // If no valid token, check for open sessions with open orders on THIS table
+      // This allows a client who lost localStorage to recover their order
+      const { data: activeSessions } = await supabase
+        .from("self_service_sessions")
+        .select("id, customer_name, session_token, order_id, expires_at")
+        .eq("table_id", tableId)
+        .not("order_id", "is", null)
+        .order("created_at", { ascending: false });
+
+      if (activeSessions && activeSessions.length > 0) {
+        // Filter to only those whose order is actually open
+        const openSessions: any[] = [];
+        for (const s of activeSessions) {
+          const { data: order } = await supabase
+            .from("orders")
+            .select("id, status")
+            .eq("id", s.order_id!)
+            .eq("status", "open")
+            .single();
+          if (order) {
+            openSessions.push({ ...s, order });
+          }
+        }
+
+        if (openSessions.length > 0) {
+          console.log("[SS] Found orphan sessions for recovery", openSessions.map(s => ({
+            sessionId: s.id,
+            customer: s.customer_name,
+            orderId: s.order_id,
+          })));
+          setOrphanSessions(openSessions);
+        }
+      }
     } catch (err) {
       console.error("[SS] Session check error:", err);
     }
@@ -216,6 +257,44 @@ export default function SelfServicePage() {
       supabase.removeChannel(channel);
     };
   }, [entered, tableId]);
+
+  // Heartbeat: periodically extend session expiration while client is active
+  useEffect(() => {
+    if (!entered || !sessionId || !tableId) return;
+
+    const interval = setInterval(async () => {
+      const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+      await supabase
+        .from("self_service_sessions")
+        .update({ expires_at: newExpiry })
+        .eq("id", sessionId);
+      console.log("[SS] Heartbeat: session extended", { sessionId, tableId, ts: new Date().toISOString() });
+    }, HEARTBEAT_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [entered, sessionId, tableId]);
+
+  // Recover an orphan session (client lost localStorage)
+  const handleRecoverSession = useCallback(async (session: any) => {
+    if (!tableId) return;
+    saveSessionToken(tableId, session.session_token);
+    setSessionId(session.id);
+    setCustomerName(session.customer_name);
+    setSessionOrderId(session.order_id);
+    setOrphanSessions([]);
+    setEntered(true);
+
+    const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+    await supabase
+      .from("self_service_sessions")
+      .update({ expires_at: newExpiry })
+      .eq("id", session.id);
+    console.log("[SS] Orphan session recovered", {
+      sessionId: session.id,
+      orderId: session.order_id,
+      customer: session.customer_name,
+    });
+  }, [tableId]);
 
   const handleEnter = async () => {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
@@ -310,6 +389,27 @@ export default function SelfServicePage() {
               {table.internal_number || table.name}
             </p>
           </div>
+
+          {/* Orphan recovery: show buttons if there are open sessions without localStorage */}
+          {orphanSessions.length > 0 && (
+            <div className="rounded-lg border border-accent bg-accent/10 p-4 shadow-sm mb-4">
+              <p className="text-xs font-medium text-foreground mb-3">📋 Retomar pedido existente:</p>
+              <div className="space-y-2">
+                {orphanSessions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleRecoverSession(s)}
+                    className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity text-left px-3"
+                  >
+                    📋 {s.customer_name || "Cliente"} — Retomar meu pedido
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Ou preencha abaixo para criar um novo pedido
+              </p>
+            </div>
+          )}
 
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <div className="space-y-4">
