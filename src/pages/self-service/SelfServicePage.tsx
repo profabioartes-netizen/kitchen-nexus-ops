@@ -390,6 +390,27 @@ export default function SelfServicePage() {
             </p>
           </div>
 
+          {/* Orphan recovery: show buttons if there are open sessions without localStorage */}
+          {orphanSessions.length > 0 && (
+            <div className="rounded-lg border border-accent bg-accent/10 p-4 shadow-sm mb-4">
+              <p className="text-xs font-medium text-foreground mb-3">📋 Retomar pedido existente:</p>
+              <div className="space-y-2">
+                {orphanSessions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleRecoverSession(s)}
+                    className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity text-left px-3"
+                  >
+                    📋 {s.customer_name || "Cliente"} — Retomar meu pedido
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Ou preencha abaixo para criar um novo pedido
+              </p>
+            </div>
+          )}
+
           <div className="rounded-lg border bg-card p-6 shadow-sm">
             <div className="space-y-4">
               <div>
