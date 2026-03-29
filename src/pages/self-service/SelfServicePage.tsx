@@ -84,13 +84,13 @@ export default function SelfServicePage() {
     },
   });
 
-  // Check for existing valid session on mount (only reconnects the SAME customer via token)
+  // Check for existing valid session on mount — uses localStorage for persistence
   const tryAutoEnter = useCallback(async () => {
     if (!tableId) return;
     setCheckingSession(true);
 
     try {
-      const savedToken = sessionStorage.getItem(`ss_session_${tableId}`);
+      const savedToken = loadSessionToken(tableId);
 
       if (savedToken) {
         // Validate token against DB
@@ -101,24 +101,83 @@ export default function SelfServicePage() {
           .eq("table_id", tableId)
           .single();
 
-        if (session && new Date(session.expires_at) > new Date()) {
-          // Session still valid — reconnect same customer
-          setSessionId(session.id);
-          setCustomerName(session.customer_name);
-          setSessionOrderId((session as any).order_id || null);
-          setEntered(true);
-          setCheckingSession(false);
-          return;
+        if (session) {
+          // Check if the linked order is still open (takes priority over expires_at)
+          let orderStillOpen = false;
+          if (session.order_id) {
+            const { data: order } = await supabase
+              .from("orders")
+              .select("id, status")
+              .eq("id", session.order_id)
+              .single();
+            orderStillOpen = !!order && order.status === "open";
+          }
+
+          if (orderStillOpen || new Date(session.expires_at) > new Date()) {
+            // Session valid — reconnect same customer
+            setSessionId(session.id);
+            setCustomerName(session.customer_name);
+            setSessionOrderId(session.order_id || null);
+            setEntered(true);
+
+            // Auto-extend session expiration while order is open
+            if (orderStillOpen) {
+              const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
+              await supabase
+                .from("self_service_sessions")
+                .update({ expires_at: newExpiry })
+                .eq("id", session.id);
+              console.log("[SS] Session auto-extended, order still open:", session.order_id);
+            }
+
+            setCheckingSession(false);
+            return;
+          } else {
+            // Token expired AND no open order — clear
+            console.log("[SS] Session expired, clearing token");
+            setSessionId(null);
+            clearSessionToken(tableId);
+          }
         } else {
-          // Token expired ou inválido — limpar sessão local
-          setSessionId(null);
-          sessionStorage.removeItem(`ss_session_${tableId}`);
+          // Token not found in DB
+          clearSessionToken(tableId);
         }
       }
 
-      // No valid session → show login screen (each customer creates their own)
+      // No valid saved token — try to find ANY open session for this table (recovery)
+      // This handles the case where localStorage was cleared but session+order exist
+      const { data: openSessions } = await supabase
+        .from("self_service_sessions")
+        .select("id, customer_name, order_id, session_token")
+        .eq("table_id", tableId)
+        .not("order_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (openSessions && openSessions.length > 0) {
+        // Check which sessions have open orders
+        for (const sess of openSessions) {
+          if (!sess.order_id) continue;
+          const { data: order } = await supabase
+            .from("orders")
+            .select("id, status")
+            .eq("id", sess.order_id)
+            .single();
+          if (order && order.status === "open") {
+            // Found an open order — offer recovery
+            setRecoverySession({
+              sessionId: sess.id,
+              orderId: order.id,
+              customerName: sess.customer_name,
+              token: sess.session_token,
+            });
+            console.log("[SS] Recovery session found for table:", tableId, "order:", order.id);
+            break;
+          }
+        }
+      }
     } catch (err) {
-      console.error("Session check error:", err);
+      console.error("[SS] Session check error:", err);
     }
 
     setCheckingSession(false);
