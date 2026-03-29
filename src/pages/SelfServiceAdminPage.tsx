@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import {
   X,
   Upload,
   Trash2,
+  QrCode,
 } from "lucide-react";
 
 type Product = {
@@ -35,6 +37,7 @@ type Product = {
 };
 
 export default function SelfServiceAdminPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -204,6 +207,20 @@ export default function SelfServiceAdminPage() {
           }`}
         >
           Complementos
+        </button>
+        <button
+          onClick={() => {
+            const pin = prompt("Digite o PIN de segurança:");
+            if (pin === "9135") {
+              navigate("/qrcodes");
+            } else if (pin !== null) {
+              toast.error("PIN incorreto");
+            }
+          }}
+          className="flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <QrCode className="h-4 w-4" />
+          QR Codes
         </button>
       </div>
 
