@@ -855,21 +855,21 @@ export default function TablesPage() {
                   </span>
                 )}
 
-                {/* Preview popover for occupied tables */}
+                {/* Preview popover for occupied tables — shows ALL orders */}
                 {order && (
                   <Popover
-                    open={previewOrderId === order.id}
-                    onOpenChange={(open) => setPreviewOrderId(open ? order.id : null)}
+                    open={previewTableId === table.id}
+                    onOpenChange={(open) => setPreviewTableId(open ? table.id : null)}
                   >
                     <PopoverTrigger asChild>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setPreviewOrderId((prev) => (prev === order.id ? null : order.id));
+                          setPreviewTableId((prev) => (prev === table.id ? null : table.id));
                         }}
-                        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewOrderId(order.id); } }}
-                        onPointerLeave={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewOrderId(null); } }}
-                        className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${previewOrderId === order.id ? "bg-accent/20" : ""} hover:bg-secondary/80`}
+                        onPointerEnter={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewTableId(table.id); } }}
+                        onPointerLeave={(e) => { if (e.pointerType === 'mouse') { e.stopPropagation(); setPreviewTableId(null); } }}
+                        className={`absolute top-1.5 left-1.5 rounded p-1 transition-opacity z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${previewTableId === table.id ? "bg-accent/20" : ""} hover:bg-secondary/80`}
                       >
                         <Eye className="h-3 w-3 text-muted-foreground" />
                       </button>
@@ -878,75 +878,69 @@ export default function TablesPage() {
                       side="right"
                       align="start"
                       sideOffset={8}
-                      className="w-52 p-0 shadow-md max-h-[320px] overflow-y-auto"
+                      className="w-56 p-0 shadow-md max-h-[400px] overflow-y-auto"
                       onClick={(e) => e.stopPropagation()}
-                      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setPreviewOrderId(order.id); }}
-                      onPointerLeave={(e) => { if (e.pointerType === 'mouse') setPreviewOrderId(null); }}
+                      onPointerEnter={(e) => { if (e.pointerType === 'mouse') setPreviewTableId(table.id); }}
+                      onPointerLeave={(e) => { if (e.pointerType === 'mouse') setPreviewTableId(null); }}
                     >
                       {previewItems.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic p-2.5">Carregando...</p>
                       ) : (() => {
-                        const newItems = previewItems.filter((i) => !(i as any).delivered_at);
-                        const completedItems = previewItems.filter((i) => !!(i as any).delivered_at);
+                        const tableOrders = allOrdersByTable[table.id] || [order];
                         return (
-                          <div>
-                            {newItems.length > 0 && (
-                              <>
-                                <div className="bg-accent/15 rounded-md m-2 mb-0 p-2.5 ring-1 ring-accent/20">
-                                  <p className="text-[10px] text-accent uppercase tracking-widest font-black mb-1.5">● Novos Pedidos</p>
-                                  <div className="space-y-1">
-                                    {newItems.map((item) => (
-                                      <div key={item.id}>
-                                        <div className="flex items-center justify-between text-xs gap-1">
-                                          <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
-                                          {!(item as any).viewed_at && (
-                                            <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
-                                          )}
-                                          <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
-                                        </div>
-                                        {(item as any).order_item_complements?.length > 0 && (
-                                          <div className="ml-2 mt-0.5 space-y-0.5">
-                                            {(item as any).order_item_complements.map((c: any, i: number) => (
-                                              <span key={i} className="block text-[10px] text-muted-foreground">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
-                                            ))}
+                          <div className="divide-y divide-border">
+                            {tableOrders.map((ord) => {
+                              const ordItems = previewItems.filter((i) => (i as any).order_id === ord.id);
+                              const newItems = ordItems.filter((i) => !(i as any).delivered_at);
+                              const completedItems = ordItems.filter((i) => !!(i as any).delivered_at);
+                              if (ordItems.length === 0) return null;
+                              return (
+                                <div key={ord.id} className="p-2">
+                                  <p className="text-[10px] font-bold text-foreground mb-1.5 flex items-center gap-1">
+                                    👤 {ord.customer_name || ord.waiter_name || "Cliente"}
+                                    <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
+                                  </p>
+                                  {newItems.length > 0 && (
+                                    <div className="bg-accent/15 rounded-md p-2 ring-1 ring-accent/20 mb-1">
+                                      <div className="space-y-1">
+                                        {newItems.map((item) => (
+                                          <div key={item.id}>
+                                            <div className="flex items-center justify-between text-xs gap-1">
+                                              <span className="truncate flex-1 mr-1 font-semibold">{item.product_name}</span>
+                                              {!(item as any).viewed_at && (
+                                                <span className="flex-shrink-0 text-[8px] font-black uppercase bg-destructive text-destructive-foreground rounded px-1 py-0.5 leading-none">NOVO</span>
+                                              )}
+                                              <span className="text-accent flex-shrink-0 tabular-nums font-bold">×{item.quantity}</span>
+                                            </div>
+                                            {(item as any).order_item_complements?.length > 0 && (
+                                              <div className="ml-2 mt-0.5 space-y-0.5">
+                                                {(item as any).order_item_complements.map((c: any, ci: number) => (
+                                                  <span key={ci} className="block text-[10px] text-muted-foreground">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
+                                                ))}
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                                {completedItems.length > 0 && (
-                                  <div className="mx-2.5 my-1.5 border-t border-border" />
-                                )}
-                              </>
-                            )}
-                            {completedItems.length > 0 && (
-                              <div className="bg-[hsl(var(--status-free)/0.08)] rounded-md m-2 mt-0 p-2.5 ring-1 ring-[hsl(var(--status-free)/0.18)]">
-                                <p className="text-[10px] text-[hsl(var(--status-free))] uppercase tracking-widest font-black mb-1.5 flex items-center gap-1">
-                                  <CheckCircle2 className="h-3 w-3" /> Concluído
-                                </p>
-                                <div className="space-y-1">
-                                  {completedItems.map((item) => (
-                                    <div key={item.id}>
-                                      <div className="flex items-center justify-between text-xs gap-1">
-                                        <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
-                                        <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
-                                      </div>
-                                      {(item as any).order_item_complements?.length > 0 && (
-                                        <div className="ml-2 mt-0.5 space-y-0.5">
-                                          {(item as any).order_item_complements.map((c: any, i: number) => (
-                                            <span key={i} className="block text-[10px] text-muted-foreground opacity-70">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
-                                          ))}
-                                        </div>
-                                      )}
                                     </div>
-                                  ))}
+                                  )}
+                                  {completedItems.length > 0 && (
+                                    <div className="bg-[hsl(var(--status-free)/0.08)] rounded-md p-2 ring-1 ring-[hsl(var(--status-free)/0.18)]">
+                                      <div className="space-y-1">
+                                        {completedItems.map((item) => (
+                                          <div key={item.id}>
+                                            <div className="flex items-center justify-between text-xs gap-1">
+                                              <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
+                                              <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            )}
-                            {newItems.length === 0 && completedItems.length === 0 && (
-                              <p className="text-xs text-muted-foreground italic p-2.5">Sem itens</p>
-                            )}
+                              );
+                            })}
                           </div>
                         );
                       })()}
