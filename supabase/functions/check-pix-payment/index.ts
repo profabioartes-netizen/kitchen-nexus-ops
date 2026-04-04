@@ -106,11 +106,11 @@ serve(async (req) => {
               status: "pending",
               payload: {
                 type: "bill",
+                location: tableData?.name || "—",
                 table_name: tableData?.name || "—",
-                mesa_name: tableData?.default_name || null,
-                mesa_sector: tableData?.sector || null,
                 customer_name: order.customer_name || null,
                 waiter_name: "Auto-atendimento",
+                origin: "self_service",
                 order_id: orderId,
                 pix_confirmed: true,
                 pix_payment_id: String(payment_id),
