@@ -167,12 +167,12 @@ export default function SelfServicePage() {
         for (const s of activeSessions) {
           const { data: order } = await supabase
             .from("orders")
-            .select("id, status")
+            .select("id, status, whatsapp_phone, customer_name")
             .eq("id", s.order_id!)
             .eq("status", "open")
             .single();
           if (order) {
-            openSessions.push({ ...s, order });
+            openSessions.push({ ...s, order, order_whatsapp: order.whatsapp_phone || null });
           }
         }
 
