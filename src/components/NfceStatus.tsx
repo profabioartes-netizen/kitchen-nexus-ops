@@ -112,7 +112,7 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
       if (order?.table_id) {
         const { data: table } = await supabase
           .from("restaurant_tables")
-          .select("name, internal_number")
+          .select("name, internal_number, default_name")
           .eq("id", order.table_id)
           .single();
         tableName = table?.internal_number || table?.default_name || null;
