@@ -491,12 +491,13 @@ function buildCancellationTicket(job) {
   ];
 
   // Customer + Location + Lançado por
+  logPrintDebug(job.id, p, "cancellation");
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  const locationName = p.location || null;
-  if (locationName && locationName !== "—") {
+  const locationName = safeLocation(p);
+  if (locationName) {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
     parts.push(cmd.bold(false));
