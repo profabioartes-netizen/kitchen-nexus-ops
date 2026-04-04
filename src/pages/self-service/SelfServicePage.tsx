@@ -430,23 +430,82 @@ export default function SelfServicePage() {
           </div>
 
           {/* Orphan recovery: show buttons if there are open sessions without localStorage */}
-          {orphanSessions.length > 0 && (
+          {orphanSessions.length > 0 && !verifyingSession && (
             <div className="rounded-lg border border-accent bg-accent/10 p-4 shadow-sm mb-4">
               <p className="text-xs font-medium text-foreground mb-3">📋 Retomar pedido existente:</p>
               <div className="space-y-2">
                 {orphanSessions.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => handleRecoverSession(s)}
+                    onClick={() => handleStartVerify(s)}
                     className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity text-left px-3"
                   >
-                    📋 {s.customer_name || "Cliente"} — Retomar meu pedido
+                    <span className="block">📋 {s.customer_name || "Cliente"}</span>
+                    {s.order_whatsapp && (
+                      <span className="block text-[11px] opacity-70 mt-0.5">
+                        📱 {maskPhone(s.order_whatsapp)}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">
                 Ou preencha abaixo para criar um novo pedido
               </p>
+            </div>
+          )}
+
+          {/* WhatsApp verification step for orphan recovery */}
+          {verifyingSession && (
+            <div className="rounded-lg border border-accent bg-accent/10 p-5 shadow-sm mb-4">
+              <p className="text-sm font-semibold text-foreground mb-1">Confirmar pedido existente</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Encontramos um pedido de <strong>{verifyingSession.customer_name || "Cliente"}</strong> nesta mesa.
+                {verifyingSession.order_whatsapp && (
+                  <> WhatsApp: <strong>{maskPhone(verifyingSession.order_whatsapp)}</strong></>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Para continuar, confirme o WhatsApp informado no pedido.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5" />
+                    WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={formatWhatsapp(verifyPhone)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      setVerifyPhone(digits);
+                      setVerifyError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleVerifyAndRecover()}
+                    placeholder="(00) 90000-0000"
+                    maxLength={15}
+                    autoFocus
+                    className={`w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring ${verifyError ? "border-destructive" : ""}`}
+                  />
+                  {verifyError && (
+                    <p className="text-[11px] text-destructive mt-1">{verifyError}</p>
+                  )}
+                </div>
+                <button
+                  onClick={handleVerifyAndRecover}
+                  disabled={verifyPhone.replace(/\D/g, "").length < 11}
+                  className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  Confirmar e continuar
+                </button>
+                <button
+                  onClick={() => { setVerifyingSession(null); setVerifyError(""); }}
+                  className="w-full rounded-md border border-border text-muted-foreground py-2 text-xs hover:bg-secondary transition-colors"
+                >
+                  ← Voltar
+                </button>
+              </div>
             </div>
           )}
 
