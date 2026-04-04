@@ -279,14 +279,48 @@ export default function SelfServicePage() {
     return () => clearInterval(interval);
   }, [entered, sessionId, tableId]);
 
-  // Recover an orphan session (client lost localStorage)
-  const handleRecoverSession = useCallback(async (session: any) => {
-    if (!tableId) return;
+  // Normalize phone to digits only for comparison
+  const normalizePhone = (phone: string) => phone.replace(/\D/g, "").replace(/^55/, "");
+
+  // Mask phone for display: (37) 9****-1234
+  const maskPhone = (phone: string | null) => {
+    if (!phone) return null;
+    const d = phone.replace(/\D/g, "").replace(/^55/, "");
+    if (d.length < 11) return "(**) *****-****";
+    return `(${d.slice(0, 2)}) ${d[2]}****-${d.slice(7)}`;
+  };
+
+  // Start verification flow for an orphan session
+  const handleStartVerify = (session: any) => {
+    // If no whatsapp on the order, cannot recover safely
+    if (!session.order_whatsapp) {
+      setVerifyError("Este pedido não possui WhatsApp cadastrado. Crie um novo pedido.");
+      return;
+    }
+    setVerifyingSession(session);
+    setVerifyPhone("");
+    setVerifyError("");
+  };
+
+  // Verify phone and recover session
+  const handleVerifyAndRecover = useCallback(async () => {
+    if (!verifyingSession || !tableId) return;
+    const inputDigits = normalizePhone(verifyPhone);
+    const savedDigits = normalizePhone(verifyingSession.order_whatsapp || "");
+
+    if (!savedDigits || inputDigits !== savedDigits) {
+      setVerifyError("Este WhatsApp não corresponde ao pedido atual desta mesa.");
+      return;
+    }
+
+    // Match! Recover session
+    const session = verifyingSession;
     saveSessionToken(tableId, session.session_token);
     setSessionId(session.id);
     setCustomerName(session.customer_name);
     setSessionOrderId(session.order_id);
     setOrphanSessions([]);
+    setVerifyingSession(null);
     setEntered(true);
 
     const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
@@ -294,12 +328,12 @@ export default function SelfServicePage() {
       .from("self_service_sessions")
       .update({ expires_at: newExpiry })
       .eq("id", session.id);
-    console.log("[SS] Orphan session recovered", {
+    console.log("[SS] Orphan session recovered after WhatsApp verification", {
       sessionId: session.id,
       orderId: session.order_id,
       customer: session.customer_name,
     });
-  }, [tableId]);
+  }, [verifyingSession, verifyPhone, tableId]);
 
   const handleEnter = async () => {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
