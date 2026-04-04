@@ -54,6 +54,15 @@ interface PaymentPanelProps {
   onRemoveQuickItem?: (productId: string) => void;
   onRemoveItem?: (itemId: string) => void;
   onUpdateItemQty?: (itemId: string, delta: number) => void;
+  /** Context for full bill printing */
+  orderContext?: {
+    orderId: string;
+    customerName: string | null;
+    waiterName: string | null;
+    origin: string;
+    location: string;
+    tableName: string;
+  };
 }
 
 const methodLabels: Record<string, string> = {
