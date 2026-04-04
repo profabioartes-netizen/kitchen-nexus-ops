@@ -40,6 +40,12 @@ export default function OrderSelector({ orders, selectedOrderId, onSelect, onCre
           >
             <User className="h-3 w-3" />
             <span className="max-w-[100px] truncate">{label}</span>
+            {o.origin === "self_service" && (
+              <span className="text-[8px] font-bold bg-orange-500/20 text-orange-700 rounded px-1 py-0.5 uppercase leading-none">QR</span>
+            )}
+            {o.origin === "waiter" && (
+              <span className="text-[8px] font-bold bg-blue-500/20 text-blue-700 rounded px-1 py-0.5 uppercase leading-none">Garçom</span>
+            )}
             <span className={`text-[10px] ${isActive ? "text-accent-foreground/70" : "text-muted-foreground"}`}>
               R$ {Number(o.total).toFixed(0)}
             </span>
