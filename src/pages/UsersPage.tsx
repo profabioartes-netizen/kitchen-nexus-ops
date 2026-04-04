@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock, Pencil, KeyRound, Calculator } from "lucide-react";
+import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock, Pencil, KeyRound, Calculator, UserX, UserCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
@@ -16,6 +16,7 @@ interface UserProfile {
   id: string;
   full_name: string;
   role: string;
+  active: boolean;
   created_at: string;
 }
 
@@ -209,6 +210,22 @@ export default function UsersPage() {
       setConfirmPassword("");
       queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
       queryClient.invalidateQueries({ queryKey: ["users_auth_details"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ user_id, active }: { user_id: string; active: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "toggle_active", user_id, active },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(vars.active ? "Usuário ativado!" : "Usuário desativado!");
+      queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -456,7 +473,7 @@ export default function UsersPage() {
           {users.map((u) => {
             const auth = authMap.get(u.id);
             return (
-              <div key={u.id} className="rounded-lg border bg-card p-3">
+              <div key={u.id} className={`rounded-lg border bg-card p-3 ${u.active === false ? "opacity-60" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`flex items-center justify-center h-9 w-9 rounded-full shrink-0 ${
@@ -467,7 +484,14 @@ export default function UsersPage() {
                       {roleIcon(u.role)}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
+                        {u.active === false && (
+                          <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-destructive/15 text-destructive">
+                            INATIVO
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">
                         {auth?.email || "—"} · {roleLabel(u.role)}
                       </p>
@@ -482,6 +506,18 @@ export default function UsersPage() {
                     <button onClick={() => { setResetTarget(u); setNewPassword(""); }} title="Redefinir senha"
                       className="rounded p-1.5 hover:bg-accent/10 text-accent transition-colors">
                       <KeyRound className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleActiveMutation.mutate({ user_id: u.id, active: !u.active })}
+                      title={u.active !== false ? "Desativar" : "Ativar"}
+                      disabled={u.id === user?.id}
+                      className={`rounded p-1.5 transition-colors disabled:opacity-30 ${
+                        u.active !== false
+                          ? "hover:bg-orange-500/10 text-orange-500"
+                          : "hover:bg-green-500/10 text-green-500"
+                      }`}
+                    >
+                      {u.active !== false ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                     </button>
                     <button onClick={() => setDeleteTarget(u)} title="Remover"
                       className="rounded p-1.5 hover:bg-destructive/10 text-destructive transition-colors">

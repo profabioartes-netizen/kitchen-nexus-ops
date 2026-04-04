@@ -33,13 +33,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
     const { data } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
-    setProfile(data as Profile | null);
+    const prof = data as Profile | null;
+    if (prof && (prof as any).active === false) {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setLoading(false);
+      return null;
+    }
+    setProfile(prof);
+    return prof;
   };
 
   useEffect(() => {
