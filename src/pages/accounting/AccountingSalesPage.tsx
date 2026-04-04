@@ -57,13 +57,21 @@ export default function AccountingSalesPage() {
     to: effectiveDateTo ? endOfDay(effectiveDateTo).toISOString() : undefined,
   }), [effectiveDateFrom, effectiveDateTo]);
 
-  // Fetch orders
+  // Fetch only closed orders that have an authorized NFC-e
   const { data: orders = [], isLoading: lo } = useQuery({
     queryKey: ["accsales_orders", goLiveAt, periodFilter],
     queryFn: async () => {
+      // 1. Get all order_ids with NFC-e status = 'emitida'
+      let nfceQ = supabase.from("nfce_records").select("order_id").eq("status", "emitida");
+      const { data: nfceData } = await nfceQ;
+      const authorizedOrderIds = (nfceData || []).map((n: any) => n.order_id);
+      if (authorizedOrderIds.length === 0) return [];
+
+      // 2. Fetch only closed orders that are in the authorized list
       let q = supabase.from("orders")
         .select("id, total, status, created_at, waiter_name, customer_name, table_id")
-        .eq("status", "closed");
+        .eq("status", "closed")
+        .in("id", authorizedOrderIds);
       if (goLiveAt) q = q.gte("created_at", goLiveAt);
       if (periodFilter.from) q = q.gte("created_at", periodFilter.from);
       if (periodFilter.to) q = q.lte("created_at", periodFilter.to);
