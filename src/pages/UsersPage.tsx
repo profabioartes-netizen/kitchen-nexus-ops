@@ -16,6 +16,7 @@ interface UserProfile {
   id: string;
   full_name: string;
   role: string;
+  active: boolean;
   created_at: string;
 }
 
