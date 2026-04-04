@@ -115,6 +115,28 @@ function toPC860(input) {
 
 const upperPt = (value) => String(value ?? "").toLocaleUpperCase("pt-BR").normalize("NFC");
 
+/**
+ * Safely resolve location name, ensuring customer_name never leaks into location.
+ * Returns the real physical location or "Sem local".
+ */
+function safeLocation(payload) {
+  const loc = payload.location || payload.table_name || null;
+  const cust = payload.customer_name || payload.customerName || null;
+  // SAFETY: if location equals customer name, it's a data leak — reject it
+  if (!loc || loc === "—" || loc === "") return null;
+  if (cust && loc.trim().toLowerCase() === cust.trim().toLowerCase()) {
+    console.warn(`[PRINT SAFETY] location "${loc}" matches customer_name "${cust}" — rejecting as data leak`);
+    return null;
+  }
+  return loc;
+}
+
+/** Log print debug info before generating ticket */
+function logPrintDebug(jobId, payload, ticketType) {
+  const loc = safeLocation(payload);
+  console.log(`[PRINT DEBUG] type=${ticketType} job=${jobId?.slice(0,8)} order=${payload.order_id?.slice(0,8) || "?"} location="${loc || "Sem local"}" customer="${payload.customer_name || "?"}" table_name="${payload.table_name || "?"}" origin="${payload.origin || "?"}"`);
+}
+
 /** Resolve "Lançado por" label based on order origin */
 function resolveOriginLabel(payload) {
   const origin = (payload.origin || "").toLowerCase();
