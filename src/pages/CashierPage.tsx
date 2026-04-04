@@ -239,8 +239,10 @@ export default function CashierPage() {
           payload: {
             type: "receipt",
             business_name: "COFFEE THRONES",
+            location: "Balcão",
             table_name: "Balcão",
             customer_name: null,
+            origin: "cashier",
             items: snapshot.items.map((o) => ({
               product_name: o.name,
               quantity: o.qty,
