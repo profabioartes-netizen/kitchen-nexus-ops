@@ -37,6 +37,11 @@ export default function SelfServicePage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
+  // Recovery verification state
+  const [verifyingSession, setVerifyingSession] = useState<any | null>(null);
+  const [verifyPhone, setVerifyPhone] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+
   const formatWhatsapp = (digits: string) => {
     const d = digits.replace(/\D/g, "").slice(0, 11);
     if (d.length <= 2) return d;
