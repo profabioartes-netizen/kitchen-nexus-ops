@@ -289,7 +289,13 @@ export default function TableOrderPage() {
     mutationFn: async ({ targetTableId, merge }: { targetTableId: string; merge: boolean }) => {
       if (!order) throw new Error("Sem pedido aberto");
       const targetTable = allTables.find((t) => t.id === targetTableId);
-      const targetOrder = allOpenOrders.find((o) => o.table_id === targetTableId);
+      // ISOLATION: only find target orders with same origin type
+      const targetOrder = allOpenOrders.find((o) => o.table_id === targetTableId && o.origin === order.origin);
+
+      console.log("[ISOLAMENTO] Transfer:", {
+        sourceOrderId: order.id, sourceOrigin: order.origin, sourceTable: tableId,
+        targetTable: targetTableId, targetOrderId: targetOrder?.id, targetOrigin: targetOrder?.origin, merge,
+      });
 
       if (targetOrder && !merge) {
         throw new Error("MERGE_REQUIRED");
