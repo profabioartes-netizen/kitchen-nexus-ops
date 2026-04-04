@@ -227,7 +227,7 @@ function TicketPreview({ job }: { job: any }) {
         {p.customer_name && <p className="text-muted-foreground uppercase">CLIENTE: <span className="text-foreground font-medium">{p.customer_name}</span></p>}
         {p.comanda_number && <p className="text-muted-foreground uppercase">COMANDA: <span className="text-foreground font-medium">#{p.comanda_number}</span></p>}
         <div className="flex justify-between text-muted-foreground uppercase">
-          <span>MESA: <span className="text-foreground font-medium">{p.table_name || "Balcão"}</span></span>
+          <span>LOCAL: <span className="text-foreground font-medium">{p.location || p.table_name || "Balcão"}</span></span>
           <span className="normal-case">{time}</span>
         </div>
         {p.waiter_name && <p className="text-muted-foreground uppercase">ATENDENTE: <span className="text-foreground font-medium">{p.waiter_name}</span></p>}
