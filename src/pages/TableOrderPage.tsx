@@ -443,8 +443,15 @@ export default function TableOrderPage() {
     mutationFn: async (payload: AddItemPayload) => {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
-      if (!currentOrder) {
-        currentOrder = await createOrder.mutateAsync({});
+      // ISOLATION: never add waiter items to a self_service order
+      if (!currentOrder || currentOrder.origin === "self_service") {
+        const waiterOrder = waiterOrders[0];
+        if (waiterOrder) {
+          currentOrder = waiterOrder;
+        } else {
+          console.log("[ISOLAMENTO] Criando comanda waiter porque order atual é self_service ou inexistente");
+          currentOrder = await createOrder.mutateAsync({});
+        }
       }
 
       const unitPrice = Number(product.price) + complementsTotal;
