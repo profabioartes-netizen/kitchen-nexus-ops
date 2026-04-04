@@ -146,15 +146,21 @@ export default function TableOrderPage() {
     enabled: !!tableId,
   });
 
-  // Auto-select: pick selectedOrderId or fallback to first
+  // Separate orders by origin for isolation
+  const waiterOrders = useMemo(() => tableOrders.filter((o) => o.origin !== "self_service"), [tableOrders]);
+  const selfServiceOrders = useMemo(() => tableOrders.filter((o) => o.origin === "self_service"), [tableOrders]);
+
+  // Auto-select: pick selectedOrderId or fallback to first WAITER order, then any order
   const order = useMemo(() => {
     if (!tableOrders.length) return null;
     if (selectedOrderId) {
       const found = tableOrders.find((o) => o.id === selectedOrderId);
       if (found) return found;
     }
+    // Prefer waiter-origin orders for the waiter view
+    if (waiterOrders.length > 0) return waiterOrders[0];
     return tableOrders[0];
-  }, [tableOrders, selectedOrderId]);
+  }, [tableOrders, selectedOrderId, waiterOrders]);
 
   // Keep selectedOrderId in sync
   useEffect(() => {
