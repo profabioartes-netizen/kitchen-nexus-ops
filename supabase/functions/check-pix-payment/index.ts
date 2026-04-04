@@ -137,7 +137,7 @@ serve(async (req) => {
               .from("orders")
               .select("id")
               .eq("table_id", order.table_id)
-              .not("status", "in", '("closed","finished","finalized","canceled")')
+              .not("status", "in", '("closed","finished","finalized","canceled","merged")')
               .neq("id", orderId)
               .limit(1);
 

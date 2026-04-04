@@ -139,7 +139,7 @@ export default function TablesPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .not("status", "in", '("closed","finished","finalized","canceled")')
+        .not("status", "in", '("closed","finished","finalized","canceled","merged")')
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -402,7 +402,7 @@ export default function TablesPage() {
       .from("orders")
       .select("id, delivered_at")
       .eq("table_id", tableId)
-      .not("status", "in", '("closed","finished","finalized","canceled")');
+      .not("status", "in", '("closed","finished","finalized","canceled","merged")');
     if (!tableOrders || tableOrders.length === 0) return;
     const allDelivered = tableOrders.every(o => !!o.delivered_at);
     const newStatus = allDelivered ? "delivered" : "occupied";
