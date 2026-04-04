@@ -567,7 +567,7 @@ function buildDanfeTicket(job) {
 
   // ── Sale info block ──
   parts.push(cmd.alignLeft);
-  const tableName = p.location || p.table_name || p.table || null;
+  const tableName = p.location || null;
   const comanda = p.comanda_number || null;
   const customer = p.customer_name || null;
 
