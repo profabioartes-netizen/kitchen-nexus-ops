@@ -96,9 +96,11 @@ serve(async (req) => {
           if (order.table_id) {
             const { data: tableData } = await supabase
               .from("restaurant_tables")
-              .select("id, name, default_name, sector")
+              .select("id, name, default_name, internal_number, sector")
               .eq("id", order.table_id)
               .single();
+
+            const locationName = tableData?.internal_number || tableData?.default_name || tableData?.name || "—";
 
             // Print receipt to Caixa
             await supabase.from("print_jobs").insert({
@@ -106,8 +108,8 @@ serve(async (req) => {
               status: "pending",
               payload: {
                 type: "bill",
-                location: tableData?.name || "—",
-                table_name: tableData?.name || "—",
+                location: locationName,
+                table_name: locationName,
                 customer_name: order.customer_name || null,
                 waiter_name: "Auto-atendimento",
                 origin: "self_service",

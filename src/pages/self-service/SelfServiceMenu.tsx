@@ -299,8 +299,8 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
             station,
             payload: {
               type: "production",
-              table_name: table.name || "Mesa",
-              location: table.internal_number || table.name || "Mesa",
+              table_name: table.internal_number || table.default_name || "Mesa",
+              location: table.internal_number || table.default_name || "Mesa",
               customer_name: customerName,
               waiter_name: "Auto-atendimento",
               origin: "self_service",
