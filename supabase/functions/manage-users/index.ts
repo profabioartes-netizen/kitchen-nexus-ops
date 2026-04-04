@@ -235,6 +235,41 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── TOGGLE ACTIVE ───
+    if (action === "toggle_active") {
+      const { user_id, active } = payload;
+
+      if (!user_id || typeof active !== "boolean") {
+        return new Response(JSON.stringify({ error: "user_id e active são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (user_id === callerId && !active) {
+        return new Response(JSON.stringify({ error: "Você não pode desativar seu próprio usuário" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await adminClient
+        .from("profiles")
+        .update({ active })
+        .eq("id", user_id);
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── DELETE ───
     if (action === "delete") {
       const { user_id } = payload;
