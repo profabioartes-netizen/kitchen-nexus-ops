@@ -127,7 +127,7 @@ function buildProductionHTML(job: any) {
     ${buildMedievalHeader(job.station.toUpperCase())}
     <div class="sep"></div>
     <div>
-      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${(p.location || p.table_name) ? `<div>LOCAL: ${p.location || p.table_name}</div>` : ""}
       ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
       ${p.waiter_name ? `<div>GARÇOM: ${p.waiter_name}</div>` : ""}
       <div>HORA: ${time}  ${date}</div>
