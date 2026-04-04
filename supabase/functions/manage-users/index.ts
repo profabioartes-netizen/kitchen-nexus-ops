@@ -17,7 +17,6 @@ Deno.serve(async (req) => {
 
     console.log("manage-users: start");
     
-    // Verify caller authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
@@ -41,8 +40,6 @@ Deno.serve(async (req) => {
     }
 
     const callerId = claimsData.user.id;
-
-    // Use service role client to check role (bypasses RLS)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: callerProfile } = await adminClient
@@ -73,6 +70,7 @@ Deno.serve(async (req) => {
     const { action, ...payload } = body;
     console.log("manage-users: action=", action, "payload keys=", Object.keys(payload));
 
+    // ─── CREATE ───
     if (action === "create") {
       const { email, password, full_name, role } = payload;
 
@@ -83,7 +81,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (!["admin", "waiter", "contabilidade"].includes(role)) {
+      if (!["admin", "waiter", "contabilidade"].includes(role as string)) {
         return new Response(JSON.stringify({ error: "Função inválida" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -91,13 +89,11 @@ Deno.serve(async (req) => {
       }
 
       const { data, error } = await adminClient.auth.admin.createUser({
-        email,
-        password,
+        email: email as string,
+        password: password as string,
         email_confirm: true,
         user_metadata: { full_name },
       });
-
-      console.log("manage-users: createUser result", error ? `error: ${error.message}` : `ok: ${data.user.id}`);
 
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
@@ -106,7 +102,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Update the profile role
       await adminClient
         .from("profiles")
         .update({ full_name, role })
@@ -117,9 +112,10 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── UPDATE ROLE ───
     if (action === "update_role") {
       const { user_id, role } = payload;
-      if (!["admin", "waiter", "contabilidade"].includes(role)) {
+      if (!["admin", "waiter", "contabilidade"].includes(role as string)) {
         return new Response(JSON.stringify({ error: "Função inválida" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -143,6 +139,103 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── UPDATE PROFILE (full edit) ───
+    if (action === "update_profile") {
+      const { user_id, full_name, email, role, phone } = payload;
+
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (role && !["admin", "waiter", "contabilidade"].includes(role as string)) {
+        return new Response(JSON.stringify({ error: "Função inválida" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update auth user (email, phone, metadata)
+      const authUpdate: Record<string, unknown> = {};
+      if (email) authUpdate.email = email;
+      if (phone !== undefined) authUpdate.phone = phone || "";
+      if (full_name) authUpdate.user_metadata = { full_name };
+
+      if (Object.keys(authUpdate).length > 0) {
+        const { error: authErr } = await adminClient.auth.admin.updateUserById(
+          user_id as string,
+          authUpdate
+        );
+        if (authErr) {
+          return new Response(JSON.stringify({ error: authErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Update profile table
+      const profileUpdate: Record<string, unknown> = {};
+      if (full_name) profileUpdate.full_name = full_name;
+      if (role) profileUpdate.role = role;
+
+      if (Object.keys(profileUpdate).length > 0) {
+        const { error: profErr } = await adminClient
+          .from("profiles")
+          .update(profileUpdate)
+          .eq("id", user_id);
+
+        if (profErr) {
+          return new Response(JSON.stringify({ error: profErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── RESET PASSWORD ───
+    if (action === "reset_password") {
+      const { user_id, new_password } = payload;
+
+      if (!user_id || !new_password) {
+        return new Response(JSON.stringify({ error: "user_id e new_password são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if ((new_password as string).length < 6) {
+        return new Response(JSON.stringify({ error: "A senha deve ter pelo menos 6 caracteres" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await adminClient.auth.admin.updateUserById(
+        user_id as string,
+        { password: new_password as string }
+      );
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── DELETE ───
     if (action === "delete") {
       const { user_id } = payload;
 
@@ -153,7 +246,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { error } = await adminClient.auth.admin.deleteUser(user_id);
+      const { error } = await adminClient.auth.admin.deleteUser(user_id as string);
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
           status: 400,
@@ -162,6 +255,29 @@ Deno.serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── LIST (get auth details like email/phone) ───
+    if (action === "list") {
+      const { data: { users: authUsers }, error } = await adminClient.auth.admin.listUsers();
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const mapped = authUsers.map((u) => ({
+        id: u.id,
+        email: u.email || "",
+        phone: u.phone || "",
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+      }));
+
+      return new Response(JSON.stringify({ users: mapped }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
