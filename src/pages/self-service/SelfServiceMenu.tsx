@@ -264,25 +264,39 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
           const station = item.product.station || "Cozinha";
           if (!stations.has(station)) stations.set(station, []);
           stations.get(station)!.push({
-            name: item.product.name,
-            qty: item.quantity,
+            product_name: item.product.name,
+            quantity: item.quantity,
             notes: item.notes || "",
             complements: item.complements.map((c) => `${c.name}${c.quantity > 1 ? ` x${c.quantity}` : ""}`),
           });
         }
+        console.log("[SS] Criando print_jobs:", {
+          orderId: currentOrderId,
+          tableId,
+          customerName,
+          stations: [...stations.entries()].map(([s, items]) => `${s}(${items.length})`),
+        });
         for (const [station, items] of stations) {
-          await supabase.from("print_jobs").insert({
+          const { error: printErr } = await supabase.from("print_jobs").insert({
             station,
             payload: {
               type: "production",
               table: table.name || "Mesa",
+              table_name: table.name || "Mesa",
               location: table.internal_number || table.name || "Mesa",
               customerName,
               customer_name: customerName,
+              waiter_name: "Auto-atendimento",
+              order_id: currentOrderId,
               items,
               selfService: true,
             },
           });
+          if (printErr) {
+            console.error("[SS] Erro ao criar print_job para", station, printErr);
+          } else {
+            console.log("[SS] Print job criado:", station, items.length, "itens");
+          }
         }
       }
 
