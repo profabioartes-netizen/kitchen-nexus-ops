@@ -15,6 +15,10 @@ export async function getOrCreateSelfServiceOrder({
   whatsappPhone = null,
   guests = 1,
 }: GetOrCreateSelfServiceOrderParams) {
+  console.log("[SS] get_or_create_self_service_order CHAMADA:", {
+    tableId, sessionId, customerName, guests, ts: new Date().toISOString(),
+  });
+
   const { data, error } = await supabase.rpc("get_or_create_self_service_order" as any, {
     p_table_id: tableId,
     p_session_id: sessionId,
@@ -29,14 +33,25 @@ export async function getOrCreateSelfServiceOrder({
   }
   if (!data) throw new Error("Não foi possível criar ou recuperar a comanda da sessão");
 
-  // SAFETY: validate returned order belongs to the requested table
   const order = data as any;
+
+  // CRITICAL SAFETY: returned order MUST belong to the requested table
   if (order.table_id && order.table_id !== tableId) {
-    const msg = `CRÍTICO: comanda ${order.id} retornada para mesa errada (${order.table_id} ≠ ${tableId})`;
+    const msg = `CRÍTICO: comanda ${order.id} retornada para mesa errada (order.table_id=${order.table_id} ≠ requested=${tableId})`;
     console.error("[SS]", msg);
     throw new Error(msg);
   }
 
-  console.log("[SS] Comanda obtida:", { orderId: order.id, tableId, sessionId, orderTableId: order.table_id });
+  console.log("[SS] Comanda obtida com sucesso:", {
+    orderId: order.id,
+    orderTableId: order.table_id,
+    requestedTableId: tableId,
+    sessionId,
+    origin: order.origin,
+    originLocation: order.origin_location,
+    status: order.status,
+    match: order.table_id === tableId,
+  });
+
   return order;
 }
