@@ -222,7 +222,7 @@ function buildBillTicket(job) {
   } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
-  const locationName = p.location || p.table || p.table_name || null;
+  const locationName = p.location || null;
   if (locationName && locationName !== "—") {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
@@ -377,7 +377,7 @@ function buildProductionTicket(job) {
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  const locationName = p.location || p.table || p.table_name || null;
+  const locationName = p.location || null;
   if (locationName && locationName !== "—") {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
@@ -471,7 +471,7 @@ function buildCancellationTicket(job) {
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  const locationName = p.location || p.table || p.table_name || null;
+  const locationName = p.location || null;
   if (locationName && locationName !== "—") {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
@@ -567,7 +567,7 @@ function buildDanfeTicket(job) {
 
   // ── Sale info block ──
   parts.push(cmd.alignLeft);
-  const tableName = p.location || p.table_name || p.table || null;
+  const tableName = p.location || null;
   const comanda = p.comanda_number || null;
   const customer = p.customer_name || null;
 
