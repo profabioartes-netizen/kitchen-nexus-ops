@@ -207,8 +207,16 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
 
     try {
       if (!sessionId) throw new Error("Sessão de autoatendimento inválida");
+      if (!tableId) throw new Error("Mesa não identificada");
 
-      console.log("[SS] submitOrder: tableId=%s sessionId=%s", tableId, sessionId);
+      console.log("[SS] submitOrder INÍCIO", {
+        tableId,
+        sessionId,
+        customerName,
+        existingOrderId: orderId,
+        cartItems: cart.length,
+        ts: new Date().toISOString(),
+      });
 
       const ensuredOrder = await getOrCreateSelfServiceOrder({
         tableId,
@@ -218,12 +226,22 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       });
 
       const currentOrderId = ensuredOrder.id;
-      console.log("[SS] submitOrder: orderId=%s orderTableId=%s", currentOrderId, ensuredOrder.table_id);
 
-      // Frontend safety: abort if order belongs to wrong table
-      if (ensuredOrder.table_id && ensuredOrder.table_id !== tableId) {
-        throw new Error(`Erro de segurança: comanda pertence a outra mesa`);
+      // CRITICAL SAFETY: abort if order belongs to wrong table
+      if (!ensuredOrder.table_id || ensuredOrder.table_id !== tableId) {
+        const msg = `SEGURANÇA: comanda ${currentOrderId} pertence à mesa ${ensuredOrder.table_id} mas QR é da mesa ${tableId}`;
+        console.error("[SS]", msg);
+        throw new Error("Erro de segurança: comanda pertence a outra mesa. Recarregue a página.");
       }
+
+      console.log("[SS] submitOrder comanda validada", {
+        orderId: currentOrderId,
+        orderTableId: ensuredOrder.table_id,
+        orderOrigin: ensuredOrder.origin,
+        orderOriginLocation: ensuredOrder.origin_location,
+        requestedTableId: tableId,
+        match: ensuredOrder.table_id === tableId,
+      });
 
       if (currentOrderId !== orderId) onOrderCreated(currentOrderId);
 
