@@ -198,22 +198,20 @@ function buildBillTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa/location + Customer name
-  const locationName = p.location || p.table || p.table_name || null;
-  if (locationName && locationName !== "—") {
-    parts.push(cmd.bold(true));
-    parts.push(cmd.text("MESA: " + upperPt(locationName)));
-    parts.push(cmd.bold(false));
-  }
+  // Customer + Location + Lançado por
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
-  } else if (!locationName || locationName === "—") {
+  } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
-  if (p.mesa_sector) {
-    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
+  const locationName = p.location || p.table || p.table_name || null;
+  if (locationName && locationName !== "—") {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
+    parts.push(cmd.bold(false));
   }
+  parts.push(cmd.text("LANCADO POR: " + upperPt(resolveOriginLabel(p))));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
