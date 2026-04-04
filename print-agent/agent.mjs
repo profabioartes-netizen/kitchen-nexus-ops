@@ -471,7 +471,7 @@ function buildCancellationTicket(job) {
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  const locationName = p.location || p.table || p.table_name || null;
+  const locationName = p.location || null;
   if (locationName && locationName !== "—") {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
