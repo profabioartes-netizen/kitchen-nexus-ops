@@ -67,17 +67,11 @@ export default function WaiterTablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, order_items!inner(id)")
+        .select("*")
         .not("status", "in", '("closed","finished","finalized","canceled")')
         .order("created_at", { ascending: false });
       if (error) throw error;
-
-      const normalized = (data ?? []).map(({ order_items, ...order }: any) => order);
-      const unique = new Map<string, any>();
-      for (const order of normalized) {
-        unique.set(order.id, order);
-      }
-      return Array.from(unique.values());
+      return data ?? [];
     },
   });
 
