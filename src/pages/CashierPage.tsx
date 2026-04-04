@@ -169,8 +169,10 @@ export default function CashierPage() {
         type: "bill",
         customer_name: null,
         comanda_number: null,
+        location: "Balcão",
         table_name: "Balcão",
         waiter_name: null,
+        origin: "cashier",
         items: order.map((o) => ({
           product_name: o.name,
           quantity: o.qty,
