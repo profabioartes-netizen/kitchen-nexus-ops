@@ -262,9 +262,16 @@ export default function WaiterTablesPage() {
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 {order && (
-                  <span className="text-sm font-semibold">
-                    R$ {Number(order.total).toFixed(2)}
-                  </span>
+                  <>
+                    <span className="text-sm font-semibold">
+                      R$ {Number(order.total).toFixed(2)}
+                    </span>
+                    {(order as any).origin === "self_service" ? (
+                      <span className="text-[8px] font-bold bg-orange-500/20 text-orange-700 rounded px-1.5 py-0.5 uppercase leading-none">QR</span>
+                    ) : (
+                      <span className="text-[8px] font-bold bg-blue-500/20 text-blue-700 rounded px-1.5 py-0.5 uppercase leading-none">Garçom</span>
+                    )}
+                  </>
                 )}
                 {order?.waiter_name && (
                   <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
