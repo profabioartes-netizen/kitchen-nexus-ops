@@ -115,6 +115,23 @@ function toPC860(input) {
 
 const upperPt = (value) => String(value ?? "").toLocaleUpperCase("pt-BR").normalize("NFC");
 
+/** Resolve "Lançado por" label based on order origin */
+function resolveOriginLabel(payload) {
+  const origin = (payload.origin || "").toLowerCase();
+  if (origin === "self_service" || origin === "qr" || payload.selfService) return "Autoatendimento (QR)";
+  if (origin === "cashier") return "Caixa";
+  if (origin === "waiter") {
+    const waiter = payload.waiter_name || "Garçom";
+    return `Garçom (${waiter})`;
+  }
+  // Fallback: use waiter_name if available
+  if (payload.waiter_name) {
+    if (payload.waiter_name.toLowerCase().includes("auto")) return "Autoatendimento (QR)";
+    return `Garçom (${payload.waiter_name})`;
+  }
+  return "Sistema";
+}
+
 /** Word-wrap a string to fit within maxCols */
 function wordWrap(str, maxCols = COLS) {
   if (str.length <= maxCols) return [str];
