@@ -935,6 +935,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_safe_table_location: { Args: { p_table_id: string }; Returns: string }
       recalculate_order_total: {
         Args: { p_order_id: string }
         Returns: undefined
