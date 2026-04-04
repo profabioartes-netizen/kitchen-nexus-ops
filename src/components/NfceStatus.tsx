@@ -138,8 +138,10 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           chave_acesso: nfce.chave_acesso || null,
           customer_name: order?.customer_name || null,
           waiter_name: order?.waiter_name || null,
+          location: tableName || null,
           table_name: tableName,
           comanda_number: internalNumber,
+          origin: (order as any)?.origin || "waiter",
           items: (orderItems || []).map((i: any) => ({
             product_name: i.product_name,
             quantity: i.quantity,

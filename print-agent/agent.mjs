@@ -115,6 +115,23 @@ function toPC860(input) {
 
 const upperPt = (value) => String(value ?? "").toLocaleUpperCase("pt-BR").normalize("NFC");
 
+/** Resolve "Lançado por" label based on order origin */
+function resolveOriginLabel(payload) {
+  const origin = (payload.origin || "").toLowerCase();
+  if (origin === "self_service" || origin === "qr" || payload.selfService) return "Autoatendimento (QR)";
+  if (origin === "cashier") return "Caixa";
+  if (origin === "waiter") {
+    const waiter = payload.waiter_name || "Garçom";
+    return `Garçom (${waiter})`;
+  }
+  // Fallback: use waiter_name if available
+  if (payload.waiter_name) {
+    if (payload.waiter_name.toLowerCase().includes("auto")) return "Autoatendimento (QR)";
+    return `Garçom (${payload.waiter_name})`;
+  }
+  return "Sistema";
+}
+
 /** Word-wrap a string to fit within maxCols */
 function wordWrap(str, maxCols = COLS) {
   if (str.length <= maxCols) return [str];
@@ -198,22 +215,20 @@ function buildBillTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa/location + Customer name
-  const locationName = p.location || p.table || p.table_name || null;
-  if (locationName && locationName !== "—") {
-    parts.push(cmd.bold(true));
-    parts.push(cmd.text("MESA: " + upperPt(locationName)));
-    parts.push(cmd.bold(false));
-  }
+  // Customer + Location + Lançado por
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
-  } else if (!locationName || locationName === "—") {
+  } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
-  if (p.mesa_sector) {
-    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
+  const locationName = p.location || p.table || p.table_name || null;
+  if (locationName && locationName !== "—") {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
+    parts.push(cmd.bold(false));
   }
+  parts.push(cmd.text("LANCADO POR: " + upperPt(resolveOriginLabel(p))));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
@@ -357,24 +372,18 @@ function buildProductionTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa/location (bold) — use location field, fallback to table_name
-  const locationName = p.location || p.table || p.table_name || null;
-  if (locationName && locationName !== "—") {
-    parts.push(cmd.bold(true));
-    parts.push(cmd.text("MESA: " + upperPt(locationName)));
-    parts.push(cmd.bold(false));
-  }
-  // Customer name
+  // Customer + Location + Lançado por
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  if (p.mesa_sector) {
-    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
+  const locationName = p.location || p.table || p.table_name || null;
+  if (locationName && locationName !== "—") {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
+    parts.push(cmd.bold(false));
   }
-  if (p.waiter_name) {
-    parts.push(cmd.text("LANCADO POR : " + upperPt(p.waiter_name)));
-  }
+  parts.push(cmd.text("LANCADO POR: " + upperPt(resolveOriginLabel(p))));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
@@ -457,23 +466,18 @@ function buildCancellationTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa/location + Customer name
-  const locationName = p.location || p.table || p.table_name || null;
-  if (locationName && locationName !== "—") {
-    parts.push(cmd.bold(true));
-    parts.push(cmd.text("MESA: " + upperPt(locationName)));
-    parts.push(cmd.bold(false));
-  }
+  // Customer + Location + Lançado por
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  if (p.mesa_sector) {
-    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
+  const locationName = p.location || p.table || p.table_name || null;
+  if (locationName && locationName !== "—") {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
+    parts.push(cmd.bold(false));
   }
-  if (p.waiter_name) {
-    parts.push(cmd.text("LANCADO POR : " + upperPt(p.waiter_name)));
-  }
+  parts.push(cmd.text("LANCADO POR: " + upperPt(resolveOriginLabel(p))));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
@@ -563,25 +567,22 @@ function buildDanfeTicket(job) {
 
   // ── Sale info block ──
   parts.push(cmd.alignLeft);
-  const tableName = p.table_name || p.location || p.table || null;
+  const tableName = p.location || p.table_name || p.table || null;
   const comanda = p.comanda_number || null;
-  const waiter = p.waiter_name || null;
   const customer = p.customer_name || null;
 
-  if (tableName && tableName !== "—") {
-    parts.push(cmd.padRow("MESA:", upperPt(tableName)));
-  }
-  if (comanda) {
-    parts.push(cmd.padRow("COMANDA:", comanda));
-  }
-  if (waiter) {
-    parts.push(cmd.padRow("ATENDENTE:", upperPt(waiter)));
-  }
   if (customer) {
     parts.push(cmd.padRow("CLIENTE:", upperPt(customer)));
   } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
+  if (tableName && tableName !== "—") {
+    parts.push(cmd.padRow("LOCAL:", upperPt(tableName)));
+  }
+  if (comanda) {
+    parts.push(cmd.padRow("COMANDA:", comanda));
+  }
+  parts.push(cmd.padRow("LANCADO POR:", upperPt(resolveOriginLabel(p))));
   parts.push(cmd.padRow("DATA:", `${date}  ${time}`));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());

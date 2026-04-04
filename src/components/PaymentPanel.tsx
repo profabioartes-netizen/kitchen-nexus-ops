@@ -901,8 +901,10 @@ export default function PaymentPanel({
                   payload: {
                     type: "receipt",
                     business_name: "COFFEE THRONES",
+                    location: "Caixa",
                     table_name: "Comanda",
                     customer_name: null,
+                    origin: "cashier",
                     items: orderItems.map((o) => ({
                       product_name: o.product_name,
                       quantity: o.quantity,

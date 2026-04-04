@@ -169,8 +169,10 @@ export default function CashierPage() {
         type: "bill",
         customer_name: null,
         comanda_number: null,
+        location: "Balcão",
         table_name: "Balcão",
         waiter_name: null,
+        origin: "cashier",
         items: order.map((o) => ({
           product_name: o.name,
           quantity: o.qty,
@@ -196,8 +198,10 @@ export default function CashierPage() {
       payload: {
         type: "receipt",
         business_name: "COFFEE THRONES",
+        location: "Balcão",
         table_name: "Balcão",
         customer_name: null,
+        origin: "cashier",
         items: lastOrderSnapshot.items.map((o) => ({
           product_name: o.name,
           quantity: o.qty,
@@ -235,8 +239,10 @@ export default function CashierPage() {
           payload: {
             type: "receipt",
             business_name: "COFFEE THRONES",
+            location: "Balcão",
             table_name: "Balcão",
             customer_name: null,
+            origin: "cashier",
             items: snapshot.items.map((o) => ({
               product_name: o.name,
               quantity: o.qty,

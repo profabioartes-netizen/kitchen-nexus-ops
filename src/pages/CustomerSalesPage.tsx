@@ -42,9 +42,11 @@ export default function CustomerSalesPage() {
         status: "pending",
         payload: {
           type: "bill",
+          location: order.customer_name || "Balcão",
           table_name: order.customer_name || "Balcão",
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
+          origin: order.origin || "cashier",
           order_id: order.id,
           items: items.map((i) => ({
             product_name: i.product_name,
