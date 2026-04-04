@@ -1,15 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock } from "lucide-react";
+import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock, Pencil, KeyRound, Calculator } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface UserProfile {
   id: string;
   full_name: string;
   role: string;
   created_at: string;
+}
+
+interface AuthUser {
+  id: string;
+  email: string;
+  phone: string;
+  last_sign_in_at: string | null;
 }
 
 export default function UsersPage() {
@@ -23,10 +37,21 @@ export default function UsersPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "waiter" | "contabilidade">("waiter");
 
-  // Delete confirmation state
+  // Delete state
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Edit state
+  const [editTarget, setEditTarget] = useState<UserProfile | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editRole, setEditRole] = useState<"admin" | "waiter" | "contabilidade">("waiter");
+
+  // Reset password state
+  const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
+  const [newPassword, setNewPassword] = useState("");
 
   const ADMIN_PIN = "9135";
 
@@ -42,23 +67,46 @@ export default function UsersPage() {
     },
   });
 
+  // Fetch auth details (email, phone)
+  const { data: authUsers = [] } = useQuery({
+    queryKey: ["users_auth_details"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "list" },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return (data?.users || []) as AuthUser[];
+    },
+    enabled: unlocked,
+  });
+
+  const authMap = new Map(authUsers.map((u) => [u.id, u]));
+
+  const openEdit = (u: UserProfile) => {
+    const auth = authMap.get(u.id);
+    setEditTarget(u);
+    setEditName(u.full_name || "");
+    setEditEmail(auth?.email || "");
+    setEditPhone(auth?.phone || "");
+    setEditRole(u.role as "admin" | "waiter" | "contabilidade");
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
       const res = await supabase.functions.invoke("manage-users", {
         body: { action: "create", email, password, full_name: fullName, role },
       });
-      console.log("manage-users response:", JSON.stringify(res));
       const { data, error } = res;
       if (error) {
         let msg = "Erro ao criar usuário";
-        // For FunctionsHttpError, try to get the context body
         if (error.name === "FunctionsHttpError") {
           try {
             const errBody = typeof error.context === "object" && error.context?.json
               ? await error.context.json()
               : data;
             if (errBody?.error) msg = errBody.error;
-          } catch { /* ignore parse error */ }
+          } catch {}
         } else if (data?.error) {
           msg = data.error;
         } else if (error.message) {
@@ -77,6 +125,55 @@ export default function UsersPage() {
       setPassword("");
       setRole("waiter");
       queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["users_auth_details"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
+      if (!editTarget) throw new Error("Nenhum usuário selecionado");
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: {
+          action: "update_profile",
+          user_id: editTarget.id,
+          full_name: editName,
+          email: editEmail,
+          phone: editPhone,
+          role: editRole,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Usuário atualizado!");
+      setEditTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["users_auth_details"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (!resetTarget) throw new Error("Nenhum usuário selecionado");
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: {
+          action: "reset_password",
+          user_id: resetTarget.id,
+          new_password: newPassword,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Senha redefinida com sucesso!");
+      setResetTarget(null);
+      setNewPassword("");
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -87,7 +184,7 @@ export default function UsersPage() {
         body: { action: "update_role", user_id, role },
       });
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
@@ -103,7 +200,7 @@ export default function UsersPage() {
         body: { action: "delete", user_id },
       });
       if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
@@ -111,26 +208,27 @@ export default function UsersPage() {
       setDeleteTarget(null);
       setConfirmPassword("");
       queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["users_auth_details"] });
     },
     onError: (err) => toast.error((err as Error).message),
   });
 
-
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (!deleteTarget || !confirmPassword) return;
-    setConfirmingDelete(true);
-    try {
-      if (confirmPassword !== ADMIN_PIN) {
-        toast.error("Senha incorreta!");
-        return;
-      }
-      deleteMutation.mutate(deleteTarget.id);
-    } finally {
-      setConfirmingDelete(false);
+    if (confirmPassword !== ADMIN_PIN) {
+      toast.error("PIN incorreto!");
+      return;
     }
+    deleteMutation.mutate(deleteTarget.id);
   };
 
-  const roleLabel = (r: string) => r === "admin" ? "Administrador" : r === "contabilidade" ? "Contabilidade" : "Garçom";
+  const roleLabel = (r: string) =>
+    r === "admin" ? "Administrador" : r === "contabilidade" ? "Contabilidade" : "Garçom";
+
+  const roleIcon = (r: string) =>
+    r === "admin" ? <Shield className="h-4 w-4" /> :
+    r === "contabilidade" ? <Calculator className="h-4 w-4" /> :
+    <Coffee className="h-4 w-4" />;
 
   if (!unlocked) {
     return (
@@ -148,9 +246,7 @@ export default function UsersPage() {
             onChange={(e) => {
               const val = e.target.value.replace(/\D/g, "");
               setPinInput(val);
-              if (val === ADMIN_PIN) {
-                setUnlocked(true);
-              }
+              if (val === ADMIN_PIN) setUnlocked(true);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -188,90 +284,132 @@ export default function UsersPage() {
       {/* Create form */}
       {showForm && (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            createMutation.mutate();
-          }}
+          onSubmit={(e) => { e.preventDefault(); createMutation.mutate(); }}
           className="rounded-lg border bg-card p-4 space-y-4"
         >
           <h2 className="font-semibold text-lg">Cadastrar Usuário</h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
-              <input
-                required
-                maxLength={100}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Maria da Silva"
-              />
+              <input required maxLength={100} value={fullName} onChange={(e) => setFullName(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Maria da Silva" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">E-mail</label>
-              <input
-                required
-                type="email"
-                maxLength={255}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                placeholder="maria@email.com"
-              />
+              <input required type="email" maxLength={255} value={email} onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="maria@email.com" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">Senha</label>
-              <input
-                required
-                type="password"
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Mínimo 6 caracteres"
-              />
+              <input required type="password" minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Mínimo 6 caracteres" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">Função</label>
               <div className="flex gap-2">
                 {(["waiter", "admin", "contabilidade"] as const).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-all ${
-                      role === r
-                        ? "bg-accent text-accent-foreground ring-2 ring-accent ring-offset-1 ring-offset-card"
-                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    }`}
-                  >
-                    {r === "admin" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
-                    {roleLabel(r)}
+                  <button key={r} type="button" onClick={() => setRole(r)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-all ${
+                      role === r ? "bg-accent text-accent-foreground ring-2 ring-accent ring-offset-1 ring-offset-card" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}>
+                    {roleIcon(r)} {roleLabel(r)}
                   </button>
                 ))}
               </div>
             </div>
           </div>
-
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
+            <button type="button" onClick={() => setShowForm(false)}
+              className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">Cancelar</button>
+            <button type="submit" disabled={createMutation.isPending}
+              className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
               {createMutation.isPending ? "Criando..." : "Criar Usuário"}
             </button>
           </div>
         </form>
       )}
+
+      {/* Edit dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>Atualize os dados cadastrais do usuário.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); updateProfileMutation.mutate(); }} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
+              <input required maxLength={100} value={editName} onChange={(e) => setEditName(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">E-mail</label>
+              <input required type="email" maxLength={255} value={editEmail} onChange={(e) => setEditEmail(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Telefone</label>
+              <input type="tel" maxLength={20} value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="(99) 99999-9999" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Função</label>
+              <div className="flex gap-2">
+                {(["waiter", "admin", "contabilidade"] as const).map((r) => (
+                  <button key={r} type="button" onClick={() => setEditRole(r)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-all ${
+                      editRole === r ? "bg-accent text-accent-foreground ring-2 ring-accent ring-offset-1 ring-offset-card" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    }`}>
+                    {roleIcon(r)} {roleLabel(r)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {editTarget?.id === user?.id && editRole !== "admin" && (
+              <p className="text-xs text-destructive font-medium">
+                ⚠️ Você está removendo seu próprio acesso de administrador!
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setEditTarget(null)}
+                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">Cancelar</button>
+              <button type="submit" disabled={updateProfileMutation.isPending}
+                className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+                {updateProfileMutation.isPending ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset password dialog */}
+      <Dialog open={!!resetTarget} onOpenChange={(o) => !o && setResetTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Redefinir Senha</DialogTitle>
+            <DialogDescription>
+              Nova senha para <strong>{resetTarget?.full_name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => { e.preventDefault(); resetPasswordMutation.mutate(); }} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Nova Senha</label>
+              <input required type="password" minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Mínimo 6 caracteres" />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setResetTarget(null)}
+                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">Cancelar</button>
+              <button type="submit" disabled={resetPasswordMutation.isPending}
+                className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+                {resetPasswordMutation.isPending ? "Redefinindo..." : "Redefinir Senha"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirmation dialog */}
       {deleteTarget && (
@@ -288,39 +426,18 @@ export default function UsersPage() {
                 </p>
               </div>
             </div>
-
-            <p className="text-sm text-muted-foreground">
-              Digite sua senha de administrador para confirmar:
-            </p>
-
-            <input
-              type="password"
-              autoFocus
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && confirmPassword.length >= 6) handleDeleteConfirm();
-              }}
-              placeholder="Sua senha"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-
+            <p className="text-sm text-muted-foreground">Digite o PIN de administrador para confirmar:</p>
+            <input type="password" autoFocus inputMode="numeric" maxLength={4} value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => { if (e.key === "Enter") handleDeleteConfirm(); }}
+              placeholder="••••"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm text-center tracking-[0.3em] outline-none focus:ring-2 focus:ring-ring" />
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setDeleteTarget(null);
-                  setConfirmPassword("");
-                }}
-                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                disabled={confirmPassword.length < 6 || confirmingDelete || deleteMutation.isPending}
-                onClick={handleDeleteConfirm}
-                className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {confirmingDelete || deleteMutation.isPending ? "Verificando..." : "Confirmar Exclusão"}
+              <button onClick={() => { setDeleteTarget(null); setConfirmPassword(""); }}
+                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors">Cancelar</button>
+              <button disabled={confirmPassword.length < 4 || deleteMutation.isPending} onClick={handleDeleteConfirm}
+                className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50">
+                {deleteMutation.isPending ? "Removendo..." : "Confirmar Exclusão"}
               </button>
             </div>
           </div>
@@ -336,51 +453,45 @@ export default function UsersPage() {
         <p className="text-center text-muted-foreground py-12">Nenhum usuário cadastrado.</p>
       ) : (
         <div className="space-y-2">
-          {users.map((u) => (
-            <div
-              key={u.id}
-              className="flex items-center justify-between rounded-lg border bg-card p-3"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`flex items-center justify-center h-9 w-9 rounded-full ${
-                    u.role === "admin"
-                      ? "bg-accent/20 text-accent"
-                      : u.role === "contabilidade"
-                      ? "bg-blue-500/20 text-blue-500"
-                      : "bg-secondary text-secondary-foreground"
-                  }`}
-                >
-                  {u.role === "admin" ? <Shield className="h-4 w-4" /> : u.role === "contabilidade" ? <Shield className="h-4 w-4" /> : <Coffee className="h-4 w-4" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
-                  <p className="text-xs text-muted-foreground">{roleLabel(u.role)}</p>
-                </div>
-              </div>
+          {users.map((u) => {
+            const auth = authMap.get(u.id);
+            return (
+              <div key={u.id} className="rounded-lg border bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`flex items-center justify-center h-9 w-9 rounded-full shrink-0 ${
+                      u.role === "admin" ? "bg-accent/20 text-accent" :
+                      u.role === "contabilidade" ? "bg-blue-500/20 text-blue-500" :
+                      "bg-secondary text-secondary-foreground"
+                    }`}>
+                      {roleIcon(u.role)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {auth?.email || "—"} · {roleLabel(u.role)}
+                      </p>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-2 ml-2">
-                <select
-                  value={u.role}
-                  onChange={(e) =>
-                    updateRoleMutation.mutate({ user_id: u.id, role: e.target.value })
-                  }
-                  className="rounded-md border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="admin">Administrador</option>
-                  <option value="waiter">Garçom</option>
-                  <option value="contabilidade">Contabilidade</option>
-                </select>
-                <button
-                  onClick={() => setDeleteTarget(u)}
-                  className="rounded p-1.5 hover:bg-destructive/10 text-destructive transition-colors"
-                  title="Remover usuário"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <div className="flex items-center gap-1 ml-2 shrink-0">
+                    <button onClick={() => openEdit(u)} title="Editar"
+                      className="rounded p-1.5 hover:bg-accent/10 text-accent transition-colors">
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => { setResetTarget(u); setNewPassword(""); }} title="Redefinir senha"
+                      className="rounded p-1.5 hover:bg-accent/10 text-accent transition-colors">
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => setDeleteTarget(u)} title="Remover"
+                      className="rounded p-1.5 hover:bg-destructive/10 text-destructive transition-colors">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
