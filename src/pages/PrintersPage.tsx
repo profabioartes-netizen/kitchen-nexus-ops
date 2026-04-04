@@ -466,7 +466,7 @@ export default function PrintersPage() {
                 });
                 const orderInfo = [
                   payload?.product_name,
-                  payload?.table_name ? `Mesa ${payload.table_name}` : null,
+                  payload?.table_name ? `Local ${payload.location || payload.table_name}` : null,
                   payload?.comanda_number ? `#${payload.comanda_number}` : null,
                 ].filter(Boolean).join(" · ") || "—";
 
