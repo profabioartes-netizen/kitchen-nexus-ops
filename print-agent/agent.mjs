@@ -115,6 +115,28 @@ function toPC860(input) {
 
 const upperPt = (value) => String(value ?? "").toLocaleUpperCase("pt-BR").normalize("NFC");
 
+/**
+ * Safely resolve location name, ensuring customer_name never leaks into location.
+ * Returns the real physical location or "Sem local".
+ */
+function safeLocation(payload) {
+  const loc = payload.location || payload.table_name || null;
+  const cust = payload.customer_name || payload.customerName || null;
+  // SAFETY: if location equals customer name, it's a data leak — reject it
+  if (!loc || loc === "—" || loc === "") return null;
+  if (cust && loc.trim().toLowerCase() === cust.trim().toLowerCase()) {
+    console.warn(`[PRINT SAFETY] location "${loc}" matches customer_name "${cust}" — rejecting as data leak`);
+    return null;
+  }
+  return loc;
+}
+
+/** Log print debug info before generating ticket */
+function logPrintDebug(jobId, payload, ticketType) {
+  const loc = safeLocation(payload);
+  console.log(`[PRINT DEBUG] type=${ticketType} job=${jobId?.slice(0,8)} order=${payload.order_id?.slice(0,8) || "?"} location="${loc || "Sem local"}" customer="${payload.customer_name || "?"}" table_name="${payload.table_name || "?"}" origin="${payload.origin || "?"}"`);
+}
+
 /** Resolve "Lançado por" label based on order origin */
 function resolveOriginLabel(payload) {
   const origin = (payload.origin || "").toLowerCase();
@@ -216,14 +238,15 @@ function buildBillTicket(job) {
   ];
 
   // Customer + Location + Lançado por
+  logPrintDebug(job.id, p, "bill");
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
-  const locationName = p.location || null;
-  if (locationName && locationName !== "—") {
+  const locationName = safeLocation(p);
+  if (locationName) {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
     parts.push(cmd.bold(false));
@@ -373,12 +396,13 @@ function buildProductionTicket(job) {
   ];
 
   // Customer + Location + Lançado por
+  logPrintDebug(job.id, p, "production");
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  const locationName = p.location || null;
-  if (locationName && locationName !== "—") {
+  const locationName = safeLocation(p);
+  if (locationName) {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
     parts.push(cmd.bold(false));
@@ -467,12 +491,13 @@ function buildCancellationTicket(job) {
   ];
 
   // Customer + Location + Lançado por
+  logPrintDebug(job.id, p, "cancellation");
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  const locationName = p.location || null;
-  if (locationName && locationName !== "—") {
+  const locationName = safeLocation(p);
+  if (locationName) {
     parts.push(cmd.bold(true));
     parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
     parts.push(cmd.bold(false));
@@ -566,18 +591,19 @@ function buildDanfeTicket(job) {
   ];
 
   // ── Sale info block ──
+  logPrintDebug(job.id, p, "danfe");
   parts.push(cmd.alignLeft);
-  const tableName = p.location || null;
   const comanda = p.comanda_number || null;
   const customer = p.customer_name || null;
+  const danfeLocation = safeLocation(p);
 
   if (customer) {
     parts.push(cmd.padRow("CLIENTE:", upperPt(customer)));
   } else {
     parts.push(cmd.text("CONSUMIDOR NAO IDENTIFICADO"));
   }
-  if (tableName && tableName !== "—") {
-    parts.push(cmd.padRow("LOCAL:", upperPt(tableName)));
+  if (danfeLocation) {
+    parts.push(cmd.padRow("LOCAL:", upperPt(danfeLocation)));
   }
   if (comanda) {
     parts.push(cmd.padRow("COMANDA:", comanda));
