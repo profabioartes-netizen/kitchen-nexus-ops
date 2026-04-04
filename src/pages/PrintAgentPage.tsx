@@ -69,7 +69,7 @@ function buildBillHTML(job: any) {
     <div>
       ${p.customer_name ? `<div>CLIENTE: ${p.customer_name}</div>` : ""}
       ${p.comanda_number ? `<div>COMANDA: #${p.comanda_number}</div>` : ""}
-      ${p.table_name ? `<div>MESA: ${p.table_name}</div>` : ""}
+      ${(p.location || p.table_name) ? `<div>LOCAL: ${p.location || p.table_name}</div>` : ""}
       ${p.waiter_name ? `<div>ATENDENTE: ${p.waiter_name}</div>` : ""}
       <div>DATA: ${date}  HORA: ${time}</div>
     </div>
