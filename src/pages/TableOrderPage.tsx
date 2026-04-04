@@ -1512,6 +1512,14 @@ export default function TableOrderPage() {
               onRemoveQuickItem={removeQuickItem}
               onRemoveItem={(itemId) => updateQty.mutate({ itemId, delta: -1 })}
               onUpdateItemQty={(itemId, delta) => updateQty.mutate({ itemId, delta })}
+              orderContext={order ? {
+                orderId: order.id,
+                customerName: order.customer_name || null,
+                waiterName: order.waiter_name || null,
+                origin: order.origin || "waiter",
+                location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.name || "—",
+                tableName: table?.name || "—",
+              } : undefined}
             />
           )}
         </div>

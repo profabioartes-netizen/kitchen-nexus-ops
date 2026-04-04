@@ -54,6 +54,15 @@ interface PaymentPanelProps {
   onRemoveQuickItem?: (productId: string) => void;
   onRemoveItem?: (itemId: string) => void;
   onUpdateItemQty?: (itemId: string, delta: number) => void;
+  /** Context for full bill printing */
+  orderContext?: {
+    orderId: string;
+    customerName: string | null;
+    waiterName: string | null;
+    origin: string;
+    location: string;
+    tableName: string;
+  };
 }
 
 const methodLabels: Record<string, string> = {
@@ -132,6 +141,7 @@ export default function PaymentPanel({
   onRemoveQuickItem,
   onRemoveItem,
   onUpdateItemQty,
+  orderContext,
 }: PaymentPanelProps) {
   // ── Adjustments ──
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
@@ -894,32 +904,37 @@ export default function PaymentPanel({
           <div className="flex items-center gap-2">
             <button
               onClick={async () => {
-                const now = new Date();
+                // Build complements map
+                const complementsByItem: Record<string, { name: string }[]> = {};
+                for (const c of itemComplements) {
+                  if (!complementsByItem[c.order_item_id]) complementsByItem[c.order_item_id] = [];
+                  complementsByItem[c.order_item_id].push({ name: c.complement_name });
+                }
+
                 await supabase.from("print_jobs").insert({
                   station: "Caixa",
                   status: "pending",
                   payload: {
-                    type: "receipt",
-                    business_name: "COFFEE THRONES",
-                    location: "Caixa",
-                    table_name: "Comanda",
-                    customer_name: null,
-                    origin: "cashier",
+                    type: "bill",
+                    location: orderContext?.location || "Caixa",
+                    table_name: orderContext?.tableName || "Comanda",
+                    customer_name: orderContext?.customerName || null,
+                    waiter_name: orderContext?.waiterName || null,
+                    origin: orderContext?.origin || "waiter",
+                    order_id: orderContext?.orderId || null,
                     items: orderItems.map((o) => ({
                       product_name: o.product_name,
                       quantity: o.quantity,
                       price: Number(o.price),
-                      subtotal: Number(o.price) * o.quantity,
+                      complements: (complementsByItem[o.id] || []).map((c) => c.name),
                     })),
                     total: grandTotal,
                     payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
-                    change: null,
-                    date: now.toLocaleDateString("pt-BR"),
-                    time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-                    footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+                    change: payments.find(p => p.method === "cash") ? 
+                      Math.max(0, payments.filter(p => p.method === "cash").reduce((s, p) => s + p.amount, 0) - grandTotal) : null,
                   },
                 });
-                toast.success("Comprovante enviado para impressão!");
+                toast.success("Conta enviada para impressão!");
               }}
               className="rounded-md border bg-secondary text-secondary-foreground px-3 py-2 text-xs font-bold hover:bg-secondary/80 transition-colors flex items-center gap-1.5 touch-manipulation"
             >
