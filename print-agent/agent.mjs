@@ -355,24 +355,18 @@ function buildProductionTicket(job) {
     cmd.text(""),
   ];
 
-  // Mesa/location (bold) — use location field, fallback to table_name
-  const locationName = p.location || p.table || p.table_name || null;
-  if (locationName && locationName !== "—") {
-    parts.push(cmd.bold(true));
-    parts.push(cmd.text("MESA: " + upperPt(locationName)));
-    parts.push(cmd.bold(false));
-  }
-  // Customer name
+  // Customer + Location + Lançado por
   const customerName = p.customer_name || p.customerName || null;
   if (customerName) {
     parts.push(cmd.text("CLIENTE: " + upperPt(customerName)));
   }
-  if (p.mesa_sector) {
-    parts.push(cmd.text("LOCAL : " + upperPt(p.mesa_sector)));
+  const locationName = p.location || p.table || p.table_name || null;
+  if (locationName && locationName !== "—") {
+    parts.push(cmd.bold(true));
+    parts.push(cmd.text("LOCAL: " + upperPt(locationName)));
+    parts.push(cmd.bold(false));
   }
-  if (p.waiter_name) {
-    parts.push(cmd.text("LANCADO POR : " + upperPt(p.waiter_name)));
-  }
+  parts.push(cmd.text("LANCADO POR: " + upperPt(resolveOriginLabel(p))));
   parts.push(cmd.text(""));
   parts.push(cmd.separator());
   parts.push(cmd.text(""));
