@@ -1517,8 +1517,8 @@ export default function TableOrderPage() {
                 customerName: order.customer_name || null,
                 waiterName: order.waiter_name || null,
                 origin: order.origin || "waiter",
-                location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.name || "—",
-                tableName: table?.name || "—",
+                location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
+                tableName: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
               } : undefined}
             />
           )}

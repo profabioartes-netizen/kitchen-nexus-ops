@@ -32,7 +32,7 @@ export async function printCancellationIfNeeded({
       type: "cancellation",
       product_name: item.product_name,
       quantity: item.quantity,
-      table_name: table?.name || "—",
+      table_name: (order as any)?.current_location || (order as any)?.origin_location || table?.name || "—",
       location: (order as any)?.current_location || (order as any)?.origin_location || table?.name || null,
       customer_name: order?.customer_name || null,
       waiter_name: waiterName || order?.waiter_name || null,

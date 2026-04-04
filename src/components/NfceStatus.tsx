@@ -115,7 +115,7 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           .select("name, internal_number")
           .eq("id", order.table_id)
           .single();
-        tableName = table?.name || null;
+        tableName = table?.internal_number || table?.default_name || null;
         internalNumber = table?.internal_number || null;
       }
 
