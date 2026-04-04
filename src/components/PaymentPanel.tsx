@@ -141,6 +141,7 @@ export default function PaymentPanel({
   onRemoveQuickItem,
   onRemoveItem,
   onUpdateItemQty,
+  orderContext,
 }: PaymentPanelProps) {
   // ── Adjustments ──
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
