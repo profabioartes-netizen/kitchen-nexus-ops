@@ -37,6 +37,11 @@ export default function SelfServicePage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionOrderId, setSessionOrderId] = useState<string | null>(null);
 
+  // Recovery verification state
+  const [verifyingSession, setVerifyingSession] = useState<any | null>(null);
+  const [verifyPhone, setVerifyPhone] = useState("");
+  const [verifyError, setVerifyError] = useState("");
+
   const formatWhatsapp = (digits: string) => {
     const d = digits.replace(/\D/g, "").slice(0, 11);
     if (d.length <= 2) return d;
@@ -162,12 +167,12 @@ export default function SelfServicePage() {
         for (const s of activeSessions) {
           const { data: order } = await supabase
             .from("orders")
-            .select("id, status")
+            .select("id, status, whatsapp_phone, customer_name")
             .eq("id", s.order_id!)
             .eq("status", "open")
             .single();
           if (order) {
-            openSessions.push({ ...s, order });
+            openSessions.push({ ...s, order, order_whatsapp: order.whatsapp_phone || null });
           }
         }
 
@@ -274,14 +279,48 @@ export default function SelfServicePage() {
     return () => clearInterval(interval);
   }, [entered, sessionId, tableId]);
 
-  // Recover an orphan session (client lost localStorage)
-  const handleRecoverSession = useCallback(async (session: any) => {
-    if (!tableId) return;
+  // Normalize phone to digits only for comparison
+  const normalizePhone = (phone: string) => phone.replace(/\D/g, "").replace(/^55/, "");
+
+  // Mask phone for display: (37) 9****-1234
+  const maskPhone = (phone: string | null) => {
+    if (!phone) return null;
+    const d = phone.replace(/\D/g, "").replace(/^55/, "");
+    if (d.length < 11) return "(**) *****-****";
+    return `(${d.slice(0, 2)}) ${d[2]}****-${d.slice(7)}`;
+  };
+
+  // Start verification flow for an orphan session
+  const handleStartVerify = (session: any) => {
+    // If no whatsapp on the order, cannot recover safely
+    if (!session.order_whatsapp) {
+      setVerifyError("Este pedido não possui WhatsApp cadastrado. Crie um novo pedido.");
+      return;
+    }
+    setVerifyingSession(session);
+    setVerifyPhone("");
+    setVerifyError("");
+  };
+
+  // Verify phone and recover session
+  const handleVerifyAndRecover = useCallback(async () => {
+    if (!verifyingSession || !tableId) return;
+    const inputDigits = normalizePhone(verifyPhone);
+    const savedDigits = normalizePhone(verifyingSession.order_whatsapp || "");
+
+    if (!savedDigits || inputDigits !== savedDigits) {
+      setVerifyError("Este WhatsApp não corresponde ao pedido atual desta mesa.");
+      return;
+    }
+
+    // Match! Recover session
+    const session = verifyingSession;
     saveSessionToken(tableId, session.session_token);
     setSessionId(session.id);
     setCustomerName(session.customer_name);
     setSessionOrderId(session.order_id);
     setOrphanSessions([]);
+    setVerifyingSession(null);
     setEntered(true);
 
     const newExpiry = new Date(Date.now() + SESSION_DURATION_MINUTES * 60 * 1000).toISOString();
@@ -289,12 +328,12 @@ export default function SelfServicePage() {
       .from("self_service_sessions")
       .update({ expires_at: newExpiry })
       .eq("id", session.id);
-    console.log("[SS] Orphan session recovered", {
+    console.log("[SS] Orphan session recovered after WhatsApp verification", {
       sessionId: session.id,
       orderId: session.order_id,
       customer: session.customer_name,
     });
-  }, [tableId]);
+  }, [verifyingSession, verifyPhone, tableId]);
 
   const handleEnter = async () => {
     if (!customerName.trim() || !isWhatsappValid || !tableId) return;
@@ -391,23 +430,82 @@ export default function SelfServicePage() {
           </div>
 
           {/* Orphan recovery: show buttons if there are open sessions without localStorage */}
-          {orphanSessions.length > 0 && (
+          {orphanSessions.length > 0 && !verifyingSession && (
             <div className="rounded-lg border border-accent bg-accent/10 p-4 shadow-sm mb-4">
               <p className="text-xs font-medium text-foreground mb-3">📋 Retomar pedido existente:</p>
               <div className="space-y-2">
                 {orphanSessions.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => handleRecoverSession(s)}
+                    onClick={() => handleStartVerify(s)}
                     className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity text-left px-3"
                   >
-                    📋 {s.customer_name || "Cliente"} — Retomar meu pedido
+                    <span className="block">📋 {s.customer_name || "Cliente"}</span>
+                    {s.order_whatsapp && (
+                      <span className="block text-[11px] opacity-70 mt-0.5">
+                        📱 {maskPhone(s.order_whatsapp)}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">
                 Ou preencha abaixo para criar um novo pedido
               </p>
+            </div>
+          )}
+
+          {/* WhatsApp verification step for orphan recovery */}
+          {verifyingSession && (
+            <div className="rounded-lg border border-accent bg-accent/10 p-5 shadow-sm mb-4">
+              <p className="text-sm font-semibold text-foreground mb-1">Confirmar pedido existente</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Encontramos um pedido de <strong>{verifyingSession.customer_name || "Cliente"}</strong> nesta mesa.
+                {verifyingSession.order_whatsapp && (
+                  <> WhatsApp: <strong>{maskPhone(verifyingSession.order_whatsapp)}</strong></>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Para continuar, confirme o WhatsApp informado no pedido.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5" />
+                    WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={formatWhatsapp(verifyPhone)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                      setVerifyPhone(digits);
+                      setVerifyError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleVerifyAndRecover()}
+                    placeholder="(00) 90000-0000"
+                    maxLength={15}
+                    autoFocus
+                    className={`w-full mt-1 rounded-md border bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring ${verifyError ? "border-destructive" : ""}`}
+                  />
+                  {verifyError && (
+                    <p className="text-[11px] text-destructive mt-1">{verifyError}</p>
+                  )}
+                </div>
+                <button
+                  onClick={handleVerifyAndRecover}
+                  disabled={verifyPhone.replace(/\D/g, "").length < 11}
+                  className="w-full rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  Confirmar e continuar
+                </button>
+                <button
+                  onClick={() => { setVerifyingSession(null); setVerifyError(""); }}
+                  className="w-full rounded-md border border-border text-muted-foreground py-2 text-xs hover:bg-secondary transition-colors"
+                >
+                  ← Voltar
+                </button>
+              </div>
             </div>
           )}
 
