@@ -348,8 +348,14 @@ export default function TableOrderPage() {
     mutationFn: async (sourceTableId: string) => {
       if (!order) throw new Error("Sem pedido aberto nesta comanda");
       const sourceTable = allTables.find((t) => t.id === sourceTableId);
-      const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
-      if (!sourceOrder) throw new Error("Comanda selecionada não possui pedido aberto");
+      // ISOLATION: only merge with same origin type
+      const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId && o.origin === order.origin);
+      if (!sourceOrder) throw new Error("Comanda selecionada não possui pedido aberto compatível (mesma origem)");
+
+      console.log("[ISOLAMENTO] Merge:", {
+        targetOrderId: order.id, targetOrigin: order.origin, targetTable: tableId,
+        sourceOrderId: sourceOrder.id, sourceOrigin: sourceOrder.origin, sourceTable: sourceTableId,
+      });
 
       // Move all items from source order to this order
       await supabase.from("order_items").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
