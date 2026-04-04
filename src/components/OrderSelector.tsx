@@ -7,6 +7,7 @@ interface Order {
   total: number;
   created_at: string;
   status: string;
+  origin?: string;
 }
 
 interface Props {
