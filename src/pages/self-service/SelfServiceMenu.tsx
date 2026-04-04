@@ -299,12 +299,11 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
             station,
             payload: {
               type: "production",
-              table: table.name || "Mesa",
               table_name: table.name || "Mesa",
               location: table.internal_number || table.name || "Mesa",
-              customerName,
               customer_name: customerName,
               waiter_name: "Auto-atendimento",
+              origin: "self_service",
               order_id: currentOrderId,
               items,
               selfService: true,

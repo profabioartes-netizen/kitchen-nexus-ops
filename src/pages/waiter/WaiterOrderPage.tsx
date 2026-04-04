@@ -410,11 +410,10 @@ export default function WaiterOrderPage() {
             payload: {
               items: stationItems,
               table_name: table?.name || "—",
-              mesa_name: table?.default_name || null,
-              mesa_sector: table?.sector || null,
               location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.name || null,
               customer_name: order.customer_name || null,
               waiter_name: order.waiter_name || profile?.full_name || null,
+              origin: order.origin || "waiter",
               order_id: order.id,
             },
           });
