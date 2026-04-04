@@ -214,6 +214,22 @@ export default function UsersPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ user_id, active }: { user_id: string; active: boolean }) => {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "toggle_active", user_id, active },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(vars.active ? "Usuário ativado!" : "Usuário desativado!");
+      queryClient.invalidateQueries({ queryKey: ["users_profiles"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+  });
+
   const handleDeleteConfirm = () => {
     if (!deleteTarget || !confirmPassword) return;
     if (confirmPassword !== ADMIN_PIN) {
