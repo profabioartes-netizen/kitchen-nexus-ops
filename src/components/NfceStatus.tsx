@@ -141,7 +141,7 @@ export default function NfceStatus({ orderId, onClose }: NfceStatusProps) {
           location: tableName || null,
           table_name: tableName,
           comanda_number: internalNumber,
-          origin: order?.origin || "waiter",
+          origin: (order as any)?.origin || "waiter",
           items: (orderItems || []).map((i: any) => ({
             product_name: i.product_name,
             quantity: i.quantity,
