@@ -146,15 +146,21 @@ export default function TableOrderPage() {
     enabled: !!tableId,
   });
 
-  // Auto-select: pick selectedOrderId or fallback to first
+  // Separate orders by origin for isolation
+  const waiterOrders = useMemo(() => tableOrders.filter((o) => o.origin !== "self_service"), [tableOrders]);
+  const selfServiceOrders = useMemo(() => tableOrders.filter((o) => o.origin === "self_service"), [tableOrders]);
+
+  // Auto-select: pick selectedOrderId or fallback to first WAITER order, then any order
   const order = useMemo(() => {
     if (!tableOrders.length) return null;
     if (selectedOrderId) {
       const found = tableOrders.find((o) => o.id === selectedOrderId);
       if (found) return found;
     }
+    // Prefer waiter-origin orders for the waiter view
+    if (waiterOrders.length > 0) return waiterOrders[0];
     return tableOrders[0];
-  }, [tableOrders, selectedOrderId]);
+  }, [tableOrders, selectedOrderId, waiterOrders]);
 
   // Keep selectedOrderId in sync
   useEffect(() => {
@@ -283,7 +289,13 @@ export default function TableOrderPage() {
     mutationFn: async ({ targetTableId, merge }: { targetTableId: string; merge: boolean }) => {
       if (!order) throw new Error("Sem pedido aberto");
       const targetTable = allTables.find((t) => t.id === targetTableId);
-      const targetOrder = allOpenOrders.find((o) => o.table_id === targetTableId);
+      // ISOLATION: only find target orders with same origin type
+      const targetOrder = allOpenOrders.find((o) => o.table_id === targetTableId && o.origin === order.origin);
+
+      console.log("[ISOLAMENTO] Transfer:", {
+        sourceOrderId: order.id, sourceOrigin: order.origin, sourceTable: tableId,
+        targetTable: targetTableId, targetOrderId: targetOrder?.id, targetOrigin: targetOrder?.origin, merge,
+      });
 
       if (targetOrder && !merge) {
         throw new Error("MERGE_REQUIRED");
@@ -336,8 +348,14 @@ export default function TableOrderPage() {
     mutationFn: async (sourceTableId: string) => {
       if (!order) throw new Error("Sem pedido aberto nesta comanda");
       const sourceTable = allTables.find((t) => t.id === sourceTableId);
-      const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId);
-      if (!sourceOrder) throw new Error("Comanda selecionada não possui pedido aberto");
+      // ISOLATION: only merge with same origin type
+      const sourceOrder = allOpenOrders.find((o) => o.table_id === sourceTableId && o.origin === order.origin);
+      if (!sourceOrder) throw new Error("Comanda selecionada não possui pedido aberto compatível (mesma origem)");
+
+      console.log("[ISOLAMENTO] Merge:", {
+        targetOrderId: order.id, targetOrigin: order.origin, targetTable: tableId,
+        sourceOrderId: sourceOrder.id, sourceOrigin: sourceOrder.origin, sourceTable: sourceTableId,
+      });
 
       // Move all items from source order to this order
       await supabase.from("order_items").update({ order_id: order.id }).eq("order_id", sourceOrder.id);
@@ -421,21 +439,31 @@ export default function TableOrderPage() {
     },
   });
 
-  // Auto-create order for free tables (skip dialog)
+  // Auto-create order for free tables — only if NO waiter-origin order exists
+  // Self-service orders on the same table do NOT prevent creating a waiter order
   useEffect(() => {
-    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
+    const hasWaiterOrder = waiterOrders.length > 0;
+    if (!tableLoading && !orderLoading && !hasWaiterOrder && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
       autoCreatedRef.current = true;
+      console.log("[ISOLAMENTO] Auto-criando comanda waiter para mesa", tableId, "| self_service existentes:", selfServiceOrders.length);
       createOrder.mutate({ customerName: navState?.customerName });
     }
-  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending, navState]);
+  }, [tableLoading, orderLoading, waiterOrders.length, tableId, createOrder.isPending, navState]);
 
 
   const addItem = useMutation({
     mutationFn: async (payload: AddItemPayload) => {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
-      if (!currentOrder) {
-        currentOrder = await createOrder.mutateAsync({});
+      // ISOLATION: never add waiter items to a self_service order
+      if (!currentOrder || currentOrder.origin === "self_service") {
+        const waiterOrder = waiterOrders[0];
+        if (waiterOrder) {
+          currentOrder = waiterOrder;
+        } else {
+          console.log("[ISOLAMENTO] Criando comanda waiter porque order atual é self_service ou inexistente");
+          currentOrder = await createOrder.mutateAsync({});
+        }
       }
 
       const unitPrice = Number(product.price) + complementsTotal;
