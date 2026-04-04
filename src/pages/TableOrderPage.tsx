@@ -578,11 +578,11 @@ export default function TableOrderPage() {
         status: "pending",
         payload: {
           type: "bill",
+          location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.name || "—",
           table_name: table?.name || "—",
-          mesa_name: table?.default_name || null,
-          mesa_sector: table?.sector || null,
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
+          origin: order.origin || "waiter",
           order_id: order.id,
           items: orderItems.map((i) => ({
             product_name: i.product_name,
