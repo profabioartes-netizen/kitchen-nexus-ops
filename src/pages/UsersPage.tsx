@@ -68,7 +68,7 @@ export default function UsersPage() {
   });
 
   // Fetch auth details (email, phone)
-  const { data: authUsers = [] } = useQuery({
+  const { data: authUsers = [], isLoading: isLoadingAuth } = useQuery({
     queryKey: ["users_auth_details"],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("manage-users", {
@@ -445,7 +445,7 @@ export default function UsersPage() {
       )}
 
       {/* Users list */}
-      {isLoading ? (
+      {isLoading || isLoadingAuth ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
