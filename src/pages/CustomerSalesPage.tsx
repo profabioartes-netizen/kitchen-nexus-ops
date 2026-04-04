@@ -42,8 +42,7 @@ export default function CustomerSalesPage() {
         status: "pending",
         payload: {
           type: "bill",
-          location: order.customer_name || "Balcão",
-          table_name: order.customer_name || "Balcão",
+          location: order.current_location || order.origin_location || "Balcão",
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
           origin: order.origin || "cashier",
