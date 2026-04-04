@@ -427,13 +427,16 @@ export default function TableOrderPage() {
     },
   });
 
-  // Auto-create order for free tables (skip dialog)
+  // Auto-create order for free tables — only if NO waiter-origin order exists
+  // Self-service orders on the same table do NOT prevent creating a waiter order
   useEffect(() => {
-    if (!tableLoading && !orderLoading && !order && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
+    const hasWaiterOrder = waiterOrders.length > 0;
+    if (!tableLoading && !orderLoading && !hasWaiterOrder && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
       autoCreatedRef.current = true;
+      console.log("[ISOLAMENTO] Auto-criando comanda waiter para mesa", tableId, "| self_service existentes:", selfServiceOrders.length);
       createOrder.mutate({ customerName: navState?.customerName });
     }
-  }, [tableLoading, orderLoading, order, tableId, createOrder.isPending, navState]);
+  }, [tableLoading, orderLoading, waiterOrders.length, tableId, createOrder.isPending, navState]);
 
 
   const addItem = useMutation({
