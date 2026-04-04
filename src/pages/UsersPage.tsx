@@ -473,7 +473,7 @@ export default function UsersPage() {
           {users.map((u) => {
             const auth = authMap.get(u.id);
             return (
-              <div key={u.id} className="rounded-lg border bg-card p-3">
+              <div key={u.id} className={`rounded-lg border bg-card p-3 ${u.active === false ? "opacity-60" : ""}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`flex items-center justify-center h-9 w-9 rounded-full shrink-0 ${
@@ -484,7 +484,14 @@ export default function UsersPage() {
                       {roleIcon(u.role)}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{u.full_name || "Sem nome"}</p>
+                        {u.active === false && (
+                          <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-destructive/15 text-destructive">
+                            INATIVO
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground truncate">
                         {auth?.email || "—"} · {roleLabel(u.role)}
                       </p>
@@ -499,6 +506,18 @@ export default function UsersPage() {
                     <button onClick={() => { setResetTarget(u); setNewPassword(""); }} title="Redefinir senha"
                       className="rounded p-1.5 hover:bg-accent/10 text-accent transition-colors">
                       <KeyRound className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleActiveMutation.mutate({ user_id: u.id, active: !u.active })}
+                      title={u.active !== false ? "Desativar" : "Ativar"}
+                      disabled={u.id === user?.id}
+                      className={`rounded p-1.5 transition-colors disabled:opacity-30 ${
+                        u.active !== false
+                          ? "hover:bg-orange-500/10 text-orange-500"
+                          : "hover:bg-green-500/10 text-green-500"
+                      }`}
+                    >
+                      {u.active !== false ? <UserX className="h-4 w-4" /> : <UserCheck className="h-4 w-4" />}
                     </button>
                     <button onClick={() => setDeleteTarget(u)} title="Remover"
                       className="rounded p-1.5 hover:bg-destructive/10 text-destructive transition-colors">
