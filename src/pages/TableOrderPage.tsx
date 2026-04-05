@@ -1121,8 +1121,8 @@ export default function TableOrderPage() {
         </div>
       )}
 
-      {/* Order selector when multiple comandas on same table */}
-      {tableOrders.length > 1 && (
+      {/* Mobile: horizontal order selector */}
+      {isMobile && tableOrders.length > 1 && (
         <OrderSelector
           orders={tableOrders}
           selectedOrderId={selectedOrderId}
@@ -1131,10 +1131,22 @@ export default function TableOrderPage() {
         />
       )}
 
-      {/* Left: Product selection */}
+      {/* Main content row */}
+      <div className="flex flex-1 overflow-hidden">
+
+      {/* Desktop: vertical order sidebar */}
+      {!isMobile && hasMultipleOrders && (
+        <OrderSelector
+          orders={tableOrders}
+          selectedOrderId={selectedOrderId}
+          onSelect={setSelectedOrderId}
+          onCreateNew={() => setShowOpenDialog(true)}
+          vertical
+        />
+      )}
+
+      {/* Center: Product selection */}
       <div className={`flex-1 flex flex-col p-3 md:p-4 overflow-hidden ${isMobile && mobileTab !== "menu" ? "hidden" : ""}`}>
-        {/* Desktop header */}
-        {!isMobile && (
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate("/")}
