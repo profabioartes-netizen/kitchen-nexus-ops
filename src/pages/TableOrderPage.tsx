@@ -1198,8 +1198,27 @@ export default function TableOrderPage() {
           />
         </div>
 
+        {/* Mobile: horizontal categories */}
+        {isMobile && (
+          <div className="flex gap-2 mb-2 overflow-x-auto flex-shrink-0 scrollbar-hide px-1">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => { setActiveCategory(cat.id); setSearch(""); }}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 touch-manipulation ${
+                  activeCategory === cat.id
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-secondary text-secondary-foreground"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex flex-1 overflow-hidden gap-0">
-          {/* Category sidebar */}
+          {/* Desktop: Category sidebar */}
           {!isMobile && (
             <div className={`w-28 lg:w-32 flex-shrink-0 border-r overflow-y-auto py-1 space-y-0.5 px-1 ${isSearching ? 'opacity-40 pointer-events-none' : ''}`}>
               {categories.map((cat) => (
@@ -1210,25 +1229,6 @@ export default function TableOrderPage() {
                     activeCategory === cat.id && !isSearching
                       ? "bg-accent text-accent-foreground shadow-sm"
                       : "text-foreground hover:bg-secondary"
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Mobile: horizontal categories */}
-          {isMobile && (
-            <div className="flex gap-2 mb-2 overflow-x-auto flex-shrink-0 scrollbar-hide px-1">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => { setActiveCategory(cat.id); setSearch(""); }}
-                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 touch-manipulation ${
-                    activeCategory === cat.id
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-card text-foreground hover:bg-secondary"
                   }`}
                 >
                   {cat.name}
