@@ -1063,8 +1063,10 @@ export default function TableOrderPage() {
 
   const orderItemCount = orderItems.reduce((s, i) => s + i.quantity, 0);
 
+  const hasMultipleOrders = tableOrders.length > 1;
+
   return (
-    <div className="flex h-full flex-col md:flex-row overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Mobile header */}
       {isMobile && (
         <div className="flex items-center gap-2 p-3 border-b bg-card">
@@ -1119,8 +1121,8 @@ export default function TableOrderPage() {
         </div>
       )}
 
-      {/* Order selector when multiple comandas on same table */}
-      {tableOrders.length > 1 && (
+      {/* Mobile: horizontal order selector */}
+      {isMobile && tableOrders.length > 1 && (
         <OrderSelector
           orders={tableOrders}
           selectedOrderId={selectedOrderId}
@@ -1129,7 +1131,21 @@ export default function TableOrderPage() {
         />
       )}
 
-      {/* Left: Product selection */}
+      {/* Main content row */}
+      <div className="flex flex-1 overflow-hidden">
+
+      {/* Desktop: vertical order sidebar */}
+      {!isMobile && hasMultipleOrders && (
+        <OrderSelector
+          orders={tableOrders}
+          selectedOrderId={selectedOrderId}
+          onSelect={setSelectedOrderId}
+          onCreateNew={() => setShowOpenDialog(true)}
+          vertical
+        />
+      )}
+
+      {/* Center: Product selection */}
       <div className={`flex-1 flex flex-col p-3 md:p-4 overflow-hidden ${isMobile && mobileTab !== "menu" ? "hidden" : ""}`}>
         {/* Desktop header */}
         {!isMobile && (
@@ -1247,7 +1263,7 @@ export default function TableOrderPage() {
       </div>
 
       {/* Right: Order panel */}
-      <div className={`md:w-72 lg:w-80 md:max-w-[380px] md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
+      <div className={`md:w-72 lg:w-80 md:max-w-[340px] md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
         <div className="px-3 py-2.5 border-b flex-shrink-0">
           <h2 className="font-semibold text-base">Comanda</h2>
           <div className="flex items-center gap-1.5 mt-1">
@@ -1566,6 +1582,8 @@ export default function TableOrderPage() {
           </div>
         </div>
       )}
+      </div>{/* End main content row */}
+
       {/* Confirm delete sent item */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30" onClick={() => setConfirmDeleteId(null)}>
