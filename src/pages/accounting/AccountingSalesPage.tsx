@@ -70,8 +70,9 @@ export default function AccountingSalesPage() {
       // 2. Fetch only closed orders that are in the authorized list
       let q = supabase.from("orders")
         .select("id, total, status, created_at, waiter_name, customer_name, table_id")
-        .eq("status", "closed")
-        .in("id", authorizedOrderIds);
+        .in("status", ["closed", "finalized"])
+        .in("id", authorizedOrderIds)
+        .gte("created_at", "2026-04-01T00:00:00.000Z");
       if (goLiveAt) q = q.gte("created_at", goLiveAt);
       if (periodFilter.from) q = q.gte("created_at", periodFilter.from);
       if (periodFilter.to) q = q.lte("created_at", periodFilter.to);

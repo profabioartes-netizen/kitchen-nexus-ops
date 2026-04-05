@@ -34,7 +34,7 @@ export default function AccountingDashboard() {
   const { data: orders = [], isLoading: lo } = useQuery({
     queryKey: ["acc_orders", goLiveAt, periodFilter],
     queryFn: async () => {
-      let q = supabase.from("orders").select("id, total, status, created_at, waiter_name").eq("status", "closed");
+      let q = supabase.from("orders").select("id, total, status, created_at, waiter_name").in("status", ["closed", "finalized"]).gte("created_at", "2026-04-01T00:00:00.000Z");
       if (goLiveAt) q = q.gte("created_at", goLiveAt);
       if (periodFilter.from) q = q.gte("created_at", periodFilter.from);
       if (periodFilter.to) q = q.lte("created_at", periodFilter.to);
