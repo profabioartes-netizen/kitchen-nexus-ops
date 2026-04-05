@@ -67,8 +67,19 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 function AuthRoute() {
-  const { user, loading } = useAuth();
-  if (loading) return null;
+  const { user, profile, loading, signOut } = useAuth();
+  const [signingOut, setSigningOut] = useState(false);
+
+  if (loading || signingOut) return null;
+
+  // If a contabilidade user has an active session and lands on the operational login,
+  // sign them out so the operator can log in fresh.
+  if (user && profile?.role === "contabilidade") {
+    setSigningOut(true);
+    signOut().finally(() => setSigningOut(false));
+    return null;
+  }
+
   if (user) return <Navigate to="/" replace />;
   return <AuthPage />;
 }
