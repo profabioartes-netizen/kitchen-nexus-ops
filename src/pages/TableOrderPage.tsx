@@ -1224,7 +1224,7 @@ export default function TableOrderPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 overflow-auto flex-1 items-start content-start">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 md:gap-2 overflow-auto flex-1 items-start content-start">
           {filtered.map((product) => (
             <button
               key={product.id}
@@ -1233,9 +1233,9 @@ export default function TableOrderPage() {
               className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden touch-manipulation"
             >
               {/* No image in operational view */}
-              <div className="p-2 md:p-3">
-                <span className="font-medium text-xs md:text-sm">{product.name}</span>
-                <span className="text-accent font-semibold mt-0.5 md:mt-1 block text-sm">
+              <div className="p-2">
+                <span className="font-medium text-xs leading-tight line-clamp-2">{product.name}</span>
+                <span className="text-accent font-semibold mt-0.5 block text-xs">
                   R$ {Number(product.price).toFixed(2)}
                 </span>
               </div>
@@ -1245,9 +1245,9 @@ export default function TableOrderPage() {
       </div>
 
       {/* Right: Order panel */}
-      <div className={`md:w-80 md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
-        <div className="p-4 border-b flex-shrink-0">
-          <h2 className="font-semibold text-lg">Comanda</h2>
+      <div className={`md:w-72 lg:w-80 md:max-w-[380px] md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
+        <div className="px-3 py-2.5 border-b flex-shrink-0">
+          <h2 className="font-semibold text-base">Comanda</h2>
           <div className="flex items-center gap-1.5 mt-1">
             <User className="h-3.5 w-3.5 text-muted-foreground" />
             <input
@@ -1277,7 +1277,7 @@ export default function TableOrderPage() {
           )}
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-1">
+        <div className="flex-1 overflow-auto px-3 py-2 space-y-1">
           {orderItems.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
               Toque num produto para adicionar
@@ -1327,7 +1327,7 @@ export default function TableOrderPage() {
             return (
               <div
                 key={item.id}
-                className={`flex items-center justify-between rounded-md border p-2 ${
+                className={`flex items-center justify-between rounded-md border px-2 py-1.5 ${
                   item.sent_to_kitchen ? "bg-muted/50 border-muted" : "bg-background"
                 }`}
               >
@@ -1447,7 +1447,7 @@ export default function TableOrderPage() {
         )}
 
         {/* Footer — sticky at bottom, never scrolls away */}
-        <div className="border-t p-3 md:p-4 space-y-3 flex-shrink-0 max-h-[45vh] overflow-auto">
+        <div className="border-t px-3 py-2.5 space-y-2 flex-shrink-0 max-h-[45vh] overflow-auto">
           {order?.status === "paid_pending_finalization" ? (
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
