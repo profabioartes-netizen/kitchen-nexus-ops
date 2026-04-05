@@ -1263,7 +1263,7 @@ export default function TableOrderPage() {
       </div>
 
       {/* Right: Order panel */}
-      <div className={`md:w-72 lg:w-80 md:max-w-[380px] md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
+      <div className={`md:w-72 lg:w-80 md:max-w-[340px] md:border-l bg-card flex flex-col overflow-hidden ${isMobile && mobileTab !== "order" ? "hidden" : isMobile ? "flex-1" : ""}`}>
         <div className="px-3 py-2.5 border-b flex-shrink-0">
           <h2 className="font-semibold text-base">Comanda</h2>
           <div className="flex items-center gap-1.5 mt-1">
