@@ -578,8 +578,8 @@ export default function TableOrderPage() {
         status: "pending",
         payload: {
           type: "bill",
-          location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
-          table_name: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
+          location: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || "—",
+          table_name: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || "—",
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
           origin: order.origin || "waiter",
@@ -900,8 +900,8 @@ export default function TableOrderPage() {
             status: "pending",
             payload: {
               items: stationItems,
-              table_name: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
-              location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || null,
+              table_name: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || "—",
+              location: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || null,
               customer_name: order.customer_name || null,
               waiter_name: order.waiter_name || null,
               origin: order.origin || "waiter",
@@ -1566,8 +1566,8 @@ export default function TableOrderPage() {
                 customerName: order.customer_name || null,
                 waiterName: order.waiter_name || null,
                 origin: order.origin || "waiter",
-                location: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
-                tableName: (order as any).current_location || (order as any).origin_location || table?.internal_number || table?.default_name || "—",
+                location: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || "—",
+                tableName: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || "—",
               } : undefined}
             />
           )}
