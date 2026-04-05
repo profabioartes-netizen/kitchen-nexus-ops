@@ -85,6 +85,7 @@ export default function TablesPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
         queryClient.invalidateQueries({ queryKey: ["order_item_counts"] });
+        queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
         queryClient.invalidateQueries({ queryKey: ["water_alerts"] });
