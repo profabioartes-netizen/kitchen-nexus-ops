@@ -1147,6 +1147,8 @@ export default function TableOrderPage() {
 
       {/* Center: Product selection */}
       <div className={`flex-1 flex flex-col p-3 md:p-4 overflow-hidden ${isMobile && mobileTab !== "menu" ? "hidden" : ""}`}>
+        {/* Desktop header */}
+        {!isMobile && (
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate("/")}
