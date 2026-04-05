@@ -966,7 +966,7 @@ export default function TablesPage() {
                                         <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
                                       )}
                                       <span className="text-muted-foreground font-normal">
-                                        <ElapsedTime createdAt={ord.created_at} />
+                                        <TableDuration createdAt={ord.created_at} />
                                       </span>
                                     </p>
                                     {/* Per-order delivery status badge */}
