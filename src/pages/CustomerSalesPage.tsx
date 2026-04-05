@@ -38,12 +38,30 @@ export default function CustomerSalesPage() {
     if (printingOrderId) return;
     setPrintingOrderId(order.id);
     try {
+      const resolved = await resolveAndSyncOrderPrintLocation({
+        orderId: order.id,
+        tableId: order.table_id,
+        currentLocation: order.current_location,
+        originLocation: order.origin_location,
+        fallbackLocation: "Balcão",
+      });
+
+      console.log("[REPRINT] Resolução de local:", {
+        order_id: order.id,
+        table_id: order.table_id,
+        current_location: order.current_location,
+        resolved: resolved.resolvedLocation,
+        tableInternalNumber: resolved.tableInternalNumber,
+        tableDefaultName: resolved.tableDefaultName,
+      });
+
       await supabase.from("print_jobs").insert({
         station: "Caixa",
         status: "pending",
         payload: {
           type: "bill",
-          location: order.current_location || order.origin_location || "Balcão",
+          location: resolved.resolvedLocation,
+          table_name: resolved.resolvedLocation,
           customer_name: order.customer_name || null,
           waiter_name: order.waiter_name || null,
           origin: order.origin || "cashier",
