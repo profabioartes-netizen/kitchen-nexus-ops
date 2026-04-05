@@ -290,6 +290,8 @@ export default function TableOrderPage() {
         throw new Error("MERGE_REQUIRED");
       }
 
+      const targetLocation = targetTable?.internal_number || targetTable?.default_name || null;
+
       if (targetOrder && merge) {
         // Move all items to target order
         await supabase.from("order_items").update({ order_id: targetOrder.id }).eq("order_id", order.id);
@@ -297,14 +299,23 @@ export default function TableOrderPage() {
         await supabase.from("payments").update({ order_id: targetOrder.id }).eq("order_id", order.id);
         // Update target order total
         const newTotal = Number(order.total) + Number(targetOrder.total);
-        await supabase.from("orders").update({ total: newTotal }).eq("id", targetOrder.id);
+        await supabase
+          .from("orders")
+          .update({ total: newTotal, ...(targetLocation ? { current_location: targetLocation } : {}) })
+          .eq("id", targetOrder.id);
         // Close source order
         await supabase.from("orders").update({ status: "merged" }).eq("id", order.id);
         // Copy activity logs to target table
         await logActivity(targetTableId, "order_merged", `Pedido da ${table?.name ?? "comanda"} mesclado — R$ ${Number(order.total).toFixed(2)}`, targetOrder.id, profile?.full_name);
       } else {
-        // Simply reassign the order to the target table
-        await supabase.from("orders").update({ table_id: targetTableId }).eq("id", order.id);
+        // Simply reassign the order to the target table and sync current location
+        await supabase
+          .from("orders")
+          .update({
+            table_id: targetTableId,
+            ...(targetLocation ? { current_location: targetLocation } : {}),
+          })
+          .eq("id", order.id);
         // Copy activity logs referencing this table to the new one
         await logActivity(targetTableId, "order_received", `Pedido transferido da ${table?.name ?? "comanda"} — R$ ${Number(order.total).toFixed(2)}`, order.id, profile?.full_name);
       }
