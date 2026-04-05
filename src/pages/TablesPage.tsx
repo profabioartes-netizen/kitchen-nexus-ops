@@ -610,7 +610,7 @@ export default function TablesPage() {
       if (previewTableOrderIds.length === 0) return [];
       const { data, error } = await supabase
         .from("order_items")
-        .select("id, order_id, product_name, quantity, sent_to_kitchen, viewed_at, delivered_at, order_item_complements(complement_name, quantity)")
+        .select("id, order_id, product_name, quantity, sent_to_kitchen, viewed_at, delivered_at, notes, order_item_complements(complement_name, quantity)")
         .in("order_id", previewTableOrderIds)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -1007,6 +1007,9 @@ export default function TablesPage() {
                                                 ))}
                                               </div>
                                             )}
+                                            {item.notes && (
+                                              <p className="ml-2 mt-0.5 text-[10px] text-muted-foreground italic">📝 {item.notes}</p>
+                                            )}
                                           </div>
                                         ))}
                                       </div>
@@ -1021,6 +1024,16 @@ export default function TablesPage() {
                                               <span className="truncate flex-1 mr-1 line-through opacity-70">{item.product_name}</span>
                                               <span className="text-muted-foreground flex-shrink-0 tabular-nums">×{item.quantity}</span>
                                             </div>
+                                            {(item as any).order_item_complements?.length > 0 && (
+                                              <div className="ml-2 mt-0.5 space-y-0.5">
+                                                {(item as any).order_item_complements.map((c: any, ci: number) => (
+                                                  <span key={ci} className="block text-[10px] text-muted-foreground opacity-70">+ {c.complement_name}{c.quantity > 1 ? ` ×${c.quantity}` : ""}</span>
+                                                ))}
+                                              </div>
+                                            )}
+                                            {item.notes && (
+                                              <p className="ml-2 mt-0.5 text-[10px] text-muted-foreground italic opacity-70">📝 {item.notes}</p>
+                                            )}
                                           </div>
                                         ))}
                                       </div>
