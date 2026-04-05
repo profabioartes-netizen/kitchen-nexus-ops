@@ -1063,8 +1063,10 @@ export default function TableOrderPage() {
 
   const orderItemCount = orderItems.reduce((s, i) => s + i.quantity, 0);
 
+  const hasMultipleOrders = tableOrders.length > 1;
+
   return (
-    <div className="flex h-full flex-col md:flex-row overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Mobile header */}
       {isMobile && (
         <div className="flex items-center gap-2 p-3 border-b bg-card">
