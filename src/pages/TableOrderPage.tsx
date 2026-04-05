@@ -455,13 +455,15 @@ export default function TableOrderPage() {
     mutationFn: async (payload: AddItemPayload) => {
       const { product, quantity, notes, complements, complementsTotal } = payload;
       let currentOrder = order;
-      // ISOLATION: never add waiter items to a self_service order
-      if (!currentOrder || currentOrder.origin === "self_service") {
+      // ISOLATION: if operator explicitly selected a self_service order (via OrderSelector),
+      // allow adding items to it. Only block automatic/implicit mixing.
+      const isExplicitSelection = selectedOrderId && currentOrder?.id === selectedOrderId;
+      if (!currentOrder || (!isExplicitSelection && currentOrder.origin === "self_service")) {
         const waiterOrder = waiterOrders[0];
         if (waiterOrder) {
           currentOrder = waiterOrder;
         } else {
-          console.log("[ISOLAMENTO] Criando comanda waiter porque order atual é self_service ou inexistente");
+          console.log("[ISOLAMENTO] Criando comanda waiter porque order atual é self_service sem seleção explícita");
           currentOrder = await createOrder.mutateAsync({});
         }
       }
