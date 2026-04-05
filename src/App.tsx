@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -68,19 +68,19 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function AuthRoute() {
   const { user, profile, loading, signOut } = useAuth();
-  const [signingOut, setSigningOut] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
-  if (loading || signingOut) return null;
+  useEffect(() => {
+    // If a contabilidade user has an active session on the operational login page,
+    // sign them out automatically so the operator can log in fresh.
+    if (!loading && user && profile?.role === "contabilidade" && !clearing) {
+      setClearing(true);
+      signOut().finally(() => setClearing(false));
+    }
+  }, [loading, user, profile, clearing, signOut]);
 
-  // If a contabilidade user has an active session and lands on the operational login,
-  // sign them out so the operator can log in fresh.
-  if (user && profile?.role === "contabilidade") {
-    setSigningOut(true);
-    signOut().finally(() => setSigningOut(false));
-    return null;
-  }
-
-  if (user) return <Navigate to="/" replace />;
+  if (loading || clearing) return null;
+  if (user && profile?.role !== "contabilidade") return <Navigate to="/" replace />;
   return <AuthPage />;
 }
 
