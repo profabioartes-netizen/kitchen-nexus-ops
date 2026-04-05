@@ -260,7 +260,6 @@ export default function AccountingSalesPage() {
         "Data/Hora": format(new Date(o.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
         "Nº Venda": o.id.slice(0, 8),
         "Mesa/Comanda": table ? `${table.name} (${table.internal_number || "-"})` : "-",
-        "Atendente": o.waiter_name || "-",
         "Valor Total": Number(o.total).toFixed(2),
         "Forma de Pagamento": pmts.map((p: any) => `${methodLabels[p.method] || p.method}: R$${Number(p.amount).toFixed(2)}`).join("; "),
         "Status NFC-e": nfce ? (nfce.status === "emitida" ? "Autorizada" : nfce.status === "erro" ? "Erro" : "Pendente") : "Sem nota",
@@ -358,7 +357,6 @@ export default function AccountingSalesPage() {
                 <th className="text-left p-3">Data/Hora</th>
                 <th className="text-left p-3">Nº Venda</th>
                 <th className="text-left p-3 hidden md:table-cell">Mesa</th>
-                <th className="text-left p-3 hidden md:table-cell">Atendente</th>
                 <th className="text-right p-3">Total</th>
                 <th className="text-left p-3 hidden md:table-cell">Pagamento</th>
                 <th className="text-center p-3">NFC-e</th>
@@ -390,7 +388,7 @@ export default function AccountingSalesPage() {
                 );
               })}
               {pageOrders.length === 0 && (
-                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground text-sm">Nenhuma venda encontrada</td></tr>
+                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground text-sm">Nenhuma venda encontrada</td></tr>
               )}
             </tbody>
           </table>
@@ -441,7 +439,6 @@ function OrderRow({ order, nfce, payments, table, expanded, onToggle, onEmit, on
         <td className="p-3 text-xs">{format(new Date(order.created_at), "dd/MM HH:mm")}</td>
         <td className="p-3 text-xs font-mono">{order.id.slice(0, 8)}</td>
         <td className="p-3 text-xs hidden md:table-cell">{table ? table.name : "-"}</td>
-        <td className="p-3 text-xs hidden md:table-cell">{order.waiter_name || "-"}</td>
         <td className="p-3 text-xs text-right font-medium">R$ {Number(order.total).toFixed(2)}</td>
         <td className="p-3 text-xs hidden md:table-cell">
           {payments.map((p: any) => methodLabels[p.method] || p.method).join(", ") || "-"}
@@ -454,7 +451,7 @@ function OrderRow({ order, nfce, payments, table, expanded, onToggle, onEmit, on
 
       {expanded && (
         <tr>
-          <td colSpan={8} className="p-0">
+          <td colSpan={7} className="p-0">
             <ExpandedDetails
               orderId={order.id}
               order={order}
@@ -488,7 +485,7 @@ function ExpandedDetails({ orderId, order, nfce, payments, table, onEmit, onPrin
   return (
     <div className="bg-muted/10 border-t px-4 py-4 space-y-4">
       {/* Sale info */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
         <div>
           <span className="text-muted-foreground">Data/Hora</span>
           <p className="font-medium">{format(new Date(order.created_at), "dd/MM/yyyy HH:mm:ss")}</p>
@@ -496,10 +493,6 @@ function ExpandedDetails({ orderId, order, nfce, payments, table, onEmit, onPrin
         <div>
           <span className="text-muted-foreground">Cliente</span>
           <p className="font-medium">{order.customer_name || "-"}</p>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Atendente</span>
-          <p className="font-medium">{order.waiter_name || "-"}</p>
         </div>
         <div>
           <span className="text-muted-foreground">Mesa</span>
