@@ -595,6 +595,37 @@ export default function TablesPage() {
     return map;
   }, [openOrders]);
 
+  // Fetch undelivered item counts per order (to override delivered status)
+  const { data: undeliveredCounts = {} } = useQuery({
+    queryKey: ["undelivered_item_counts", openOrderIds],
+    queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity")
+        .in("order_id", openOrderIds)
+        .is("delivered_at", null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+    enabled: openOrderIds.length > 0,
+  });
+
+  // Helper: does any order on this table have undelivered items?
+  const tableHasPendingItems = (tableId: string): boolean => {
+    const tableOrders = allOrdersByTable?.[tableId] || [];
+    if (tableOrders.length === 0) {
+      const singleOrder = ordersByTable[tableId];
+      if (singleOrder) return (undeliveredCounts[singleOrder.id] || 0) > 0;
+      return false;
+    }
+    return tableOrders.some(o => (undeliveredCounts[o.id] || 0) > 0);
+  };
+
 
   // Fetch items for ALL orders of the previewed table
   const previewTableOrders = useMemo(() => {
