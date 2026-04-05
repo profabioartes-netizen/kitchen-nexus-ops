@@ -409,8 +409,8 @@ export default function WaiterOrderPage() {
             status: "pending",
             payload: {
               items: stationItems,
-              table_name: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || "—",
-              location: table?.internal_number || table?.default_name || (order as any).current_location || (order as any).origin_location || null,
+              table_name: (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
+              location: (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || null,
               customer_name: order.customer_name || null,
               waiter_name: order.waiter_name || profile?.full_name || null,
               origin: order.origin || "waiter",

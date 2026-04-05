@@ -53,9 +53,9 @@ export async function resolveAndSyncOrderPrintLocation({
   const orderCurrentLocation = normalizeLocation(currentLocation);
   const orderOriginLocation = normalizeLocation(originLocation);
   const resolvedLocation =
+    orderCurrentLocation ||
     resolvedTableInternalNumber ||
     resolvedTableDefaultName ||
-    orderCurrentLocation ||
     orderOriginLocation ||
     normalizeLocation(fallbackLocation) ||
     "—";
