@@ -41,12 +41,25 @@ import SplashScreen from "@/components/SplashScreen";
 
 const queryClient = new QueryClient();
 
+const isStandalonePWA = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, signOut } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const handleSplashFinished = useCallback(() => setShowSplash(false), []);
 
-  if (loading) {
+  useEffect(() => {
+    // If a contabilidade user session leaks into the operational PWA, sign them out
+    if (!loading && user && profile?.role === "contabilidade" && isStandalonePWA() && !clearing) {
+      setClearing(true);
+      signOut().finally(() => setClearing(false));
+    }
+  }, [loading, user, profile, clearing, signOut]);
+
+  if (loading || clearing) {
     return <LoadingScreen mode="full" />;
   }
 
@@ -54,7 +67,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (profile?.role === "contabilidade") {
+  if (profile?.role === "contabilidade" && !isStandalonePWA()) {
     return <Navigate to="/contabilidade" replace />;
   }
 
