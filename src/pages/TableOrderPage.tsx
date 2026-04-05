@@ -924,7 +924,11 @@ export default function TableOrderPage() {
         await logActivity(tableId!, "order_saved", `Pedido salvo (sem novos itens para imprimir)`, order.id, profile?.full_name);
       }
 
-      // Always set table to "occupied" (purple) on save
+      // Sync current_location with actual table and set table to "occupied"
+      const correctLocation = table?.internal_number || table?.default_name || null;
+      if (correctLocation && (order as any).current_location !== correctLocation) {
+        await supabase.from("orders").update({ current_location: correctLocation }).eq("id", order.id);
+      }
       await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
     },
     onSuccess: () => {
