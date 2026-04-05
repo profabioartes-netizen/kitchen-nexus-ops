@@ -911,7 +911,8 @@ export default function TablesPage() {
             const order = ordersByTable[table.id];
             const waterAlert = order ? waterAlertOrders[order.id] : undefined;
             const effectiveStatus: TableStatus = order
-              ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
+              ? (order.status === "billing_in_progress" ? "bill"
+                : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
               : (table.status as TableStatus);
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
@@ -1286,7 +1287,8 @@ export default function TablesPage() {
             const y = isDragging ? dragPos.y : (table.position_y ?? 0);
 
                 const effectiveFloorStatus: TableStatus = order
-                  ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
+                  ? (order.status === "billing_in_progress" ? "bill"
+                    : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
                   : (table.status as TableStatus);
                 const floorInlineOccupied = effectiveFloorStatus === "occupied";
                 const floorInlineDelivered = effectiveFloorStatus === "delivered";
