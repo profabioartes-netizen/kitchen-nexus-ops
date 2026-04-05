@@ -90,6 +90,26 @@ export default function WaiterTablesPage() {
 
   const openOrderIds = useMemo(() => openOrders.map((o) => o.id), [openOrders]);
 
+  // Undelivered item counts per order
+  const { data: undeliveredCounts = {} } = useQuery({
+    queryKey: ["undelivered_item_counts_waiter", openOrderIds],
+    queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity")
+        .in("order_id", openOrderIds)
+        .is("delivered_at", null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+    enabled: openOrderIds.length > 0,
+  });
+
   const WATER_NAMES = ["água com gás", "água sem gás"];
   const { data: waterAlertOrders = {} } = useQuery({
     queryKey: ["water_alerts_waiter", openOrderIds],
