@@ -44,6 +44,7 @@ export default function WaiterTablesPage() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["water_alerts_waiter"] });
+        queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts_waiter"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -89,6 +90,26 @@ export default function WaiterTablesPage() {
   }, [tables, ordersByTable]);
 
   const openOrderIds = useMemo(() => openOrders.map((o) => o.id), [openOrders]);
+
+  // Undelivered item counts per order
+  const { data: undeliveredCounts = {} } = useQuery({
+    queryKey: ["undelivered_item_counts_waiter", openOrderIds],
+    queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity")
+        .in("order_id", openOrderIds)
+        .is("delivered_at", null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+    enabled: openOrderIds.length > 0,
+  });
 
   const WATER_NAMES = ["água com gás", "água sem gás"];
   const { data: waterAlertOrders = {} } = useQuery({
@@ -198,10 +219,11 @@ export default function WaiterTablesPage() {
       <div className="space-y-2">
         {sortedTables.map((table) => {
           const order = ordersByTable[table.id];
+          const hasPending = order ? (undeliveredCounts[order.id] || 0) > 0 : false;
           const status: TableStatus = order
             ? (order.status === "billing_in_progress" || order.status === "paid_pending_finalization"
               ? "bill"
-              : (table.status === "delivered" ? "delivered" : "occupied"))
+              : (table.status === "delivered" && !hasPending ? "delivered" : "occupied"))
             : (table.status as TableStatus);
           const waterAlert = order ? waterAlertOrders[order.id] : undefined;
           return (

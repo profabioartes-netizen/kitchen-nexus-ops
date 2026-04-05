@@ -85,6 +85,7 @@ export default function TablesPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
         queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
         queryClient.invalidateQueries({ queryKey: ["order_item_counts"] });
+        queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
         queryClient.invalidateQueries({ queryKey: ["water_alerts"] });
@@ -595,6 +596,37 @@ export default function TablesPage() {
     return map;
   }, [openOrders]);
 
+  // Fetch undelivered item counts per order (to override delivered status)
+  const { data: undeliveredCounts = {} } = useQuery({
+    queryKey: ["undelivered_item_counts", openOrderIds],
+    queryFn: async () => {
+      if (openOrderIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("order_id, quantity")
+        .in("order_id", openOrderIds)
+        .is("delivered_at", null);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const item of data) {
+        counts[item.order_id] = (counts[item.order_id] || 0) + (item.quantity || 1);
+      }
+      return counts;
+    },
+    enabled: openOrderIds.length > 0,
+  });
+
+  // Helper: does any order on this table have undelivered items?
+  const tableHasPendingItems = (tableId: string): boolean => {
+    const tableOrders = allOrdersByTable?.[tableId] || [];
+    if (tableOrders.length === 0) {
+      const singleOrder = ordersByTable[tableId];
+      if (singleOrder) return (undeliveredCounts[singleOrder.id] || 0) > 0;
+      return false;
+    }
+    return tableOrders.some(o => (undeliveredCounts[o.id] || 0) > 0);
+  };
+
 
   // Fetch items for ALL orders of the previewed table
   const previewTableOrders = useMemo(() => {
@@ -880,7 +912,8 @@ export default function TablesPage() {
             const order = ordersByTable[table.id];
             const waterAlert = order ? waterAlertOrders[order.id] : undefined;
             const effectiveStatus: TableStatus = order
-              ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
+              ? (order.status === "billing_in_progress" ? "bill"
+                : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
               : (table.status as TableStatus);
             const useInlineOccupied = effectiveStatus === "occupied";
             const useInlineDelivered = effectiveStatus === "delivered";
@@ -1255,7 +1288,8 @@ export default function TablesPage() {
             const y = isDragging ? dragPos.y : (table.position_y ?? 0);
 
                 const effectiveFloorStatus: TableStatus = order
-                  ? (order.status === "billing_in_progress" ? "bill" : (table.status === "delivered" ? "delivered" : "occupied"))
+                  ? (order.status === "billing_in_progress" ? "bill"
+                    : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
                   : (table.status as TableStatus);
                 const floorInlineOccupied = effectiveFloorStatus === "occupied";
                 const floorInlineDelivered = effectiveFloorStatus === "delivered";
