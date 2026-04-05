@@ -13,7 +13,7 @@ export async function printCancellationIfNeeded({
 }: {
   item: { id: string; product_id: string; product_name: string; quantity: number; sent_to_kitchen: boolean; notes?: string | null };
   products: { id: string; station?: string }[];
-  table?: { name?: string; default_name?: string; sector?: string | null } | null;
+  table?: { name?: string; default_name?: string; sector?: string | null; internal_number?: string | null } | null;
   order?: { id: string; customer_name?: string | null; waiter_name?: string | null } | null;
   waiterName?: string | null;
 }) {
@@ -32,8 +32,8 @@ export async function printCancellationIfNeeded({
       type: "cancellation",
       product_name: item.product_name,
       quantity: item.quantity,
-      table_name: (order as any)?.current_location || (order as any)?.origin_location || table?.default_name || "—",
-      location: (order as any)?.current_location || (order as any)?.origin_location || table?.default_name || null,
+      table_name: table?.internal_number || table?.default_name || (order as any)?.current_location || (order as any)?.origin_location || "—",
+      location: table?.internal_number || table?.default_name || (order as any)?.current_location || (order as any)?.origin_location || null,
       customer_name: order?.customer_name || null,
       waiter_name: waiterName || order?.waiter_name || null,
       origin: (order as any)?.origin || "waiter",
