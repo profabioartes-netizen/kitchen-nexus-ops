@@ -1011,11 +1011,13 @@ export default function TableOrderPage() {
     toast.success(`${item.product_name} removido!`);
   };
 
-  const filtered = products.filter(
-    (p) =>
-      p.category_id === activeCategory &&
-      normalize(p.name).includes(normalize(search))
-  );
+  const isSearching = search.trim().length > 0;
+  const filtered = products.filter((p) => {
+    if (isSearching) {
+      return normalize(p.name).includes(normalize(search));
+    }
+    return p.category_id === activeCategory;
+  });
 
   const total = orderItems.reduce((s, i) => {
     const unpaidQty = i.quantity - ((i as any).paid_quantity ?? 0);
@@ -1226,39 +1228,70 @@ export default function TableOrderPage() {
           />
         </div>
 
-        <div className="flex gap-2 mb-3 overflow-x-auto flex-shrink-0 scrollbar-hide">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 touch-manipulation ${
-                activeCategory === cat.id
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-card text-foreground hover:bg-secondary"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
+        <div className="flex flex-1 overflow-hidden gap-0">
+          {/* Category sidebar */}
+          {!isMobile && (
+            <div className={`w-28 lg:w-32 flex-shrink-0 border-r overflow-y-auto py-1 space-y-0.5 px-1 ${isSearching ? 'opacity-40 pointer-events-none' : ''}`}>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveCategory(cat.id); setSearch(""); }}
+                  className={`w-full text-left rounded-md px-2.5 py-2 text-xs font-medium transition-colors touch-manipulation truncate ${
+                    activeCategory === cat.id && !isSearching
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 md:gap-2 overflow-auto flex-1 items-start content-start">
-          {filtered.map((product) => (
-            <button
-              key={product.id}
-              onClick={() => setSelectedProduct(product)}
-              disabled={addItem.isPending}
-              className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden touch-manipulation"
-            >
-              {/* No image in operational view */}
-              <div className="p-2">
-                <span className="font-medium text-xs leading-tight line-clamp-2">{product.name}</span>
-                <span className="text-accent font-semibold mt-0.5 block text-xs">
-                  R$ {Number(product.price).toFixed(2)}
-                </span>
-              </div>
-            </button>
-          ))}
+          {/* Mobile: horizontal categories */}
+          {isMobile && (
+            <div className="flex gap-2 mb-2 overflow-x-auto flex-shrink-0 scrollbar-hide px-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveCategory(cat.id); setSearch(""); }}
+                  className={`rounded-md px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 touch-manipulation ${
+                    activeCategory === cat.id
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-card text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Product grid */}
+          <div className="flex-1 overflow-auto p-1.5">
+            {isSearching && filtered.length > 0 && (
+              <p className="text-[10px] text-muted-foreground mb-1.5 px-1">
+                {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} para "{search}"
+              </p>
+            )}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-1.5 items-start content-start">
+              {filtered.map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => setSelectedProduct(product)}
+                  disabled={addItem.isPending}
+                  className="flex flex-col rounded-lg border bg-card text-left transition-all hover:border-accent active:scale-[0.97] overflow-hidden touch-manipulation"
+                >
+                  <div className="p-2">
+                    <span className="font-medium text-xs leading-tight line-clamp-2">{product.name}</span>
+                    <span className="text-accent font-semibold mt-0.5 block text-xs">
+                      R$ {Number(product.price).toFixed(2)}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
