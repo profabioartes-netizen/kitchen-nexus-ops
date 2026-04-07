@@ -53,9 +53,10 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
         .from("products")
         .select("*")
         .eq("active", true)
+        .eq("visible_on_menu", true)
         .order("sort_order");
       if (error) throw error;
-      return data.filter((p: any) => p.visible_on_menu !== false);
+      return data;
     },
   });
 
@@ -91,9 +92,10 @@ export default function SelfServiceMenu({ tableId, sessionId, customerName, tabl
       const { data: activeProducts } = await supabase
         .from("products")
         .select("*")
-        .eq("active", true);
+        .eq("active", true)
+        .eq("visible_on_menu", true);
 
-      const visibleProducts = (activeProducts || []).filter((p: any) => p.visible_on_menu !== false);
+      const visibleProducts = activeProducts || [];
       const eligibleIds = new Set(
         visibleProducts.filter((p: any) => p.price >= 15).map((p: any) => p.id)
       );
