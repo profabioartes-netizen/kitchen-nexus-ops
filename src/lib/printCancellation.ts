@@ -20,10 +20,25 @@ export async function printCancellationIfNeeded({
   if (!item.sent_to_kitchen) return;
 
   const product = products.find((p) => p.id === item.product_id);
-  const station = (product as any)?.station || "Cozinha";
+  const station = (product as any)?.station;
 
-  // Don't print cancellation for Caixa station (manual only)
-  if (station === "Caixa") return;
+  // Skip cancellation print for products without a production station or with "Caixa" station
+  if (!station || station === "Caixa") {
+    console.log("[CANCEL-PRINT] Ignorado (sem setor de produção)", {
+      product_id: item.product_id,
+      product_name: item.product_name,
+      station: station || null,
+      action: "print_job ignorado",
+    });
+    return;
+  }
+
+  console.log("[CANCEL-PRINT] Criando print_job de cancelamento", {
+    product_id: item.product_id,
+    product_name: item.product_name,
+    station,
+    action: "print_job criado",
+  });
 
   await supabase.from("print_jobs").insert({
     station,
