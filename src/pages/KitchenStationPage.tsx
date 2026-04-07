@@ -145,13 +145,13 @@ export default function KitchenStationPage() {
         ready: "ready_at",
         delivered: "delivered_at",
       };
-      const updates: Record<string, any> = { preparation_status: status };
+      const updates: Record<string, string> = { preparation_status: status };
       if (timestampField[status]) {
         updates[timestampField[status]] = new Date().toISOString();
       }
       const { error } = await supabase
         .from("order_items")
-        .update(updates)
+        .update(updates as any)
         .eq("id", id);
       if (error) throw error;
     },
