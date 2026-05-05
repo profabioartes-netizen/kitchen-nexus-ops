@@ -130,8 +130,11 @@ export default function PrintersPage() {
         name: form.name,
         station: form.station,
         model: form.model,
-        ip: form.ip,
-        port: parseInt(form.port) || 9100,
+        connection_type: form.connection_type,
+        ip: form.connection_type === "network" ? form.ip : "",
+        port: form.connection_type === "network" ? (parseInt(form.port) || 9100) : 9100,
+        usb_device: form.connection_type === "usb" ? form.usb_device : null,
+        auto_print: form.auto_print,
       };
       if (editing) {
         const { error } = await supabase.from("printers").update(payload).eq("id", editing.id);
@@ -147,6 +150,32 @@ export default function PrintersPage() {
       toast.success("Impressora salva");
     },
     onError: (err) => toast.error((err as Error).message),
+  });
+
+  const testPrintMutation = useMutation({
+    mutationFn: async (printer: any) => {
+      setTestingId(printer.id);
+      const { error } = await supabase.from("print_jobs").insert({
+        station: printer.station,
+        printer_id: printer.id,
+        status: "pending",
+        payload: {
+          type: "test",
+          title: "TESTE DE IMPRESSÃO",
+          printer_name: printer.name,
+          station: printer.station,
+          message: "Se você consegue ler este ticket, a impressora está configurada corretamente.",
+          timestamp: new Date().toISOString(),
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Teste enviado para a fila de impressão");
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+    onSettled: () => setTestingId(null),
   });
 
   const toggleActive = useMutation({
