@@ -6,6 +6,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 // NFC-e/fiscal removido — sistema opera apenas com cupom não fiscal.
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
+import { useTenant } from "@/contexts/TenantContext";
 
 interface OrderItem {
   id: string;
@@ -17,6 +18,22 @@ interface OrderItem {
 
 export default function CashierPage() {
   const queryClient = useQueryClient();
+  const { tenant } = useTenant();
+
+  // Telefone do estabelecimento (opcional) lido do restaurant_settings
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+  });
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
