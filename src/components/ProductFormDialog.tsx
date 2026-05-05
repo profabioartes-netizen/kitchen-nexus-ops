@@ -374,24 +374,6 @@ export function ProductFormDialog({ productId, onClose }: Props) {
                   />
                   <span className="text-sm font-medium">Ativo</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.visible_on_menu}
-                    onChange={(e) => setForm({ ...form, visible_on_menu: e.target.checked })}
-                    className="rounded border-input h-4 w-4 accent-accent"
-                  />
-                  <span className="text-sm font-medium">Visível no Cardápio</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.featured_on_menu}
-                    onChange={(e) => setForm({ ...form, featured_on_menu: e.target.checked })}
-                    className="rounded border-input h-4 w-4 accent-accent"
-                  />
-                  <span className="text-sm font-medium">🔥 Em Alta</span>
-                </label>
               </div>
             </div>
           </div>
