@@ -14,8 +14,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Crown,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/contexts/TenantContext";
 import coffeeLogo from "@/assets/logo-espetinho.png";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +89,7 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
 
 export function NavigationRail() {
   const { profile, signOut } = useAuth();
+  const { isSuperAdmin, tenant } = useTenant();
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("coffee-thrones-theme");
     return saved !== "light";
@@ -148,6 +151,16 @@ export function NavigationRail() {
         {managementItems.map((item) => (
           <SidebarItem key={item.to} item={item} collapsed={collapsed} />
         ))}
+
+        {isSuperAdmin && (
+          <>
+            <SectionLabel collapsed={collapsed} label="Plataforma" />
+            <SidebarItem
+              item={{ to: "/admin-platform", icon: Shield, label: "Super Admin" }}
+              collapsed={collapsed}
+            />
+          </>
+        )}
       </div>
 
       {/* Footer */}
