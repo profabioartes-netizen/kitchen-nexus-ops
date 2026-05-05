@@ -75,9 +75,19 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return (
     <>
       {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
-      {children}
+      <TenantGate>{children}</TenantGate>
     </>
   );
+}
+
+function TenantGate({ children }: { children: ReactNode }) {
+  const { tenant, isSuperAdmin, loading } = useTenant();
+  if (loading) return <LoadingScreen mode="full" />;
+  // Super admin sem tenant vinculado: redireciona para painel da plataforma
+  if (isSuperAdmin && !tenant) return <Navigate to="/admin-platform" replace />;
+  if (tenant && tenant.status === "suspenso") return <TenantSuspendedScreen />;
+  if (tenant && tenant.status === "cancelado") return <TenantSuspendedScreen />;
+  return <>{children}</>;
 }
 
 function AuthRoute() {
@@ -108,6 +118,7 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
+          <TenantProvider>
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
 
