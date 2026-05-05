@@ -14,7 +14,17 @@ export default function PrintersPage() {
   const [pinInput, setPinInput] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
+  const [form, setForm] = useState({
+    name: "",
+    station: "Caixa",
+    model: "",
+    connection_type: "network" as "network" | "usb",
+    ip: "",
+    port: "9100",
+    usb_device: "",
+    auto_print: true,
+  });
+  const [testingId, setTestingId] = useState<string | null>(null);
   const [agentActive, setAgentActive] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
