@@ -9,14 +9,14 @@
     <link rel="icon" href="/favicon.png" type="image/png">
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#d89b1d" />
+    <meta name="theme-color" content="#0b1736" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="Coffee Thrones" />
+    <meta name="application-name" content="HuskyPDV" />
 
     <!-- Apple PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Coffee Thrones" />
+    <meta name="apple-mobile-web-app-title" content="HuskyPDV" />
     <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
 
     <!-- Prevent phone number detection -->
@@ -24,52 +24,116 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://coffeethrones.app" />
-    
-    
+    <meta property="og:url" content="https://huskypdv.com" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/cV9vZEw5sqcr6wIUxU7xNsxTFdv1/social-images/social-1778007208966-ChatGPT_Image_5_de_mai._de_2026,_15_24_05.webp">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
-    
-    
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/cV9vZEw5sqcr6wIUxU7xNsxTFdv1/social-images/social-1778007208966-ChatGPT_Image_5_de_mai._de_2026,_15_24_05.webp">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Roboto+Flex:opsz,wght@8..144,300;8..144,400;8..144,500;8..144,600;8..144,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <!-- Apple Splash Screens (prevents white flash) -->
     <style>
-      html, body { 
-        background-color: #140d0b; 
+      html, body {
+        background-color: #0b1736;
         overscroll-behavior: none;
         -webkit-tap-highlight-color: transparent;
+        margin: 0;
       }
-      /* Safe area padding for notched devices */
       body {
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
       }
-    </style>
-    <script>
-      // Redirect www to apex domain
-      if (window.location.hostname === 'www.coffeethrones.app') {
-        window.location.replace('https://coffeethrones.app' + window.location.pathname + window.location.search + window.location.hash);
+      /* Pre-React boot splash (HuskyPDV) */
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(900px 500px at 20% 0%, #1a2a5e 0%, transparent 60%),
+          radial-gradient(700px 400px at 80% 100%, #0a1330 0%, transparent 55%),
+          linear-gradient(135deg, #07112a 0%, #0b1c44 100%);
+        transition: opacity .35s ease;
       }
-    </script>
-    <meta property="og:title" content="HUSKY PDV • Sistema de Atendimento">
-  <meta name="twitter:title" content="HUSKY PDV • Sistema de Atendimento">
-  <meta property="og:description" content="Sistema profissional de gestão de comandas para bares, cafeterias e restaurantes. Painel de comandas, controle de pedidos e gestão.">
-  <meta name="twitter:description" content="Sistema profissional de gestão de comandas para bares, cafeterias e restaurantes. Painel de comandas, controle de pedidos e gestão.">
-</head>
+      #boot-splash img {
+        width: 96px;
+        height: 96px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 24px rgba(0,0,0,.45));
+      }
+      #boot-splash .title {
+        margin-top: 16px;
+        color: #fff;
+        font-family: 'Inter', system-ui, sans-serif;
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -0.01em;
+      }
+      #boot-splash .subtitle {
+        margin-top: 6px;
+        color: rgba(255,255,255,.6);
+        font-family: 'Inter', system-ui, sans-serif;
+        font-size: 12px;
+      }
+      #boot-splash .dots {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+      }
+      #boot-splash .dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #facc15;
+        opacity: .5;
+        animation: husky-pulse 1s infinite ease-in-out;
+      }
+      #boot-splash .dots span:nth-child(2) { animation-delay: .15s; }
+      #boot-splash .dots span:nth-child(3) { animation-delay: .3s; }
+      @keyframes husky-pulse {
+        0%, 100% { transform: scale(1); opacity: .5; }
+        50% { transform: scale(1.4); opacity: 1; }
+      }
+      #boot-splash.hide { opacity: 0; pointer-events: none; }
+    </style>
+  </head>
   <body>
+    <div id="boot-splash">
+      <img src="/favicon.png" alt="HuskyPDV" />
+      <div class="title">HuskyPDV</div>
+      <div class="subtitle">Carregando sistema...</div>
+      <div class="dots"><span></span><span></span><span></span></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Hide boot splash once React mounts
+      const hideSplash = () => {
+        const el = document.getElementById('boot-splash');
+        if (!el) return;
+        el.classList.add('hide');
+        setTimeout(() => el.remove(), 400);
+      };
+      const root = document.getElementById('root');
+      if (root) {
+        const obs = new MutationObserver(() => {
+          if (root.childElementCount > 0) { hideSplash(); obs.disconnect(); }
+        });
+        obs.observe(root, { childList: true });
+      }
+      // Failsafe
+      setTimeout(hideSplash, 6000);
+    </script>
   </body>
 </html>
