@@ -248,6 +248,52 @@ export default function PrintersPage() {
     onError: () => toast.error("Erro ao cancelar job"),
   });
 
+  const detectUsbPrinters = async () => {
+    setDiscovering(true);
+    setDiscoveryError(null);
+    try {
+      // Marca a solicitação no agente (ele observa e responde gravando na tabela)
+      await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: { type: "discover_usb", requested_at: new Date().toISOString() },
+      } as any);
+
+      // Aguarda até 6s pela resposta do agente, lendo a tabela
+      const since = new Date(Date.now() - 60_000).toISOString();
+      let found: any[] = [];
+      for (let i = 0; i < 12; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        const { data } = await supabase
+          .from("usb_printer_discoveries" as any)
+          .select("device_id, display_name, reported_at")
+          .gte("reported_at", since)
+          .order("reported_at", { ascending: false });
+        if (data && data.length > 0) {
+          found = data;
+          break;
+        }
+      }
+
+      setDiscoveries(found);
+      if (found.length === 0) {
+        setDiscoveryError("Nenhuma impressora USB encontrada. Verifique se o agente está ativo neste computador.");
+      }
+    } catch (e) {
+      setDiscoveryError("Erro ao consultar o agente. Verifique se ele está ativo neste computador.");
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const selectDiscoveredPrinter = (d: { device_id: string; display_name: string }) => {
+    setForm((f) => ({
+      ...f,
+      usb_device: d.device_id,
+      name: f.name?.trim() ? f.name : d.display_name,
+    }));
+  };
+
   const openNew = () => {
     setForm({
       name: "",
@@ -260,6 +306,8 @@ export default function PrintersPage() {
       auto_print: true,
     });
     setEditing(null);
+    setDiscoveries([]);
+    setDiscoveryError(null);
     setShowForm(true);
   };
 
