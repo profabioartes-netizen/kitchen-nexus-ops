@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
-import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
+import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,8 +33,6 @@ const chartTooltipStyle = {
   color: "hsl(36 15% 90%)",
 };
 
-const ADMIN_PIN = "9135";
-
 const methodLabels: Record<string, string> = {
   cash: "Dinheiro", debit: "Débito", credit: "Crédito", pix: "Pix", card: "Cartão",
 };
@@ -44,7 +42,7 @@ type QuickPeriod = "today" | "7" | "14" | "30" | "custom";
 type SortMode = "revenue" | "qty";
 
 export default function ReportsPage() {
-  const { pinEnabled } = useSecurityPinEnabled();
+  const { pin: ADMIN_PIN, pinEnabled } = useSecurityPin();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
