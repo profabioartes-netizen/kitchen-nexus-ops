@@ -186,28 +186,12 @@ export default function WaiterTablesPage() {
               ? "bill"
               : (table.status === "delivered" && !hasPending ? "delivered" : "occupied"))
             : (table.status as TableStatus);
-          const waterAlert = order ? waterAlertOrders[order.id] : undefined;
           return (
             <button
               key={table.id}
               onClick={() => navigate(`/garcom/mesa/${table.id}`)}
               className={`w-full flex items-center gap-3 rounded-xl border border-l-4 p-4 text-left transition-all active:scale-[0.98] ${statusColors[status] || ""} relative`}
             >
-              {/* Water alert icon */}
-              {waterAlert && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    dismissWaterAlert.mutate(waterAlert.ids);
-                  }}
-                  className="absolute -top-2 -left-1 z-30 flex items-center gap-1 rounded-full bg-destructive text-destructive-foreground px-2 py-1 animate-pulse shadow-lg"
-                  title={`Entregar: ${waterAlert.names.join(", ")}`}
-                >
-                  <Droplets className="h-3.5 w-3.5" />
-                  <span className="text-[8px] font-black uppercase leading-none">ÁGUA</span>
-                </div>
-              )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
