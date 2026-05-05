@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
+import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
