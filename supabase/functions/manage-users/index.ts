@@ -81,6 +81,24 @@ Deno.serve(async (req) => {
     const { action, ...payload } = body;
     console.log("manage-users: action=", action, "payload keys=", Object.keys(payload));
 
+    // Guard: non-super-admin callers cannot target super_admin users in any mutation
+    const mutateActions = ["update_role", "update_profile", "reset_password", "toggle_active", "delete"];
+    if (!isSuperAdmin && mutateActions.includes(action as string)) {
+      const targetUserId = (payload as any).user_id as string | undefined;
+      if (targetUserId) {
+        const { data: targetRoles } = await adminClient
+          .from("user_tenants")
+          .select("role")
+          .eq("user_id", targetUserId);
+        if ((targetRoles ?? []).some((r: any) => r.role === "super_admin")) {
+          return new Response(JSON.stringify({ error: "Usuário não encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     // ─── CREATE ───
     if (action === "create") {
       const { email, password, full_name, role, tenant_id, tenant_role } = payload;
