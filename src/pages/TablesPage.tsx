@@ -1061,6 +1061,17 @@ export default function TablesPage() {
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
 
+                {/* Comanda N badge — always visible when there's an order, for filtering by number */}
+                {order && order.customer_name && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span
+                      className="text-[9px] bg-foreground/10 rounded-full px-1.5 py-0.5 font-semibold uppercase tracking-wide"
+                      style={useInlineOccupied ? { backgroundColor: "#d4c8f5", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#86efac", color: "#15803d" } : undefined}
+                    >
+                      {visualLabels[table.id]}
+                    </span>
+                  </div>
+                )}
 
                 {order && ((table as any).sector || (table as any).internal_number) && (
                   <div className="flex items-center gap-2 mt-0.5">
