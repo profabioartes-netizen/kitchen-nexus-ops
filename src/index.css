@@ -4,62 +4,62 @@
 
 @layer base {
   :root {
-    /* Coffee Thrones — Dark Elegant POS Design System */
-    --font-display: 'Archivo Black', sans-serif;
-    --font-body: 'Roboto Flex', sans-serif;
+    /* Espetinho do Marcelo — Blue & Yellow POS Design System */
+    --font-display: 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
 
-    /* Base Canvas — deep espresso */
-    --background: 20 15% 10%;
-    --foreground: 36 15% 90%;
+    /* Base Canvas — deep slate */
+    --background: 222 47% 11%;
+    --foreground: 0 0% 100%;
 
-    /* Cards & Surfaces — dark roast */
-    --card: 20 12% 14%;
-    --card-foreground: 36 15% 90%;
+    /* Cards & Surfaces — slate elevated */
+    --card: 217 33% 17%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 20 12% 14%;
-    --popover-foreground: 36 15% 90%;
+    --popover: 217 33% 17%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Primary — warm cream for interactive */
-    --primary: 36 20% 85%;
-    --primary-foreground: 20 15% 10%;
+    /* Primary — vibrant blue */
+    --primary: 224 76% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary — charcoal surface */
-    --secondary: 20 10% 18%;
-    --secondary-foreground: 36 15% 80%;
+    /* Secondary — slate surface */
+    --secondary: 217 33% 22%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted — subtle dark */
-    --muted: 20 8% 18%;
-    --muted-foreground: 36 10% 55%;
+    /* Muted — subtle slate */
+    --muted: 217 25% 25%;
+    --muted-foreground: 215 20% 70%;
 
-    /* Accent — Coffee Thrones gold */
-    --accent: 38 80% 52%;
-    --accent-foreground: 20 20% 8%;
+    /* Accent — strong yellow (CTA) */
+    --accent: 48 96% 53%;
+    --accent-foreground: 222 47% 11%;
 
-    /* Destructive — deep red */
-    --destructive: 0 65% 45%;
+    /* Destructive — red */
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 20 8% 22%;
-    --input: 20 8% 22%;
-    --ring: 38 80% 52%;
+    --border: 217 30% 28%;
+    --input: 217 30% 28%;
+    --ring: 48 96% 53%;
 
     --radius: 0.5rem;
 
-    /* Navigation Rail — deepest dark */
-    --nav-bg: 20 18% 7%;
-    --nav-foreground: 36 12% 60%;
-    --nav-active: 38 80% 52%;
-    --nav-active-foreground: 20 20% 8%;
+    /* Navigation Rail — primary blue */
+    --nav-bg: 224 70% 18%;
+    --nav-foreground: 215 25% 80%;
+    --nav-active: 48 96% 53%;
+    --nav-active-foreground: 222 47% 11%;
 
     /* Sidebar (shadcn compat) */
-    --sidebar-background: 20 18% 7%;
-    --sidebar-foreground: 36 12% 60%;
-    --sidebar-primary: 38 80% 52%;
-    --sidebar-primary-foreground: 20 20% 8%;
-    --sidebar-accent: 20 12% 14%;
-    --sidebar-accent-foreground: 36 15% 85%;
-    --sidebar-border: 20 8% 18%;
-    --sidebar-ring: 38 80% 52%;
+    --sidebar-background: 224 70% 18%;
+    --sidebar-foreground: 215 25% 80%;
+    --sidebar-primary: 48 96% 53%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 224 60% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 224 50% 30%;
+    --sidebar-ring: 48 96% 53%;
 
     /* Status Colors — high contrast for POS */
     --status-free: 145 65% 42%;
