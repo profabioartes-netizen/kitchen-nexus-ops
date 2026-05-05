@@ -38,7 +38,7 @@ const methodLabels: Record<string, string> = {
   cash: "Dinheiro", debit: "Débito", credit: "Crédito", pix: "Pix", card: "Cartão",
 };
 
-type Channel = "all" | "autoatendimento" | "balcao" | "mesa";
+type Channel = "all" | "balcao" | "mesa";
 type QuickPeriod = "today" | "7" | "14" | "30" | "custom";
 type SortMode = "revenue" | "qty";
 
@@ -117,7 +117,6 @@ export default function ReportsPage() {
 
   // ── Channel classification ──
   const getChannel = (o: any): Channel => {
-    if (o.whatsapp_phone && o.whatsapp_phone.trim()) return "autoatendimento";
     if (!o.customer_name || !o.customer_name.trim()) return "balcao";
     return "mesa";
   };
@@ -165,7 +164,6 @@ export default function ReportsPage() {
   // ── Channel breakdown ──
   const channelBreakdown = useMemo(() => {
     const map: Record<string, { label: string; count: number; revenue: number; icon: any }> = {
-      autoatendimento: { label: "Autoatendimento", count: 0, revenue: 0, icon: Smartphone },
       mesa: { label: "Mesa (garçom)", count: 0, revenue: 0, icon: Users },
       balcao: { label: "Balcão", count: 0, revenue: 0, icon: Store },
     };
@@ -297,7 +295,6 @@ export default function ReportsPage() {
 
   const channels: { key: Channel; label: string; icon: any }[] = [
     { key: "all", label: "Todos", icon: TrendingUp },
-    { key: "autoatendimento", label: "Autoatendimento", icon: Smartphone },
     { key: "mesa", label: "Mesa", icon: Users },
     { key: "balcao", label: "Balcão", icon: Store },
   ];
