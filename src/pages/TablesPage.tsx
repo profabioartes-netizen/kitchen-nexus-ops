@@ -1311,28 +1311,9 @@ export default function TablesPage() {
                   className="mt-1 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Local</label>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Mesa 6", "Mesa Redonda Fora", "Mesa Quadrada Fora"].map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setQuickEdit({ ...quickEdit, sector: opt })}
-                      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${quickEdit.sector === opt ? "bg-accent text-accent-foreground border-accent" : "bg-card hover:bg-secondary border-border text-foreground"}`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  value={quickEdit.sector}
-                  onChange={(e) => setQuickEdit({ ...quickEdit, sector: e.target.value })}
-                  placeholder="Ou digite o local..."
-                  className="mt-2 w-full rounded-md border bg-card px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                A comanda será identificada pelo número e pelo nome do cliente (se informado).
+              </p>
             </div>
             <div className="flex justify-end gap-2 mt-4">
               <button onClick={() => setQuickEdit(null)} className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary">
