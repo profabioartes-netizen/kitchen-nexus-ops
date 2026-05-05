@@ -39,11 +39,6 @@ interface Props {
   onClose: () => void;
 }
 
-interface ImageSuggestion {
-  url: string;
-  alt: string;
-}
-
 export function ProductFormDialog({ productId, onClose }: Props) {
   const queryClient = useQueryClient();
   const isEditing = !!productId;
@@ -53,10 +48,6 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [suggestions, setSuggestions] = useState<ImageSuggestion[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchedName = useRef<string>("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
