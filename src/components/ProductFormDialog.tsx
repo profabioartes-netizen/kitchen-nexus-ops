@@ -358,23 +358,63 @@ export function ProductFormDialog({ productId, onClose }: Props) {
               </select>
             </div>
 
+            {/* Sale type */}
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">Tipo de venda</label>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, sale_type: "unit" })}
+                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                    form.sale_type === "unit"
+                      ? "bg-accent text-accent-foreground border-accent"
+                      : "bg-card hover:bg-secondary"
+                  }`}
+                >
+                  Unidade
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, sale_type: "weight" })}
+                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                    form.sale_type === "weight"
+                      ? "bg-accent text-accent-foreground border-accent"
+                      : "bg-card hover:bg-secondary"
+                  }`}
+                >
+                  Peso (gramas)
+                </button>
+              </div>
+            </div>
+
             {/* Price & Station */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Preço (R$)</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  {form.sale_type === "weight" ? "Valor por kg (R$)" : "Preço (R$)"}
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
-                  value={form.price}
+                  value={form.sale_type === "weight" ? form.price_per_kg : form.price}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, '');
                     const cents = parseInt(digits, 10) || 0;
                     const formatted = (cents / 100).toFixed(2).replace('.', ',');
-                    setForm({ ...form, price: formatted });
+                    if (form.sale_type === "weight") {
+                      setForm({ ...form, price_per_kg: formatted });
+                    } else {
+                      setForm({ ...form, price: formatted });
+                    }
                   }}
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   placeholder="0,00"
                 />
+                {form.sale_type === "weight" && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Ex: 69,90 / kg. O peso é informado no PDV ao lançar.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Categoria de Impressão</label>
