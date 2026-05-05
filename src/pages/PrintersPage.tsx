@@ -712,36 +712,105 @@ export default function PrintersPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nome</label>
+                <label className="text-sm font-medium text-muted-foreground">Nome da impressora</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Impressora Cozinha" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
               </div>
+
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Estação</label>
+                <label className="text-sm font-medium text-muted-foreground">Setor</label>
                 <select value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
                   <option value="Caixa">Caixa</option>
                   <option value="Cozinha">Cozinha</option>
                   <option value="Bebidas">Bebidas</option>
-                  <option value="Sobremesa">Sobremesa</option>
+                  <option value="Geral">Geral</option>
                 </select>
               </div>
+
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Modelo</label>
+                <label className="text-sm font-medium text-muted-foreground">Tipo de conexão</label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, connection_type: "network" })}
+                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      form.connection_type === "network"
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-card hover:bg-secondary"
+                    }`}
+                  >
+                    Rede (IP)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, connection_type: "usb" })}
+                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      form.connection_type === "usb"
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-card hover:bg-secondary"
+                    }`}
+                  >
+                    USB
+                  </button>
+                </div>
+              </div>
+
+              {form.connection_type === "network" ? (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">IP</label>
+                    <input type="text" value={form.ip} onChange={(e) => setForm({ ...form, ip: e.target.value })} placeholder="192.168.1.100" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Porta</label>
+                    <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Dispositivo USB (opcional)</label>
+                  <input
+                    type="text"
+                    value={form.usb_device}
+                    onChange={(e) => setForm({ ...form, usb_device: e.target.value })}
+                    placeholder="Identificador local (ex: USB001, /dev/usb/lp0)"
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    O agente de impressão local detecta a impressora USB conectada ao computador desta estação.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Modelo (opcional)</label>
                 <input type="text" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Ex: Epson TM-T20" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <label className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 cursor-pointer">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">IP</label>
-                  <input type="text" value={form.ip} onChange={(e) => setForm({ ...form, ip: e.target.value })} placeholder="192.168.1.100" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  <div className="text-sm font-medium">Impressão automática</div>
+                  <div className="text-xs text-muted-foreground">Envia tickets desta impressora automaticamente para a fila.</div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Porta</label>
-                  <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-                </div>
-              </div>
+                <input
+                  type="checkbox"
+                  checked={form.auto_print}
+                  onChange={(e) => setForm({ ...form, auto_print: e.target.checked })}
+                  className="h-5 w-5 accent-accent"
+                />
+              </label>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex flex-wrap justify-end gap-2 mt-6">
+              {editing && (
+                <button
+                  onClick={() => testPrintMutation.mutate(editing)}
+                  disabled={testingId === editing.id}
+                  className="rounded-md border border-accent/40 text-accent px-4 py-2 text-sm font-medium hover:bg-accent/10 disabled:opacity-50 mr-auto"
+                >
+                  {testingId === editing.id ? "Enviando..." : "Testar impressão"}
+                </button>
+              )}
               <button onClick={() => setShowForm(false)} className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-secondary">Cancelar</button>
-              <button disabled={!form.name.trim()} onClick={() => saveMutation.mutate()} className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50">Salvar</button>
+              <button disabled={!form.name.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate()} className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50">Salvar</button>
             </div>
           </div>
         </div>
