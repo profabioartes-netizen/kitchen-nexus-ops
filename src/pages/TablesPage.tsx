@@ -860,7 +860,7 @@ export default function TablesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {filteredTables.map((table) => {
             const order = ordersByTable[table.id];
-            const waterAlert = order ? waterAlertOrders[order.id] : undefined;
+            
             const effectiveStatus: TableStatus = order
               ? (order.status === "billing_in_progress" ? "bill"
                 : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
