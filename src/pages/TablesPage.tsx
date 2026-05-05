@@ -692,7 +692,7 @@ export default function TablesPage() {
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
       const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
-      // Search across ALL orders on this table (multiple self-service customers)
+      // Search across ALL orders on this table
       const allOrders = allOrdersByTable[t.id] || [];
       const internalCustomerMatch = allOrders.some((o) => o.customer_name?.toLowerCase().includes(q));
       return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch;
