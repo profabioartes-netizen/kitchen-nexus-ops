@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
 
     // ─── CREATE ───
     if (action === "create") {
-      const { email, password, full_name, role } = payload;
+      const { email, password, full_name, role, tenant_id, tenant_role } = payload;
 
       if (!email || !password || !full_name || !role) {
         return new Response(JSON.stringify({ error: "Todos os campos são obrigatórios" }), {
@@ -99,11 +99,30 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Determine target tenant: super_admin can specify any; admin_cliente only own tenants
+      let targetTenantId: string | null = (tenant_id as string) || null;
+      if (!isSuperAdmin) {
+        const ownTenants = (callerRoles ?? [])
+          .filter((r) => r.role === "admin_cliente")
+          .map((r) => r.tenant_id);
+        if (targetTenantId && !ownTenants.includes(targetTenantId)) {
+          return new Response(JSON.stringify({ error: "Sem permissão para esse tenant" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!targetTenantId) targetTenantId = ownTenants[0] ?? null;
+      }
+
+      const validTenantRoles = ["admin_cliente", "atendente", "caixa", "cozinha"];
+      const finalTenantRole = validTenantRoles.includes(tenant_role as string)
+        ? (tenant_role as string)
+        : (role === "admin" ? "admin_cliente" : "atendente");
+
       const { data, error } = await adminClient.auth.admin.createUser({
         email: email as string,
         password: password as string,
         email_confirm: true,
-        user_metadata: { full_name },
+        user_metadata: { full_name, ...(targetTenantId ? { tenant_id: targetTenantId } : {}) },
       });
 
       if (error) {
@@ -115,8 +134,14 @@ Deno.serve(async (req) => {
 
       await adminClient
         .from("profiles")
-        .update({ full_name, role })
+        .update({ full_name, role, ...(targetTenantId ? { tenant_id: targetTenantId } : {}) })
         .eq("id", data.user.id);
+
+      if (targetTenantId) {
+        await adminClient
+          .from("user_tenants")
+          .insert({ user_id: data.user.id, tenant_id: targetTenantId, role: finalTenantRole });
+      }
 
       return new Response(JSON.stringify({ user: data.user }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
