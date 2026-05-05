@@ -43,7 +43,6 @@ export default function WaiterTablesPage() {
         queryClient.invalidateQueries({ queryKey: ["active_locks"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["water_alerts_waiter"] });
         queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts_waiter"] });
       })
       .subscribe();
