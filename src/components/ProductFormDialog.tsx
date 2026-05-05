@@ -15,6 +15,8 @@ interface ProductFormData {
   featured_on_menu: boolean;
   prep_time_minutes: string;
   image_url: string;
+  sale_type: "unit" | "weight";
+  price_per_kg: string;
 }
 
 const emptyForm: ProductFormData = {
@@ -28,6 +30,8 @@ const emptyForm: ProductFormData = {
   featured_on_menu: false,
   prep_time_minutes: "15",
   image_url: "",
+  sale_type: "unit",
+  price_per_kg: "0,00",
 };
 
 interface Props {
@@ -102,6 +106,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   // Initialize form when editing
   if (isEditing && existingProduct && !initialized) {
     const priceWithComma = Number(existingProduct.price).toFixed(2).replace('.', ',');
+    const ppk = (existingProduct as any).price_per_kg;
+    const ppkWithComma = ppk != null ? Number(ppk).toFixed(2).replace('.', ',') : "0,00";
     setForm({
       name: existingProduct.name,
       category_id: existingProduct.category_id || "",
@@ -113,6 +119,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
       featured_on_menu: (existingProduct as any).featured_on_menu ?? false,
       prep_time_minutes: String((existingProduct as any).prep_time_minutes ?? 15),
       image_url: (existingProduct as any).image_url || "",
+      sale_type: ((existingProduct as any).sale_type === "weight" ? "weight" : "unit"),
+      price_per_kg: ppkWithComma,
     });
     setSelectedGroups(linkedGroups);
     setInitialized(true);
@@ -256,11 +264,15 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const priceValue = parseFloat(form.price.replace(',', '.')) || 0;
+      const ppkValue = parseFloat(form.price_per_kg.replace(',', '.')) || 0;
+      const isWeight = form.sale_type === "weight";
 
       const payload: any = {
         name: form.name.trim(),
         category_id: form.category_id || null,
-        price: priceValue,
+        // For weight products, store price_per_kg in `price` as fallback so any
+        // legacy code reading `price` still has a meaningful value (per kg).
+        price: isWeight ? ppkValue : priceValue,
         station: form.station,
         stock: parseInt(form.stock) || -1,
         active: form.active,
@@ -268,6 +280,8 @@ export function ProductFormDialog({ productId, onClose }: Props) {
         featured_on_menu: form.featured_on_menu,
         prep_time_minutes: parseInt(form.prep_time_minutes) || 15,
         image_url: form.image_url || null,
+        sale_type: form.sale_type,
+        price_per_kg: isWeight ? ppkValue : null,
       };
 
       let pid = productId;
