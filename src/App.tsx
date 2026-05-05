@@ -14,14 +14,11 @@ import CashierPage from "@/pages/CashierPage";
 import CashRegisterPage from "@/pages/CashRegisterPage";
 import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
-import SelfServiceAdminPage from "@/pages/SelfServiceAdminPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
-import CustomerSalesPage from "@/pages/CustomerSalesPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
-import QRCodesBatchPage from "@/pages/QRCodesBatchPage";
 import NotFound from "@/pages/NotFound";
 import WaiterLayout from "@/pages/waiter/WaiterLayout";
 import WaiterLoginPage from "@/pages/waiter/WaiterLoginPage";
@@ -29,7 +26,6 @@ import WaiterTablesPage from "@/pages/waiter/WaiterTablesPage";
 import WaiterOrderPage from "@/pages/waiter/WaiterOrderPage";
 import WaiterOrdersPage from "@/pages/waiter/WaiterOrdersPage";
 import WaiterProfilePage from "@/pages/waiter/WaiterProfilePage";
-import SelfServicePage from "@/pages/self-service/SelfServicePage";
 import AccountingLoginPage from "@/pages/accounting/AccountingLoginPage";
 import AccountingLayout from "@/pages/accounting/AccountingLayout";
 import AccountingDashboard from "@/pages/accounting/AccountingDashboard";
@@ -110,10 +106,6 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
 
-            {/* Public self-service routes */}
-            <Route path="/auto-atendimento/:tableId/*" element={<SelfServicePage />} />
-            <Route path="/autoatendimento/:tableId/*" element={<SelfServicePage />} />
-
             {/* Waiter mobile mode */}
             <Route path="/garcom/login" element={<WaiterLoginPage />} />
             <Route path="/garcom" element={<WaiterLayout />}>
@@ -145,14 +137,11 @@ const App = () => (
               <Route path="/caixa" element={<CashierPage />} />
               <Route path="/controle-caixa" element={<CashRegisterPage />} />
               <Route path="/produtos" element={<ProductsPage />} />
-              <Route path="/cardapio-cliente" element={<SelfServiceAdminPage />} />
               <Route path="/impressoras" element={<PrintersPage />} />
               <Route path="/impressoras/agente" element={<PrintAgentPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
-              <Route path="/clientes" element={<CustomerSalesPage />} />
               <Route path="/usuarios" element={<UsersPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
-              <Route path="/qrcodes" element={<QRCodesBatchPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
