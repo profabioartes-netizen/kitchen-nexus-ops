@@ -34,7 +34,6 @@ const operationalItems: NavItem[] = [
 
 const managementItems: NavItem[] = [
   { to: "/produtos", icon: Package, label: "Produtos" },
-  { to: "/cardapio-cliente", icon: Smartphone, label: "Cardápio Digital" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },
   { to: "/configuracoes", icon: Settings, label: "Configurações" },
 ];

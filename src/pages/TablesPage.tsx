@@ -995,9 +995,6 @@ export default function TablesPage() {
                                     <p className="text-[10px] font-bold text-foreground flex items-center gap-1 flex-wrap">
                                       👤 {ord.customer_name || ord.waiter_name || "Cliente"}
                                       <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
-                                      {(ord as any).origin === "self_service" && (
-                                        <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
-                                      )}
                                       <span className="text-muted-foreground font-normal">
                                         <TableDuration createdAt={ord.created_at} />
                                       </span>
