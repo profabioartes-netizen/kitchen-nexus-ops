@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, Receipt, AlertCircle, Clock, CheckCircle, FileX2, CreditCard } from "lucide-react";
+import { DollarSign, Receipt, CreditCard } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
@@ -55,55 +55,26 @@ export default function AccountingDashboard() {
     enabled: orderIds.length > 0,
   });
 
-  const { data: nfceRecords = [], isLoading: ln } = useQuery({
-    queryKey: ["acc_nfce", orderIds],
-    queryFn: async () => {
-      if (!orderIds.length) return [];
-      const { data } = await supabase.from("nfce_records" as any).select("order_id, status, chave_acesso, error_message").in("order_id", orderIds);
-      return (data || []) as any[];
-    },
-    enabled: orderIds.length > 0,
-  });
-
-  const loading = lo || lp || ln;
+  const loading = lo || lp;
 
   const stats = useMemo(() => {
     const totalSales = orders.length;
     const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total), 0);
-    
+
     const byMethod: Record<string, number> = {};
     payments.forEach((p: any) => {
       const label = methodLabels[p.method] || p.method;
       byMethod[label] = (byMethod[label] || 0) + Number(p.amount);
     });
 
-    const nfceMap = new Map<string, any>();
-    nfceRecords.forEach((n: any) => {
-      const existing = nfceMap.get(n.order_id);
-      if (!existing) nfceMap.set(n.order_id, n);
-    });
-
-    let authorized = 0, errors = 0, pending = 0, noNfce = 0;
-    orderIds.forEach((id) => {
-      const rec = nfceMap.get(id);
-      if (!rec) { noNfce++; return; }
-      if (rec.status === "emitida") authorized++;
-      else if (rec.status === "erro") errors++;
-      else pending++;
-    });
-
-    return { totalSales, totalRevenue, byMethod, authorized, errors, pending, noNfce };
-  }, [orders, payments, nfceRecords, orderIds]);
+    return { totalSales, totalRevenue, byMethod };
+  }, [orders, payments]);
 
   if (loading) return <LoadingScreen mode="inline" />;
 
   const kpis = [
     { label: "Vendas", value: stats.totalSales, icon: Receipt, color: "text-blue-500" },
     { label: "Faturamento", value: `R$ ${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-green-500" },
-    { label: "NFC-e Autorizadas", value: stats.authorized, icon: CheckCircle, color: "text-green-500" },
-    { label: "NFC-e Erro", value: stats.errors, icon: AlertCircle, color: "text-red-500" },
-    { label: "NFC-e Pendentes", value: stats.pending, icon: Clock, color: "text-yellow-500" },
-    { label: "Sem NFC-e", value: stats.noNfce, icon: FileX2, color: "text-muted-foreground" },
   ];
 
   return (
