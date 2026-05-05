@@ -276,7 +276,18 @@ export default function CashierPage() {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col h-screen">
+      {/* Brand header */}
+      <header className="flex items-center justify-between px-5 py-3 bg-primary text-primary-foreground border-b border-primary/40 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="font-display text-lg font-extrabold tracking-tight uppercase text-white">
+            Espetinho do Marcelo · PDV
+          </h1>
+        </div>
+        <span className="text-xs font-medium text-white/70">Atendimento Balcão</span>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
       {/* Product grid */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden">
         <div className="flex items-center gap-3 mb-4">
