@@ -9,6 +9,8 @@ type Product = {
   price: number;
   station: string;
   category_id: string | null;
+  sale_type?: "unit" | "weight" | null;
+  price_per_kg?: number | null;
 };
 
 type SelectedComplement = {
@@ -24,6 +26,10 @@ export type AddItemPayload = {
   notes: string;
   complements: SelectedComplement[];
   complementsTotal: number;
+  // Weight-sale overrides
+  grams?: number;
+  unitPriceOverride?: number;
+  productNameOverride?: string;
 };
 
 interface AddItemDialogProps {
@@ -37,12 +43,17 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
   const [selectedComplements, setSelectedComplements] = useState<SelectedComplement[]>([]);
+  const [grams, setGrams] = useState<string>("");
+
+  const isWeight = product?.sale_type === "weight";
+  const pricePerKg = Number(product?.price_per_kg ?? product?.price ?? 0);
 
   useEffect(() => {
     if (product) {
       setQuantity(1);
       setNotes("");
       setSelectedComplements([]);
+      setGrams("");
     }
   }, [product]);
 
