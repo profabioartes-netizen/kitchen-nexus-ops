@@ -64,10 +64,6 @@ export default function AccountingLayout() {
             <BarChart3 className="h-4 w-4" />
             Dashboard
           </NavLink>
-          <NavLink to="/contabilidade/vendas" className={linkClass}>
-            <FileText className="h-4 w-4" />
-            Vendas
-          </NavLink>
         </nav>
 
         <button
@@ -89,9 +85,6 @@ export default function AccountingLayout() {
           <div className="flex gap-2">
             <NavLink to="/contabilidade" end className={({ isActive }) => `p-2 rounded ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
               <BarChart3 className="h-4 w-4" />
-            </NavLink>
-            <NavLink to="/contabilidade/vendas" className={({ isActive }) => `p-2 rounded ${isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"}`}>
-              <FileText className="h-4 w-4" />
             </NavLink>
             <button onClick={handleSignOut} className="p-2 text-muted-foreground">
               <LogOut className="h-4 w-4" />
