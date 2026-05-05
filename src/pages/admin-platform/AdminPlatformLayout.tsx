@@ -1,4 +1,4 @@
-import { Outlet, NavLink, Navigate, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -8,7 +8,6 @@ import huskyLogo from "@/assets/husky-pdv-logo.png";
 export default function AdminPlatformLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { isSuperAdmin, loading: tenantLoading } = useTenant();
-  const navigate = useNavigate();
 
   if (authLoading || tenantLoading) return <LoadingScreen mode="full" />;
   if (!user) return <Navigate to="/login" replace />;
@@ -38,12 +37,6 @@ export default function AdminPlatformLayout() {
         </NavLink>
 
         <div className="mt-auto space-y-1">
-          <button
-            onClick={() => navigate("/")}
-            className={`${link} ${inactive} w-full`}
-          >
-            ← Voltar ao PDV
-          </button>
           <button onClick={signOut} className={`${link} ${inactive} w-full`}>
             <LogOut className="h-4 w-4" /> Sair
           </button>

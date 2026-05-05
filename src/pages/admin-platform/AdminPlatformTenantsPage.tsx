@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit, Pause, Play, Trash2, Eye, X } from "lucide-react";
+import { Plus, Edit, Pause, Play, Trash2, Eye, X, Store } from "lucide-react";
 
 type Tenant = {
   id: string;
@@ -162,6 +162,11 @@ export default function AdminPlatformTenantsPage() {
                 <td className="p-3">{counts[t.id] || 0}</td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-1">
+                    <button title="Acessar PDV"
+                      onClick={() => window.open(`/${t.slug}`, "_blank", "noopener,noreferrer")}
+                      className="p-2 rounded hover:bg-accent/20 text-accent">
+                      <Store className="h-4 w-4" />
+                    </button>
                     <button title="Criar admin do cliente"
                       onClick={() => setCreatingAdmin({ tenantId: t.id, tenantName: t.nome_comercio })}
                       className="p-2 rounded hover:bg-muted">
