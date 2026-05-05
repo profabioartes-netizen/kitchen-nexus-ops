@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, X, Loader2, Settings, QrCode } from "lucide-react";
-import QRCodeDialog from "@/components/QRCodeDialog";
+import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, X, Loader2, Settings } from "lucide-react";
 
 interface TableForm {
   name: string;
@@ -20,7 +19,6 @@ export default function TableManagementPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<TableForm>(emptyForm);
-  const [qrTable, setQrTable] = useState<{ id: string; name: string } | null>(null);
 
   const { data: tables = [], isLoading } = useQuery({
     queryKey: ["restaurant_tables_admin"],
@@ -109,15 +107,6 @@ export default function TableManagementPage() {
     },
   });
 
-  const toggleSelfService = useMutation({
-    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const { error } = await supabase.from("restaurant_tables").update({ self_service_enabled: enabled } as any).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restaurant_tables_admin"] });
-    },
-  });
 
   const reorder = useMutation({
     mutationFn: async ({ id, direction }: { id: string; direction: "up" | "down" }) => {
@@ -203,7 +192,6 @@ export default function TableManagementPage() {
               <th className="text-center px-4 py-2 font-medium">Setor</th>
               <th className="text-center px-4 py-2 font-medium">Lugares</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
-              <th className="text-center px-4 py-2 font-medium">Auto-atend.</th>
               <th className="px-4 py-2 w-32"></th>
             </tr>
           </thead>
@@ -249,21 +237,8 @@ export default function TableManagementPage() {
                     {table.active ? "Ativa" : "Inativa"}
                   </button>
                 </td>
-                <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => toggleSelfService.mutate({ id: table.id, enabled: !(table as any).self_service_enabled })}
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ${
-                      (table as any).self_service_enabled !== false ? "bg-status-free/10 text-status-free" : "bg-destructive/10 text-destructive"
-                    }`}
-                  >
-                    {(table as any).self_service_enabled !== false ? "Sim" : "Não"}
-                  </button>
-                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => setQrTable({ id: table.id, name: table.name })} className="rounded p-1 hover:bg-secondary" title="QR Code">
-                      <QrCode className="h-4 w-4 text-muted-foreground" />
-                    </button>
                     <button onClick={() => openEdit(table)} className="rounded p-1 hover:bg-secondary">
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </button>
@@ -364,15 +339,6 @@ export default function TableManagementPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* QR Code Dialog */}
-      {qrTable && (
-        <QRCodeDialog
-          tableId={qrTable.id}
-          tableName={qrTable.name}
-          onClose={() => setQrTable(null)}
-        />
       )}
     </div>
   );
