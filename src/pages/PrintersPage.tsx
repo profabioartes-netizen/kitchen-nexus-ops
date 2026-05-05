@@ -772,12 +772,17 @@ export default function PrintersPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Setor</label>
-                <select value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
-                  <option value="Caixa">Caixa</option>
-                  <option value="Cozinha">Cozinha</option>
-                  <option value="Geral">Geral</option>
-                </select>
+                <label className="text-sm font-medium text-muted-foreground">Setor / Estação</label>
+                <input
+                  type="text"
+                  value={form.station}
+                  onChange={(e) => setForm({ ...form, station: e.target.value })}
+                  placeholder="Ex: Caixa, Churrasqueira, Bar"
+                  className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Use um nome livre. Esse setor aparecerá como destino de impressão no cadastro de produtos.
+                </p>
               </div>
 
               <div>
