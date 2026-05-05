@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { TenantProvider, useTenant } from "@/contexts/TenantContext";
 import { AppLayout } from "@/components/AppLayout";
 import AuthPage from "@/pages/AuthPage";
 import TablesPage from "@/pages/TablesPage";
@@ -30,6 +31,10 @@ import AccountingLoginPage from "@/pages/accounting/AccountingLoginPage";
 import AccountingLayout from "@/pages/accounting/AccountingLayout";
 import AccountingDashboard from "@/pages/accounting/AccountingDashboard";
 import AccountingSalesPage from "@/pages/accounting/AccountingSalesPage";
+import AdminPlatformLayout from "@/pages/admin-platform/AdminPlatformLayout";
+import AdminPlatformTenantsPage from "@/pages/admin-platform/AdminPlatformTenantsPage";
+import AdminPlatformUsersPage from "@/pages/admin-platform/AdminPlatformUsersPage";
+import TenantSuspendedScreen from "@/components/TenantSuspendedScreen";
 import LoadingScreen from "@/components/LoadingScreen";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -70,9 +75,19 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return (
     <>
       {showSplash && <SplashScreen onFinished={handleSplashFinished} />}
-      {children}
+      <TenantGate>{children}</TenantGate>
     </>
   );
+}
+
+function TenantGate({ children }: { children: ReactNode }) {
+  const { tenant, isSuperAdmin, loading } = useTenant();
+  if (loading) return <LoadingScreen mode="full" />;
+  // Super admin sem tenant vinculado: redireciona para painel da plataforma
+  if (isSuperAdmin && !tenant) return <Navigate to="/admin-platform" replace />;
+  if (tenant && tenant.status === "suspenso") return <TenantSuspendedScreen />;
+  if (tenant && tenant.status === "cancelado") return <TenantSuspendedScreen />;
+  return <>{children}</>;
 }
 
 function AuthRoute() {
@@ -103,6 +118,7 @@ const App = () => (
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
+          <TenantProvider>
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
 
@@ -144,8 +160,15 @@ const App = () => (
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
 
+            {/* Super Admin Platform */}
+            <Route path="/admin-platform" element={<AdminPlatformLayout />}>
+              <Route index element={<AdminPlatformTenantsPage />} />
+              <Route path="usuarios" element={<AdminPlatformUsersPage />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </TenantProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
