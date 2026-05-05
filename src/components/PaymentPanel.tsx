@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTenant } from "@/contexts/TenantContext";
 
 type OrderItemComplement = {
   id: string;
