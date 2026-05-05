@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, Droplets, BarChart3 } from "lucide-react";
+import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -88,7 +88,6 @@ export default function TablesPage() {
         queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
-        queryClient.invalidateQueries({ queryKey: ["water_alerts"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
         queryClient.invalidateQueries({ queryKey: ["active_locks"] });
@@ -255,47 +254,6 @@ export default function TablesPage() {
     enabled: openOrderIds.length > 0,
   });
 
-  // Water alert: pending "Água com Gás" / "Água sem Gás" items per order
-  const WATER_NAMES = ["água com gás", "água sem gás"];
-  const { data: waterAlertOrders = {} } = useQuery({
-    queryKey: ["water_alerts", openOrderIds],
-    queryFn: async () => {
-      if (openOrderIds.length === 0) return {};
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("id, order_id, product_name, quantity")
-        .in("order_id", openOrderIds)
-        .is("delivered_at", null);
-      if (error) throw error;
-      const map: Record<string, { ids: string[]; names: string[] }> = {};
-      for (const item of data) {
-        if (WATER_NAMES.includes(item.product_name.toLowerCase().trim())) {
-          if (!map[item.order_id]) map[item.order_id] = { ids: [], names: [] };
-          map[item.order_id].ids.push(item.id);
-          map[item.order_id].names.push(item.product_name);
-        }
-      }
-      return map;
-    },
-    enabled: openOrderIds.length > 0,
-  });
-
-  const dismissWaterAlert = useMutation({
-    mutationFn: async (itemIds: string[]) => {
-      const { error } = await supabase
-        .from("order_items")
-        .update({ delivered_at: new Date().toISOString() })
-        .in("id", itemIds);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["water_alerts"] });
-      queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
-      queryClient.invalidateQueries({ queryKey: ["order_items"] });
-      toast.success("Águas marcadas como entregues!");
-    },
-    onError: () => toast.error("Erro ao marcar águas como entregues"),
-  });
 
   const updatePosition = useMutation({
     mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
@@ -902,7 +860,7 @@ export default function TablesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {filteredTables.map((table) => {
             const order = ordersByTable[table.id];
-            const waterAlert = order ? waterAlertOrders[order.id] : undefined;
+            
             const effectiveStatus: TableStatus = order
               ? (order.status === "billing_in_progress" ? "bill"
                 : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
@@ -1105,21 +1063,7 @@ export default function TablesPage() {
                   </span>
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
-                {/* Water alert - below timer */}
-                {waterAlert && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                      dismissWaterAlert.mutate(waterAlert.ids);
-                    }}
-                    className="flex items-center gap-1.5 rounded-full bg-destructive text-destructive-foreground px-3 py-1.5 animate-pulse shadow-md hover:scale-105 transition-transform self-end"
-                    title={`Entregar: ${waterAlert.names.join(", ")} — Clique para concluir`}
-                  >
-                    <Droplets className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase leading-none">ÁGUA</span>
-                  </button>
-                )}
+
 
                 {order && ((table as any).sector || (table as any).internal_number) && (
                   <div className="flex items-center gap-2 mt-0.5">

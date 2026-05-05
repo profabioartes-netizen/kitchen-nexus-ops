@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Users, ChefHat, Droplets } from "lucide-react";
+import { Users, ChefHat } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -43,7 +43,6 @@ export default function WaiterTablesPage() {
         queryClient.invalidateQueries({ queryKey: ["active_locks"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["water_alerts_waiter"] });
         queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts_waiter"] });
       })
       .subscribe();
@@ -111,44 +110,6 @@ export default function WaiterTablesPage() {
     enabled: openOrderIds.length > 0,
   });
 
-  const WATER_NAMES = ["água com gás", "água sem gás"];
-  const { data: waterAlertOrders = {} } = useQuery({
-    queryKey: ["water_alerts_waiter", openOrderIds],
-    queryFn: async () => {
-      if (openOrderIds.length === 0) return {};
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("id, order_id, product_name, quantity")
-        .in("order_id", openOrderIds)
-        .is("delivered_at", null);
-      if (error) throw error;
-      const map: Record<string, { ids: string[]; names: string[] }> = {};
-      for (const item of data) {
-        if (WATER_NAMES.includes(item.product_name.toLowerCase().trim())) {
-          if (!map[item.order_id]) map[item.order_id] = { ids: [], names: [] };
-          map[item.order_id].ids.push(item.id);
-          map[item.order_id].names.push(item.product_name);
-        }
-      }
-      return map;
-    },
-    enabled: openOrderIds.length > 0,
-  });
-
-  const dismissWaterAlert = useMutation({
-    mutationFn: async (itemIds: string[]) => {
-      const { error } = await supabase
-        .from("order_items")
-        .update({ delivered_at: new Date().toISOString() })
-        .in("id", itemIds);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["water_alerts_waiter"] });
-      toast.success("Águas marcadas como entregues!");
-    },
-    onError: () => toast.error("Erro ao marcar águas como entregues"),
-  });
 
   const occupied = occupiedTableIds.size;
 
@@ -225,28 +186,12 @@ export default function WaiterTablesPage() {
               ? "bill"
               : (table.status === "delivered" && !hasPending ? "delivered" : "occupied"))
             : (table.status as TableStatus);
-          const waterAlert = order ? waterAlertOrders[order.id] : undefined;
           return (
             <button
               key={table.id}
               onClick={() => navigate(`/garcom/mesa/${table.id}`)}
               className={`w-full flex items-center gap-3 rounded-xl border border-l-4 p-4 text-left transition-all active:scale-[0.98] ${statusColors[status] || ""} relative`}
             >
-              {/* Water alert icon */}
-              {waterAlert && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    dismissWaterAlert.mutate(waterAlert.ids);
-                  }}
-                  className="absolute -top-2 -left-1 z-30 flex items-center gap-1 rounded-full bg-destructive text-destructive-foreground px-2 py-1 animate-pulse shadow-lg"
-                  title={`Entregar: ${waterAlert.names.join(", ")}`}
-                >
-                  <Droplets className="h-3.5 w-3.5" />
-                  <span className="text-[8px] font-black uppercase leading-none">ÁGUA</span>
-                </div>
-              )}
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
