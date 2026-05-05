@@ -10,6 +10,7 @@ import {
 import LoadingScreen from "@/components/LoadingScreen";
 // NFC-e/fiscal removido — sistema opera apenas com cupom não fiscal.
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTenant } from "@/contexts/TenantContext";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
