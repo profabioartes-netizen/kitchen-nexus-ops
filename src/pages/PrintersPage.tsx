@@ -323,6 +323,8 @@ export default function PrintersPage() {
       auto_print: p.auto_print ?? true,
     });
     setEditing(p);
+    setDiscoveries([]);
+    setDiscoveryError(null);
     setShowForm(true);
   };
 
