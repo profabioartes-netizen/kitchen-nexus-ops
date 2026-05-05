@@ -88,7 +88,6 @@ export default function TablesPage() {
         queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
-        queryClient.invalidateQueries({ queryKey: ["water_alerts"] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
         queryClient.invalidateQueries({ queryKey: ["active_locks"] });
