@@ -642,20 +642,34 @@ export default function TablesPage() {
     });
   }, [tables, ordersByTable]);
 
+  // Deterministic visual label: based on full sortedTables (stable, doesn't shift with search)
+  const visualLabels = useMemo(() => {
+    const labels: Record<string, string> = {};
+    sortedTables.forEach((t, i) => {
+      labels[t.id] = `Comanda ${i + 1}`;
+    });
+    return labels;
+  }, [sortedTables]);
+
   const filteredTables = useMemo(() => {
     if (!searchQuery.trim()) return sortedTables;
     const q = searchQuery.toLowerCase().trim();
+    // Allow searching by just the comanda number ("1", "12") or full label ("comanda 1")
+    const numericQ = q.replace(/\D/g, "");
     return sortedTables.filter((t) => {
       const order = ordersByTable[t.id];
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
       const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
-      // Search across ALL orders on this table
       const allOrders = allOrdersByTable[t.id] || [];
       const internalCustomerMatch = allOrders.some((o) => o.customer_name?.toLowerCase().includes(q));
-      return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch;
+      const label = (visualLabels[t.id] || "").toLowerCase();
+      const labelMatch = label.includes(q);
+      const labelNumber = label.replace(/\D/g, "");
+      const numberMatch = numericQ.length > 0 && labelNumber === numericQ;
+      return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch || labelMatch || numberMatch;
     });
-  }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery]);
+  }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery, visualLabels]);
 
   // Map of matched internal customer names per table (for "Contém: X" label)
   const searchMatchedCustomers = useMemo(() => {
@@ -673,23 +687,6 @@ export default function TablesPage() {
     }
     return map;
   }, [filteredTables, ordersByTable, allOrdersByTable, searchQuery]);
-
-  // Deterministic visual label: occupied tables keep their name, free tables get sequential "Comanda N"
-  const visualLabels = useMemo(() => {
-    const labels: Record<string, string> = {};
-    let seq = 1;
-    for (const t of filteredTables) {
-      const order = ordersByTable[t.id];
-      if (order) {
-        // Occupied: use sequential number too (they come first)
-        labels[t.id] = `Comanda ${seq}`;
-      } else {
-        labels[t.id] = `Comanda ${seq}`;
-      }
-      seq++;
-    }
-    return labels;
-  }, [filteredTables, ordersByTable]);
 
   const tablesWithPositions = filteredTables.map((t, i) => {
     const hasPosition = (t.position_x !== null && t.position_x !== 0) || (t.position_y !== null && t.position_y !== 0);
