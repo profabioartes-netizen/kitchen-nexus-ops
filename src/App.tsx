@@ -160,8 +160,15 @@ const App = () => (
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
 
+            {/* Super Admin Platform */}
+            <Route path="/admin-platform" element={<AdminPlatformLayout />}>
+              <Route index element={<AdminPlatformTenantsPage />} />
+              <Route path="usuarios" element={<AdminPlatformUsersPage />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </TenantProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
