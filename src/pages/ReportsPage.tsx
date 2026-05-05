@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
+import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,8 +44,10 @@ type QuickPeriod = "today" | "7" | "14" | "30" | "custom";
 type SortMode = "revenue" | "qty";
 
 export default function ReportsPage() {
+  const { pinEnabled } = useSecurityPinEnabled();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>("7");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());

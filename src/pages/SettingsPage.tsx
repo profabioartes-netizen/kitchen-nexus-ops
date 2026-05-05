@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Settings, Lock, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
 
 const ADMIN_PIN = "9135";
 
@@ -48,8 +49,10 @@ function _useSettingValue(key: string) {
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { pinEnabled } = useSecurityPinEnabled();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   // Reserved for future settings
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _upsert = useUpsertSetting();

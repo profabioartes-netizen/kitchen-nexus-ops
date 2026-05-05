@@ -4,14 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
 
 const PAGE_PIN = "9135";
 const DELETE_PIN = "9774";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
+  const { pinEnabled } = useSecurityPinEnabled();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({

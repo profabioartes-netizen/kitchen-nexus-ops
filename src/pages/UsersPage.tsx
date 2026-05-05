@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock, Pencil, KeyRound, Calculator, UserX, UserCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
 import {
   Dialog,
   DialogContent,
@@ -30,8 +31,10 @@ interface AuthUser {
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { pinEnabled } = useSecurityPinEnabled();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [showForm, setShowForm] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -231,10 +234,13 @@ export default function UsersPage() {
   });
 
   const handleDeleteConfirm = () => {
-    if (!deleteTarget || !confirmPassword) return;
-    if (confirmPassword !== ADMIN_PIN) {
-      toast.error("PIN incorreto!");
-      return;
+    if (!deleteTarget) return;
+    if (pinEnabled) {
+      if (!confirmPassword) return;
+      if (confirmPassword !== ADMIN_PIN) {
+        toast.error("PIN incorreto!");
+        return;
+      }
     }
     deleteMutation.mutate(deleteTarget.id);
   };
