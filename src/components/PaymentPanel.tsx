@@ -932,6 +932,9 @@ export default function PaymentPanel({
                   status: "pending",
                   payload: {
                     type: "bill",
+                    compact: true,
+                    business_name: businessName,
+                    business_phone: businessPhone || null,
                     location: orderContext?.location || "Caixa",
                     table_name: orderContext?.tableName || "Comanda",
                     customer_name: orderContext?.customerName || null,
@@ -946,8 +949,9 @@ export default function PaymentPanel({
                     })),
                     total: grandTotal,
                     payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
-                    change: payments.find(p => p.method === "cash") ? 
+                    change: payments.find(p => p.method === "cash") ?
                       Math.max(0, payments.filter(p => p.method === "cash").reduce((s, p) => s + p.amount, 0) - grandTotal) : null,
+                    footer_message: "Volte sempre!!!",
                   },
                 });
                 toast.success("Conta enviada para impressão!");
