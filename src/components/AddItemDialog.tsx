@@ -9,6 +9,8 @@ type Product = {
   price: number;
   station: string;
   category_id: string | null;
+  sale_type?: "unit" | "weight" | null;
+  price_per_kg?: number | null;
 };
 
 type SelectedComplement = {
@@ -24,6 +26,10 @@ export type AddItemPayload = {
   notes: string;
   complements: SelectedComplement[];
   complementsTotal: number;
+  // Weight-sale overrides
+  grams?: number;
+  unitPriceOverride?: number;
+  productNameOverride?: string;
 };
 
 interface AddItemDialogProps {
@@ -37,12 +43,17 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
   const [selectedComplements, setSelectedComplements] = useState<SelectedComplement[]>([]);
+  const [grams, setGrams] = useState<string>("");
+
+  const isWeight = product?.sale_type === "weight";
+  const pricePerKg = Number(product?.price_per_kg ?? product?.price ?? 0);
 
   useEffect(() => {
     if (product) {
       setQuantity(1);
       setNotes("");
       setSelectedComplements([]);
+      setGrams("");
     }
   }, [product]);
 
@@ -129,10 +140,30 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
     }
   };
 
+  const gramsNum = parseInt(grams, 10) || 0;
+  const weightTotal = isWeight ? (gramsNum / 1000) * pricePerKg : 0;
+  const weightTotalRounded = Math.round(weightTotal * 100) / 100;
+
   const complementsTotal = selectedComplements.reduce((s, c) => s + c.price * c.quantity, 0);
-  const itemTotal = (Number(product.price) + complementsTotal) * quantity;
+  const itemTotal = isWeight
+    ? weightTotalRounded
+    : (Number(product.price) + complementsTotal) * quantity;
 
   const handleAdd = () => {
+    if (isWeight) {
+      if (gramsNum <= 0) return;
+      onAdd({
+        product,
+        quantity: 1,
+        notes: notes.trim(),
+        complements: [],
+        complementsTotal: 0,
+        grams: gramsNum,
+        unitPriceOverride: weightTotalRounded,
+        productNameOverride: `${product.name} - ${gramsNum}g`,
+      });
+      return;
+    }
     onAdd({
       product,
       quantity,
@@ -158,7 +189,11 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h3 className="font-semibold text-base">{product.name}</h3>
-            <p className="text-sm text-accent font-medium">R$ {Number(product.price).toFixed(2)}</p>
+            <p className="text-sm text-accent font-medium">
+              {isWeight
+                ? `R$ ${pricePerKg.toFixed(2)} / kg`
+                : `R$ ${Number(product.price).toFixed(2)}`}
+            </p>
           </div>
           <button onClick={onClose} className="rounded p-1.5 hover:bg-secondary">
             <X className="h-4 w-4" />
@@ -167,28 +202,62 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
 
         {/* Body */}
         <div className="flex-1 overflow-auto p-4 space-y-4">
-          {/* Quantity */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quantidade</label>
-            <div className="flex items-center gap-3 mt-1.5">
-              <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="rounded-md border p-2 hover:bg-secondary"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity((q) => q + 1)}
-                className="rounded-md border p-2 hover:bg-secondary"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+          {/* Quantity OR Weight */}
+          {isWeight ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Peso (gramas)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  value={grams}
+                  onChange={(e) => setGrams(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="Ex: 450"
+                  className="mt-1.5 w-full rounded-md border bg-card px-3 py-2.5 text-base font-semibold outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-md border bg-muted/30 px-3 py-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Valor por kg</p>
+                  <p className="font-semibold">R$ {pricePerKg.toFixed(2)}</p>
+                </div>
+                <div className="rounded-md border bg-accent/10 border-accent/30 px-3 py-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+                  <p className="font-semibold text-accent">R$ {weightTotalRounded.toFixed(2)}</p>
+                </div>
+              </div>
+              {gramsNum > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  ({gramsNum}g ÷ 1000) × R$ {pricePerKg.toFixed(2)} = R$ {weightTotalRounded.toFixed(2)}
+                </p>
+              )}
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quantidade</label>
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="rounded-md border p-2 hover:bg-secondary"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="rounded-md border p-2 hover:bg-secondary"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Complements */}
-          {hasComplements && complementGroups.map((group) => {
+          {!isWeight && hasComplements && complementGroups.map((group) => {
             const groupComps = allComplements.filter((c) => c.group_id === group.id);
             if (groupComps.length === 0) return null;
             return (
@@ -272,7 +341,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
           )}
           <button
             onClick={handleAdd}
-            disabled={isPending || (hasComplements && !requiredGroupsSatisfied)}
+            disabled={isPending || (isWeight ? gramsNum <= 0 : (hasComplements && !requiredGroupsSatisfied))}
             className="w-full rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {isPending ? "Adicionando..." : `Adicionar · R$ ${itemTotal.toFixed(2)}`}
