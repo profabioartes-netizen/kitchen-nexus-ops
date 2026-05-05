@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, CircleDollarSign, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, Droplets, BarChart3 } from "lucide-react";
+import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, Droplets, BarChart3 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -692,7 +692,7 @@ export default function TablesPage() {
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
       const waiterMatch = order?.waiter_name?.toLowerCase().includes(q);
-      // Search across ALL orders on this table (multiple self-service customers)
+      // Search across ALL orders on this table
       const allOrders = allOrdersByTable[t.id] || [];
       const internalCustomerMatch = allOrders.some((o) => o.customer_name?.toLowerCase().includes(q));
       return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch;
@@ -763,14 +763,6 @@ export default function TablesPage() {
           >
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
             <span className="hidden sm:inline">Relatórios</span>
-          </button>
-          <button
-            onClick={() => navigate("/clientes")}
-            className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
-            title="Vendas"
-          >
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="hidden sm:inline">Vendas</span>
           </button>
           <button
             onClick={() => navigate("/usuarios")}
@@ -995,9 +987,6 @@ export default function TablesPage() {
                                     <p className="text-[10px] font-bold text-foreground flex items-center gap-1 flex-wrap">
                                       👤 {ord.customer_name || ord.waiter_name || "Cliente"}
                                       <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
-                                      {(ord as any).origin === "self_service" && (
-                                        <span className="text-[8px] bg-accent/20 text-accent rounded px-1 py-0.5 font-bold uppercase">QR</span>
-                                      )}
                                       <span className="text-muted-foreground font-normal">
                                         <TableDuration createdAt={ord.created_at} />
                                       </span>

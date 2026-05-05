@@ -20,7 +20,6 @@ const actionIcons: Record<string, typeof Clock> = {
   discount_applied: MinusCircle,
   extra_charge: PlusCircle,
   comanda_created: PlusCircle,
-  self_service_order: ShoppingCart,
 };
 
 const actionColors: Record<string, string> = {
@@ -36,7 +35,6 @@ const actionColors: Record<string, string> = {
   discount_applied: "text-destructive bg-destructive/10",
   extra_charge: "text-accent bg-accent/10",
   comanda_created: "text-[hsl(var(--status-free))] bg-[hsl(var(--status-free)/0.12)]",
-  self_service_order: "text-accent bg-accent/10",
 };
 
 interface Props {
