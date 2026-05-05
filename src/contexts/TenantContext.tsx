@@ -58,8 +58,23 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     const allRoles = (userTenants ?? []).map((r) => r.role as TenantRole);
     setRoles(allRoles);
 
-    // Tenant principal: profile.tenant_id, fallback para o primeiro vínculo não-super
+    const isSuper = allRoles.includes("super_admin");
+
+    // Super Admin pode "impersonar" um tenant via sessionStorage (chave gravada
+    // pela página /__impersonate ao clicar em "Acessar PDV" no painel da plataforma).
+    // Isolado por aba: cada nova aba pode estar em um tenant diferente.
+    let impersonatedId: string | null = null;
+    if (isSuper) {
+      try {
+        impersonatedId = sessionStorage.getItem("impersonate_tenant_id");
+      } catch {
+        impersonatedId = null;
+      }
+    }
+
+    // Tenant principal: impersonado (super) > profile.tenant_id > primeiro vínculo não-super
     const targetTenantId =
+      impersonatedId ??
       (profile as any)?.tenant_id ??
       userTenants?.find((r) => r.role !== "super_admin")?.tenant_id ??
       null;
