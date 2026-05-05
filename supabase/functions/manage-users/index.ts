@@ -340,13 +340,25 @@ Deno.serve(async (req) => {
         });
       }
 
-      const mapped = authUsers.map((u) => ({
-        id: u.id,
-        email: u.email || "",
-        phone: u.phone || "",
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
-      }));
+      // Hide super_admin users from non-super-admin callers (tenant panel)
+      let hiddenIds = new Set<string>();
+      if (!isSuperAdmin) {
+        const { data: superRows } = await adminClient
+          .from("user_tenants")
+          .select("user_id")
+          .eq("role", "super_admin");
+        hiddenIds = new Set((superRows ?? []).map((r: any) => r.user_id));
+      }
+
+      const mapped = authUsers
+        .filter((u) => !hiddenIds.has(u.id))
+        .map((u) => ({
+          id: u.id,
+          email: u.email || "",
+          phone: u.phone || "",
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at,
+        }));
 
       return new Response(JSON.stringify({ users: mapped }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
