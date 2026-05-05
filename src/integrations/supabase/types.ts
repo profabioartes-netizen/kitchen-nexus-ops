@@ -32,7 +32,7 @@ export type Database = {
           description?: string
           id?: string
           session_id: string
-          tenant_id?: string
+          tenant_id: string
           type: string
         }
         Update: {
@@ -87,7 +87,7 @@ export type Database = {
           opened_by_name?: string
           opening_amount?: number
           status?: string
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           closed_at?: string | null
@@ -125,7 +125,7 @@ export type Database = {
           id?: string
           name: string
           sort_order?: number | null
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           created_at?: string
@@ -161,7 +161,7 @@ export type Database = {
           locked_by_user_id: string
           locked_by_user_name?: string
           table_id: string
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           id?: string
@@ -207,7 +207,7 @@ export type Database = {
           min_select?: number
           name: string
           required?: boolean
-          tenant_id?: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -249,7 +249,7 @@ export type Database = {
           name: string
           price?: number
           sort_order?: number | null
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           active?: boolean
@@ -301,7 +301,7 @@ export type Database = {
           raw_response?: Json | null
           reference: string
           status?: string
-          tenant_id?: string
+          tenant_id: string
           updated_at?: string
           url_danfe?: string | null
         }
@@ -347,7 +347,7 @@ export type Database = {
           order_item_id: string
           price?: number
           quantity?: number
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           complement_id?: string
@@ -419,7 +419,7 @@ export type Database = {
           ready_at?: string | null
           sent_at?: string | null
           sent_to_kitchen?: boolean
-          tenant_id?: string
+          tenant_id: string
           viewed_at?: string | null
         }
         Update: {
@@ -496,7 +496,7 @@ export type Database = {
           origin_location?: string | null
           status?: string
           table_id?: string | null
-          tenant_id?: string
+          tenant_id: string
           total?: number
           updated_at?: string
           waiter_name?: string | null
@@ -552,7 +552,7 @@ export type Database = {
           id?: string
           method: string
           order_id: string
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           amount?: number
@@ -598,7 +598,7 @@ export type Database = {
           printer_id?: string | null
           station: string
           status?: string
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           created_at?: string
@@ -655,7 +655,7 @@ export type Database = {
           name: string
           port?: number
           station?: string
-          tenant_id?: string
+          tenant_id: string
           usb_device?: string | null
         }
         Update: {
@@ -694,7 +694,7 @@ export type Database = {
           group_id: string
           id?: string
           product_id: string
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           group_id?: string
@@ -765,7 +765,7 @@ export type Database = {
           sort_order?: number | null
           station?: string
           stock?: number | null
-          tenant_id?: string
+          tenant_id: string
           updated_at?: string
           visible_on_menu?: boolean
         }
@@ -857,7 +857,7 @@ export type Database = {
         }
         Insert: {
           key: string
-          tenant_id?: string
+          tenant_id: string
           updated_at?: string
           value?: string
         }
@@ -909,7 +909,7 @@ export type Database = {
           self_service_enabled?: boolean
           sort_order?: number | null
           status?: string
-          tenant_id?: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -958,7 +958,7 @@ export type Database = {
           order_id?: string | null
           session_token?: string
           table_id: string
-          tenant_id?: string
+          tenant_id: string
         }
         Update: {
           created_at?: string
@@ -1012,7 +1012,7 @@ export type Database = {
           id?: string
           order_id?: string | null
           table_id: string
-          tenant_id?: string
+          tenant_id: string
           user_name?: string | null
         }
         Update: {
@@ -1142,6 +1142,13 @@ export type Database = {
           p_user_name: string
         }
         Returns: Json
+      }
+      audit_tenant_isolation: {
+        Args: never
+        Returns: {
+          rows_without_tenant: number
+          table_name: string
+        }[]
       }
       current_tenant_id: { Args: { _user_id?: string }; Returns: string }
       get_or_create_open_order:
