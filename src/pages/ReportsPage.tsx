@@ -46,8 +46,8 @@ export default function ReportsPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
-  const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>("7");
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
+  const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>("today");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [channel, setChannel] = useState<Channel>("all");
   const [productSort, setProductSort] = useState<SortMode>("revenue");
