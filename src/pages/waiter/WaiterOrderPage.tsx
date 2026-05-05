@@ -333,17 +333,20 @@ export default function WaiterOrderPage() {
 
   const addItem = useMutation({
     mutationFn: async (payload: AddItemPayload) => {
-      const { product, quantity, notes, complements, complementsTotal } = payload;
+      const { product, quantity, notes, complements, complementsTotal, grams, unitPriceOverride, productNameOverride } = payload;
       let currentOrder = order;
       if (!currentOrder) currentOrder = await createOrder.mutateAsync({});
-      const unitPrice = Number(product.price) + complementsTotal;
+      const isWeight = typeof unitPriceOverride === "number" && typeof grams === "number";
+      const unitPrice = isWeight ? unitPriceOverride! : Number(product.price) + complementsTotal;
+      const productName = productNameOverride || product.name;
+
       const { data: insertedItem, error: itemError } = await supabase.from("order_items").insert({
-        order_id: currentOrder.id, product_id: product.id, product_name: product.name, price: unitPrice, quantity,
+        order_id: currentOrder.id, product_id: product.id, product_name: productName, price: unitPrice, quantity,
         notes: notes || null, sent_to_kitchen: false, preparation_status: "pending",
       } as any).select().single();
       if (itemError) throw itemError;
 
-      if (complements.length > 0) {
+      if (!isWeight && complements.length > 0) {
         await supabase.from("order_item_complements").insert(
           complements.map((c) => ({ order_item_id: insertedItem.id, complement_id: c.id, complement_name: c.name, price: c.price, quantity: c.quantity }))
         );
@@ -353,7 +356,10 @@ export default function WaiterOrderPage() {
       if (table?.status === "delivered") {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
-      await logActivity(tableId!, "item_added", `${product.name} ×${quantity} (R$ ${(unitPrice * quantity).toFixed(2)})`, currentOrder.id, profile?.full_name);
+      const desc = isWeight
+        ? `${productName} (R$ ${unitPrice.toFixed(2)})`
+        : `${product.name} ×${quantity} (R$ ${(unitPrice * quantity).toFixed(2)})`;
+      await logActivity(tableId!, "item_added", desc, currentOrder.id, profile?.full_name);
     },
     onSuccess: () => {
       setSelectedProduct(null);
