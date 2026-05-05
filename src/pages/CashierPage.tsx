@@ -387,14 +387,14 @@ export default function CashierPage() {
           ))}
         </div>
 
-        <div className="border-t p-4 space-y-3 flex-shrink-0 max-h-[50vh] overflow-auto">
+        <div className="border-t border-primary/30 p-4 space-y-3 flex-shrink-0 max-h-[55vh] overflow-auto bg-background/40">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground text-sm">Subtotal</span>
-            <span className="font-semibold">R$ {subtotal.toFixed(2)}</span>
+            <span className="font-semibold text-foreground">R$ {subtotal.toFixed(2)}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="font-display text-xl">TOTAL</span>
-            <span className="font-display text-xl">R$ {subtotal.toFixed(2)}</span>
+          <div className="flex items-center justify-between rounded-lg bg-primary/30 px-4 py-3 border-2 border-accent/60">
+            <span className="font-display text-xl font-extrabold text-white tracking-wide">TOTAL</span>
+            <span className="font-display text-3xl font-black text-accent tabular-nums">R$ {subtotal.toFixed(2)}</span>
           </div>
 
           {/* Payment method selection */}
@@ -454,18 +454,18 @@ export default function CashierPage() {
 
           {/* Confirm payment buttons */}
           {selectedMethod && (
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <button
                 disabled={order.length === 0 || payMutation.isPending}
                 onClick={() => payMutation.mutate(selectedMethod)}
-                className="flex-1 rounded-md bg-accent text-accent-foreground py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full rounded-lg bg-accent text-accent-foreground py-4 text-base font-extrabold uppercase tracking-wide hover:brightness-95 active:scale-[0.98] transition disabled:opacity-50 shadow-lg shadow-accent/20"
               >
-                {payMutation.isPending ? "Processando..." : `✅ Finalizar`}
+                {payMutation.isPending ? "Processando..." : "✅ Finalizar Venda"}
               </button>
               <button
                 disabled={order.length === 0 || payMutation.isPending}
                 onClick={handleFinalizeAndPrint}
-                className="flex-1 rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="w-full rounded-lg bg-primary text-primary-foreground py-3 text-sm font-semibold hover:brightness-110 transition disabled:opacity-50"
               >
                 🧾 Finalizar + Imprimir
               </button>
@@ -493,6 +493,7 @@ export default function CashierPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
