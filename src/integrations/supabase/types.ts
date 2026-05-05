@@ -1143,6 +1143,13 @@ export type Database = {
         }
         Returns: Json
       }
+      audit_tenant_isolation: {
+        Args: never
+        Returns: {
+          rows_without_tenant: number
+          table_name: string
+        }[]
+      }
       current_tenant_id: { Args: { _user_id?: string }; Returns: string }
       get_or_create_open_order:
         | {

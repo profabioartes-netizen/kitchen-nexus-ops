@@ -1,0 +1,20 @@
+
+ALTER TABLE public.orders ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.order_items ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.order_item_complements ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.payments ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.products ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.categories ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.print_jobs ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.printers ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.cash_movements ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.cash_register_sessions ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.restaurant_tables ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.restaurant_settings ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.table_activity_log ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.nfce_records ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.complements ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.complement_groups ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.product_complement_groups ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.self_service_sessions ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
+ALTER TABLE public.comanda_locks ALTER COLUMN tenant_id SET DEFAULT public.current_tenant_id(auth.uid());
