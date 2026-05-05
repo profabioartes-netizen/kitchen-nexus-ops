@@ -48,7 +48,18 @@ Deno.serve(async (req) => {
       .eq("id", callerId)
       .single();
 
-    if (callerProfile?.role !== "admin") {
+    // Check if caller is super_admin or admin (legacy) or admin_cliente
+    const { data: callerRoles } = await adminClient
+      .from("user_tenants")
+      .select("role,tenant_id,active")
+      .eq("user_id", callerId)
+      .eq("active", true);
+
+    const isSuperAdmin = (callerRoles ?? []).some((r) => r.role === "super_admin");
+    const isAdminCliente = (callerRoles ?? []).some((r) => r.role === "admin_cliente");
+    const isLegacyAdmin = callerProfile?.role === "admin";
+
+    if (!isSuperAdmin && !isAdminCliente && !isLegacyAdmin) {
       return new Response(JSON.stringify({ error: "Apenas administradores podem gerenciar usuários" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
