@@ -777,7 +777,6 @@ export default function PrintersPage() {
                 <select value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
                   <option value="Caixa">Caixa</option>
                   <option value="Cozinha">Cozinha</option>
-                  <option value="Bebidas">Bebidas</option>
                   <option value="Geral">Geral</option>
                 </select>
               </div>
@@ -822,25 +821,61 @@ export default function PrintersPage() {
                   </div>
                 </div>
               ) : (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Dispositivo USB (opcional)</label>
-                  <input
-                    type="text"
-                    value={form.usb_device}
-                    onChange={(e) => setForm({ ...form, usb_device: e.target.value })}
-                    placeholder="Identificador local (ex: USB001, /dev/usb/lp0)"
-                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    O agente de impressão local detecta a impressora USB conectada ao computador desta estação.
-                  </p>
+                <div className="space-y-3 rounded-md border bg-card p-3">
+                  <button
+                    type="button"
+                    onClick={detectUsbPrinters}
+                    disabled={discovering}
+                    className="w-full flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+                  >
+                    {discovering ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Detectando...</>
+                    ) : (
+                      <><Printer className="h-4 w-4" /> Detectar impressoras USB</>
+                    )}
+                  </button>
+
+                  {discoveries.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground">Selecione a impressora:</p>
+                      {discoveries.map((d) => {
+                        const selected = form.usb_device === d.device_id;
+                        return (
+                          <button
+                            key={d.device_id}
+                            type="button"
+                            onClick={() => selectDiscoveredPrinter(d)}
+                            className={`w-full text-left rounded-md border px-3 py-2 text-sm transition-colors ${
+                              selected
+                                ? "border-accent bg-accent/10 text-accent"
+                                : "hover:bg-secondary"
+                            }`}
+                          >
+                            <div className="font-medium">{d.display_name}</div>
+                            <div className="text-xs text-muted-foreground truncate">{d.device_id}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {discoveryError && (
+                    <p className="text-xs text-destructive">{discoveryError}</p>
+                  )}
+
+                  {!discoveryError && discoveries.length === 0 && !discovering && (
+                    <p className="text-xs text-muted-foreground">
+                      Clique em "Detectar impressoras USB" para listar os dispositivos conectados a este computador.
+                    </p>
+                  )}
+
+                  {form.usb_device && (
+                    <div className="text-xs text-muted-foreground">
+                      Selecionada: <span className="font-medium text-foreground">{form.usb_device}</span>
+                    </div>
+                  )}
                 </div>
               )}
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Modelo (opcional)</label>
-                <input type="text" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Ex: Epson TM-T20" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-              </div>
 
               <label className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 cursor-pointer">
                 <div>
