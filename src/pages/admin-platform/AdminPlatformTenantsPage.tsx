@@ -157,7 +157,7 @@ export default function AdminPlatformTenantsPage() {
 
             <div className="flex items-center justify-end gap-1 border-t pt-2">
               <button title="Acessar PDV"
-                onClick={() => window.open(`/${t.slug}`, "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(`/__impersonate?tenant=${t.id}`, "_blank", "noopener,noreferrer")}
                 className="p-2 rounded hover:bg-accent/20 text-accent">
                 <Store className="h-4 w-4" />
               </button>
@@ -240,7 +240,7 @@ export default function AdminPlatformTenantsPage() {
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-1">
                     <button title="Acessar PDV"
-                      onClick={() => window.open(`/${t.slug}`, "_blank", "noopener,noreferrer")}
+                      onClick={() => window.open(`/__impersonate?tenant=${t.id}`, "_blank", "noopener,noreferrer")}
                       className="p-2 rounded hover:bg-accent/20 text-accent">
                       <Store className="h-4 w-4" />
                     </button>

@@ -2,12 +2,27 @@ import { Outlet } from "react-router-dom";
 import { NavigationRail } from "./NavigationRail";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, RefreshCw } from "lucide-react";
+import { useTenant } from "@/contexts/TenantContext";
+import { LogOut, RefreshCw, ShieldAlert } from "lucide-react";
 import brandLogo from "@/assets/logo-espetinho.png";
 
 export function AppLayout() {
   const isMobile = useIsMobile();
   const { profile, signOut } = useAuth();
+  const { tenant, isSuperAdmin, reload } = useTenant();
+
+  const isImpersonating =
+    isSuperAdmin && typeof window !== "undefined" && !!sessionStorage.getItem("impersonate_tenant_id");
+
+  const exitImpersonation = () => {
+    try {
+      sessionStorage.removeItem("impersonate_tenant_id");
+    } catch {
+      // ignore
+    }
+    reload();
+    window.location.href = "/admin-platform";
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden">
@@ -38,8 +53,26 @@ export function AppLayout() {
           </div>
         </header>
       )}
-      <main className="flex-1 min-h-0 overflow-hidden">
-        <Outlet />
+      <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {isImpersonating && (
+          <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-amber-500/15 border-b border-amber-500/40 text-amber-100 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <ShieldAlert className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">
+                Modo Super Admin — visualizando o PDV de <strong>{tenant?.nome_comercio || "estabelecimento"}</strong>.
+              </span>
+            </div>
+            <button
+              onClick={exitImpersonation}
+              className="px-2 py-1 rounded bg-amber-500/30 hover:bg-amber-500/50 font-medium"
+            >
+              Voltar ao Painel Super Admin
+            </button>
+          </div>
+        )}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

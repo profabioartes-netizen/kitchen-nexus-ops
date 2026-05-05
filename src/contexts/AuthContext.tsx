@@ -82,6 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    try {
+      sessionStorage.removeItem("impersonate_tenant_id");
+    } catch {
+      // ignore
+    }
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
