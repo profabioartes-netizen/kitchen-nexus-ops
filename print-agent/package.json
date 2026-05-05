@@ -1,14 +1,19 @@
 {
-  "name": "coffee-thrones-print-agent",
+  "name": "huskypdv-print-agent",
   "version": "1.0.0",
-  "description": "Agente local de impressão ESC/POS para Coffee Thrones",
-  "main": "agent.mjs",
-  "type": "module",
+  "description": "Agente de impressão térmica ESC/POS para HuskyPDV. Roda no notebook do estabelecimento via PM2 e processa a fila de print_jobs do Supabase.",
+  "main": "coffee-print.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node agent.mjs",
-    "dev": "node --watch agent.mjs"
+    "start": "node coffee-print.js",
+    "dev": "node --watch coffee-print.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.0"
-  }
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED"
 }
