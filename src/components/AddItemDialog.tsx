@@ -140,10 +140,30 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
     }
   };
 
+  const gramsNum = parseInt(grams, 10) || 0;
+  const weightTotal = isWeight ? (gramsNum / 1000) * pricePerKg : 0;
+  const weightTotalRounded = Math.round(weightTotal * 100) / 100;
+
   const complementsTotal = selectedComplements.reduce((s, c) => s + c.price * c.quantity, 0);
-  const itemTotal = (Number(product.price) + complementsTotal) * quantity;
+  const itemTotal = isWeight
+    ? weightTotalRounded
+    : (Number(product.price) + complementsTotal) * quantity;
 
   const handleAdd = () => {
+    if (isWeight) {
+      if (gramsNum <= 0) return;
+      onAdd({
+        product,
+        quantity: 1,
+        notes: notes.trim(),
+        complements: [],
+        complementsTotal: 0,
+        grams: gramsNum,
+        unitPriceOverride: weightTotalRounded,
+        productNameOverride: `${product.name} - ${gramsNum}g`,
+      });
+      return;
+    }
     onAdd({
       product,
       quantity,
@@ -169,7 +189,11 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <h3 className="font-semibold text-base">{product.name}</h3>
-            <p className="text-sm text-accent font-medium">R$ {Number(product.price).toFixed(2)}</p>
+            <p className="text-sm text-accent font-medium">
+              {isWeight
+                ? `R$ ${pricePerKg.toFixed(2)} / kg`
+                : `R$ ${Number(product.price).toFixed(2)}`}
+            </p>
           </div>
           <button onClick={onClose} className="rounded p-1.5 hover:bg-secondary">
             <X className="h-4 w-4" />
