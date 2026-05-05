@@ -202,25 +202,59 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
 
         {/* Body */}
         <div className="flex-1 overflow-auto p-4 space-y-4">
-          {/* Quantity */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quantidade</label>
-            <div className="flex items-center gap-3 mt-1.5">
-              <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="rounded-md border p-2 hover:bg-secondary"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity((q) => q + 1)}
-                className="rounded-md border p-2 hover:bg-secondary"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+          {/* Quantity OR Weight */}
+          {isWeight ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Peso (gramas)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  value={grams}
+                  onChange={(e) => setGrams(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="Ex: 450"
+                  className="mt-1.5 w-full rounded-md border bg-card px-3 py-2.5 text-base font-semibold outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-md border bg-muted/30 px-3 py-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Valor por kg</p>
+                  <p className="font-semibold">R$ {pricePerKg.toFixed(2)}</p>
+                </div>
+                <div className="rounded-md border bg-accent/10 border-accent/30 px-3 py-2">
+                  <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+                  <p className="font-semibold text-accent">R$ {weightTotalRounded.toFixed(2)}</p>
+                </div>
+              </div>
+              {gramsNum > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  ({gramsNum}g ÷ 1000) × R$ {pricePerKg.toFixed(2)} = R$ {weightTotalRounded.toFixed(2)}
+                </p>
+              )}
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quantidade</label>
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="rounded-md border p-2 hover:bg-secondary"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
+                <button
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="rounded-md border p-2 hover:bg-secondary"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Complements */}
           {hasComplements && complementGroups.map((group) => {
