@@ -14,7 +14,17 @@ export default function PrintersPage() {
   const [pinInput, setPinInput] = useState("");
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
+  const [form, setForm] = useState({
+    name: "",
+    station: "Caixa",
+    model: "",
+    connection_type: "network" as "network" | "usb",
+    ip: "",
+    port: "9100",
+    usb_device: "",
+    auto_print: true,
+  });
+  const [testingId, setTestingId] = useState<string | null>(null);
   const [agentActive, setAgentActive] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
@@ -120,8 +130,11 @@ export default function PrintersPage() {
         name: form.name,
         station: form.station,
         model: form.model,
-        ip: form.ip,
-        port: parseInt(form.port) || 9100,
+        connection_type: form.connection_type,
+        ip: form.connection_type === "network" ? form.ip : "",
+        port: form.connection_type === "network" ? (parseInt(form.port) || 9100) : 9100,
+        usb_device: form.connection_type === "usb" ? form.usb_device : null,
+        auto_print: form.auto_print,
       };
       if (editing) {
         const { error } = await supabase.from("printers").update(payload).eq("id", editing.id);
@@ -137,6 +150,32 @@ export default function PrintersPage() {
       toast.success("Impressora salva");
     },
     onError: (err) => toast.error((err as Error).message),
+  });
+
+  const testPrintMutation = useMutation({
+    mutationFn: async (printer: any) => {
+      setTestingId(printer.id);
+      const { error } = await supabase.from("print_jobs").insert({
+        station: printer.station,
+        printer_id: printer.id,
+        status: "pending",
+        payload: {
+          type: "test",
+          title: "TESTE DE IMPRESSÃO",
+          printer_name: printer.name,
+          station: printer.station,
+          message: "Se você consegue ler este ticket, a impressora está configurada corretamente.",
+          timestamp: new Date().toISOString(),
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Teste enviado para a fila de impressão");
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+    },
+    onError: (err) => toast.error((err as Error).message),
+    onSettled: () => setTestingId(null),
   });
 
   const toggleActive = useMutation({
@@ -204,13 +243,31 @@ export default function PrintersPage() {
   });
 
   const openNew = () => {
-    setForm({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
+    setForm({
+      name: "",
+      station: "Caixa",
+      model: "",
+      connection_type: "network",
+      ip: "",
+      port: "9100",
+      usb_device: "",
+      auto_print: true,
+    });
     setEditing(null);
     setShowForm(true);
   };
 
   const openEdit = (p: any) => {
-    setForm({ name: p.name, station: p.station, model: p.model, ip: p.ip, port: String(p.port) });
+    setForm({
+      name: p.name ?? "",
+      station: p.station ?? "Caixa",
+      model: p.model ?? "",
+      connection_type: (p.connection_type as "network" | "usb") ?? "network",
+      ip: p.ip ?? "",
+      port: String(p.port ?? "9100"),
+      usb_device: p.usb_device ?? "",
+      auto_print: p.auto_print ?? true,
+    });
     setEditing(p);
     setShowForm(true);
   };
@@ -516,8 +573,8 @@ export default function PrintersPage() {
       </p>
 
       {/* Routing diagram */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {["Caixa", "Cozinha", "Bebidas", "Sobremesa"].map((station) => {
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {["Caixa", "Cozinha", "Bebidas", "Geral"].map((station) => {
           const stationPrinters = printers.filter((p) => p.station === station && p.active);
           return (
             <div key={station} className="rounded-lg border bg-card p-4">
@@ -529,7 +586,13 @@ export default function PrintersPage() {
                 stationPrinters.map((p) => (
                   <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                     <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
-                    <span>{p.name} — {p.model} ({p.ip})</span>
+                    <span>
+                      {p.name}
+                      {p.model ? ` — ${p.model}` : ""}
+                      {p.connection_type === "usb"
+                        ? ` (USB${p.usb_device ? `: ${p.usb_device}` : ""})`
+                        : p.ip ? ` (${p.ip})` : ""}
+                    </span>
                     {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
                   </div>
                 ))
@@ -547,26 +610,51 @@ export default function PrintersPage() {
           <thead>
             <tr className="border-b bg-secondary/50">
               <th className="text-left px-4 py-2 font-medium">Nome</th>
-              <th className="text-left px-4 py-2 font-medium">Estação</th>
-              <th className="text-left px-4 py-2 font-medium">Modelo</th>
-              <th className="text-left px-4 py-2 font-medium">IP</th>
-              <th className="text-center px-4 py-2 font-medium">Conexão</th>
+              <th className="text-left px-4 py-2 font-medium">Setor</th>
+              <th className="text-left px-4 py-2 font-medium">Conexão</th>
+              <th className="text-left px-4 py-2 font-medium">Endereço</th>
+              <th className="text-center px-4 py-2 font-medium">Auto</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2 w-24"></th>
+              <th className="text-center px-4 py-2 font-medium">Ativa</th>
+              <th className="px-4 py-2 w-40"></th>
             </tr>
           </thead>
           <tbody>
+            {printers.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Nenhuma impressora configurada. Clique em <strong>Nova Impressora</strong> para começar.
+                </td>
+              </tr>
+            )}
             {printers.map((p) => {
               const online = isOnline(p);
+              const isUsb = p.connection_type === "usb";
               return (
               <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/30">
-                <td className="px-4 py-3 font-medium flex items-center gap-2">
-                  <Printer className="h-4 w-4 text-muted-foreground" />
-                  {p.name}
+                <td className="px-4 py-3 font-medium">
+                  <div className="flex items-center gap-2">
+                    <Printer className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div>{p.name}</div>
+                      {p.model && <div className="text-xs text-muted-foreground font-normal">{p.model}</div>}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.model}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.ip}:{p.port}</td>
+                <td className="px-4 py-3 text-muted-foreground uppercase text-xs">{isUsb ? "USB" : "Rede"}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">
+                  {isUsb ? (p.usb_device || "—") : (p.ip ? `${p.ip}:${p.port}` : "—")}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                    p.auto_print
+                      ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {p.auto_print ? "Sim" : "Não"}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-center">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
                     online
@@ -589,10 +677,18 @@ export default function PrintersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => openEdit(p)} className="rounded p-1 hover:bg-secondary">
+                    <button
+                      onClick={() => testPrintMutation.mutate(p)}
+                      disabled={testingId === p.id}
+                      title="Testar impressão"
+                      className="rounded px-2 py-1 text-xs font-medium border border-accent/40 text-accent hover:bg-accent/10 disabled:opacity-50"
+                    >
+                      {testingId === p.id ? "..." : "Testar"}
+                    </button>
+                    <button onClick={() => openEdit(p)} className="rounded p-1 hover:bg-secondary" title="Editar">
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </button>
-                    <button onClick={() => remove(p.id)} className="rounded p-1 hover:bg-destructive/10 text-destructive">
+                    <button onClick={() => remove(p.id)} className="rounded p-1 hover:bg-destructive/10 text-destructive" title="Remover">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -616,36 +712,105 @@ export default function PrintersPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nome</label>
+                <label className="text-sm font-medium text-muted-foreground">Nome da impressora</label>
                 <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Impressora Cozinha" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
               </div>
+
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Estação</label>
+                <label className="text-sm font-medium text-muted-foreground">Setor</label>
                 <select value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
                   <option value="Caixa">Caixa</option>
                   <option value="Cozinha">Cozinha</option>
                   <option value="Bebidas">Bebidas</option>
-                  <option value="Sobremesa">Sobremesa</option>
+                  <option value="Geral">Geral</option>
                 </select>
               </div>
+
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Modelo</label>
+                <label className="text-sm font-medium text-muted-foreground">Tipo de conexão</label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, connection_type: "network" })}
+                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      form.connection_type === "network"
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-card hover:bg-secondary"
+                    }`}
+                  >
+                    Rede (IP)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, connection_type: "usb" })}
+                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      form.connection_type === "usb"
+                        ? "bg-accent text-accent-foreground border-accent"
+                        : "bg-card hover:bg-secondary"
+                    }`}
+                  >
+                    USB
+                  </button>
+                </div>
+              </div>
+
+              {form.connection_type === "network" ? (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">IP</label>
+                    <input type="text" value={form.ip} onChange={(e) => setForm({ ...form, ip: e.target.value })} placeholder="192.168.1.100" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Porta</label>
+                    <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Dispositivo USB (opcional)</label>
+                  <input
+                    type="text"
+                    value={form.usb_device}
+                    onChange={(e) => setForm({ ...form, usb_device: e.target.value })}
+                    placeholder="Identificador local (ex: USB001, /dev/usb/lp0)"
+                    className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    O agente de impressão local detecta a impressora USB conectada ao computador desta estação.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Modelo (opcional)</label>
                 <input type="text" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Ex: Epson TM-T20" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <label className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 cursor-pointer">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">IP</label>
-                  <input type="text" value={form.ip} onChange={(e) => setForm({ ...form, ip: e.target.value })} placeholder="192.168.1.100" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                  <div className="text-sm font-medium">Impressão automática</div>
+                  <div className="text-xs text-muted-foreground">Envia tickets desta impressora automaticamente para a fila.</div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Porta</label>
-                  <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-                </div>
-              </div>
+                <input
+                  type="checkbox"
+                  checked={form.auto_print}
+                  onChange={(e) => setForm({ ...form, auto_print: e.target.checked })}
+                  className="h-5 w-5 accent-accent"
+                />
+              </label>
             </div>
-            <div className="flex justify-end gap-2 mt-6">
+            <div className="flex flex-wrap justify-end gap-2 mt-6">
+              {editing && (
+                <button
+                  onClick={() => testPrintMutation.mutate(editing)}
+                  disabled={testingId === editing.id}
+                  className="rounded-md border border-accent/40 text-accent px-4 py-2 text-sm font-medium hover:bg-accent/10 disabled:opacity-50 mr-auto"
+                >
+                  {testingId === editing.id ? "Enviando..." : "Testar impressão"}
+                </button>
+              )}
               <button onClick={() => setShowForm(false)} className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-secondary">Cancelar</button>
-              <button disabled={!form.name.trim()} onClick={() => saveMutation.mutate()} className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50">Salvar</button>
+              <button disabled={!form.name.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate()} className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50">Salvar</button>
             </div>
           </div>
         </div>
