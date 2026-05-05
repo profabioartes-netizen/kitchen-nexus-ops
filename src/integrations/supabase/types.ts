@@ -1094,6 +1094,33 @@ export type Database = {
         }
         Relationships: []
       }
+      usb_printer_discoveries: {
+        Row: {
+          agent_host: string | null
+          device_id: string
+          display_name: string
+          id: string
+          reported_at: string
+          tenant_id: string
+        }
+        Insert: {
+          agent_host?: string | null
+          device_id: string
+          display_name: string
+          id?: string
+          reported_at?: string
+          tenant_id?: string
+        }
+        Update: {
+          agent_host?: string | null
+          device_id?: string
+          display_name?: string
+          id?: string
+          reported_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       user_tenants: {
         Row: {
           active: boolean
