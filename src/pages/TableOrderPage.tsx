@@ -1046,9 +1046,28 @@ export default function TableOrderPage() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-semibold leading-tight truncate">
-              {order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
-            </h1>
+            {order ? (
+              <input
+                type="text"
+                defaultValue={order.customer_name || ""}
+                key={`m-cust-${order.id}-${order.customer_name ?? ""}`}
+                placeholder={(table as any)?.default_name || table?.name || "Cliente"}
+                onBlur={async (e) => {
+                  const newName = e.target.value.trim();
+                  if (newName !== (order.customer_name || "")) {
+                    await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
+                    queryClient.invalidateQueries({ queryKey: ["order", tableId] });
+                    queryClient.invalidateQueries({ queryKey: ["orders"] });
+                  }
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                className="text-base font-semibold leading-tight truncate bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none w-full py-0.5"
+              />
+            ) : (
+              <h1 className="text-base font-semibold leading-tight truncate">
+                {(table as any)?.default_name || table?.name || "Comanda"}
+              </h1>
+            )}
             {order?.customer_name && (
               <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
             )}
@@ -1127,9 +1146,28 @@ export default function TableOrderPage() {
           </button>
           <div className="flex items-center gap-2 flex-1">
             <div className="flex flex-col">
-              <h1 className="text-xl font-semibold leading-tight">
-                {order?.customer_name || (table as any)?.default_name || table?.name || "Comanda"}
-              </h1>
+              {order ? (
+                <input
+                  type="text"
+                  defaultValue={order.customer_name || ""}
+                  key={`d-cust-${order.id}-${order.customer_name ?? ""}`}
+                  placeholder={(table as any)?.default_name || table?.name || "Cliente"}
+                  onBlur={async (e) => {
+                    const newName = e.target.value.trim();
+                    if (newName !== (order.customer_name || "")) {
+                      await supabase.from("orders").update({ customer_name: newName || null }).eq("id", order.id);
+                      queryClient.invalidateQueries({ queryKey: ["order", tableId] });
+                      queryClient.invalidateQueries({ queryKey: ["orders"] });
+                    }
+                  }}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                  className="text-xl font-semibold leading-tight bg-transparent border-b border-transparent hover:border-border focus:border-ring outline-none py-0.5 max-w-[260px]"
+                />
+              ) : (
+                <h1 className="text-xl font-semibold leading-tight">
+                  {(table as any)?.default_name || table?.name || "Comanda"}
+                </h1>
+              )}
               {order?.customer_name && (
                 <span className="text-[10px] text-muted-foreground">{(table as any)?.default_name || table?.name}</span>
               )}
