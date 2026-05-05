@@ -18,6 +18,7 @@ import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import ReportsPage from "@/pages/ReportsPage";
+import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "@/pages/NotFound";
@@ -156,6 +157,7 @@ const App = () => (
               <Route path="/impressoras" element={<PrintersPage />} />
               <Route path="/impressoras/agente" element={<PrintAgentPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
+              <Route path="/vendas" element={<SalesPage />} />
               <Route path="/usuarios" element={<UsersPage />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
