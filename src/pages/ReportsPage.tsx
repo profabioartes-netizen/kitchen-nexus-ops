@@ -43,8 +43,10 @@ type QuickPeriod = "today" | "7" | "14" | "30" | "custom";
 type SortMode = "revenue" | "qty";
 
 export default function ReportsPage() {
+  const { pinEnabled } = useSecurityPinEnabled();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>("7");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
