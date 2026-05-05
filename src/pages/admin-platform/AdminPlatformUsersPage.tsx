@@ -34,13 +34,35 @@ export default function AdminPlatformUsersPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Usuários da plataforma</h1>
-        <p className="text-sm text-muted-foreground">Visão geral de todos os vínculos usuário ↔ estabelecimento</p>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-full">
+      <div className="min-w-0">
+        <h1 className="text-xl md:text-2xl font-bold break-words">Usuários da plataforma</h1>
+        <p className="text-xs md:text-sm text-muted-foreground break-words">
+          Visão geral de todos os vínculos usuário ↔ estabelecimento
+        </p>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-hidden">
+      {/* Mobile: cards */}
+      <div className="md:hidden space-y-2">
+        {isLoading && (
+          <div className="p-6 text-center text-muted-foreground rounded-lg border bg-card">Carregando...</div>
+        )}
+        {rows.map((r, i) => (
+          <div key={i} className="rounded-lg border bg-card p-3 space-y-1.5">
+            <div className="font-semibold break-words">{r.full_name}</div>
+            <div className="text-xs text-muted-foreground break-words">{r.tenant_name}</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                r.role === "super_admin" ? "bg-accent/20 text-accent" : "bg-primary/20 text-primary-foreground"
+              }`}>{r.role}</span>
+              <span className="text-xs text-muted-foreground">{r.active ? "Ativo" : "Inativo"}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block rounded-lg border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-muted-foreground text-xs uppercase">
             <tr>
