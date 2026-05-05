@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart3, FileText, LogOut } from "lucide-react";
+import { BarChart3, LogOut } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 
 export default function AccountingLayout() {
