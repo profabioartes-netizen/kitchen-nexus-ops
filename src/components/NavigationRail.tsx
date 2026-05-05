@@ -133,9 +133,11 @@ export function NavigationRail() {
         {!collapsed && (
           <div className="flex flex-col min-w-0">
             <span className="font-display text-sm font-bold text-white leading-tight truncate">
-              Espetinho do Marcelo
+              {tenant?.nome_comercio || "HuskyPDV"}
             </span>
-            <span className="text-[10px] text-sidebar-foreground/60 leading-tight">Bar e Restaurante</span>
+            <span className="text-[10px] text-sidebar-foreground/60 leading-tight">
+              {isSuperAdmin ? "Plataforma HuskyPDV" : "Bar e Restaurante"}
+            </span>
           </div>
         )}
       </div>
