@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { X, Upload, Sparkles, Loader2, Trash2 } from "lucide-react";
+import { X, Upload, Loader2, Trash2 } from "lucide-react";
 
 interface ProductFormData {
   name: string;
@@ -39,11 +39,6 @@ interface Props {
   onClose: () => void;
 }
 
-interface ImageSuggestion {
-  url: string;
-  alt: string;
-}
-
 export function ProductFormDialog({ productId, onClose }: Props) {
   const queryClient = useQueryClient();
   const isEditing = !!productId;
@@ -53,10 +48,6 @@ export function ProductFormDialog({ productId, onClose }: Props) {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [suggestions, setSuggestions] = useState<ImageSuggestion[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchedName = useRef<string>("");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -179,86 +170,6 @@ export function ProductFormDialog({ productId, onClose }: Props) {
 
   const handleRemoveImage = () => {
     setForm((prev) => ({ ...prev, image_url: "" }));
-  };
-
-  const fetchSuggestions = useCallback(async (name: string) => {
-    if (!name.trim() || name.trim().length < 3) {
-      setSuggestions([]);
-      return;
-    }
-    if (name.trim() === lastFetchedName.current) return;
-    lastFetchedName.current = name.trim();
-
-    setLoadingSuggestions(true);
-    setSuggestions([]);
-    try {
-      const { data, error } = await supabase.functions.invoke("product-image-suggestions", {
-        body: { productName: name.trim() },
-      });
-
-      if (error) throw error;
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      setSuggestions(data?.suggestions || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  }, []);
-
-  // Debounced auto-fetch when name changes
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (form.name.trim().length >= 3) {
-      debounceRef.current = setTimeout(() => {
-        fetchSuggestions(form.name);
-      }, 1500);
-    } else {
-      setSuggestions([]);
-    }
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [form.name, fetchSuggestions]);
-
-  const selectSuggestion = async (url: string) => {
-    // If it's a base64 image, upload to storage first
-    if (url.startsWith("data:image")) {
-      setUploading(true);
-      try {
-        const res = await fetch(url);
-        const blob = await res.blob();
-        const ext = blob.type.includes("png") ? "png" : "jpg";
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const filePath = `products/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("product-images")
-          .upload(filePath, blob);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from("product-images")
-          .getPublicUrl(filePath);
-
-        setForm((prev) => ({ ...prev, image_url: urlData.publicUrl }));
-        setSuggestions([]);
-        toast.success("Imagem selecionada e salva!");
-      } catch (err) {
-        toast.error("Erro ao salvar imagem: " + (err as Error).message);
-      } finally {
-        setUploading(false);
-      }
-    } else {
-      setForm((prev) => ({ ...prev, image_url: url }));
-      setSuggestions([]);
-      toast.success("Imagem selecionada!");
-    }
   };
 
   const saveMutation = useMutation({
@@ -541,58 +452,6 @@ export function ProductFormDialog({ productId, onClose }: Props) {
               Resolução ideal: <strong>400x400</strong> ou <strong>800x800</strong>
             </p>
           </div>
-        </div>
-
-        {/* AI Suggestions */}
-        <div className="mt-4 border-t pt-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-accent" />
-            <span className="text-sm font-medium text-muted-foreground">Sugestões de foto</span>
-            {loadingSuggestions && <Loader2 className="h-4 w-4 animate-spin text-accent" />}
-          </div>
-
-          {loadingSuggestions && suggestions.length === 0 && (
-            <p className="text-xs text-muted-foreground mt-2">Gerando sugestões para "{form.name}"...</p>
-          )}
-
-          {!loadingSuggestions && suggestions.length === 0 && form.name.trim().length >= 3 && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Nenhum resultado encontrado.{" "}
-              <button
-                type="button"
-                onClick={() => { lastFetchedName.current = ""; fetchSuggestions(form.name); }}
-                className="text-accent hover:underline"
-              >
-                Tentar novamente
-              </button>
-            </p>
-          )}
-
-          {!loadingSuggestions && suggestions.length === 0 && form.name.trim().length < 3 && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Digite pelo menos 3 caracteres no nome do produto.
-            </p>
-          )}
-
-          {suggestions.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {suggestions.map((s, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => selectSuggestion(s.url)}
-                  disabled={uploading}
-                  className="rounded-lg border overflow-hidden aspect-square bg-card hover:ring-2 hover:ring-accent transition-all disabled:opacity-50"
-                >
-                  <img
-                    src={s.url}
-                    alt={s.alt}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Complement Groups */}
