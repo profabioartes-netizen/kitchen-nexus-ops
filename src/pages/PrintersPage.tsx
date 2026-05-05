@@ -610,26 +610,51 @@ export default function PrintersPage() {
           <thead>
             <tr className="border-b bg-secondary/50">
               <th className="text-left px-4 py-2 font-medium">Nome</th>
-              <th className="text-left px-4 py-2 font-medium">Estação</th>
-              <th className="text-left px-4 py-2 font-medium">Modelo</th>
-              <th className="text-left px-4 py-2 font-medium">IP</th>
-              <th className="text-center px-4 py-2 font-medium">Conexão</th>
+              <th className="text-left px-4 py-2 font-medium">Setor</th>
+              <th className="text-left px-4 py-2 font-medium">Conexão</th>
+              <th className="text-left px-4 py-2 font-medium">Endereço</th>
+              <th className="text-center px-4 py-2 font-medium">Auto</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2 w-24"></th>
+              <th className="text-center px-4 py-2 font-medium">Ativa</th>
+              <th className="px-4 py-2 w-40"></th>
             </tr>
           </thead>
           <tbody>
+            {printers.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                  Nenhuma impressora configurada. Clique em <strong>Nova Impressora</strong> para começar.
+                </td>
+              </tr>
+            )}
             {printers.map((p) => {
               const online = isOnline(p);
+              const isUsb = p.connection_type === "usb";
               return (
               <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/30">
-                <td className="px-4 py-3 font-medium flex items-center gap-2">
-                  <Printer className="h-4 w-4 text-muted-foreground" />
-                  {p.name}
+                <td className="px-4 py-3 font-medium">
+                  <div className="flex items-center gap-2">
+                    <Printer className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <div>{p.name}</div>
+                      {p.model && <div className="text-xs text-muted-foreground font-normal">{p.model}</div>}
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.model}</td>
-                <td className="px-4 py-3 text-muted-foreground">{p.ip}:{p.port}</td>
+                <td className="px-4 py-3 text-muted-foreground uppercase text-xs">{isUsb ? "USB" : "Rede"}</td>
+                <td className="px-4 py-3 text-muted-foreground text-xs">
+                  {isUsb ? (p.usb_device || "—") : (p.ip ? `${p.ip}:${p.port}` : "—")}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                    p.auto_print
+                      ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {p.auto_print ? "Sim" : "Não"}
+                  </span>
+                </td>
                 <td className="px-4 py-3 text-center">
                   <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
                     online
@@ -652,10 +677,18 @@ export default function PrintersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => openEdit(p)} className="rounded p-1 hover:bg-secondary">
+                    <button
+                      onClick={() => testPrintMutation.mutate(p)}
+                      disabled={testingId === p.id}
+                      title="Testar impressão"
+                      className="rounded px-2 py-1 text-xs font-medium border border-accent/40 text-accent hover:bg-accent/10 disabled:opacity-50"
+                    >
+                      {testingId === p.id ? "..." : "Testar"}
+                    </button>
+                    <button onClick={() => openEdit(p)} className="rounded p-1 hover:bg-secondary" title="Editar">
                       <Edit2 className="h-4 w-4 text-muted-foreground" />
                     </button>
-                    <button onClick={() => remove(p.id)} className="rounded p-1 hover:bg-destructive/10 text-destructive">
+                    <button onClick={() => remove(p.id)} className="rounded p-1 hover:bg-destructive/10 text-destructive" title="Remover">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
