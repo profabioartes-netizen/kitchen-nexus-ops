@@ -170,15 +170,10 @@ const App = () => (
               <Route path="usuarios" element={<AdminPlatformUsersPage />} />
             </Route>
 
-            {/* Super Admin -> impersonate tenant (auto-login no PDV do estabelecimento) */}
-            <Route
-              path="/__impersonate"
-              element={
-                <RequireAuth>
-                  <ImpersonateTenantPage />
-                </RequireAuth>
-              }
-            />
+            {/* Super Admin -> impersonate tenant (auto-login no PDV do estabelecimento).
+                Fora do RequireAuth/TenantGate para conseguir gravar o tenant impersonado
+                ANTES da checagem que redirecionaria o super_admin para /admin-platform. */}
+            <Route path="/__impersonate" element={<ImpersonateTenantPage />} />
 
             {/* Tenant personalized login by slug — keep LAST before 404 */}
             <Route path="/:slug" element={<TenantLoginPage />} />
