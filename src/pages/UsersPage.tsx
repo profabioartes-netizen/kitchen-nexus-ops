@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Trash2, Loader2, Shield, Coffee, Lock, Pencil, KeyRound, Calculator, UserX, UserCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSecurityPinEnabled } from "@/hooks/useSecurityPinEnabled";
+import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ interface AuthUser {
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { pinEnabled } = useSecurityPinEnabled();
+  const { pin: ADMIN_PIN, pinEnabled } = useSecurityPin();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
@@ -56,8 +56,6 @@ export default function UsersPage() {
   // Reset password state
   const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState("");
-
-  const ADMIN_PIN = "9135";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["users_profiles"],
