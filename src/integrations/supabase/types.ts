@@ -506,36 +506,45 @@ export type Database = {
       printers: {
         Row: {
           active: boolean
+          auto_print: boolean
+          connection_type: string
           created_at: string
           id: string
-          ip: string
+          ip: string | null
           last_seen_at: string | null
           model: string
           name: string
           port: number
           station: string
+          usb_device: string | null
         }
         Insert: {
           active?: boolean
+          auto_print?: boolean
+          connection_type?: string
           created_at?: string
           id?: string
-          ip?: string
+          ip?: string | null
           last_seen_at?: string | null
           model?: string
           name: string
           port?: number
           station?: string
+          usb_device?: string | null
         }
         Update: {
           active?: boolean
+          auto_print?: boolean
+          connection_type?: string
           created_at?: string
           id?: string
-          ip?: string
+          ip?: string | null
           last_seen_at?: string | null
           model?: string
           name?: string
           port?: number
           station?: string
+          usb_device?: string | null
         }
         Relationships: []
       }
