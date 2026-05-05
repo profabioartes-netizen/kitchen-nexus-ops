@@ -611,6 +611,9 @@ export default function TableOrderPage() {
         status: "pending",
         payload: {
           type: "bill",
+          compact: true,
+          business_name: businessName,
+          business_phone: businessPhone || null,
           location: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
           table_name: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
           customer_name: order.customer_name || null,
@@ -624,6 +627,7 @@ export default function TableOrderPage() {
             complements: (complementsByItem[i.id] || []).map((c) => c.name),
           })),
           total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
+          footer_message: "Volte sempre!!!",
         },
       });
 
