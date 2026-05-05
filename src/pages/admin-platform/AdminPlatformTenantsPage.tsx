@@ -106,21 +106,98 @@ export default function AdminPlatformTenantsPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Estabelecimentos</h1>
-          <p className="text-sm text-muted-foreground">Gerencie todos os clientes da plataforma HuskyPDV</p>
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 max-w-full">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold break-words">Estabelecimentos</h1>
+          <p className="text-xs md:text-sm text-muted-foreground break-words">
+            Gerencie todos os clientes da plataforma HuskyPDV
+          </p>
         </div>
         <button
           onClick={() => setEditing({ status: "ativo", plano: "trial", cor_primaria: "#1E40AF", cor_secundaria: "#FACC15" })}
-          className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-semibold hover:opacity-90"
+          className="flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" /> Novo cliente
         </button>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-hidden">
+      {/* Mobile: cards */}
+      <div className="md:hidden space-y-3">
+        {isLoading && (
+          <div className="p-6 text-center text-muted-foreground rounded-lg border bg-card">Carregando...</div>
+        )}
+        {!isLoading && tenants.length === 0 && (
+          <div className="p-6 text-center text-muted-foreground rounded-lg border bg-card">Nenhum estabelecimento.</div>
+        )}
+        {tenants.map((t) => (
+          <div key={t.id} className="rounded-lg border bg-card p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              {t.logo_url
+                ? <img src={t.logo_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                : <div className="h-12 w-12 rounded bg-muted flex-shrink-0" />}
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold break-words">{t.nome_comercio}</div>
+                <div className="text-xs text-muted-foreground font-mono break-all">{t.slug}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  Criado em {new Date(t.created_at).toLocaleDateString("pt-BR")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className={`px-2 py-1 rounded-full font-semibold ${
+                t.status === "ativo" ? "bg-green-500/20 text-green-300" :
+                t.status === "suspenso" ? "bg-yellow-500/20 text-yellow-300" :
+                "bg-red-500/20 text-red-300"
+              }`}>{t.status}</span>
+              <span className="px-2 py-1 rounded-full bg-muted capitalize">{t.plano}</span>
+              <span className="px-2 py-1 rounded-full bg-muted">{counts[t.id] || 0} usuário(s)</span>
+            </div>
+
+            <div className="flex items-center justify-end gap-1 border-t pt-2">
+              <button title="Acessar PDV"
+                onClick={() => window.open(`/${t.slug}`, "_blank", "noopener,noreferrer")}
+                className="p-2 rounded hover:bg-accent/20 text-accent">
+                <Store className="h-4 w-4" />
+              </button>
+              <button title="Criar admin do cliente"
+                onClick={() => setCreatingAdmin({ tenantId: t.id, tenantName: t.nome_comercio })}
+                className="p-2 rounded hover:bg-muted">
+                <Eye className="h-4 w-4" />
+              </button>
+              <button title="Editar"
+                onClick={() => setEditing(t)}
+                className="p-2 rounded hover:bg-muted">
+                <Edit className="h-4 w-4" />
+              </button>
+              {t.status === "ativo" ? (
+                <button title="Suspender"
+                  onClick={() => setStatus.mutate({ id: t.id, status: "suspenso" })}
+                  className="p-2 rounded hover:bg-yellow-500/20">
+                  <Pause className="h-4 w-4" />
+                </button>
+              ) : (
+                <button title="Reativar"
+                  onClick={() => setStatus.mutate({ id: t.id, status: "ativo" })}
+                  className="p-2 rounded hover:bg-green-500/20">
+                  <Play className="h-4 w-4" />
+                </button>
+              )}
+              <button title="Excluir"
+                onClick={() => {
+                  if (confirm(`Excluir "${t.nome_comercio}"? Todos os dados serão removidos!`)) remove.mutate(t.id);
+                }}
+                className="p-2 rounded hover:bg-red-500/20 text-red-400">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block rounded-lg border bg-card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-muted-foreground text-xs uppercase">
             <tr>
