@@ -6,6 +6,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 // NFC-e/fiscal removido — sistema opera apenas com cupom não fiscal.
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
+import { useTenant } from "@/contexts/TenantContext";
 
 interface OrderItem {
   id: string;
@@ -17,6 +18,22 @@ interface OrderItem {
 
 export default function CashierPage() {
   const queryClient = useQueryClient();
+  const { tenant } = useTenant();
+
+  // Telefone do estabelecimento (opcional) lido do restaurant_settings
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+  });
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
   const [order, setOrder] = useState<OrderItem[]>([]);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -155,6 +172,9 @@ export default function CashierPage() {
       status: "pending",
       payload: {
         type: "bill",
+        compact: true,
+        business_name: businessName,
+        business_phone: businessPhone || null,
         customer_name: null,
         comanda_number: null,
         location: "Balcão",
@@ -171,6 +191,7 @@ export default function CashierPage() {
         total: subtotal,
         payment_method: selectedMethod || null,
         change: selectedMethod === "cash" ? cashChange : null,
+        footer_message: "Volte sempre!!!",
       },
     });
     toast.success("Nota enviada para impressão!");
@@ -185,7 +206,9 @@ export default function CashierPage() {
       status: "pending",
       payload: {
         type: "receipt",
-        business_name: "COFFEE THRONES",
+        compact: true,
+        business_name: businessName,
+        business_phone: businessPhone || null,
         location: "Balcão",
         table_name: "Balcão",
         customer_name: null,
@@ -201,7 +224,7 @@ export default function CashierPage() {
         change: lastOrderSnapshot.change > 0 ? lastOrderSnapshot.change : null,
         date: now.toLocaleDateString("pt-BR"),
         time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+        footer_message: "Volte sempre!!!",
       },
     });
     toast.success("Comprovante enviado para impressão!");
@@ -226,7 +249,9 @@ export default function CashierPage() {
           status: "pending",
           payload: {
             type: "receipt",
-            business_name: "COFFEE THRONES",
+            compact: true,
+            business_name: businessName,
+            business_phone: businessPhone || null,
             location: "Balcão",
             table_name: "Balcão",
             customer_name: null,
@@ -242,7 +267,7 @@ export default function CashierPage() {
             change: snapshot.change > 0 ? snapshot.change : null,
             date: now.toLocaleDateString("pt-BR"),
             time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-            footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+            footer_message: "Volte sempre!!!",
           },
         });
         toast.success("Comprovante enviado para impressão!");

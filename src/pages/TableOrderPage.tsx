@@ -10,6 +10,7 @@ import {
 import LoadingScreen from "@/components/LoadingScreen";
 // NFC-e/fiscal removido — sistema opera apenas com cupom não fiscal.
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTenant } from "@/contexts/TenantContext";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
 import PaymentPanel, { type PaymentResult } from "@/components/PaymentPanel";
@@ -64,6 +65,20 @@ export default function TableOrderPage() {
   const location = useLocation();
   const navState = location.state as { customerName?: string; sector?: string } | null;
   const queryClient = useQueryClient();
+  const { tenant } = useTenant();
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+  });
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
@@ -596,6 +611,9 @@ export default function TableOrderPage() {
         status: "pending",
         payload: {
           type: "bill",
+          compact: true,
+          business_name: businessName,
+          business_phone: businessPhone || null,
           location: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
           table_name: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
           customer_name: order.customer_name || null,
@@ -609,6 +627,7 @@ export default function TableOrderPage() {
             complements: (complementsByItem[i.id] || []).map((c) => c.name),
           })),
           total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
+          footer_message: "Volte sempre!!!",
         },
       });
 
