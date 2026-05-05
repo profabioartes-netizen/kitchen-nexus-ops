@@ -257,7 +257,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
           )}
 
           {/* Complements */}
-          {hasComplements && complementGroups.map((group) => {
+          {!isWeight && hasComplements && complementGroups.map((group) => {
             const groupComps = allComplements.filter((c) => c.group_id === group.id);
             if (groupComps.length === 0) return null;
             return (
@@ -341,7 +341,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
           )}
           <button
             onClick={handleAdd}
-            disabled={isPending || (hasComplements && !requiredGroupsSatisfied)}
+            disabled={isPending || (isWeight ? gramsNum <= 0 : (hasComplements && !requiredGroupsSatisfied))}
             className="w-full rounded-md bg-accent text-accent-foreground py-3 font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {isPending ? "Adicionando..." : `Adicionar · R$ ${itemTotal.toFixed(2)}`}
