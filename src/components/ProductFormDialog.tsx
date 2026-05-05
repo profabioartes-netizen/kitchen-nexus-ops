@@ -353,11 +353,19 @@ export function ProductFormDialog({ productId, onClose }: Props) {
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">Nenhuma (não imprime)</option>
-                  <option value="Cozinha">Cozinha</option>
-                  <option value="Bebidas">Bebidas</option>
-                  <option value="Sobremesa">Sobremesa</option>
-                  <option value="Caixa">Caixa</option>
+                  {printerStations.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  {/* Compatibilidade: se o produto já tem uma station antiga que não bate com nenhuma impressora ativa, exibe assim mesmo */}
+                  {form.station && !printerStations.includes(form.station) && (
+                    <option value={form.station}>{form.station} (sem impressora)</option>
+                  )}
                 </select>
+                {printerStations.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Nenhuma impressora configurada. Configure impressoras em Impressoras &amp; Estações.
+                  </p>
+                )}
               </div>
             </div>
 
