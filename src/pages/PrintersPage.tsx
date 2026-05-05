@@ -573,8 +573,8 @@ export default function PrintersPage() {
       </p>
 
       {/* Routing diagram */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        {["Caixa", "Cozinha", "Bebidas", "Sobremesa"].map((station) => {
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {["Caixa", "Cozinha", "Bebidas", "Geral"].map((station) => {
           const stationPrinters = printers.filter((p) => p.station === station && p.active);
           return (
             <div key={station} className="rounded-lg border bg-card p-4">
@@ -586,7 +586,13 @@ export default function PrintersPage() {
                 stationPrinters.map((p) => (
                   <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                     <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
-                    <span>{p.name} — {p.model} ({p.ip})</span>
+                    <span>
+                      {p.name}
+                      {p.model ? ` — ${p.model}` : ""}
+                      {p.connection_type === "usb"
+                        ? ` (USB${p.usb_device ? `: ${p.usb_device}` : ""})`
+                        : p.ip ? ` (${p.ip})` : ""}
+                    </span>
                     {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
                   </div>
                 ))
