@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Loader2, Smartphone, Printer } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
-import NfceStatus from "@/components/NfceStatus";
+// NFC-e/fiscal removido — sistema opera apenas com cupom não fiscal.
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 
@@ -140,19 +140,7 @@ export default function CashierPage() {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
       toast.success("Pagamento registrado com sucesso!");
 
-      // Fire-and-forget NFC-e emission (non-blocking)
-      supabase.functions.invoke("emit-nfce", {
-        body: { order_id: newOrder.id },
-      }).then(({ data, error }) => {
-        if (error || data?.error) {
-          toast.error("Erro ao emitir NFC-e: " + (data?.error || (error as Error).message));
-        } else {
-          toast.success("NFC-e emitida automaticamente!");
-        }
-      }).catch((e) => {
-        console.error("NFC-e auto-emit error:", e);
-        toast.error("Falha ao emitir NFC-e automaticamente.");
-      });
+      // NFC-e removido — sistema opera apenas com cupom não fiscal.
     },
     onError: (err) => {
       toast.error("Erro ao registrar pagamento: " + (err as Error).message);
@@ -472,24 +460,21 @@ export default function CashierPage() {
             </div>
           )}
 
-          {/* Post-payment: receipt print + NFC-e */}
-          {lastFinalizedOrderId && (
+          {/* Post-payment: receipt print */}
+          {lastFinalizedOrderId && lastOrderSnapshot && (
             <div className="space-y-2">
-              {lastOrderSnapshot && (
-                <button
-                  onClick={printReceipt}
-                  className="w-full rounded-md border border-border bg-secondary text-secondary-foreground py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
-                >
-                  🧾 Imprimir Comprovante
-                </button>
-              )}
-              <NfceStatus
-                orderId={lastFinalizedOrderId}
-                onClose={() => {
-                  setLastFinalizedOrderId(null);
-                  setLastOrderSnapshot(null);
-                }}
-              />
+              <button
+                onClick={printReceipt}
+                className="w-full rounded-md border border-border bg-secondary text-secondary-foreground py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+              >
+                🧾 Imprimir Comprovante
+              </button>
+              <button
+                onClick={() => { setLastFinalizedOrderId(null); setLastOrderSnapshot(null); }}
+                className="w-full rounded-md border border-border bg-card py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+              >
+                Concluir
+              </button>
             </div>
           )}
         </div>

@@ -8,7 +8,7 @@ import {
   Search, Plus, Minus, Trash2, ArrowLeft, Loader2, Printer, CreditCard, Banknote, Smartphone, Clock, StickyNote, User, X, ArrowRightLeft, Merge, Ban, CheckCircle2, Receipt, Save, ShoppingBag, UtensilsCrossed,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
-import NfceStatus from "@/components/NfceStatus";
+// NFC-e/fiscal removido — sistema opera apenas com cupom não fiscal.
 import { useIsMobile } from "@/hooks/use-mobile";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import AddItemDialog, { type AddItemPayload } from "@/components/AddItemDialog";
@@ -747,32 +747,7 @@ export default function TableOrderPage() {
       queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items"] });
 
-      // Fire-and-forget NFC-e emission (non-blocking)
-      if (order) {
-        supabase
-          .from("nfce_records")
-          .select("id, status")
-          .eq("order_id", order.id)
-          .in("status", ["emitida", "pending"])
-          .limit(1)
-          .then(({ data: existing }) => {
-            if (!existing || existing.length === 0) {
-              supabase.functions.invoke("emit-nfce", {
-                body: { order_id: order.id },
-              }).then(({ data: emitData, error: emitError }) => {
-                if (emitError || emitData?.error) {
-                  console.error("NFC-e auto-emit error:", emitError || emitData?.error);
-                  toast.error("Erro ao emitir NFC-e: " + (emitData?.error || (emitError as Error).message));
-                } else {
-                  toast.success("NFC-e emitida automaticamente!");
-                }
-              }).catch((e) => {
-                console.error("NFC-e auto-emit exception:", e);
-                toast.error("Falha ao emitir NFC-e.");
-              });
-            }
-          });
-      }
+      // NFC-e removido — sistema opera apenas com cupom não fiscal.
 
       toast.success(
         result?.hasOtherActiveOrders
@@ -1495,9 +1470,8 @@ export default function TableOrderPage() {
             <>
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
                 <p className="text-sm font-semibold text-accent">✓ Pagamento concluído</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Emita a NFC-e e finalize para registrar nos relatórios</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Finalize a comanda para registrar nos relatórios.</p>
               </div>
-              <NfceStatus orderId={order.id} />
               <button
                 onClick={() => finalizeMutation.mutate()}
                 disabled={finalizeMutation.isPending}

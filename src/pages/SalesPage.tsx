@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Download, ChevronDown, ChevronUp, Copy, Printer, FileText,
-  Loader2, CheckCircle, AlertCircle, Clock, Filter, Lock, ShoppingBag,
+  Download, ChevronDown, ChevronUp, Loader2, Filter, Lock, ShoppingBag,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,7 +16,6 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 type QuickPeriod = "today" | "yesterday" | "7" | "30" | "month" | "custom";
-type NfceFilter = "all" | "emitida" | "erro" | "pending" | "none";
 
 const methodLabels: Record<string, string> = {
   cash: "Dinheiro", debit: "Débito", credit: "Crédito", pix: "Pix", card: "Cartão",
@@ -34,12 +32,10 @@ export default function SalesPage() {
   const [quickPeriod, setQuickPeriod] = useState<QuickPeriod>("today");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
-  const [nfceFilter, setNfceFilter] = useState<NfceFilter>("all");
   const [methodFilter, setMethodFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { goLiveAt } = useGoLiveDate();
-  const queryClient = useQueryClient();
 
   const effectiveDateFrom = useMemo(() => {
     if (quickPeriod === "today") return new Date();
@@ -61,7 +57,6 @@ export default function SalesPage() {
     to: effectiveDateTo ? endOfDay(effectiveDateTo).toISOString() : undefined,
   }), [effectiveDateFrom, effectiveDateTo]);
 
-  // Fetch ALL finalized orders in period (no NFC-e prerequisite)
   const { data: orders = [], isLoading: lo } = useQuery({
     queryKey: ["sales_orders", goLiveAt, periodFilter],
     queryFn: async () => {
@@ -90,16 +85,6 @@ export default function SalesPage() {
     enabled: orderIds.length > 0,
   });
 
-  const { data: nfceRecords = [] } = useQuery({
-    queryKey: ["sales_nfce", orderIds],
-    queryFn: async () => {
-      if (!orderIds.length) return [];
-      const { data } = await supabase.from("nfce_records" as any).select("*").in("order_id", orderIds);
-      return (data || []) as any[];
-    },
-    enabled: orderIds.length > 0,
-  });
-
   const tableIds = [...new Set(orders.filter((o: any) => o.table_id).map((o: any) => o.table_id))];
   const { data: tables = [] } = useQuery({
     queryKey: ["sales_tables", tableIds],
@@ -120,12 +105,6 @@ export default function SalesPage() {
     return m;
   }, [payments]);
 
-  const nfceMap = useMemo(() => {
-    const m = new Map<string, any>();
-    nfceRecords.forEach((n: any) => { if (!m.has(n.order_id)) m.set(n.order_id, n); });
-    return m;
-  }, [nfceRecords]);
-
   const tableMap = useMemo(() => {
     const m = new Map<string, any>();
     tables.forEach((t: any) => m.set(t.id, t));
@@ -144,15 +123,8 @@ export default function SalesPage() {
       const ids = new Set(payments.filter((p: any) => p.method === methodFilter).map((p: any) => p.order_id));
       result = result.filter((o: any) => ids.has(o.id));
     }
-    if (nfceFilter !== "all") {
-      result = result.filter((o: any) => {
-        const nfce = nfceMap.get(o.id);
-        if (nfceFilter === "none") return !nfce;
-        return nfce?.status === nfceFilter;
-      });
-    }
     return result;
-  }, [orders, methodFilter, nfceFilter, payments, nfceMap]);
+  }, [orders, methodFilter, payments]);
 
   const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
   const pageOrders = filteredOrders.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -162,14 +134,8 @@ export default function SalesPage() {
     [filteredOrders]
   );
 
-  const copyKey = useCallback((key: string) => {
-    navigator.clipboard.writeText(key);
-    toast.success("Chave copiada!");
-  }, []);
-
   const handleExport = useCallback((type: "xlsx" | "csv") => {
     const rows = filteredOrders.map((o: any) => {
-      const nfce = nfceMap.get(o.id);
       const pmts = paymentMap.get(o.id) || [];
       const table = o.table_id ? tableMap.get(o.table_id) : null;
       return {
@@ -180,8 +146,6 @@ export default function SalesPage() {
         "Operador": o.waiter_name || "-",
         "Valor Total": Number(o.total).toFixed(2),
         "Forma de Pagamento": pmts.map((p: any) => `${methodLabels[p.method] || p.method}: R$${Number(p.amount).toFixed(2)}`).join("; "),
-        "Status NFC-e": nfce ? (nfce.status === "emitida" ? "Autorizada" : nfce.status === "erro" ? "Erro" : "Pendente") : "Sem nota",
-        "Chave de Acesso": nfce?.chave_acesso || "-",
       };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -193,9 +157,8 @@ export default function SalesPage() {
       XLSX.writeFile(wb, `vendas_${format(new Date(), "yyyyMMdd_HHmm")}.csv`, { bookType: "csv" });
     }
     toast.success(`Exportação ${type.toUpperCase()} concluída!`);
-  }, [filteredOrders, nfceMap, paymentMap, tableMap]);
+  }, [filteredOrders, paymentMap, tableMap]);
 
-  // PIN gate
   if (pinEnabled && !unlocked) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
@@ -248,7 +211,6 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="rounded-lg border bg-card p-4">
           <div className="text-xs text-muted-foreground">Faturamento</div>
@@ -266,7 +228,6 @@ export default function SalesPage() {
         </div>
       </div>
 
-      {/* Period filters */}
       <div className="flex flex-wrap gap-1.5">
         {([["today", "Hoje"], ["yesterday", "Ontem"], ["7", "7 dias"], ["30", "30 dias"], ["month", "Mês"], ["custom", "Período"]] as const).map(([k, l]) => (
           <Button key={k} size="sm" variant={quickPeriod === k ? "default" : "outline"} onClick={() => { setQuickPeriod(k); setPage(0); }} className="text-xs h-7">
@@ -292,7 +253,6 @@ export default function SalesPage() {
         </div>
       )}
 
-      {/* Extra filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <Filter className="h-4 w-4 text-muted-foreground" />
         <select
@@ -305,21 +265,9 @@ export default function SalesPage() {
             <option key={m} value={m}>{methodLabels[m] || m}</option>
           ))}
         </select>
-        <select
-          value={nfceFilter}
-          onChange={(e) => { setNfceFilter(e.target.value as NfceFilter); setPage(0); }}
-          className="text-xs rounded-md border bg-background px-2 py-1.5"
-        >
-          <option value="all">NFC-e: Todas</option>
-          <option value="emitida">Autorizadas</option>
-          <option value="erro">Com Erro</option>
-          <option value="pending">Pendentes</option>
-          <option value="none">Sem Nota</option>
-        </select>
         <span className="text-xs text-muted-foreground ml-auto">{filteredOrders.length} vendas</span>
       </div>
 
-      {/* Table */}
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -331,13 +279,11 @@ export default function SalesPage() {
                 <th className="text-left p-3 hidden lg:table-cell">Mesa</th>
                 <th className="text-right p-3">Total</th>
                 <th className="text-left p-3 hidden md:table-cell">Pagamento</th>
-                <th className="text-center p-3">NFC-e</th>
                 <th className="text-center p-3 w-10"></th>
               </tr>
             </thead>
             <tbody>
               {pageOrders.map((o: any) => {
-                const nfce = nfceMap.get(o.id);
                 const pmts = paymentMap.get(o.id) || [];
                 const table = o.table_id ? tableMap.get(o.table_id) : null;
                 const expanded = expandedId === o.id;
@@ -345,17 +291,15 @@ export default function SalesPage() {
                   <OrderRow
                     key={o.id}
                     order={o}
-                    nfce={nfce}
                     payments={pmts}
                     table={table}
                     expanded={expanded}
                     onToggle={() => setExpandedId(expanded ? null : o.id)}
-                    onCopyKey={copyKey}
                   />
                 );
               })}
               {pageOrders.length === 0 && (
-                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground text-sm">Nenhuma venda encontrada</td></tr>
+                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground text-sm">Nenhuma venda encontrada</td></tr>
               )}
             </tbody>
           </table>
@@ -375,23 +319,13 @@ export default function SalesPage() {
 
 interface OrderRowProps {
   order: any;
-  nfce: any;
   payments: any[];
   table: any;
   expanded: boolean;
   onToggle: () => void;
-  onCopyKey: (key: string) => void;
 }
 
-function OrderRow({ order, nfce, payments, table, expanded, onToggle, onCopyKey }: OrderRowProps) {
-  const nfceStatus = nfce ? nfce.status : "none";
-  const statusBadge = {
-    emitida: <span className="inline-flex items-center gap-1 text-[10px] text-green-600 font-medium"><CheckCircle className="h-3 w-3" />Autorizada</span>,
-    erro: <span className="inline-flex items-center gap-1 text-[10px] text-red-500 font-medium"><AlertCircle className="h-3 w-3" />Erro</span>,
-    pending: <span className="inline-flex items-center gap-1 text-[10px] text-yellow-500 font-medium"><Clock className="h-3 w-3" />Pendente</span>,
-    none: <span className="text-[10px] text-muted-foreground">Sem nota</span>,
-  }[nfceStatus];
-
+function OrderRow({ order, payments, table, expanded, onToggle }: OrderRowProps) {
   return (
     <>
       <tr className="border-b hover:bg-muted/20 cursor-pointer" onClick={onToggle}>
@@ -403,15 +337,14 @@ function OrderRow({ order, nfce, payments, table, expanded, onToggle, onCopyKey 
         <td className="p-3 text-xs hidden md:table-cell">
           {payments.map((p: any) => methodLabels[p.method] || p.method).join(", ") || "-"}
         </td>
-        <td className="p-3 text-center">{statusBadge}</td>
         <td className="p-3 text-center">
           {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </td>
       </tr>
       {expanded && (
         <tr>
-          <td colSpan={8} className="p-0">
-            <ExpandedDetails orderId={order.id} order={order} nfce={nfce} payments={payments} table={table} onCopyKey={onCopyKey} />
+          <td colSpan={7} className="p-0">
+            <ExpandedDetails orderId={order.id} order={order} payments={payments} table={table} />
           </td>
         </tr>
       )}
@@ -419,7 +352,7 @@ function OrderRow({ order, nfce, payments, table, expanded, onToggle, onCopyKey 
   );
 }
 
-function ExpandedDetails({ orderId, order, nfce, payments, table, onCopyKey }: any) {
+function ExpandedDetails({ orderId, order, payments, table }: any) {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["sales_items", orderId],
     queryFn: async () => {
@@ -489,28 +422,6 @@ function ExpandedDetails({ orderId, order, nfce, payments, table, onCopyKey }: a
           ))}
         </div>
       </div>
-
-      {nfce && (
-        <div>
-          <h4 className="text-xs font-medium text-muted-foreground mb-2">NFC-e</h4>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Status:</span>
-              <span className="font-medium">{nfce.status === "emitida" ? "Autorizada" : nfce.status === "erro" ? "Erro" : "Pendente"}</span>
-            </div>
-            {nfce.chave_acesso && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-muted-foreground">Chave:</span>
-                <span className="font-mono text-[10px] break-all">{nfce.chave_acesso}</span>
-                <button onClick={() => onCopyKey(nfce.chave_acesso)} className="text-accent hover:underline"><Copy className="h-3 w-3" /></button>
-              </div>
-            )}
-            {nfce.error_message && (
-              <div className="text-red-500 text-[10px] break-words">{nfce.error_message}</div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
