@@ -70,48 +70,48 @@
   }
 
   .light {
-    /* Coffee Thrones — Light Mode */
-    --background: 36 25% 95%;
-    --foreground: 20 20% 15%;
+    /* HuskyPDV — Light Mode (Blue / Yellow / White) */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 20 20% 15%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 20 20% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 20 20% 20%;
-    --primary-foreground: 36 25% 95%;
+    --primary: 224 76% 40%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 36 15% 90%;
-    --secondary-foreground: 20 15% 30%;
+    --secondary: 210 30% 94%;
+    --secondary-foreground: 222 47% 15%;
 
-    --muted: 36 12% 90%;
-    --muted-foreground: 20 10% 45%;
+    --muted: 210 25% 92%;
+    --muted-foreground: 215 16% 40%;
 
-    --accent: 38 80% 48%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 48 96% 53%;
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 65% 50%;
+    --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 36 15% 85%;
-    --input: 36 15% 85%;
-    --ring: 38 80% 48%;
+    --border: 214 25% 88%;
+    --input: 214 25% 88%;
+    --ring: 224 76% 40%;
 
-    --nav-bg: 20 18% 18%;
-    --nav-foreground: 36 12% 70%;
-    --nav-active: 38 80% 52%;
-    --nav-active-foreground: 20 20% 8%;
+    --nav-bg: 224 70% 18%;
+    --nav-foreground: 215 25% 85%;
+    --nav-active: 48 96% 53%;
+    --nav-active-foreground: 222 47% 11%;
 
-    --sidebar-background: 20 18% 18%;
-    --sidebar-foreground: 36 12% 70%;
-    --sidebar-primary: 38 80% 52%;
-    --sidebar-primary-foreground: 20 20% 8%;
-    --sidebar-accent: 20 12% 25%;
-    --sidebar-accent-foreground: 36 15% 85%;
-    --sidebar-border: 36 15% 85%;
-    --sidebar-ring: 38 80% 48%;
+    --sidebar-background: 224 70% 18%;
+    --sidebar-foreground: 215 25% 85%;
+    --sidebar-primary: 48 96% 53%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 224 60% 25%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 224 50% 30%;
+    --sidebar-ring: 48 96% 53%;
 
     --status-free: 145 65% 38%;
     --status-occupied: 258 78% 42%;
