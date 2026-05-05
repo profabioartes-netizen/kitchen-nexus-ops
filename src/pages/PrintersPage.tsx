@@ -28,6 +28,9 @@ export default function PrintersPage() {
     auto_print: true,
   });
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [discovering, setDiscovering] = useState(false);
+  const [discoveries, setDiscoveries] = useState<Array<{ device_id: string; display_name: string; reported_at: string }>>([]);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
   const [agentActive, setAgentActive] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
   const queueRef = useRef<HTMLDivElement>(null);
