@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  DollarSign, ShoppingBag, Receipt, CalendarDays, Lock, Smartphone, Store, Users, TrendingUp,
+  DollarSign, ShoppingBag, Receipt, CalendarDays, Lock, Store, Users, TrendingUp,
   Filter, Clock,
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";

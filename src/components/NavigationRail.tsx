@@ -11,7 +11,6 @@ import {
   RefreshCw,
   Landmark,
   Settings,
-  Smartphone,
   ChevronLeft,
   ChevronRight,
   Crown,
