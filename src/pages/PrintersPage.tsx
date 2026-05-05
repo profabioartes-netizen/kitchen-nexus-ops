@@ -627,37 +627,57 @@ export default function PrintersPage() {
         Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir. Impressoras ficam online por até 2 minutos sem novo heartbeat do agente.
       </p>
 
-      {/* Routing diagram */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        {["Caixa", "Cozinha", "Bebidas", "Geral"].map((station) => {
-          const stationPrinters = printers.filter((p) => p.station === station && p.active);
+      {/* Routing diagram — estações dinâmicas, derivadas das impressoras cadastradas no tenant */}
+      {(() => {
+        const stations = Array.from(
+          new Set(
+            printers
+              .map((p: any) => (p.station ?? "").toString().trim())
+              .filter((s: string) => s.length > 0)
+          )
+        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+        if (stations.length === 0) {
           return (
-            <div key={station} className="rounded-lg border bg-card p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Printer className="h-4 w-4 text-accent" />
-                <h3 className="font-semibold text-sm">{station}</h3>
-              </div>
-              {stationPrinters.length > 0 ? (
-                stationPrinters.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
-                    <span>
-                      {p.name}
-                      {p.model ? ` — ${p.model}` : ""}
-                      {p.connection_type === "usb"
-                        ? ` (USB${p.usb_device ? `: ${p.usb_device}` : ""})`
-                        : p.ip ? ` (${p.ip})` : ""}
-                    </span>
-                    {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-muted-foreground italic">Nenhuma impressora</p>
-              )}
+            <div className="rounded-lg border bg-card p-4 mb-8 text-sm text-muted-foreground">
+              Nenhum setor de impressão configurado ainda. Cadastre uma impressora acima e defina um setor (ex: Caixa, Cozinha, Bar) para habilitar o roteamento de impressão.
             </div>
           );
-        })}
-      </div>
+        }
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {stations.map((station) => {
+              const stationPrinters = printers.filter((p) => p.station === station && p.active);
+              return (
+                <div key={station} className="rounded-lg border bg-card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Printer className="h-4 w-4 text-accent" />
+                    <h3 className="font-semibold text-sm">{station}</h3>
+                  </div>
+                  {stationPrinters.length > 0 ? (
+                    stationPrinters.map((p) => (
+                      <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
+                        <span>
+                          {p.name}
+                          {p.model ? ` — ${p.model}` : ""}
+                          {p.connection_type === "usb"
+                            ? ` (USB${p.usb_device ? `: ${p.usb_device}` : ""})`
+                            : p.ip ? ` (${p.ip})` : ""}
+                        </span>
+                        {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">Nenhuma impressora ativa</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* Printers list */}
       <div className="rounded-lg border bg-card overflow-hidden">
@@ -772,12 +792,17 @@ export default function PrintersPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Setor</label>
-                <select value={form.station} onChange={(e) => setForm({ ...form, station: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring">
-                  <option value="Caixa">Caixa</option>
-                  <option value="Cozinha">Cozinha</option>
-                  <option value="Geral">Geral</option>
-                </select>
+                <label className="text-sm font-medium text-muted-foreground">Setor / Estação</label>
+                <input
+                  type="text"
+                  value={form.station}
+                  onChange={(e) => setForm({ ...form, station: e.target.value })}
+                  placeholder="Ex: Caixa, Churrasqueira, Bar"
+                  className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Use um nome livre. Esse setor aparecerá como destino de impressão no cadastro de produtos.
+                </p>
               </div>
 
               <div>

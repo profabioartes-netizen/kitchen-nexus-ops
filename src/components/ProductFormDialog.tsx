@@ -67,6 +67,24 @@ export function ProductFormDialog({ productId, onClose }: Props) {
     },
   });
 
+  // Estações de impressão dinâmicas: derivadas das impressoras ativas do tenant atual
+  const { data: printerStations = [] } = useQuery({
+    queryKey: ["printer_stations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("printers")
+        .select("station, active")
+        .eq("active", true);
+      if (error) throw error;
+      const set = new Set<string>();
+      (data ?? []).forEach((p: any) => {
+        const s = (p.station ?? "").toString().trim();
+        if (s) set.add(s);
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    },
+  });
+
   const { data: linkedGroups = [] } = useQuery({
     queryKey: ["product_complement_groups", productId],
     enabled: isEditing,
@@ -335,11 +353,19 @@ export function ProductFormDialog({ productId, onClose }: Props) {
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">Nenhuma (não imprime)</option>
-                  <option value="Cozinha">Cozinha</option>
-                  <option value="Bebidas">Bebidas</option>
-                  <option value="Sobremesa">Sobremesa</option>
-                  <option value="Caixa">Caixa</option>
+                  {printerStations.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                  {/* Compatibilidade: se o produto já tem uma station antiga que não bate com nenhuma impressora ativa, exibe assim mesmo */}
+                  {form.station && !printerStations.includes(form.station) && (
+                    <option value={form.station}>{form.station} (sem impressora)</option>
+                  )}
                 </select>
+                {printerStations.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Nenhuma impressora configurada. Configure impressoras em Impressoras &amp; Estações.
+                  </p>
+                )}
               </div>
             </div>
 
