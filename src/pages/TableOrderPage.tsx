@@ -444,17 +444,20 @@ export default function TableOrderPage() {
 
   const addItem = useMutation({
     mutationFn: async (payload: AddItemPayload) => {
-      const { product, quantity, notes, complements, complementsTotal } = payload;
+      const { product, quantity, notes, complements, complementsTotal, grams, unitPriceOverride, productNameOverride } = payload;
       let currentOrder = order;
       if (!currentOrder) {
         currentOrder = await createOrder.mutateAsync({});
       }
 
-      const unitPrice = Number(product.price) + complementsTotal;
+      const isWeight = typeof unitPriceOverride === "number" && typeof grams === "number";
+      const unitPrice = isWeight ? unitPriceOverride! : Number(product.price) + complementsTotal;
+      const productName = productNameOverride || product.name;
+
       const { data: insertedItem, error: itemError } = await supabase.from("order_items").insert({
         order_id: currentOrder.id,
         product_id: product.id,
-        product_name: product.name,
+        product_name: productName,
         price: unitPrice,
         quantity,
         notes: notes || null,
@@ -463,8 +466,8 @@ export default function TableOrderPage() {
       } as any).select().single();
       if (itemError) throw itemError;
 
-      // Insert complements for this item
-      if (complements.length > 0) {
+      // Insert complements for this item (skip for weight sales)
+      if (!isWeight && complements.length > 0) {
         await supabase.from("order_item_complements").insert(
           complements.map((c) => ({
             order_item_id: insertedItem.id,
@@ -483,8 +486,11 @@ export default function TableOrderPage() {
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
 
-      const compDesc = complements.length > 0 ? ` [${complements.map(c => c.name).join(", ")}]` : "";
-      await logActivity(tableId!, "item_added", `Item adicionado: ${product.name} ×${quantity}${compDesc} (R$ ${(unitPrice * quantity).toFixed(2)}) — pendente envio`, currentOrder.id);
+      const compDesc = !isWeight && complements.length > 0 ? ` [${complements.map(c => c.name).join(", ")}]` : "";
+      const desc = isWeight
+        ? `Item adicionado: ${productName} (R$ ${unitPrice.toFixed(2)}) — pendente envio`
+        : `Item adicionado: ${product.name} ×${quantity}${compDesc} (R$ ${(unitPrice * quantity).toFixed(2)}) — pendente envio`;
+      await logActivity(tableId!, "item_added", desc, currentOrder.id);
     },
     onSuccess: () => {
       setSelectedProduct(null);
