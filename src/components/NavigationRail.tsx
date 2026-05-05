@@ -16,7 +16,7 @@ import {
   Crown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import coffeeLogo from "@/assets/coffee-thrones-logo.png";
+import coffeeLogo from "@/assets/logo-espetinho.png";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -124,15 +124,15 @@ export function NavigationRail() {
       )}>
         <img
           src={coffeeLogo}
-          alt="Coffee Thrones"
-          className={cn("object-contain transition-all duration-300", collapsed ? "h-8 w-8" : "h-9 w-9")}
+          alt="Espetinho do Marcelo"
+          className={cn("object-contain transition-all duration-300", collapsed ? "h-9 w-9" : "h-11 w-11")}
         />
         {!collapsed && (
           <div className="flex flex-col min-w-0">
-            <span className="font-display text-sm text-sidebar-accent-foreground leading-tight truncate">
-              Coffee Thrones
+            <span className="font-display text-sm font-bold text-white leading-tight truncate">
+              Espetinho do Marcelo
             </span>
-            <span className="text-[10px] text-sidebar-foreground/50 leading-tight">Sistema PDV</span>
+            <span className="text-[10px] text-sidebar-foreground/60 leading-tight">Bar e Restaurante</span>
           </div>
         )}
       </div>
