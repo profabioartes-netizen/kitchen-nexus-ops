@@ -81,6 +81,24 @@ Deno.serve(async (req) => {
     const { action, ...payload } = body;
     console.log("manage-users: action=", action, "payload keys=", Object.keys(payload));
 
+    // Guard: non-super-admin callers cannot target super_admin users in any mutation
+    const mutateActions = ["update_role", "update_profile", "reset_password", "toggle_active", "delete"];
+    if (!isSuperAdmin && mutateActions.includes(action as string)) {
+      const targetUserId = (payload as any).user_id as string | undefined;
+      if (targetUserId) {
+        const { data: targetRoles } = await adminClient
+          .from("user_tenants")
+          .select("role")
+          .eq("user_id", targetUserId);
+        if ((targetRoles ?? []).some((r: any) => r.role === "super_admin")) {
+          return new Response(JSON.stringify({ error: "Usuário não encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     // ─── CREATE ───
     if (action === "create") {
       const { email, password, full_name, role, tenant_id, tenant_role } = payload;
@@ -340,13 +358,25 @@ Deno.serve(async (req) => {
         });
       }
 
-      const mapped = authUsers.map((u) => ({
-        id: u.id,
-        email: u.email || "",
-        phone: u.phone || "",
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
-      }));
+      // Hide super_admin users from non-super-admin callers (tenant panel)
+      let hiddenIds = new Set<string>();
+      if (!isSuperAdmin) {
+        const { data: superRows } = await adminClient
+          .from("user_tenants")
+          .select("user_id")
+          .eq("role", "super_admin");
+        hiddenIds = new Set((superRows ?? []).map((r: any) => r.user_id));
+      }
+
+      const mapped = authUsers
+        .filter((u) => !hiddenIds.has(u.id))
+        .map((u) => ({
+          id: u.id,
+          email: u.email || "",
+          phone: u.phone || "",
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at,
+        }));
 
       return new Response(JSON.stringify({ users: mapped }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

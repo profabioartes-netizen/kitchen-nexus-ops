@@ -57,15 +57,30 @@ export default function UsersPage() {
   const [resetTarget, setResetTarget] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState("");
 
+  // IDs of super_admins — must be hidden from tenant panel
+  const { data: superAdminIds = [] } = useQuery({
+    queryKey: ["super_admin_ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_tenants")
+        .select("user_id")
+        .eq("role", "super_admin");
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.user_id as string);
+    },
+  });
+  const superAdminSet = new Set(superAdminIds);
+
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["users_profiles"],
+    queryKey: ["users_profiles", superAdminIds.join(",")],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as UserProfile[];
+      const list = (data as UserProfile[]).filter((u) => !superAdminSet.has(u.id));
+      return list;
     },
   });
 
