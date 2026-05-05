@@ -21,6 +21,7 @@ import ReportsPage from "@/pages/ReportsPage";
 import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import TenantLoginPage from "@/pages/TenantLoginPage";
 import NotFound from "@/pages/NotFound";
 import WaiterLayout from "@/pages/waiter/WaiterLayout";
 import WaiterLoginPage from "@/pages/waiter/WaiterLoginPage";
@@ -167,6 +168,9 @@ const App = () => (
               <Route index element={<AdminPlatformTenantsPage />} />
               <Route path="usuarios" element={<AdminPlatformUsersPage />} />
             </Route>
+
+            {/* Tenant personalized login by slug — keep LAST before 404 */}
+            <Route path="/:slug" element={<TenantLoginPage />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
