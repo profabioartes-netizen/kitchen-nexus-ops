@@ -172,6 +172,9 @@ export default function CashierPage() {
       status: "pending",
       payload: {
         type: "bill",
+        compact: true,
+        business_name: businessName,
+        business_phone: businessPhone || null,
         customer_name: null,
         comanda_number: null,
         location: "Balcão",
@@ -188,6 +191,7 @@ export default function CashierPage() {
         total: subtotal,
         payment_method: selectedMethod || null,
         change: selectedMethod === "cash" ? cashChange : null,
+        footer_message: "Volte sempre!!!",
       },
     });
     toast.success("Nota enviada para impressão!");
@@ -202,7 +206,9 @@ export default function CashierPage() {
       status: "pending",
       payload: {
         type: "receipt",
-        business_name: "COFFEE THRONES",
+        compact: true,
+        business_name: businessName,
+        business_phone: businessPhone || null,
         location: "Balcão",
         table_name: "Balcão",
         customer_name: null,
@@ -218,7 +224,7 @@ export default function CashierPage() {
         change: lastOrderSnapshot.change > 0 ? lastOrderSnapshot.change : null,
         date: now.toLocaleDateString("pt-BR"),
         time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+        footer_message: "Volte sempre!!!",
       },
     });
     toast.success("Comprovante enviado para impressão!");
@@ -243,7 +249,9 @@ export default function CashierPage() {
           status: "pending",
           payload: {
             type: "receipt",
-            business_name: "COFFEE THRONES",
+            compact: true,
+            business_name: businessName,
+            business_phone: businessPhone || null,
             location: "Balcão",
             table_name: "Balcão",
             customer_name: null,
@@ -259,7 +267,7 @@ export default function CashierPage() {
             change: snapshot.change > 0 ? snapshot.change : null,
             date: now.toLocaleDateString("pt-BR"),
             time: now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-            footer_message: "👑 Obrigado pela preferência! Volte sempre ao Reino Coffee Thrones!",
+            footer_message: "Volte sempre!!!",
           },
         });
         toast.success("Comprovante enviado para impressão!");
