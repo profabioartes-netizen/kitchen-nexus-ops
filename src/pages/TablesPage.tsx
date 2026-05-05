@@ -765,14 +765,6 @@ export default function TablesPage() {
             <span className="hidden sm:inline">Relatórios</span>
           </button>
           <button
-            onClick={() => navigate("/clientes")}
-            className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
-            title="Vendas"
-          >
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="hidden sm:inline">Vendas</span>
-          </button>
-          <button
             onClick={() => navigate("/usuarios")}
             className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
             title="Usuários"
