@@ -1280,6 +1280,18 @@ export type Database = {
         }
       }
       get_safe_table_location: { Args: { p_table_id: string }; Returns: string }
+      get_tenant_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          cor_primaria: string
+          cor_secundaria: string
+          id: string
+          logo_url: string
+          nome_comercio: string
+          slug: string
+          status: Database["public"]["Enums"]["tenant_status"]
+        }[]
+      }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       recalculate_order_total: {
         Args: { p_order_id: string }
