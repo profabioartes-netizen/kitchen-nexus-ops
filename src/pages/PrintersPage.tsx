@@ -243,13 +243,31 @@ export default function PrintersPage() {
   });
 
   const openNew = () => {
-    setForm({ name: "", station: "Caixa", model: "", ip: "", port: "9100" });
+    setForm({
+      name: "",
+      station: "Caixa",
+      model: "",
+      connection_type: "network",
+      ip: "",
+      port: "9100",
+      usb_device: "",
+      auto_print: true,
+    });
     setEditing(null);
     setShowForm(true);
   };
 
   const openEdit = (p: any) => {
-    setForm({ name: p.name, station: p.station, model: p.model, ip: p.ip, port: String(p.port) });
+    setForm({
+      name: p.name ?? "",
+      station: p.station ?? "Caixa",
+      model: p.model ?? "",
+      connection_type: (p.connection_type as "network" | "usb") ?? "network",
+      ip: p.ip ?? "",
+      port: String(p.port ?? "9100"),
+      usb_device: p.usb_device ?? "",
+      auto_print: p.auto_print ?? true,
+    });
     setEditing(p);
     setShowForm(true);
   };
