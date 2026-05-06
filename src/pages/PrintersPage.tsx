@@ -699,6 +699,68 @@ export default function PrintersPage() {
         </button>
       </div>
 
+      {/* Agente offline — banner persistente */}
+      {printers.length > 0 && !agentConnected && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 p-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <strong>Agente de impressão offline.</strong> Nenhuma impressora deu heartbeat nos últimos 2 minutos —
+              os tickets ficarão pendentes até o agente subir no notebook do caixa.
+              <div className="text-xs opacity-80 mt-1">
+                Baixe o instalador abaixo e rode <code>INSTALAR.bat</code> como Administrador no notebook.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleDownloadInstaller}
+            disabled={downloadingInstaller}
+            className="flex-shrink-0 inline-flex items-center gap-2 rounded-md bg-yellow-600 text-white px-3 py-2 text-xs font-semibold hover:bg-yellow-700 disabled:opacity-60"
+          >
+            {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Baixar instalador
+          </button>
+        </div>
+      )}
+
+      {/* Configurar notebook de impressão */}
+      <div className="mb-4 p-4 rounded-lg border bg-card">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="rounded-md bg-accent/10 p-2 text-accent">
+            <Monitor className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold">Configurar notebook de impressão</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Gera um <code>.zip</code> com Tenant ID e Estação já preenchidos. Basta descompactar no notebook do caixa
+              e rodar <code>INSTALAR.bat</code> como Administrador. O agente sobe sozinho no boot via Task Scheduler do Windows.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-xs text-muted-foreground">Estação:</label>
+          <select
+            value={installerStation}
+            onChange={(e) => setInstallerStation(e.target.value)}
+            disabled={downloadingInstaller}
+            className="rounded-md border bg-background px-3 py-1.5 text-sm"
+          >
+            <option value="Caixa">Caixa</option>
+            <option value="Cozinha">Cozinha</option>
+            <option value="Bebidas">Bebidas</option>
+            <option value="Sobremesa">Sobremesa</option>
+          </select>
+          <button
+            onClick={handleDownloadInstaller}
+            disabled={downloadingInstaller}
+            className="inline-flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+          >
+            {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Baixar instalador para Windows (.zip)
+          </button>
+        </div>
+      </div>
+
       {/* Action bar: Queue controls */}
       <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
         <button
