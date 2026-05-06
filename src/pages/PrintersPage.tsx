@@ -817,6 +817,9 @@ export default function PrintersPage() {
         </div>
       </div>
 
+      {/* Lista de Agents pareados (visível para todos os usuários) */}
+      <PrintAgentsList />
+
       {advancedMode && <>
       {/* Action bar: Queue controls */}
       <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
