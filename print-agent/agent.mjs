@@ -1001,6 +1001,18 @@ function isGroupedProductionJob(job) {
 async function processJob(job, printers) {
   if (processedIds.has(job.id)) return;
 
+  // Discovery jobs: list installed printers (qualquer estação)
+  const payloadType = job.payload?.type;
+  if (payloadType === "discover_usb" || payloadType === "discover_printers" || payloadType === "discover_windows") {
+    processedIds.add(job.id);
+    try { await handleDiscoveryJob(job); }
+    catch (e) {
+      console.error("❌ erro discovery:", e.message);
+      try { await supabase.from("print_jobs").update({ status: "error" }).eq("id", job.id); } catch {}
+    }
+    return;
+  }
+
   if (!AUTO_PRINT_STATIONS.includes(job.station)) return;
 
   if (!isGroupedProductionJob(job)) {
@@ -1026,8 +1038,9 @@ async function processJob(job, printers) {
     return;
   }
 
-  if (!printer.ip) {
-    console.warn(`⚠️  Impressora "${printer.name}" sem IP — job ${job.id.slice(0, 8)} ignorado`);
+  const hasSpooler = !!printer.usb_device || printer.connection_type === "usb";
+  if (!printer.ip && !hasSpooler) {
+    console.warn(`⚠️  Impressora "${printer.name}" sem IP nem spooler — job ${job.id.slice(0, 8)} ignorado`);
     return;
   }
 
