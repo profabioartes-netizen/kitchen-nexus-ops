@@ -813,14 +813,20 @@ export default function PrintersPage() {
             </p>
             <button
               onClick={handleDownloadInstaller}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
+              className={`w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90 ${!installerAvailable ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               <Download className="h-4 w-4" />
               Baixar HuskyPDV Agent (.exe)
             </button>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              Após instalar, abra o app e digite o código gerado no Passo 1.
-            </p>
+            {installerAvailable ? (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Após instalar, abra o app e digite o código gerado no Passo 1.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground mt-2">
+                Instalador ainda não publicado. Entre em contato com o suporte.
+              </p>
+            )}
           </div>
         </div>
       </div>
