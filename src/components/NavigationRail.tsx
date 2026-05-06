@@ -143,8 +143,8 @@ export function NavigationRail() {
         collapsed ? "justify-center px-1 py-3" : "gap-3 px-4 py-3"
       )}>
         <img
-          src={coffeeLogo}
-          alt="Espetinho do Marcelo"
+          src={tenant?.logo_url || huskyLogo}
+          alt={tenant?.nome_comercio || "HuskyPDV"}
           className={cn("object-contain transition-all duration-300", collapsed ? "h-9 w-9" : "h-11 w-11")}
         />
         {!collapsed && (
@@ -153,7 +153,7 @@ export function NavigationRail() {
               {tenant?.nome_comercio || "HuskyPDV"}
             </span>
             <span className="text-[10px] text-sidebar-foreground/60 leading-tight">
-              {isSuperAdmin ? "Plataforma HuskyPDV" : "Bar e Restaurante"}
+              {isSuperAdmin ? "Plataforma HuskyPDV" : (businessType || "Bar e Restaurante")}
             </span>
           </div>
         )}
