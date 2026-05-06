@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HuskyPDV Agent",
+  "version": "0.1.0",
+  "identifier": "com.huskypdv.agent",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "HuskyPDV Agent",
+        "width": 520,
+        "height": 720,
+        "resizable": true,
+        "minWidth": 420,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "HuskyPDV",
+    "shortDescription": "Agente de impressão HuskyPDV",
+    "longDescription": "Conecta impressoras térmicas locais ao painel HuskyPDV.",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine",
+        "languages": ["PortugueseBR"],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "autostart": {
+      "args": []
+    }
+  }
+}
