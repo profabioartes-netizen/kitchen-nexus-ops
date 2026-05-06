@@ -6,6 +6,7 @@ import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, 
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import { useTenant } from "@/contexts/TenantContext";
+import { PrintAgentsList } from "@/components/PrintAgentsList";
 
 const DELETE_PIN = "9774";
 
