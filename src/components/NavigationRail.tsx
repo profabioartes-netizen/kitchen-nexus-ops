@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
-import coffeeLogo from "@/assets/logo-espetinho.png";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import huskyLogo from "@/assets/husky-pdv-logo.png";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -94,6 +96,17 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
 export function NavigationRail() {
   const { profile, signOut } = useAuth();
   const { isSuperAdmin, tenant } = useTenant();
+  const { data: businessType } = useQuery({
+    queryKey: ["restaurant_setting", "business_type"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "business_type")
+        .maybeSingle();
+      return (data?.value as string) || "";
+    },
+  });
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("coffee-thrones-theme");
     return saved !== "light";
@@ -130,8 +143,8 @@ export function NavigationRail() {
         collapsed ? "justify-center px-1 py-3" : "gap-3 px-4 py-3"
       )}>
         <img
-          src={coffeeLogo}
-          alt="Espetinho do Marcelo"
+          src={tenant?.logo_url || huskyLogo}
+          alt={tenant?.nome_comercio || "HuskyPDV"}
           className={cn("object-contain transition-all duration-300", collapsed ? "h-9 w-9" : "h-11 w-11")}
         />
         {!collapsed && (
@@ -140,7 +153,7 @@ export function NavigationRail() {
               {tenant?.nome_comercio || "HuskyPDV"}
             </span>
             <span className="text-[10px] text-sidebar-foreground/60 leading-tight">
-              {isSuperAdmin ? "Plataforma HuskyPDV" : "Bar e Restaurante"}
+              {isSuperAdmin ? "Plataforma HuskyPDV" : (businessType || "Bar e Restaurante")}
             </span>
           </div>
         )}

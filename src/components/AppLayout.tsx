@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { LogOut, RefreshCw, ShieldAlert } from "lucide-react";
-import brandLogo from "@/assets/logo-espetinho.png";
+import huskyLogo from "@/assets/husky-pdv-logo.png";
 
 export function AppLayout() {
   const isMobile = useIsMobile();
@@ -30,9 +30,9 @@ export function AppLayout() {
       {isMobile && (
         <header className="flex-shrink-0 flex items-center justify-between px-3 py-2 border-b border-primary/40 bg-primary text-primary-foreground safe-area-top">
           <div className="flex items-center gap-2">
-            <img src={brandLogo} alt="Espetinho do Marcelo" className="h-9 w-auto object-contain" />
+            <img src={tenant?.logo_url || huskyLogo} alt={tenant?.nome_comercio || "HuskyPDV"} className="h-9 w-auto object-contain" />
             <span className="font-semibold text-sm truncate text-white">
-              {profile?.full_name || "Espetinho do Marcelo"}
+              {profile?.full_name || tenant?.nome_comercio || "HuskyPDV"}
             </span>
           </div>
           <div className="flex items-center gap-3">
