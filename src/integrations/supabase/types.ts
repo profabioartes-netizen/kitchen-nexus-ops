@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_pairing_codes: {
+        Row: {
+          code_hash: string
+          consumed_agent_id: string | null
+          consumed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          expires_at: string
+          id: string
+          station: string
+          suggested_name: string | null
+          tenant_id: string
+        }
+        Insert: {
+          code_hash: string
+          consumed_agent_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string
+          id?: string
+          station?: string
+          suggested_name?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          code_hash?: string
+          consumed_agent_id?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string
+          id?: string
+          station?: string
+          suggested_name?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       cash_movements: {
         Row: {
           amount: number
@@ -578,6 +617,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      print_agents: {
+        Row: {
+          active: boolean
+          agent_host: string | null
+          agent_version: string | null
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          name: string
+          paired_at: string
+          paired_by_user_id: string | null
+          printer_name: string | null
+          station: string
+          tenant_id: string
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          agent_host?: string | null
+          agent_version?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          paired_at?: string
+          paired_by_user_id?: string | null
+          printer_name?: string | null
+          station?: string
+          tenant_id?: string
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          agent_host?: string | null
+          agent_version?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          name?: string
+          paired_at?: string
+          paired_by_user_id?: string | null
+          printer_name?: string | null
+          station?: string
+          tenant_id?: string
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       print_jobs: {
         Row: {
@@ -1170,11 +1260,34 @@ export type Database = {
         }
         Returns: Json
       }
+      agent_heartbeat: {
+        Args: {
+          p_agent_host: string
+          p_agent_version: string
+          p_token_hash: string
+        }
+        Returns: string
+      }
       audit_tenant_isolation: {
         Args: never
         Returns: {
           rows_without_tenant: number
           table_name: string
+        }[]
+      }
+      consume_pairing_code: {
+        Args: {
+          p_agent_host: string
+          p_agent_name: string
+          p_agent_version: string
+          p_code_hash: string
+          p_token_hash: string
+        }
+        Returns: {
+          agent_id: string
+          station: string
+          tenant_id: string
+          tenant_name: string
         }[]
       }
       current_tenant_id: { Args: { _user_id?: string }; Returns: string }
