@@ -1098,6 +1098,8 @@ export default function PrintersPage() {
         );
       })()}
 
+      </>}
+
       {/* Printers list */}
       <div className="rounded-lg border bg-card overflow-hidden">
         <table className="w-full text-sm">
