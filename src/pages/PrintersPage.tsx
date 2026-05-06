@@ -95,46 +95,14 @@ export default function PrintersPage() {
     }
   };
 
-  const handleDownloadInstaller = async () => {
-    if (downloadingInstaller) return;
-    setDownloadingInstaller(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess?.session?.access_token;
-      if (!token) {
-        toast.error("Faça login novamente para baixar o instalador.");
-        return;
-      }
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-print-agent-installer`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) {
-        let msg = `HTTP ${res.status}`;
-        try { msg = (await res.json()).error || msg; } catch { /* noop */ }
-        throw new Error(msg);
-      }
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      const objUrl = URL.createObjectURL(blob);
-      a.href = objUrl;
-      a.download = `huskypdv-agent.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(objUrl);
-      toast.success("Instalador baixado! Envie para o notebook do cliente.");
-    } catch (e) {
-      toast.error("Erro ao gerar instalador: " + (e as Error).message);
-    } finally {
-      setDownloadingInstaller(false);
-    }
+  // URL pública do instalador .exe (GitHub Releases). Configurável via VITE_AGENT_DOWNLOAD_URL.
+  const AGENT_INSTALLER_URL =
+    (import.meta.env.VITE_AGENT_DOWNLOAD_URL as string | undefined) ??
+    "https://github.com/huskypdv/desktop-agent/releases/latest/download/HuskyPDV-Agent-Setup.exe";
+
+  const handleDownloadInstaller = () => {
+    window.open(AGENT_INSTALLER_URL, "_blank", "noopener");
+    toast.success("Download iniciado. Execute o instalador no computador da impressora.");
   };
 
   const pushDiag = (level: DiagEvent["level"], msg: string) => {
