@@ -596,6 +596,22 @@ export default function PrintersPage() {
       {/* Action bar: Queue controls */}
       <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
         <button
+          onClick={() => {
+            const target = printers.find((p: any) => p.active) || printers[0];
+            if (!target) {
+              toast.error("Cadastre uma impressora primeiro.");
+              return;
+            }
+            runFullDiagnostic(target);
+          }}
+          disabled={diagRunning || printers.length === 0}
+          className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          <Activity className="h-4 w-4" />
+          {diagRunning ? "Diagnóstico em curso..." : "Diagnóstico Completo"}
+        </button>
+
+        <button
           onClick={() => clearQueueMutation.mutate()}
           disabled={(pendingCount + errorCount) === 0 || clearQueueMutation.isPending}
           className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
@@ -603,6 +619,7 @@ export default function PrintersPage() {
           <Trash className="h-4 w-4" />
           Limpar fila de impressão
         </button>
+
 
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Fila atual:</span>
