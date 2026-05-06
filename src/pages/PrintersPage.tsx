@@ -2,13 +2,15 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor, Wrench, HelpCircle } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor, Wrench, HelpCircle, Settings2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import { useTenant } from "@/contexts/TenantContext";
 import { PrintAgentsList } from "@/components/PrintAgentsList";
 import { printViaBrowser } from "@/lib/browserPrint";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getPrintMode, setPrintMode, type PrintMode } from "@/lib/printPreference";
 
 const DELETE_PIN = "9774";
 
@@ -20,6 +22,14 @@ export default function PrintersPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [printMode, setPrintModeState] = useState<PrintMode>(() => getPrintMode());
+  const [setupTab, setSetupTab] = useState<"native" | "agent">(() =>
+    getPrintMode() === "agent" ? "agent" : "native",
+  );
+  const updatePrintMode = (mode: PrintMode) => {
+    setPrintModeState(mode);
+    setPrintMode(mode);
+  };
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -761,127 +771,195 @@ export default function PrintersPage() {
         </div>
       )}
 
-      {/* Setup Wizard — fluxo simples para cliente */}
+      {/* Setup principal — IMPRESSÃO NATIVA em destaque, Agent em aba avançada */}
       <div className="mb-4 rounded-lg border bg-card overflow-hidden">
         <div className="flex items-start justify-between gap-3 p-4 border-b bg-secondary/20">
           <div className="flex items-start gap-3">
             <div className="rounded-md bg-accent/10 p-2 text-accent">
-              <Monitor className="h-5 w-5" />
+              <Printer className="h-5 w-5" />
             </div>
             <div>
               <h3 className="text-sm font-semibold">Configurar impressão</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Use o HuskyPDV Agent (recomendado) ou imprima direto pelo navegador enquanto não instala.
+                Por padrão, o HuskyPDV imprime direto pela impressora do sistema (navegador). Sem instalar nada.
               </p>
             </div>
           </div>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-              agentConnected
-                ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
-                : "bg-destructive/10 text-destructive"
-            }`}
-            title={agentConnected ? "Pelo menos uma impressora respondeu nos últimos 2 min" : "Nenhum agente respondeu recentemente"}
-          >
-            <Circle className={`h-2 w-2 ${agentConnected ? "fill-current animate-pulse" : "fill-current"}`} />
-            Agent {agentConnected ? "conectado" : "desconectado"}
-          </span>
+          {setupTab === "agent" && (
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                agentConnected
+                  ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
+                  : "bg-destructive/10 text-destructive"
+              }`}
+              title={agentConnected ? "Pelo menos uma impressora respondeu nos últimos 2 min" : "Nenhum agente respondeu recentemente"}
+            >
+              <Circle className={`h-2 w-2 ${agentConnected ? "fill-current animate-pulse" : "fill-current"}`} />
+              Agent {agentConnected ? "conectado" : "desconectado"}
+            </span>
+          )}
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-3 p-4">
-          {/* Passo 1 */}
-          <div className="rounded-md border bg-background p-3">
-            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 1</div>
-            <div className="text-xs font-semibold mb-2">Gerar código de pareamento</div>
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <label className="text-xs">Estação:</label>
-              <select
-                value={installerStation}
-                onChange={(e) => setInstallerStation(e.target.value)}
-                disabled={generatingCode || !!pairingCode}
-                className="rounded-md border bg-background px-2 py-1 text-sm"
-              >
-                <option value="Caixa">Caixa</option>
-                <option value="Cozinha">Cozinha</option>
-                <option value="Bebidas">Bebidas</option>
-                <option value="Sobremesa">Sobremesa</option>
-              </select>
-            </div>
-            {pairingCode ? (
-              <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
-                <div className="font-mono text-2xl tracking-widest font-bold text-accent">
-                  {pairingCode.slice(0, 3)}-{pairingCode.slice(3)}
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-1">
-                  Expira em {Math.floor(pairingTimeLeft / 60)}:{String(pairingTimeLeft % 60).padStart(2, "0")}
-                </div>
+        <Tabs value={setupTab} onValueChange={(v) => setSetupTab(v as "native" | "agent")} className="p-4">
+          <TabsList className="mb-4">
+            <TabsTrigger value="native" className="gap-2">
+              <Printer className="h-3.5 w-3.5" />
+              Impressora do Sistema
+              <span className="ml-1 rounded bg-accent/20 text-accent text-[10px] px-1.5 py-0.5 font-bold">RECOMENDADO</span>
+            </TabsTrigger>
+            <TabsTrigger value="agent" className="gap-2">
+              <Settings2 className="h-3.5 w-3.5" />
+              Configurações Avançadas
+            </TabsTrigger>
+          </TabsList>
+
+          {/* === ABA NATIVA (PRINCIPAL) === */}
+          <TabsContent value="native" className="mt-0">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="rounded-md border border-accent/40 bg-accent/5 p-4">
+                <div className="text-xs font-bold text-accent tracking-wider mb-2">IMPRESSÃO NATIVA</div>
+                <h4 className="text-base font-semibold mb-1">Imprima direto pelo navegador</h4>
+                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+                  Funciona com qualquer impressora térmica reconhecida pelo Windows/Mac/Linux.
+                  Largura otimizada para papel <strong>80mm (72mm úteis)</strong> em fonte monoespaçada.
+                </p>
                 <button
-                  onClick={() => { setPairingCode(null); setPairingExpiresAt(null); }}
-                  className="text-[11px] underline text-muted-foreground mt-2"
+                  onClick={handleBrowserPrintTest}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90"
                 >
-                  Gerar outro
+                  <Printer className="h-4 w-4" />
+                  Testar impressão pelo navegador
                 </button>
+                <Link
+                  to="/impressoras/ajuda"
+                  className="mt-3 inline-flex items-center gap-1 text-[11px] underline text-muted-foreground hover:text-foreground"
+                >
+                  <HelpCircle className="h-3 w-3" /> Como configurar a impressora térmica no sistema
+                </Link>
               </div>
-            ) : (
-              <button
-                onClick={handleGeneratePairingCode}
-                disabled={generatingCode}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
-              >
-                {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Gerar código
-              </button>
-            )}
-          </div>
 
-          {/* Passo 2 */}
-          <div className="rounded-md border bg-background p-3">
-            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 2</div>
-            <div className="text-xs font-semibold mb-2">Baixar HuskyPDV Agent</div>
-            <p className="text-[11px] text-muted-foreground mb-2">
-              Instalador único <strong>.exe</strong>. Sem ZIP, sem terminal.
-            </p>
-            <button
-              onClick={handleDownloadInstaller}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
-            >
-              <Download className="h-4 w-4" />
-              {installerAvailable ? "Baixar .exe" : "Ver instruções"}
-            </button>
-            {installerAvailable ? (
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Após instalar, abra o app e digite o código do Passo 1.
-              </p>
-            ) : (
-              <p className="text-[11px] text-muted-foreground mt-2 inline-flex items-center gap-1">
-                <HelpCircle className="h-3 w-3" />
-                Instalador não publicado — clique para alternativas.
-              </p>
-            )}
-          </div>
+              <div className="rounded-md border bg-background p-4">
+                <div className="text-xs font-bold text-muted-foreground tracking-wider mb-2">PREFERÊNCIA DESTE TERMINAL</div>
+                <h4 className="text-sm font-semibold mb-2">Modo de impressão automática</h4>
+                <p className="text-[11px] text-muted-foreground mb-3">
+                  Salvo neste navegador. Define o que acontece ao finalizar uma venda.
+                </p>
+                <div className="space-y-2">
+                  {([
+                    { v: "native", label: "Sempre pelo navegador (recomendado)", desc: "Imprime direto sem perguntar." },
+                    { v: "agent",  label: "Sempre pelo Agent",                  desc: "Envia para o HuskyPDV Agent (precisa instalar)." },
+                    { v: "ask",    label: "Perguntar quando o Agent falhar",     desc: "Tenta o Agent e oferece fallback se der erro." },
+                  ] as { v: PrintMode; label: string; desc: string }[]).map((opt) => {
+                    const selected = printMode === opt.v;
+                    return (
+                      <button
+                        key={opt.v}
+                        onClick={() => updatePrintMode(opt.v)}
+                        className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
+                          selected
+                            ? "border-accent bg-accent/10"
+                            : "border-border hover:bg-secondary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-3.5 w-3.5 rounded-full border-2 flex-shrink-0 ${
+                              selected ? "border-accent bg-accent" : "border-muted-foreground/40"
+                            }`}
+                          />
+                          <span className="text-sm font-medium">{opt.label}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1 ml-5.5 pl-1">{opt.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-3 italic">
+                  Atalho: defina como <strong>“Sempre pelo navegador”</strong> para nunca mais ver o popup de fallback.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
 
-          {/* Alternativa: Impressora do Sistema (Nativa) */}
-          <div className="rounded-md border border-accent/40 bg-accent/5 p-3">
-            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">SEM AGENT</div>
-            <div className="text-xs font-semibold mb-2">Impressora do Sistema (Nativa)</div>
-            <p className="text-[11px] text-muted-foreground mb-2">
-              Imprime direto pelo navegador em papel térmico 80mm/58mm. Use enquanto configura o Agent.
-            </p>
-            <button
-              onClick={handleBrowserPrintTest}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-accent/50 bg-background px-3 py-2 text-sm font-medium hover:bg-accent/10"
-            >
-              <Printer className="h-4 w-4" />
-              Testar impressão pelo navegador
-            </button>
-            <Link
-              to="/impressoras/ajuda"
-              className="mt-2 inline-flex items-center gap-1 text-[11px] underline text-muted-foreground hover:text-foreground"
-            >
-              <HelpCircle className="h-3 w-3" /> Como configurar
-            </Link>
-          </div>
-        </div>
+          {/* === ABA AVANÇADA (HUSKY AGENT) === */}
+          <TabsContent value="agent" className="mt-0">
+            <div className="rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3 mb-4 text-xs text-yellow-700 dark:text-yellow-300">
+              ⚠️ Use o Agent apenas se precisar de impressão automática em rede ou múltiplas estações (Caixa, Cozinha, Bar). Para a maioria dos casos, a aba <strong>Impressora do Sistema</strong> já resolve.
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {/* Passo 1 */}
+              <div className="rounded-md border bg-background p-3">
+                <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 1</div>
+                <div className="text-xs font-semibold mb-2">Gerar código de pareamento</div>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <label className="text-xs">Estação:</label>
+                  <select
+                    value={installerStation}
+                    onChange={(e) => setInstallerStation(e.target.value)}
+                    disabled={generatingCode || !!pairingCode}
+                    className="rounded-md border bg-background px-2 py-1 text-sm"
+                  >
+                    <option value="Caixa">Caixa</option>
+                    <option value="Cozinha">Cozinha</option>
+                    <option value="Bebidas">Bebidas</option>
+                    <option value="Sobremesa">Sobremesa</option>
+                  </select>
+                </div>
+                {pairingCode ? (
+                  <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
+                    <div className="font-mono text-2xl tracking-widest font-bold text-accent">
+                      {pairingCode.slice(0, 3)}-{pairingCode.slice(3)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1">
+                      Expira em {Math.floor(pairingTimeLeft / 60)}:{String(pairingTimeLeft % 60).padStart(2, "0")}
+                    </div>
+                    <button
+                      onClick={() => { setPairingCode(null); setPairingExpiresAt(null); }}
+                      className="text-[11px] underline text-muted-foreground mt-2"
+                    >
+                      Gerar outro
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleGeneratePairingCode}
+                    disabled={generatingCode}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+                  >
+                    {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Gerar código
+                  </button>
+                )}
+              </div>
+
+              {/* Passo 2 */}
+              <div className="rounded-md border bg-background p-3">
+                <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 2</div>
+                <div className="text-xs font-semibold mb-2">Baixar HuskyPDV Agent</div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  Instalador único <strong>.exe</strong>. Sem ZIP, sem terminal.
+                </p>
+                <button
+                  onClick={handleDownloadInstaller}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
+                >
+                  <Download className="h-4 w-4" />
+                  {installerAvailable ? "Baixar .exe" : "Ver instruções"}
+                </button>
+                {installerAvailable ? (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Após instalar, abra o app e digite o código do Passo 1.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-2 inline-flex items-center gap-1">
+                    <HelpCircle className="h-3 w-3" />
+                    Instalador não publicado — clique para alternativas.
+                  </p>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Lista de Agents pareados (visível para todos os usuários) */}
