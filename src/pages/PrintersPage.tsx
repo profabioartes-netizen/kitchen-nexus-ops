@@ -249,6 +249,33 @@ export default function PrintersPage() {
           </div>
         </section>
 
+        {/* Impressão automática (kiosk-printing) */}
+        <section className="rounded-2xl border bg-card/40 p-6 space-y-4">
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
+              Impressão automática (sem popup)
+            </h2>
+            <p className="text-sm text-foreground/90 mt-1">
+              Para o cupom sair direto na impressora padrão, abra o Chrome ou Edge com o
+              parâmetro <code className="font-mono bg-secondary/60 px-1.5 py-0.5 rounded text-[12px]">--kiosk-printing</code>.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-lg border bg-background p-3">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Chrome</div>
+              <code className="font-mono text-xs block break-all bg-secondary/40 rounded px-2 py-1.5">chrome.exe --kiosk-printing</code>
+            </div>
+            <div className="rounded-lg border bg-background p-3">
+              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Edge</div>
+              <code className="font-mono text-xs block break-all bg-secondary/40 rounded px-2 py-1.5">msedge.exe --kiosk-printing</code>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Dica: crie um atalho na área de trabalho com esse parâmetro e abra o HuskyPDV por ele.
+            Sem o parâmetro, o sistema continua imprimindo normalmente — apenas exibe o popup do navegador.
+          </p>
+        </section>
+
         {/* Impressoras adicionais */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">

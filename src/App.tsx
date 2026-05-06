@@ -18,6 +18,7 @@ import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
 import PrinterHelpPage from "@/pages/PrinterHelpPage";
+import PrintReceiptPage from "@/pages/print/PrintReceiptPage";
 import ReportsPage from "@/pages/ReportsPage";
 import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
@@ -125,6 +126,10 @@ const App = () => (
           <TenantProvider>
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
+
+            {/* Impressão silenciosa (kiosk-printing friendly) — sem layout */}
+            <Route path="/print/receipt/:id" element={<PrintReceiptPage />} />
+            <Route path="/print/order/:id" element={<PrintReceiptPage />} />
 
             {/* Waiter mobile mode */}
             <Route path="/garcom/login" element={<WaiterLoginPage />} />

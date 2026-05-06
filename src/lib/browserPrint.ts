@@ -200,25 +200,76 @@ function buildHtml(p: BrowserPrintPayload): string {
 
   <script>
     window.addEventListener('load', () => {
-      setTimeout(() => { try { window.focus(); window.print(); } catch(_) {} }, 120);
+      setTimeout(() => { try { window.focus(); window.print(); } catch(_) {} }, 80);
     });
-    window.addEventListener('afterprint', () => { setTimeout(() => window.close(), 200); });
+    window.addEventListener('afterprint', () => { setTimeout(() => window.close(), 150); });
   </script>
 </body>
 </html>`;
 }
 
+/**
+ * Impressão silenciosa via <iframe> oculto.
+ * Combinado com Chrome/Edge em modo --kiosk-printing,
+ * a impressão sai direto na impressora padrão sem popup.
+ * Sem kiosk-printing, o navegador exibe o diálogo padrão (fallback nativo).
+ */
 export function printViaBrowser(payload: BrowserPrintPayload): boolean {
   try {
     const html = buildHtml(payload);
-    const w = window.open("", "_blank", "width=400,height=700");
-    if (!w) {
-      alert("Pop-up bloqueado pelo navegador. Permita pop-ups para imprimir pelo navegador.");
+
+    // Remove iframes anteriores ainda presentes
+    document.querySelectorAll("iframe[data-husky-print]").forEach((el) => el.remove());
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("data-husky-print", "1");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.opacity = "0";
+    iframe.style.pointerEvents = "none";
+
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      iframe.remove();
       return false;
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    const cw = iframe.contentWindow!;
+    const cleanup = () => setTimeout(() => iframe.remove(), 1000);
+
+    cw.addEventListener("afterprint", cleanup);
+
+    // Dispara print após o conteúdo carregar.
+    const trigger = () => {
+      try {
+        cw.focus();
+        cw.print();
+      } catch (e) {
+        console.error("[browserPrint] print error:", e);
+      }
+    };
+
+    if (doc.readyState === "complete") {
+      setTimeout(trigger, 80);
+    } else {
+      cw.addEventListener("load", () => setTimeout(trigger, 80));
+    }
+
+    // Fallback de cleanup caso afterprint não dispare (ex: cancelamento)
+    setTimeout(() => {
+      if (document.body.contains(iframe)) iframe.remove();
+    }, 30000);
+
     return true;
   } catch (e) {
     console.error("[browserPrint] erro:", e);
