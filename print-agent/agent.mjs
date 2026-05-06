@@ -36,6 +36,46 @@ const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {
 
 const TENANT_ID = CONFIG.tenantId;
 
+// ── Self-test mode (used by INSTALAR.bat to validate credentials) ───
+if (process.argv.includes("--selftest")) {
+  (async () => {
+    console.log("[selftest] Testando conexão com HuskyPDV...");
+    console.log(`[selftest] URL:    ${CONFIG.supabaseUrl}`);
+    console.log(`[selftest] Tenant: ${TENANT_ID}`);
+    console.log(`[selftest] Auth:   ${process.env.SUPABASE_SERVICE_ROLE_KEY ? "service_role" : "anon"}`);
+    try {
+      const { data, error } = await supabase
+        .from("printers")
+        .select("id, name, station, active")
+        .eq("tenant_id", TENANT_ID)
+        .limit(5);
+      if (error) {
+        console.error(`[selftest] ❌ ERRO ao consultar 'printers': ${error.message}`);
+        console.error("[selftest] Verifique TENANT_ID e SUPABASE_SERVICE_ROLE_KEY no .env");
+        process.exit(1);
+      }
+      const now = new Date().toISOString();
+      const { error: hbErr } = await supabase
+        .from("printers")
+        .update({ last_seen_at: now })
+        .eq("tenant_id", TENANT_ID)
+        .eq("active", true);
+      if (hbErr) {
+        console.error(`[selftest] ❌ ERRO ao gravar heartbeat: ${hbErr.message}`);
+        process.exit(1);
+      }
+      console.log(`[selftest] ✅ Conexão OK. ${data?.length || 0} impressora(s) ativa(s) encontrada(s).`);
+      console.log("[selftest] ✅ Heartbeat gravado em printers.last_seen_at");
+      process.exit(0);
+    } catch (e) {
+      console.error(`[selftest] ❌ Exceção: ${e?.message || e}`);
+      process.exit(1);
+    }
+  })();
+  // Bloqueia a execução normal abaixo
+  await new Promise(() => {});
+}
+
 // ── ESC/POS helpers ─────────────────────────────────────────────────
 const ESC = 0x1b;
 const GS = 0x1d;
