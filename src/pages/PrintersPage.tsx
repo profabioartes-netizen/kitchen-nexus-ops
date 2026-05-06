@@ -42,20 +42,31 @@ export default function PrintersPage() {
     if (ok) toast.success("Janela de impressão aberta.");
   };
 
+  const resolvePublicUrl = (): string => {
+    const envUrl = (import.meta.env.VITE_PUBLIC_APP_URL as string | undefined)?.trim();
+    if (envUrl) return envUrl.replace(/\/+$/, "");
+    const origin = window.location.origin;
+    if (!/lovable\.(app|dev)/i.test(origin)) return origin.replace(/\/+$/, "");
+    return "https://huskypdv.com";
+  };
+
   const downloadAutoPrintActivator = () => {
-    const url = window.location.origin;
+    const publicUrl = resolvePublicUrl();
+    const targetUrl = `${publicUrl}/caixa`;
+    const iconUrl = `${publicUrl}/icons/huskypdv.ico`;
     const bat = `@echo off
 chcp 65001 >nul
-title Ativar Impressao Automatica - HuskyPDV
+title Ativar HuskyPDV Caixa
 echo.
 echo  ============================================
-echo   Ativando Impressao Automatica HuskyPDV
+echo    Configurando HuskyPDV Caixa
 echo  ============================================
 echo.
 
-set "PS_SCRIPT=%TEMP%\\huskypdv_create_shortcut.ps1"
+set "PS_SCRIPT=%TEMP%\\huskypdv_setup.ps1"
 
-> "%PS_SCRIPT%" echo $url = '${url}'
+> "%PS_SCRIPT%" echo $url = '${targetUrl}'
+>>"%PS_SCRIPT%" echo $iconUrl = '${iconUrl}'
 >>"%PS_SCRIPT%" echo $candidates = @(
 >>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",
 >>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Google\\Chrome\\Application\\chrome.exe",
@@ -66,19 +77,23 @@ set "PS_SCRIPT=%TEMP%\\huskypdv_create_shortcut.ps1"
 >>"%PS_SCRIPT%" echo $browser = $null
 >>"%PS_SCRIPT%" echo foreach ($p in $candidates) { if (Test-Path $p) { $browser = $p; break } }
 >>"%PS_SCRIPT%" echo if (-not $browser) { Write-Host 'Chrome ou Edge nao encontrado. Instale um deles e tente novamente.' -ForegroundColor Red; exit 1 }
+>>"%PS_SCRIPT%" echo $appDir = Join-Path $env:APPDATA 'HuskyPDV'
+>>"%PS_SCRIPT%" echo if (-not (Test-Path $appDir)) { New-Item -ItemType Directory -Path $appDir ^| Out-Null }
+>>"%PS_SCRIPT%" echo $iconPath = Join-Path $appDir 'huskypdv.ico'
+>>"%PS_SCRIPT%" echo try { Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing -ErrorAction Stop } catch { Write-Host 'Aviso: nao foi possivel baixar o icone personalizado.' -ForegroundColor Yellow }
 >>"%PS_SCRIPT%" echo $desktop = [Environment]::GetFolderPath('Desktop')
 >>"%PS_SCRIPT%" echo $lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
 >>"%PS_SCRIPT%" echo $sh = New-Object -ComObject WScript.Shell
 >>"%PS_SCRIPT%" echo $s = $sh.CreateShortcut($lnk)
 >>"%PS_SCRIPT%" echo $s.TargetPath = $browser
->>"%PS_SCRIPT%" echo $s.Arguments = '--kiosk-printing --new-window "' + $url + '"'
+>>"%PS_SCRIPT%" echo $s.Arguments = '--kiosk-printing --app=' + '"' + $url + '"'
 >>"%PS_SCRIPT%" echo $s.WorkingDirectory = (Split-Path $browser)
->>"%PS_SCRIPT%" echo $s.IconLocation = $browser
->>"%PS_SCRIPT%" echo $s.Description = 'HuskyPDV - Impressao automatica'
+>>"%PS_SCRIPT%" echo if (Test-Path $iconPath) { $s.IconLocation = $iconPath } else { $s.IconLocation = $browser }
+>>"%PS_SCRIPT%" echo $s.Description = 'HuskyPDV Caixa'
 >>"%PS_SCRIPT%" echo $s.Save()
 >>"%PS_SCRIPT%" echo Write-Host ''
 >>"%PS_SCRIPT%" echo Write-Host '  Atalho criado com sucesso!' -ForegroundColor Green
->>"%PS_SCRIPT%" echo Write-Host '  Abra o HuskyPDV pelo atalho HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
+>>"%PS_SCRIPT%" echo Write-Host '  Use o icone HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
 del "%PS_SCRIPT%" >nul 2>&1
