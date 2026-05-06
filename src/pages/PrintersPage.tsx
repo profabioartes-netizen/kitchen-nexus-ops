@@ -855,13 +855,13 @@ export default function PrintersPage() {
                     {discovering ? (
                       <><Loader2 className="h-4 w-4 animate-spin" /> Detectando...</>
                     ) : (
-                      <><Printer className="h-4 w-4" /> Detectar impressoras USB</>
+                      <><Printer className="h-4 w-4" /> Detectar impressoras do Windows</>
                     )}
                   </button>
 
                   {discoveries.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-muted-foreground">Selecione a impressora:</p>
+                      <p className="text-xs font-medium text-muted-foreground">Selecione a impressora instalada no Windows:</p>
                       {discoveries.map((d) => {
                         const selected = form.usb_device === d.device_id;
                         return (
@@ -889,7 +889,7 @@ export default function PrintersPage() {
 
                   {!discoveryError && discoveries.length === 0 && !discovering && (
                     <p className="text-xs text-muted-foreground">
-                      Clique em "Detectar impressoras USB" para listar os dispositivos conectados a este computador.
+                      Lista as impressoras instaladas no Windows do computador onde o agente está rodando (Epson TM-T20X, Elgin, Bematech, etc). A impressão será enviada via spooler do sistema operacional.
                     </p>
                   )}
 
