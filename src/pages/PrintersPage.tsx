@@ -717,7 +717,7 @@ export default function PrintersPage() {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
-                <td className="px-4 py-3 text-muted-foreground uppercase text-xs">{isUsb ? "USB" : "Rede"}</td>
+                <td className="px-4 py-3 text-muted-foreground uppercase text-xs">{isUsb ? "Windows" : "Rede"}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">
                   {isUsb ? (p.usb_device || "—") : (p.ip ? `${p.ip}:${p.port}` : "—")}
                 </td>
