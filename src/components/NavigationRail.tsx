@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
-import coffeeLogo from "@/assets/logo-espetinho.png";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import huskyLogo from "@/assets/husky-pdv-logo.png";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
