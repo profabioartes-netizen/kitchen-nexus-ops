@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.consume_pairing_code(text,text,text,text,text) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.agent_heartbeat(text,text,text) FROM PUBLIC, anon, authenticated;
