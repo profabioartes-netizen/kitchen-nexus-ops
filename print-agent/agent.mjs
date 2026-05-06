@@ -1134,10 +1134,20 @@ async function healthCheckLoop() {
     const printers = await getPrinters();
     const now = new Date().toISOString();
 
-    for (const printer of printers) {
-      if (!printer.ip) continue;
+    // Cache lista de impressoras instaladas no SO uma vez por ciclo
+    let installed = null;
 
-      const online = await checkPrinterHealthTcp(printer.ip, printer.port || 9100);
+    for (const printer of printers) {
+      const isSpooler = printer.connection_type === "usb" || (!!printer.usb_device && !printer.ip);
+      let online = false;
+
+      if (isSpooler) {
+        if (installed === null) installed = await listInstalledPrinters();
+        const target = (printer.usb_device || printer.name || "").trim();
+        online = installed.some((p) => p.name === target);
+      } else if (printer.ip) {
+        online = await checkPrinterHealthTcp(printer.ip, printer.port || 9100);
+      }
 
       if (online) {
         await supabase
