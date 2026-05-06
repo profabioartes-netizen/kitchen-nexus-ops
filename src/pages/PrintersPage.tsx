@@ -2,16 +2,19 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor, Wrench } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor, Wrench, HelpCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import { useTenant } from "@/contexts/TenantContext";
 import { PrintAgentsList } from "@/components/PrintAgentsList";
+import { printViaBrowser } from "@/lib/browserPrint";
 
 const DELETE_PIN = "9774";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { pin: PAGE_PIN, pinEnabled } = useSecurityPin();
   const { isSuperAdmin } = useTenant();
   const [unlocked, setUnlocked] = useState(false);
@@ -105,11 +108,25 @@ export default function PrintersPage() {
 
   const handleDownloadInstaller = () => {
     if (!installerAvailable) {
-      toast.error("Instalador ainda não publicado. Entre em contato com o suporte.");
+      toast.message("Instalador ainda não publicado.", {
+        description: "Abrindo a página de ajuda com instruções alternativas (impressão pelo navegador).",
+      });
+      navigate("/impressoras/ajuda");
       return;
     }
     window.open(AGENT_INSTALLER_URL, "_blank", "noopener");
     toast.success("Download iniciado. Execute o instalador no computador da impressora.");
+  };
+
+  const handleBrowserPrintTest = () => {
+    const ok = printViaBrowser({
+      type: "test",
+      title: "TESTE — IMPRESSÃO NAVEGADOR",
+      business_name: "HuskyPDV",
+      message: "Se este cupom saiu pela impressora térmica do sistema, o fallback nativo está funcionando.",
+      paper: "80mm",
+    });
+    if (ok) toast.success("Janela de impressão aberta.");
   };
 
   const pushDiag = (level: DiagEvent["level"], msg: string) => {
@@ -744,26 +761,38 @@ export default function PrintersPage() {
         </div>
       )}
 
-      {/* Instalar HuskyPDV Agent — fluxo simples para cliente */}
-      <div className="mb-4 p-4 rounded-lg border bg-card">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="rounded-md bg-accent/10 p-2 text-accent">
-            <Monitor className="h-5 w-5" />
+      {/* Setup Wizard — fluxo simples para cliente */}
+      <div className="mb-4 rounded-lg border bg-card overflow-hidden">
+        <div className="flex items-start justify-between gap-3 p-4 border-b bg-secondary/20">
+          <div className="flex items-start gap-3">
+            <div className="rounded-md bg-accent/10 p-2 text-accent">
+              <Monitor className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Configurar impressão</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Use o HuskyPDV Agent (recomendado) ou imprima direto pelo navegador enquanto não instala.
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold">Conectar uma impressora</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <strong>1.</strong> Gere um código.{" "}
-              <strong>2.</strong> Baixe e instale o HuskyPDV Agent no computador da impressora.{" "}
-              <strong>3.</strong> Digite o código quando solicitado.
-            </p>
-          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+              agentConnected
+                ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
+                : "bg-destructive/10 text-destructive"
+            }`}
+            title={agentConnected ? "Pelo menos uma impressora respondeu nos últimos 2 min" : "Nenhum agente respondeu recentemente"}
+          >
+            <Circle className={`h-2 w-2 ${agentConnected ? "fill-current animate-pulse" : "fill-current"}`} />
+            Agent {agentConnected ? "conectado" : "desconectado"}
+          </span>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
-          {/* Passo 1: gerar código */}
+        <div className="grid sm:grid-cols-3 gap-3 p-4">
+          {/* Passo 1 */}
           <div className="rounded-md border bg-background p-3">
-            <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 1 — Código de pareamento</div>
+            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 1</div>
+            <div className="text-xs font-semibold mb-2">Gerar código de pareamento</div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <label className="text-xs">Estação:</label>
               <select
@@ -780,17 +809,17 @@ export default function PrintersPage() {
             </div>
             {pairingCode ? (
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
-                <div className="font-mono text-3xl tracking-widest font-bold text-accent">
+                <div className="font-mono text-2xl tracking-widest font-bold text-accent">
                   {pairingCode.slice(0, 3)}-{pairingCode.slice(3)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-[11px] text-muted-foreground mt-1">
                   Expira em {Math.floor(pairingTimeLeft / 60)}:{String(pairingTimeLeft % 60).padStart(2, "0")}
                 </div>
                 <button
                   onClick={() => { setPairingCode(null); setPairingExpiresAt(null); }}
-                  className="text-xs underline text-muted-foreground mt-2"
+                  className="text-[11px] underline text-muted-foreground mt-2"
                 >
-                  Gerar outro código
+                  Gerar outro
                 </button>
               </div>
             ) : (
@@ -800,33 +829,57 @@ export default function PrintersPage() {
                 className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
               >
                 {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Gerar código de 6 dígitos
+                Gerar código
               </button>
             )}
           </div>
 
-          {/* Passo 2: baixar instalador */}
+          {/* Passo 2 */}
           <div className="rounded-md border bg-background p-3">
-            <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 2 — Instalador Windows</div>
-            <p className="text-xs text-muted-foreground mb-2">
-              Instalador único <strong>.exe</strong>. Sem ZIP, sem .bat, sem terminal.
+            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 2</div>
+            <div className="text-xs font-semibold mb-2">Baixar HuskyPDV Agent</div>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Instalador único <strong>.exe</strong>. Sem ZIP, sem terminal.
             </p>
             <button
               onClick={handleDownloadInstaller}
-              className={`w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90 ${!installerAvailable ? "opacity-60 cursor-not-allowed" : ""}`}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
             >
               <Download className="h-4 w-4" />
-              Baixar HuskyPDV Agent (.exe)
+              {installerAvailable ? "Baixar .exe" : "Ver instruções"}
             </button>
             {installerAvailable ? (
               <p className="text-[11px] text-muted-foreground mt-2">
-                Após instalar, abra o app e digite o código gerado no Passo 1.
+                Após instalar, abra o app e digite o código do Passo 1.
               </p>
             ) : (
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Instalador ainda não publicado. Entre em contato com o suporte.
+              <p className="text-[11px] text-muted-foreground mt-2 inline-flex items-center gap-1">
+                <HelpCircle className="h-3 w-3" />
+                Instalador não publicado — clique para alternativas.
               </p>
             )}
+          </div>
+
+          {/* Alternativa: Impressora do Sistema (Nativa) */}
+          <div className="rounded-md border border-accent/40 bg-accent/5 p-3">
+            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">SEM AGENT</div>
+            <div className="text-xs font-semibold mb-2">Impressora do Sistema (Nativa)</div>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Imprime direto pelo navegador em papel térmico 80mm/58mm. Use enquanto configura o Agent.
+            </p>
+            <button
+              onClick={handleBrowserPrintTest}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-accent/50 bg-background px-3 py-2 text-sm font-medium hover:bg-accent/10"
+            >
+              <Printer className="h-4 w-4" />
+              Testar impressão pelo navegador
+            </button>
+            <Link
+              to="/impressoras/ajuda"
+              className="mt-2 inline-flex items-center gap-1 text-[11px] underline text-muted-foreground hover:text-foreground"
+            >
+              <HelpCircle className="h-3 w-3" /> Como configurar
+            </Link>
           </div>
         </div>
       </div>
@@ -1085,6 +1138,7 @@ export default function PrintersPage() {
               <th className="text-left px-4 py-2 font-medium">Endereço</th>
               <th className="text-center px-4 py-2 font-medium">Auto</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
+              <th className="text-left px-4 py-2 font-medium">Última resposta</th>
               <th className="text-center px-4 py-2 font-medium">Ativa</th>
               <th className="px-4 py-2 w-40"></th>
             </tr>
@@ -1092,7 +1146,7 @@ export default function PrintersPage() {
           <tbody>
             {printers.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   Nenhuma impressora configurada. Clique em <strong>Nova Impressora</strong> para começar.
                 </td>
               </tr>
@@ -1134,6 +1188,15 @@ export default function PrintersPage() {
                     <Circle className={`h-2 w-2 ${online ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
                     {online ? "Online" : "Offline"}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {p.last_seen_at ? (() => {
+                    const ms = Date.now() - new Date(p.last_seen_at).getTime();
+                    if (ms < 60_000) return `${Math.floor(ms / 1000)}s atrás`;
+                    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}min atrás`;
+                    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h atrás`;
+                    return new Date(p.last_seen_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+                  })() : <span className="italic">nunca</span>}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button

@@ -17,6 +17,7 @@ import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
+import PrinterHelpPage from "@/pages/PrinterHelpPage";
 import ReportsPage from "@/pages/ReportsPage";
 import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
@@ -158,6 +159,7 @@ const App = () => (
               <Route path="/produtos" element={<ProductsPage />} />
               <Route path="/impressoras" element={<PrintersPage />} />
               <Route path="/impressoras/agente" element={<PrintAgentPage />} />
+              <Route path="/impressoras/ajuda" element={<PrinterHelpPage />} />
               <Route path="/relatorios" element={<ReportsPage />} />
               <Route path="/vendas" element={<SalesPage />} />
               <Route path="/usuarios" element={<UsersPage />} />
