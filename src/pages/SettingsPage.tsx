@@ -344,6 +344,17 @@ export default function SettingsPage() {
               className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
+          <div>
+            <label className="text-sm font-medium">Ramo do estabelecimento</label>
+            <input
+              type="text"
+              value={businessType}
+              onChange={(e) => setBusinessType(e.target.value)}
+              placeholder="Ex.: Bar e Restaurante, Lanchonete, Pizzaria"
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Aparece abaixo do nome no menu lateral.</p>
+          </div>
           <button
             onClick={handleSaveContact}
             disabled={savingContact}
