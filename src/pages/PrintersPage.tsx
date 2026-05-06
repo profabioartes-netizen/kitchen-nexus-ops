@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 
