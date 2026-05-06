@@ -1,0 +1,1 @@
+UPDATE public.print_jobs SET status='canceled' WHERE payload->>'type' IN ('discover_usb','discover_printers','discover_windows') AND status='pending';
