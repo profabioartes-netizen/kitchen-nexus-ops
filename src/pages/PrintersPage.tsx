@@ -1189,6 +1189,15 @@ export default function PrintersPage() {
                     {online ? "Online" : "Offline"}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {p.last_seen_at ? (() => {
+                    const ms = Date.now() - new Date(p.last_seen_at).getTime();
+                    if (ms < 60_000) return `${Math.floor(ms / 1000)}s atrás`;
+                    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}min atrás`;
+                    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h atrás`;
+                    return new Date(p.last_seen_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+                  })() : <span className="italic">nunca</span>}
+                </td>
                 <td className="px-4 py-3 text-center">
                   <button
                     onClick={() => toggleActive.mutate(p)}
