@@ -49,9 +49,8 @@ export default function PrintersPage() {
   const [diagJobId, setDiagJobId] = useState<string | null>(null);
   const diagLogRef = useRef<HTMLDivElement>(null);
 
-  // Installer download state
+  // Installer station selection
   const [installerStation, setInstallerStation] = useState<string>("Caixa");
-  const [downloadingInstaller, setDownloadingInstaller] = useState(false);
 
   // Pareamento de agente
   const [pairingCode, setPairingCode] = useState<string | null>(null);
