@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
 
     const { error: insErr } = await admin.from("agent_pairing_codes").insert({
-      tenant_id: profile.tenant_id,
+      tenant_id: resolvedTenantId,
       code_hash: codeHash,
       station,
       suggested_name: suggestedName,
