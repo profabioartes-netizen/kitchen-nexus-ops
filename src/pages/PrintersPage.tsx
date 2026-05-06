@@ -828,7 +828,7 @@ export default function PrintersPage() {
                         : "bg-card hover:bg-secondary"
                     }`}
                   >
-                    USB
+                    Windows / Local
                   </button>
                 </div>
               </div>
