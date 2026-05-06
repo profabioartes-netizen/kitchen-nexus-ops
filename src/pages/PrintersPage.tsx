@@ -2,17 +2,20 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor, Wrench } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
+import { useTenant } from "@/contexts/TenantContext";
 
 const DELETE_PIN = "9774";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
   const { pin: PAGE_PIN, pinEnabled } = useSecurityPin();
+  const { isSuperAdmin } = useTenant();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  const [advancedMode, setAdvancedMode] = useState(false);
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -732,50 +735,52 @@ export default function PrintersPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Impressoras & Estações</h1>
-        <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
-          <Plus className="h-4 w-4" />
-          Nova Impressora
-        </button>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+        <h1 className="text-2xl font-semibold">Impressoras</h1>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <button
+              onClick={() => setAdvancedMode((v) => !v)}
+              className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
+                advancedMode ? "bg-accent/15 text-accent border-accent/40" : "hover:bg-secondary"
+              }`}
+              title="Visível apenas para super admin / suporte"
+            >
+              <Wrench className="h-4 w-4" />
+              Modo avançado {advancedMode ? "ON" : "OFF"}
+            </button>
+          )}
+          <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
+            <Plus className="h-4 w-4" />
+            Nova Impressora
+          </button>
+        </div>
       </div>
 
-      {/* Agente offline — banner persistente */}
+      {/* Agente offline — banner persistente (simples para cliente) */}
       {printers.length > 0 && !agentConnected && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 p-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
-              <strong>Agente de impressão offline.</strong> Nenhuma impressora deu heartbeat nos últimos 2 minutos —
-              os tickets ficarão pendentes até o agente subir no notebook do caixa.
-              <div className="text-xs opacity-80 mt-1">
-                Baixe o instalador abaixo e rode <code>INSTALAR.bat</code> como Administrador no notebook.
-              </div>
+              <strong>Impressora offline.</strong> Verifique se o computador da impressora está ligado e conectado à internet.
             </div>
           </div>
-          <button
-            onClick={handleDownloadInstaller}
-            disabled={downloadingInstaller}
-            className="flex-shrink-0 inline-flex items-center gap-2 rounded-md bg-yellow-600 text-white px-3 py-2 text-xs font-semibold hover:bg-yellow-700 disabled:opacity-60"
-          >
-            {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Baixar instalador
-          </button>
         </div>
       )}
 
-      {/* Instalar HuskyPDV Agent — fluxo novo com pareamento */}
+      {/* Instalar HuskyPDV Agent — fluxo simples para cliente */}
       <div className="mb-4 p-4 rounded-lg border bg-card">
         <div className="flex items-start gap-3 mb-4">
           <div className="rounded-md bg-accent/10 p-2 text-accent">
             <Monitor className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold">Instalar HuskyPDV Agent num novo computador</h3>
+            <h3 className="text-sm font-semibold">Conectar uma impressora</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              <strong>1.</strong> Escolha a estação e gere um código de 6 dígitos.{" "}
-              <strong>2.</strong> Baixe o instalador.{" "}
-              <strong>3.</strong> No computador do cliente, rode <code>INSTALAR.bat</code> como Administrador e digite o código.
+              <strong>1.</strong> Gere um código.{" "}
+              <strong>2.</strong> Baixe e instale o HuskyPDV Agent no computador da impressora.{" "}
+              <strong>3.</strong> Digite o código quando solicitado.
             </p>
           </div>
         </div>
@@ -843,6 +848,7 @@ export default function PrintersPage() {
         </div>
       </div>
 
+      {advancedMode && <>
       {/* Action bar: Queue controls */}
       <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
         <button
@@ -1079,6 +1085,8 @@ export default function PrintersPage() {
           </div>
         );
       })()}
+
+      </>}
 
       {/* Printers list */}
       <div className="rounded-lg border bg-card overflow-hidden">
