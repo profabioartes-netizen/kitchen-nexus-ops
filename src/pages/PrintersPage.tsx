@@ -1146,7 +1146,7 @@ export default function PrintersPage() {
           <tbody>
             {printers.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   Nenhuma impressora configurada. Clique em <strong>Nova Impressora</strong> para começar.
                 </td>
               </tr>
