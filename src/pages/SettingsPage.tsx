@@ -59,7 +59,7 @@ export default function SettingsPage() {
       const { data } = await supabase
         .from("restaurant_settings")
         .select("key, value")
-        .in("key", ["business_phone", "business_address"]);
+        .in("key", ["business_phone", "business_address", "business_type"]);
       const map: Record<string, string> = {};
       for (const s of data || []) map[s.key] = s.value;
       return map;
@@ -67,11 +67,13 @@ export default function SettingsPage() {
   });
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [businessType, setBusinessType] = useState("");
   const [savingContact, setSavingContact] = useState(false);
   useEffect(() => {
     if (contactSettings) {
       setPhone(contactSettings.business_phone || "");
       setAddress(contactSettings.business_address || "");
+      setBusinessType(contactSettings.business_type || "");
     }
   }, [contactSettings]);
 
