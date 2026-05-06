@@ -953,7 +953,17 @@ export default function PaymentPanel({
                   footer_message: "Volte sempre!!!",
                 };
 
-                // Tenta enfileirar para o Agent com timeout de 6s; se falhar, oferece fallback nativo.
+                // Respeita a preferência do terminal salva no localStorage.
+                const mode = getPrintMode();
+
+                // Modo "native": imprime direto pelo navegador, sem tocar no Agent.
+                if (mode === "native") {
+                  const ok = printViaBrowser({ ...billPayload, paper: "80mm" });
+                  if (ok) toast.success("Imprimindo pelo navegador.");
+                  return;
+                }
+
+                // Tenta enfileirar para o Agent com timeout de 6s.
                 const enqueue = async (): Promise<{ ok: boolean; reason?: string }> => {
                   try {
                     const result = await Promise.race([
@@ -976,16 +986,24 @@ export default function PaymentPanel({
                 const r = await enqueue();
                 if (r.ok) {
                   toast.success("Conta enviada para impressão!");
+                  return;
+                }
+
+                // Modo "agent" estrito: avisa erro mas não pergunta.
+                if (mode === "agent") {
+                  toast.error(`Falha ao enviar para o Agent (${r.reason}). Verifique a conexão.`);
+                  return;
+                }
+
+                // Modo "ask" (padrão): oferece fallback nativo.
+                const tryBrowser = window.confirm(
+                  `Não foi possível enviar para o HuskyPDV Agent (${r.reason}).\n\nDeseja imprimir agora pelo navegador para não travar a venda?`
+                );
+                if (tryBrowser) {
+                  const ok = printViaBrowser({ ...billPayload, paper: "80mm" });
+                  if (ok) toast.success("Imprimindo pelo navegador.");
                 } else {
-                  const tryBrowser = window.confirm(
-                    `Não foi possível enviar para o HuskyPDV Agent (${r.reason}).\n\nDeseja imprimir agora pelo navegador para não travar a venda?`
-                  );
-                  if (tryBrowser) {
-                    const ok = printViaBrowser({ ...billPayload, paper: "80mm" });
-                    if (ok) toast.success("Imprimindo pelo navegador.");
-                  } else {
-                    toast.error("Impressão da conta cancelada. A venda segue normalmente.");
-                  }
+                  toast.error("Impressão da conta cancelada. A venda segue normalmente.");
                 }
               }}
               className="rounded-md border bg-secondary text-secondary-foreground px-3 py-2 text-xs font-bold hover:bg-secondary/80 transition-colors flex items-center gap-1.5 touch-manipulation"
