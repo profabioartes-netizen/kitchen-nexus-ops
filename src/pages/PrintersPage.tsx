@@ -249,30 +249,25 @@ export default function PrintersPage() {
           </div>
         </section>
 
-        {/* Impressão automática (kiosk-printing) */}
+        {/* Impressão automática */}
         <section className="rounded-2xl border bg-card/40 p-6 space-y-4">
           <div>
-            <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
-              Impressão automática (sem popup)
+            <h2 className="text-base font-semibold text-foreground">
+              Impressão automática
             </h2>
-            <p className="text-sm text-foreground/90 mt-1">
-              Para o cupom sair direto na impressora padrão, abra o Chrome ou Edge com o
-              parâmetro <code className="font-mono bg-secondary/60 px-1.5 py-0.5 rounded text-[12px]">--kiosk-printing</code>.
+            <p className="text-sm text-muted-foreground mt-1">
+              Para imprimir sem abrir a janela de impressão, prepare este computador uma única vez.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-lg border bg-background p-3">
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Chrome</div>
-              <code className="font-mono text-xs block break-all bg-secondary/40 rounded px-2 py-1.5">chrome.exe --kiosk-printing</code>
-            </div>
-            <div className="rounded-lg border bg-background p-3">
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Edge</div>
-              <code className="font-mono text-xs block break-all bg-secondary/40 rounded px-2 py-1.5">msedge.exe --kiosk-printing</code>
-            </div>
-          </div>
+          <button
+            onClick={downloadAutoPrintActivator}
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
+          >
+            <Printer className="h-4 w-4" />
+            Ativar neste computador
+          </button>
           <p className="text-xs text-muted-foreground">
-            Dica: crie um atalho na área de trabalho com esse parâmetro e abra o HuskyPDV por ele.
-            Sem o parâmetro, o sistema continua imprimindo normalmente — apenas exibe o popup do navegador.
+            Após ativar, abra o HuskyPDV pelo atalho <strong>"HuskyPDV Caixa"</strong> criado na Área de Trabalho.
           </p>
         </section>
 
