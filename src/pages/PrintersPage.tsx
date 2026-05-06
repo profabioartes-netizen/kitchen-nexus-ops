@@ -42,6 +42,61 @@ export default function PrintersPage() {
     if (ok) toast.success("Janela de impressão aberta.");
   };
 
+  const downloadAutoPrintActivator = () => {
+    const url = window.location.origin;
+    const bat = `@echo off
+chcp 65001 >nul
+title Ativar Impressao Automatica - HuskyPDV
+echo.
+echo  ============================================
+echo   Ativando Impressao Automatica HuskyPDV
+echo  ============================================
+echo.
+
+set "PS_SCRIPT=%TEMP%\\huskypdv_create_shortcut.ps1"
+
+> "%PS_SCRIPT%" echo $url = '${url}'
+>>"%PS_SCRIPT%" echo $candidates = @(
+>>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",
+>>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Google\\Chrome\\Application\\chrome.exe",
+>>"%PS_SCRIPT%" echo   "$env:LocalAppData\\Google\\Chrome\\Application\\chrome.exe",
+>>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Microsoft\\Edge\\Application\\msedge.exe",
+>>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe"
+>>"%PS_SCRIPT%" echo ^)
+>>"%PS_SCRIPT%" echo $browser = $null
+>>"%PS_SCRIPT%" echo foreach ($p in $candidates) { if (Test-Path $p) { $browser = $p; break } }
+>>"%PS_SCRIPT%" echo if (-not $browser) { Write-Host 'Chrome ou Edge nao encontrado. Instale um deles e tente novamente.' -ForegroundColor Red; exit 1 }
+>>"%PS_SCRIPT%" echo $desktop = [Environment]::GetFolderPath('Desktop')
+>>"%PS_SCRIPT%" echo $lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
+>>"%PS_SCRIPT%" echo $sh = New-Object -ComObject WScript.Shell
+>>"%PS_SCRIPT%" echo $s = $sh.CreateShortcut($lnk)
+>>"%PS_SCRIPT%" echo $s.TargetPath = $browser
+>>"%PS_SCRIPT%" echo $s.Arguments = '--kiosk-printing --new-window "' + $url + '"'
+>>"%PS_SCRIPT%" echo $s.WorkingDirectory = (Split-Path $browser)
+>>"%PS_SCRIPT%" echo $s.IconLocation = $browser
+>>"%PS_SCRIPT%" echo $s.Description = 'HuskyPDV - Impressao automatica'
+>>"%PS_SCRIPT%" echo $s.Save()
+>>"%PS_SCRIPT%" echo Write-Host ''
+>>"%PS_SCRIPT%" echo Write-Host '  Atalho criado com sucesso!' -ForegroundColor Green
+>>"%PS_SCRIPT%" echo Write-Host '  Abra o HuskyPDV pelo atalho HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
+del "%PS_SCRIPT%" >nul 2>&1
+
+echo.
+pause
+`;
+    const blob = new Blob([bat], { type: "application/octet-stream" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Ativar-Impressao-Automatica-HuskyPDV.bat";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    toast.success("Arquivo baixado. Abra-o para criar o atalho.");
+  };
+
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
     queryFn: async () => {
