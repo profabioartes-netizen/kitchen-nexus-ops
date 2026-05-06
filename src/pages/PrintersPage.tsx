@@ -735,12 +735,26 @@ export default function PrintersPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Impressoras & Estações</h1>
-        <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
-          <Plus className="h-4 w-4" />
-          Nova Impressora
-        </button>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+        <h1 className="text-2xl font-semibold">Impressoras</h1>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <button
+              onClick={() => setAdvancedMode((v) => !v)}
+              className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
+                advancedMode ? "bg-accent/15 text-accent border-accent/40" : "hover:bg-secondary"
+              }`}
+              title="Visível apenas para super admin / suporte"
+            >
+              <Wrench className="h-4 w-4" />
+              Modo avançado {advancedMode ? "ON" : "OFF"}
+            </button>
+          )}
+          <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
+            <Plus className="h-4 w-4" />
+            Nova Impressora
+          </button>
+        </div>
       </div>
 
       {/* Agente offline — banner persistente */}
