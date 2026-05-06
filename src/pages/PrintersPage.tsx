@@ -95,12 +95,19 @@ export default function PrintersPage() {
     }
   };
 
-  // URL pública do instalador .exe (GitHub Releases). Configurável via VITE_AGENT_DOWNLOAD_URL.
+  // URL pública do instalador .exe. Só consideramos válida se for https://...exe configurada via env.
+  const rawAgentUrl = (import.meta.env.VITE_AGENT_DOWNLOAD_URL as string | undefined)?.trim() ?? "";
   const AGENT_INSTALLER_URL =
-    (import.meta.env.VITE_AGENT_DOWNLOAD_URL as string | undefined) ??
-    "https://github.com/huskypdv/desktop-agent/releases/latest/download/HuskyPDV-Agent-Setup.exe";
+    rawAgentUrl.startsWith("https://") && rawAgentUrl.toLowerCase().endsWith(".exe")
+      ? rawAgentUrl
+      : "";
+  const installerAvailable = AGENT_INSTALLER_URL.length > 0;
 
   const handleDownloadInstaller = () => {
+    if (!installerAvailable) {
+      toast.error("Instalador ainda não publicado. Entre em contato com o suporte.");
+      return;
+    }
     window.open(AGENT_INSTALLER_URL, "_blank", "noopener");
     toast.success("Download iniciado. Execute o instalador no computador da impressora.");
   };
