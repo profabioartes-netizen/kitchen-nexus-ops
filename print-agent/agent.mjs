@@ -1245,11 +1245,13 @@ function setupRealtime() {
 console.log("");
 console.log("  ☕ HuskyPDV — Agente de Impressão ESC/POS");
 console.log("  ────────────────────────────────────────────────");
-console.log(`  Supabase:  ${CONFIG.supabaseUrl}`);
+console.log(`  Supabase:   ${CONFIG.supabaseUrl}`);
+console.log(`  Tenant:     ${TENANT_ID}`);
+console.log(`  Auth:       ${process.env.SUPABASE_SERVICE_ROLE_KEY ? "service_role (env)" : "anon (RLS pode bloquear leituras!)"}`);
 console.log(`  Plataforma: ${process.platform} (${os.hostname()})`);
-console.log(`  Modos:     Spooler (Windows/CUPS) + TCP direto`);
-console.log(`  Realtime:  WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
-console.log(`  Health:    a cada 10s`);
+console.log(`  Modos:      Spooler (Windows/CUPS) + TCP direto`);
+console.log(`  Realtime:   WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
+console.log(`  Health:     a cada 10s`);
 console.log("");
 
 // Initial printers fetch + health check
