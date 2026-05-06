@@ -585,6 +585,65 @@ export default function PrintersPage() {
         </div>
       )}
 
+      {/* Diagnostic modal with live log */}
+      {diagOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="rounded-lg border bg-card w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-3 border-b">
+              <div className="flex items-center gap-2">
+                {diagRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-accent" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 text-[hsl(var(--status-free))]" />
+                )}
+                <h3 className="font-semibold">Diagnóstico de Impressão {diagJobId && <span className="text-xs font-mono text-muted-foreground ml-2">#{diagJobId.slice(0, 8)}</span>}</h3>
+              </div>
+              <button
+                onClick={() => { if (!diagRunning) { setDiagOpen(false); setDiagEvents([]); setDiagJobId(null); } }}
+                disabled={diagRunning}
+                className="rounded p-1.5 hover:bg-secondary disabled:opacity-30"
+                title={diagRunning ? "Aguarde o término do diagnóstico" : "Fechar"}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div
+              ref={diagLogRef}
+              className="flex-1 overflow-auto px-5 py-4 font-mono text-xs space-y-1 bg-black/40 text-slate-200"
+            >
+              {diagEvents.length === 0 && (
+                <div className="text-muted-foreground">Aguardando eventos...</div>
+              )}
+              {diagEvents.map((ev, i) => {
+                const color =
+                  ev.level === "ok" ? "text-emerald-400" :
+                  ev.level === "warn" ? "text-yellow-400" :
+                  ev.level === "error" ? "text-red-400" :
+                  "text-slate-300";
+                return (
+                  <div key={i} className="flex gap-3">
+                    <span className="text-slate-500 shrink-0">{ev.ts}</span>
+                    <span className={color}>{ev.msg}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3 border-t flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {diagRunning ? "🔄 Monitorando job em tempo real..." : "✔ Diagnóstico finalizado"}
+              </span>
+              <button
+                onClick={() => { if (!diagRunning) { setDiagOpen(false); setDiagEvents([]); setDiagJobId(null); } }}
+                disabled={diagRunning}
+                className="rounded-md border px-4 py-1.5 text-sm font-medium hover:bg-secondary disabled:opacity-50"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Impressoras & Estações</h1>
         <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
