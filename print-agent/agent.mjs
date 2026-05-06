@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * ☕ Coffee Thrones — Agente Local de Impressão ESC/POS (TCP)
+ * HuskyPDV — Agente Local de Impressão (Windows Spooler / CUPS / TCP)
  *
  * Rode este script no notebook do caixa:
  *   cd print-agent && npm install && npm start
@@ -417,8 +417,8 @@ function buildBillTicket(job) {
   parts.push(cmd.text("OBRIGADO PELA PREFERÊNCIA."));
   parts.push(cmd.text("VOLTE SEMPRE!"));
   parts.push(cmd.bold(false));
+  parts.push(cmd.bold(false));
   parts.push(cmd.text(""));
-  parts.push(cmd.text("@coffeethrones"));
 
   parts.push(cmd.feedLines(2));
   parts.push(cmd.cut);
@@ -789,11 +789,8 @@ function buildDanfeTicket(job) {
   parts.push(cmd.text(""));
   parts.push(cmd.bold(true));
   parts.push(cmd.text("Obrigado pela preferencia!"));
-  parts.push(cmd.text("Volte sempre ao Reino"));
-  parts.push(cmd.text("Coffee Thrones!"));
+  parts.push(cmd.text("Volte sempre!"));
   parts.push(cmd.bold(false));
-  parts.push(cmd.text(""));
-  parts.push(cmd.text("@coffeethrones"));
   parts.push(cmd.text(""));
 
   parts.push(cmd.feedLines(3));
