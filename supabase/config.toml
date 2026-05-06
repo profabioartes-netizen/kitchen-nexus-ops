@@ -9,6 +9,12 @@ verify_jwt = true
 [functions.pair-print-agent]
 verify_jwt = false
 
+[functions.agent-poll-jobs]
+verify_jwt = false
+
+[functions.agent-update-job-status]
+verify_jwt = false
+
 [functions.emit-nfce]
 verify_jwt = true
 
