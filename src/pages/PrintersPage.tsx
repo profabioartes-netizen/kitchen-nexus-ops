@@ -860,6 +860,7 @@ export default function PrintersPage() {
         </div>
       </div>
 
+      {advancedMode && <>
       {/* Action bar: Queue controls */}
       <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
         <button
