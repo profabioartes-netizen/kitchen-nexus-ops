@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 
@@ -37,6 +37,140 @@ export default function PrintersPage() {
   // Delete confirmation state
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletePinInput, setDeletePinInput] = useState("");
+
+  // Diagnostic mode state
+  type DiagEvent = { ts: string; level: "info" | "ok" | "warn" | "error"; msg: string };
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [diagRunning, setDiagRunning] = useState(false);
+  const [diagEvents, setDiagEvents] = useState<DiagEvent[]>([]);
+  const [diagJobId, setDiagJobId] = useState<string | null>(null);
+  const diagLogRef = useRef<HTMLDivElement>(null);
+
+  const pushDiag = (level: DiagEvent["level"], msg: string) => {
+    const ts = new Date().toLocaleTimeString("pt-BR", { hour12: false }) + "." +
+      String(new Date().getMilliseconds()).padStart(3, "0");
+    setDiagEvents((prev) => [...prev, { ts, level, msg }]);
+    setTimeout(() => diagLogRef.current?.scrollTo({ top: diagLogRef.current.scrollHeight }), 50);
+  };
+
+  const runFullDiagnostic = async (printer: any) => {
+    if (diagRunning) return;
+    setDiagOpen(true);
+    setDiagEvents([]);
+    setDiagJobId(null);
+    setDiagRunning(true);
+
+    pushDiag("info", `🚀 Iniciando diagnóstico completo da impressora "${printer.name}" (estação: ${printer.station})`);
+    pushDiag("info", `📋 Configuração: ${printer.connection_type === "usb" ? `USB → ${printer.usb_device || "(vazio)"}` : `Rede → ${printer.ip}:${printer.port}`}`);
+
+    // Step 1: agent online
+    if (!isOnline(printer)) {
+      pushDiag("warn", `⚠️  Impressora sem heartbeat recente do agente (last_seen_at=${printer.last_seen_at ?? "null"}). Verifique se o agente está rodando no notebook.`);
+    } else {
+      pushDiag("ok", `✅ Agente conectado (último heartbeat: ${new Date(printer.last_seen_at).toLocaleTimeString("pt-BR")})`);
+    }
+
+    // Step 2: create test job
+    pushDiag("info", "📤 Criando job de teste no banco de dados...");
+    const testPayload = {
+      type: "test",
+      title: "DIAGNÓSTICO COMPLETO",
+      printer_name: printer.name,
+      station: printer.station,
+      message: "Este é um ticket de diagnóstico gerado pelo modo de teste. Se você está lendo este texto, a impressão funcionou de ponta a ponta.",
+      diagnostic_id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+    };
+
+    const { data: created, error: insertErr } = await supabase
+      .from("print_jobs")
+      .insert({
+        station: printer.station,
+        printer_id: printer.id,
+        status: "pending",
+        payload: testPayload,
+      })
+      .select()
+      .single();
+
+    if (insertErr || !created) {
+      pushDiag("error", `❌ Falha ao criar job: ${insertErr?.message ?? "desconhecido"}`);
+      setDiagRunning(false);
+      return;
+    }
+
+    pushDiag("ok", `✅ Job criado: #${created.id.slice(0, 8)} (status=pending)`);
+    setDiagJobId(created.id);
+
+    // Step 3: subscribe to job status changes via Realtime + polling fallback
+    pushDiag("info", "👂 Aguardando agente processar o job (timeout: 30s)...");
+
+    const startedAt = Date.now();
+    const TIMEOUT_MS = 30_000;
+    let resolved = false;
+
+    const channel = supabase
+      .channel(`diag_job_${created.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "print_jobs", filter: `id=eq.${created.id}` },
+        (payload) => {
+          const newRow: any = payload.new;
+          const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
+          if (newRow.status === "processing") {
+            pushDiag("info", `⚙️  [${elapsed}s] Agente pegou o job (status=processing)`);
+          } else if (newRow.status === "printed") {
+            pushDiag("ok", `✅ [${elapsed}s] IMPRESSO COM SUCESSO! printed_at=${newRow.printed_at}`);
+            pushDiag("ok", "🎉 Diagnóstico finalizado: o ciclo completo funcionou. Verifique fisicamente o ticket impresso.");
+            resolved = true;
+            cleanup();
+          } else if (newRow.status === "error") {
+            pushDiag("error", `❌ [${elapsed}s] FALHA NA IMPRESSÃO. Verifique os logs do agente (pm2 logs coffee-print ou agent.log).`);
+            resolved = true;
+            cleanup();
+          }
+        }
+      )
+      .subscribe();
+
+    // Polling fallback (caso Realtime esteja indisponível)
+    const pollInterval = setInterval(async () => {
+      if (resolved) return;
+      const { data } = await supabase
+        .from("print_jobs")
+        .select("status, printed_at")
+        .eq("id", created.id)
+        .single();
+      if (data && (data.status === "printed" || data.status === "error") && !resolved) {
+        const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
+        if (data.status === "printed") {
+          pushDiag("ok", `✅ [${elapsed}s] (via polling) IMPRESSO COM SUCESSO! printed_at=${data.printed_at}`);
+          pushDiag("ok", "🎉 Diagnóstico finalizado.");
+        } else {
+          pushDiag("error", `❌ [${elapsed}s] (via polling) FALHA NA IMPRESSÃO.`);
+        }
+        resolved = true;
+        cleanup();
+      }
+    }, 2000);
+
+    const timeoutHandle = setTimeout(() => {
+      if (!resolved) {
+        pushDiag("error", `⏱️  TIMEOUT após ${TIMEOUT_MS / 1000}s — o agente não processou o job.`);
+        pushDiag("warn", "🔍 Causas prováveis: (1) agente parado, (2) tenant_id divergente, (3) SERVICE_ROLE_KEY incorreta no .env do agente.");
+        cleanup();
+      }
+    }, TIMEOUT_MS);
+
+    function cleanup() {
+      clearInterval(pollInterval);
+      clearTimeout(timeoutHandle);
+      supabase.removeChannel(channel);
+      setDiagRunning(false);
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+    }
+  };
+
 
   // Track Realtime (WebSocket) connection status with reconnection
   useEffect(() => {
@@ -451,6 +585,65 @@ export default function PrintersPage() {
         </div>
       )}
 
+      {/* Diagnostic modal with live log */}
+      {diagOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="rounded-lg border bg-card w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-3 border-b">
+              <div className="flex items-center gap-2">
+                {diagRunning ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-accent" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 text-[hsl(var(--status-free))]" />
+                )}
+                <h3 className="font-semibold">Diagnóstico de Impressão {diagJobId && <span className="text-xs font-mono text-muted-foreground ml-2">#{diagJobId.slice(0, 8)}</span>}</h3>
+              </div>
+              <button
+                onClick={() => { if (!diagRunning) { setDiagOpen(false); setDiagEvents([]); setDiagJobId(null); } }}
+                disabled={diagRunning}
+                className="rounded p-1.5 hover:bg-secondary disabled:opacity-30"
+                title={diagRunning ? "Aguarde o término do diagnóstico" : "Fechar"}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div
+              ref={diagLogRef}
+              className="flex-1 overflow-auto px-5 py-4 font-mono text-xs space-y-1 bg-black/40 text-slate-200"
+            >
+              {diagEvents.length === 0 && (
+                <div className="text-muted-foreground">Aguardando eventos...</div>
+              )}
+              {diagEvents.map((ev, i) => {
+                const color =
+                  ev.level === "ok" ? "text-emerald-400" :
+                  ev.level === "warn" ? "text-yellow-400" :
+                  ev.level === "error" ? "text-red-400" :
+                  "text-slate-300";
+                return (
+                  <div key={i} className="flex gap-3">
+                    <span className="text-slate-500 shrink-0">{ev.ts}</span>
+                    <span className={color}>{ev.msg}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3 border-t flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {diagRunning ? "🔄 Monitorando job em tempo real..." : "✔ Diagnóstico finalizado"}
+              </span>
+              <button
+                onClick={() => { if (!diagRunning) { setDiagOpen(false); setDiagEvents([]); setDiagJobId(null); } }}
+                disabled={diagRunning}
+                className="rounded-md border px-4 py-1.5 text-sm font-medium hover:bg-secondary disabled:opacity-50"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Impressoras & Estações</h1>
         <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
@@ -462,6 +655,22 @@ export default function PrintersPage() {
       {/* Action bar: Queue controls */}
       <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
         <button
+          onClick={() => {
+            const target = printers.find((p: any) => p.active) || printers[0];
+            if (!target) {
+              toast.error("Cadastre uma impressora primeiro.");
+              return;
+            }
+            runFullDiagnostic(target);
+          }}
+          disabled={diagRunning || printers.length === 0}
+          className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+        >
+          <Activity className="h-4 w-4" />
+          {diagRunning ? "Diagnóstico em curso..." : "Diagnóstico Completo"}
+        </button>
+
+        <button
           onClick={() => clearQueueMutation.mutate()}
           disabled={(pendingCount + errorCount) === 0 || clearQueueMutation.isPending}
           className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
@@ -469,6 +678,7 @@ export default function PrintersPage() {
           <Trash className="h-4 w-4" />
           Limpar fila de impressão
         </button>
+
 
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Fila atual:</span>
