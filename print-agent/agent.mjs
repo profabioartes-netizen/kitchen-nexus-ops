@@ -974,7 +974,7 @@ async function getPrinters() {
   if (Date.now() - printersCacheTime < 30000 && printersCache.length > 0) {
     return printersCache;
   }
-  const { data, error } = await supabase.from("printers").select("*").eq("active", true);
+  const { data, error } = await supabase.from("printers").select("*").eq("active", true).eq("tenant_id", TENANT_ID);
   if (error) {
     console.error("❌ Erro ao buscar impressoras:", error.message);
     return printersCache;
