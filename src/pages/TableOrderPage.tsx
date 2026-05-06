@@ -596,7 +596,7 @@ export default function TableOrderPage() {
     },
   });
 
-  // Print full bill to Caixa station
+  // Print full bill — preferência do usuário decide entre navegador e agente
   const printBill = useMutation({
     mutationFn: async () => {
       if (!order || orderItems.length === 0) throw new Error("Sem itens para imprimir");
@@ -608,35 +608,87 @@ export default function TableOrderPage() {
         complementsByItem[c.order_item_id].push({ name: c.complement_name });
       }
 
-      await supabase.from("print_jobs").insert({
-        station: "Caixa",
-        status: "pending",
-        payload: {
-          type: "bill",
-          compact: true,
-          business_name: businessName,
-          business_phone: businessPhone || null,
-          location: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
-          table_name: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
-          customer_name: order.customer_name || null,
-          waiter_name: order.waiter_name || null,
-          origin: order.origin || "waiter",
-          order_id: order.id,
-          items: orderItems.map((i) => ({
-            product_name: i.product_name,
-            quantity: i.quantity,
-            price: Number(i.price),
-            complements: (complementsByItem[i.id] || []).map((c) => c.name),
-          })),
-          total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
-          footer_message: "Volte sempre!!!",
-        },
-      });
+      const locationLabel =
+        table?.sector ||
+        (order as any).current_location ||
+        table?.internal_number ||
+        table?.default_name ||
+        (order as any).origin_location ||
+        "—";
 
-      await logActivity(tableId!, "print_bill", `Conta geral impressa no Caixa`, order.id, profile?.full_name);
+      const payload = {
+        type: "bill" as const,
+        title: "CONTA",
+        business_name: businessName,
+        business_phone: businessPhone || null,
+        table_name: locationLabel,
+        customer_name: order.customer_name || null,
+        waiter_name: order.waiter_name || null,
+        items: orderItems.map((i) => ({
+          product_name: i.product_name,
+          quantity: i.quantity,
+          price: Number(i.price),
+          complements: (complementsByItem[i.id] || []).map((c) => c.name),
+        })),
+        total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
+        footer_message: "Volte sempre!!!",
+      };
+
+      const mode = getPrintMode();
+
+      // Modo "native" → imprime direto pelo navegador, sem agente
+      if (mode === "native") {
+        const ok = printViaBrowser(payload);
+        if (!ok) throw new Error("Falha ao abrir janela de impressão");
+        await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador`, order.id, profile?.full_name);
+        return { via: "browser" as const };
+      }
+
+      // Caso contrário: tenta agente. Verifica se há agente Caixa online (heartbeat < 90s).
+      let agentOnline = false;
+      try {
+        const { data: agents } = await supabase
+          .from("print_agents")
+          .select("last_seen_at, active, station")
+          .eq("station", "Caixa")
+          .eq("active", true);
+        const now = Date.now();
+        agentOnline = !!agents?.some(
+          (a) => a.last_seen_at && now - new Date(a.last_seen_at).getTime() < 90_000,
+        );
+      } catch {
+        agentOnline = false;
+      }
+
+      if (mode === "agent" || agentOnline) {
+        const { error } = await supabase.from("print_jobs").insert({
+          station: "Caixa",
+          status: "pending",
+          payload: {
+            ...payload,
+            compact: true,
+            location: locationLabel,
+            origin: order.origin || "waiter",
+            order_id: order.id,
+          },
+        });
+        if (!error && agentOnline) {
+          await logActivity(tableId!, "print_bill", `Conta enviada ao agente Caixa`, order.id, profile?.full_name);
+          return { via: "agent" as const };
+        }
+        // Sem agente online OU falha → fallback navegador
+      }
+
+      // Fallback: navegador
+      const ok = printViaBrowser(payload);
+      if (!ok) throw new Error("Falha ao abrir janela de impressão");
+      await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador (fallback)`, order.id, profile?.full_name);
+      return { via: "browser-fallback" as const };
     },
-    onSuccess: () => {
-      toast.success("Conta enviada para impressão no Caixa!");
+    onSuccess: (res) => {
+      if (res?.via === "agent") toast.success("Conta enviada para impressão no Caixa!");
+      else if (res?.via === "browser-fallback") toast.success("Agente offline — abrindo impressão pelo navegador");
+      else toast.success("Imprimindo…");
     },
     onError: (err) => toast.error((err as Error).message),
   });
