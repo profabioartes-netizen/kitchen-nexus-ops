@@ -761,26 +761,38 @@ export default function PrintersPage() {
         </div>
       )}
 
-      {/* Instalar HuskyPDV Agent — fluxo simples para cliente */}
-      <div className="mb-4 p-4 rounded-lg border bg-card">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="rounded-md bg-accent/10 p-2 text-accent">
-            <Monitor className="h-5 w-5" />
+      {/* Setup Wizard — fluxo simples para cliente */}
+      <div className="mb-4 rounded-lg border bg-card overflow-hidden">
+        <div className="flex items-start justify-between gap-3 p-4 border-b bg-secondary/20">
+          <div className="flex items-start gap-3">
+            <div className="rounded-md bg-accent/10 p-2 text-accent">
+              <Monitor className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Configurar impressão</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Use o HuskyPDV Agent (recomendado) ou imprima direto pelo navegador enquanto não instala.
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold">Conectar uma impressora</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <strong>1.</strong> Gere um código.{" "}
-              <strong>2.</strong> Baixe e instale o HuskyPDV Agent no computador da impressora.{" "}
-              <strong>3.</strong> Digite o código quando solicitado.
-            </p>
-          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+              agentConnected
+                ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
+                : "bg-destructive/10 text-destructive"
+            }`}
+            title={agentConnected ? "Pelo menos uma impressora respondeu nos últimos 2 min" : "Nenhum agente respondeu recentemente"}
+          >
+            <Circle className={`h-2 w-2 ${agentConnected ? "fill-current animate-pulse" : "fill-current"}`} />
+            Agent {agentConnected ? "conectado" : "desconectado"}
+          </span>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-3">
-          {/* Passo 1: gerar código */}
+        <div className="grid sm:grid-cols-3 gap-3 p-4">
+          {/* Passo 1 */}
           <div className="rounded-md border bg-background p-3">
-            <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 1 — Código de pareamento</div>
+            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 1</div>
+            <div className="text-xs font-semibold mb-2">Gerar código de pareamento</div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <label className="text-xs">Estação:</label>
               <select
@@ -797,17 +809,17 @@ export default function PrintersPage() {
             </div>
             {pairingCode ? (
               <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
-                <div className="font-mono text-3xl tracking-widest font-bold text-accent">
+                <div className="font-mono text-2xl tracking-widest font-bold text-accent">
                   {pairingCode.slice(0, 3)}-{pairingCode.slice(3)}
                 </div>
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-[11px] text-muted-foreground mt-1">
                   Expira em {Math.floor(pairingTimeLeft / 60)}:{String(pairingTimeLeft % 60).padStart(2, "0")}
                 </div>
                 <button
                   onClick={() => { setPairingCode(null); setPairingExpiresAt(null); }}
-                  className="text-xs underline text-muted-foreground mt-2"
+                  className="text-[11px] underline text-muted-foreground mt-2"
                 >
-                  Gerar outro código
+                  Gerar outro
                 </button>
               </div>
             ) : (
@@ -817,33 +829,57 @@ export default function PrintersPage() {
                 className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
               >
                 {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Gerar código de 6 dígitos
+                Gerar código
               </button>
             )}
           </div>
 
-          {/* Passo 2: baixar instalador */}
+          {/* Passo 2 */}
           <div className="rounded-md border bg-background p-3">
-            <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 2 — Instalador Windows</div>
-            <p className="text-xs text-muted-foreground mb-2">
-              Instalador único <strong>.exe</strong>. Sem ZIP, sem .bat, sem terminal.
+            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 2</div>
+            <div className="text-xs font-semibold mb-2">Baixar HuskyPDV Agent</div>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Instalador único <strong>.exe</strong>. Sem ZIP, sem terminal.
             </p>
             <button
               onClick={handleDownloadInstaller}
-              className={`w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90 ${!installerAvailable ? "opacity-60 cursor-not-allowed" : ""}`}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
             >
               <Download className="h-4 w-4" />
-              Baixar HuskyPDV Agent (.exe)
+              {installerAvailable ? "Baixar .exe" : "Ver instruções"}
             </button>
             {installerAvailable ? (
               <p className="text-[11px] text-muted-foreground mt-2">
-                Após instalar, abra o app e digite o código gerado no Passo 1.
+                Após instalar, abra o app e digite o código do Passo 1.
               </p>
             ) : (
-              <p className="text-[11px] text-muted-foreground mt-2">
-                Instalador ainda não publicado. Entre em contato com o suporte.
+              <p className="text-[11px] text-muted-foreground mt-2 inline-flex items-center gap-1">
+                <HelpCircle className="h-3 w-3" />
+                Instalador não publicado — clique para alternativas.
               </p>
             )}
+          </div>
+
+          {/* Alternativa: Impressora do Sistema (Nativa) */}
+          <div className="rounded-md border border-accent/40 bg-accent/5 p-3">
+            <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">SEM AGENT</div>
+            <div className="text-xs font-semibold mb-2">Impressora do Sistema (Nativa)</div>
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Imprime direto pelo navegador em papel térmico 80mm/58mm. Use enquanto configura o Agent.
+            </p>
+            <button
+              onClick={handleBrowserPrintTest}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-accent/50 bg-background px-3 py-2 text-sm font-medium hover:bg-accent/10"
+            >
+              <Printer className="h-4 w-4" />
+              Testar impressão pelo navegador
+            </button>
+            <Link
+              to="/impressoras/ajuda"
+              className="mt-2 inline-flex items-center gap-1 text-[11px] underline text-muted-foreground hover:text-foreground"
+            >
+              <HelpCircle className="h-3 w-3" /> Como configurar
+            </Link>
           </div>
         </div>
       </div>
