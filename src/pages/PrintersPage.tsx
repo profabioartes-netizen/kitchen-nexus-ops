@@ -209,7 +209,7 @@ export default function PrintersPage() {
             resolved = true;
             cleanup();
           } else if (newRow.status === "error") {
-            pushDiag("error", `❌ [${elapsed}s] FALHA NA IMPRESSÃO. Verifique os logs do agente (pm2 logs coffee-print ou agent.log).`);
+            pushDiag("error", `❌ [${elapsed}s] FALHA NA IMPRESSÃO. Verifique C:\\HuskyPDV\\print-agent\\agent.log no computador do cliente.`);
             resolved = true;
             cleanup();
           }
