@@ -769,7 +769,7 @@ export default function PrintersPage() {
         </div>
       )}
 
-      {/* Instalar HuskyPDV Agent — fluxo simples */}
+      {/* Instalar HuskyPDV Agent — fluxo simples para cliente */}
       <div className="mb-4 p-4 rounded-lg border bg-card">
         <div className="flex items-start gap-3 mb-4">
           <div className="rounded-md bg-accent/10 p-2 text-accent">
@@ -779,24 +779,8 @@ export default function PrintersPage() {
             <h3 className="text-sm font-semibold">Conectar uma impressora</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               <strong>1.</strong> Gere um código.{" "}
-              <strong>2.</strong> Baixe e instale o HuskyPDV Agent no computador.{" "}
+              <strong>2.</strong> Baixe e instale o HuskyPDV Agent no computador da impressora.{" "}
               <strong>3.</strong> Digite o código quando solicitado.
-            </p>
-          </div>
-        </div>
-
-      {/* Instalar HuskyPDV Agent — fluxo novo com pareamento */}
-      <div className="mb-4 p-4 rounded-lg border bg-card">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="rounded-md bg-accent/10 p-2 text-accent">
-            <Monitor className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold">Instalar HuskyPDV Agent num novo computador</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <strong>1.</strong> Escolha a estação e gere um código de 6 dígitos.{" "}
-              <strong>2.</strong> Baixe o instalador.{" "}
-              <strong>3.</strong> No computador do cliente, rode <code>INSTALAR.bat</code> como Administrador e digite o código.
             </p>
           </div>
         </div>
