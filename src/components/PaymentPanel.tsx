@@ -928,34 +928,64 @@ export default function PaymentPanel({
                   complementsByItem[c.order_item_id].push({ name: c.complement_name });
                 }
 
-                await supabase.from("print_jobs").insert({
-                  station: "Caixa",
-                  status: "pending",
-                  payload: {
-                    type: "bill",
-                    compact: true,
-                    business_name: businessName,
-                    business_phone: businessPhone || null,
-                    location: orderContext?.location || "Caixa",
-                    table_name: orderContext?.tableName || "Comanda",
-                    customer_name: orderContext?.customerName || null,
-                    waiter_name: orderContext?.waiterName || null,
-                    origin: orderContext?.origin || "waiter",
-                    order_id: orderContext?.orderId || null,
-                    items: orderItems.map((o) => ({
-                      product_name: o.product_name,
-                      quantity: o.quantity,
-                      price: Number(o.price),
-                      complements: (complementsByItem[o.id] || []).map((c) => c.name),
-                    })),
-                    total: grandTotal,
-                    payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
-                    change: payments.find(p => p.method === "cash") ?
-                      Math.max(0, payments.filter(p => p.method === "cash").reduce((s, p) => s + p.amount, 0) - grandTotal) : null,
-                    footer_message: "Volte sempre!!!",
-                  },
-                });
-                toast.success("Conta enviada para impressão!");
+                const billPayload = {
+                  type: "bill" as const,
+                  compact: true,
+                  business_name: businessName,
+                  business_phone: businessPhone || null,
+                  location: orderContext?.location || "Caixa",
+                  table_name: orderContext?.tableName || "Comanda",
+                  customer_name: orderContext?.customerName || null,
+                  waiter_name: orderContext?.waiterName || null,
+                  origin: orderContext?.origin || "waiter",
+                  order_id: orderContext?.orderId || null,
+                  items: orderItems.map((o) => ({
+                    product_name: o.product_name,
+                    quantity: o.quantity,
+                    price: Number(o.price),
+                    complements: (complementsByItem[o.id] || []).map((c) => c.name),
+                  })),
+                  total: grandTotal,
+                  payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
+                  change: payments.find(p => p.method === "cash") ?
+                    Math.max(0, payments.filter(p => p.method === "cash").reduce((s, p) => s + p.amount, 0) - grandTotal) : null,
+                  footer_message: "Volte sempre!!!",
+                };
+
+                // Tenta enfileirar para o Agent com timeout de 6s; se falhar, oferece fallback nativo.
+                const enqueue = async (): Promise<{ ok: boolean; reason?: string }> => {
+                  try {
+                    const result = await Promise.race([
+                      supabase.from("print_jobs").insert({
+                        station: "Caixa",
+                        status: "pending",
+                        payload: billPayload,
+                      }),
+                      new Promise<{ error: { message: string } }>((resolve) =>
+                        setTimeout(() => resolve({ error: { message: "timeout" } }), 6000)
+                      ),
+                    ]);
+                    if ((result as any)?.error) return { ok: false, reason: (result as any).error.message };
+                    return { ok: true };
+                  } catch (e: any) {
+                    return { ok: false, reason: e?.message ?? "erro" };
+                  }
+                };
+
+                const r = await enqueue();
+                if (r.ok) {
+                  toast.success("Conta enviada para impressão!");
+                } else {
+                  const tryBrowser = window.confirm(
+                    `Não foi possível enviar para o HuskyPDV Agent (${r.reason}).\n\nDeseja imprimir agora pelo navegador para não travar a venda?`
+                  );
+                  if (tryBrowser) {
+                    const ok = printViaBrowser({ ...billPayload, paper: "80mm" });
+                    if (ok) toast.success("Imprimindo pelo navegador.");
+                  } else {
+                    toast.error("Impressão da conta cancelada. A venda segue normalmente.");
+                  }
+                }
               }}
               className="rounded-md border bg-secondary text-secondary-foreground px-3 py-2 text-xs font-bold hover:bg-secondary/80 transition-colors flex items-center gap-1.5 touch-manipulation"
             >
