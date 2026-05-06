@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTenant } from "@/contexts/TenantContext";
 import { printViaBrowser } from "@/lib/browserPrint";
+import { getPrintMode } from "@/lib/printPreference";
 
 type OrderItemComplement = {
   id: string;
