@@ -1,29 +1,46 @@
-## Objetivo
+## Problema
 
-Pular por enquanto a edge function de proxy. Manter o botão "Baixar HuskyPDV Agent" usando apenas a variável `VITE_AGENT_DOWNLOAD_URL`. Se ela estiver vazia ou inválida, exibir mensagem clara em vez de abrir um link quebrado.
+O erro "Usuário sem tenant vinculado não pode inserir dados" aparece porque o usuário `minhaeradigital@gmail.com` (dono do tenant "Fábio Teste") **não tem registro na tabela `profiles`**, mesmo tendo vínculo válido em `user_tenants` com o tenant `71e98c23-...` como `admin_cliente`.
 
-## Mudança única
+A função `current_tenant_id()` consulta apenas `profiles.tenant_id`, retorna NULL, e o trigger `enforce_tenant_id` bloqueia toda inserção/edição (categorias, produtos, configurações, etc.).
 
-Arquivo: `src/pages/PrintersPage.tsx` (linhas 98-106)
+Outros usuários novos provavelmente terão o mesmo problema se o trigger de criação de profile não rodar / não preencher tenant_id.
 
-1. Remover o fallback hardcoded `https://github.com/huskypdv/desktop-agent/releases/...`.
-2. Ler a env e considerar válida apenas se for uma URL `https://...` que termine com `.exe`.
-3. Atualizar `handleDownloadInstaller`:
-   - Se a URL for válida → abrir em nova aba (comportamento atual) + toast de sucesso.
-   - Se vazia/inválida → `toast.error("Instalador ainda não publicado. Entre em contato com o suporte.")` e não abrir aba.
-4. Pequeno ajuste visual no bloco do PASSO 2 (linhas 801-817):
-   - Quando a URL não estiver configurada, mostrar um aviso discreto (`text-xs text-muted-foreground`) abaixo do botão: *"Instalador ainda não publicado."* e deixar o botão visualmente desabilitado (`opacity-60 cursor-not-allowed`), mas ainda clicável para disparar o toast informativo.
+## Correção (migration SQL)
 
-## O que NÃO será feito agora
+1. **Backfill imediato**: criar/atualizar `profiles` para todos os usuários que já têm vínculo ativo em `user_tenants` mas estão sem `tenant_id` em `profiles`.
+   ```sql
+   INSERT INTO public.profiles (id, tenant_id)
+   SELECT ut.user_id, ut.tenant_id
+   FROM public.user_tenants ut
+   WHERE ut.active = true
+   ON CONFLICT (id) DO UPDATE
+     SET tenant_id = COALESCE(public.profiles.tenant_id, EXCLUDED.tenant_id);
+   ```
 
-- Não criar `supabase/functions/download-print-agent`.
-- Não solicitar os secrets `GITHUB_AGENT_REPO` / `GITHUB_AGENT_TOKEN`.
-- Não mexer em rotas, RLS, banco ou no projeto `desktop-agent/`.
+2. **Tornar `current_tenant_id()` resiliente**: fallback para `user_tenants` quando `profiles.tenant_id` for NULL — assim, mesmo que o profile não exista, o tenant é resolvido.
+   ```sql
+   CREATE OR REPLACE FUNCTION public.current_tenant_id(_user_id uuid DEFAULT auth.uid())
+   RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+     SELECT COALESCE(
+       (SELECT tenant_id FROM public.profiles WHERE id = _user_id),
+       (SELECT tenant_id FROM public.user_tenants
+         WHERE user_id = _user_id AND active = true
+         ORDER BY created_at ASC LIMIT 1)
+     )
+   $$;
+   ```
 
-## Próximos passos (após você publicar a release)
+3. **Trigger de auto-sync**: quando uma linha for criada/atualizada em `user_tenants`, garantir que o `profiles.tenant_id` do usuário fique preenchido.
+   ```sql
+   CREATE OR REPLACE FUNCTION public.sync_profile_tenant() ...
+     INSERT INTO profiles(id, tenant_id) VALUES (NEW.user_id, NEW.tenant_id)
+     ON CONFLICT (id) DO UPDATE SET tenant_id = COALESCE(profiles.tenant_id, EXCLUDED.tenant_id);
+   CREATE TRIGGER trg_sync_profile_tenant AFTER INSERT OR UPDATE ON user_tenants ...
+   ```
 
-1. Você sobe o repo `huskypdv-agent`, gera ícones, faz `git tag v0.1.0 && git push --tags`.
-2. Confere o asset `HuskyPDV-Agent-Setup.exe` na release.
-3. Marca a release como pública (ou deixa privada).
-4. Caso pública: define `VITE_AGENT_DOWNLOAD_URL` no Lovable apontando pro link `releases/latest/download/HuskyPDV-Agent-Setup.exe` — botão passa a funcionar.
-5. Caso queira manter privada: aí sim implementamos a edge function `download-print-agent` com proxy autenticado (validando auth + tenant ativo + role `admin_cliente` ou `super_admin`) usando os secrets do GitHub.
+## Resultado
+
+- Fábio Teste consegue salvar configurações, criar categorias e produtos imediatamente.
+- Novos clientes onboardados via convite/edge function não cairão mais nesse buraco.
+- Nenhuma mudança de UI necessária.
