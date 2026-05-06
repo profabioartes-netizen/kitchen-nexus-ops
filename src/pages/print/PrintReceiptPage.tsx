@@ -3,19 +3,17 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Página dedicada de impressão térmica.
- * - Layout limpo, fundo branco, sem menus/botões.
- * - Dispara window.print() automaticamente ao carregar.
- * - Em Chrome/Edge com --kiosk-printing, imprime sem popup.
- * - Após imprimir, fecha a janela (se foi aberta como popup) ou volta para o PDV.
- *
- * Aceita ?paper=58mm|80mm (default 80mm) e ?type=bill|kitchen.
+ * Recibo térmico — rota dedicada, sem layout do app.
+ * - 80mm (default) ou ?paper=58mm
+ * - Auto-print on load; com Chrome/Edge --kiosk-printing imprime sem popup.
  */
 export default function PrintReceiptPage() {
   const { id } = useParams<{ id: string }>();
   const [params] = useSearchParams();
   const paper = (params.get("paper") as "58mm" | "80mm") || "80mm";
   const widthMm = paper === "58mm" ? 54 : 72;
+  const pageMm = paper === "58mm" ? 58 : 80;
+  const dashCount = paper === "58mm" ? 32 : 42;
 
   const [data, setData] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +21,6 @@ export default function PrintReceiptPage() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      // Busca pedido + itens + complementos.
       const { data: order, error: e1 } = await supabase
         .from("orders")
         .select("*, restaurant_tables(name, internal_number)")
@@ -38,147 +35,211 @@ export default function PrintReceiptPage() {
         .order("created_at");
 
       const itemIds = (items || []).map((i: any) => i.id);
-      let complByItem: Record<string, string[]> = {};
+      const complByItem: Record<string, { name: string; qty: number; price: number }[]> = {};
       if (itemIds.length) {
         const { data: compl } = await supabase
           .from("order_item_complements")
-          .select("order_item_id, complement_name")
+          .select("order_item_id, complement_name, quantity, price")
           .in("order_item_id", itemIds);
         for (const c of compl || []) {
-          (complByItem[c.order_item_id] ||= []).push(c.complement_name);
+          (complByItem[c.order_item_id] ||= []).push({
+            name: c.complement_name, qty: c.quantity, price: Number(c.price),
+          });
         }
       }
+
+      const { data: payments } = await supabase
+        .from("payments")
+        .select("method, amount")
+        .eq("order_id", id);
+
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("nome_comercio")
+        .eq("id", order.tenant_id)
+        .maybeSingle();
 
       const { data: settings } = await supabase
         .from("restaurant_settings")
         .select("key, value")
-        .in("key", ["business_name", "business_phone"]);
-      const settingsMap: Record<string, string> = {};
-      for (const s of settings || []) settingsMap[s.key] = s.value;
+        .in("key", ["business_phone", "business_address"]);
+      const sMap: Record<string, string> = {};
+      for (const s of settings || []) sMap[s.key] = s.value;
 
       setData({
         order,
         items: items || [],
         complByItem,
-        business_name: settingsMap.business_name || "HuskyPDV",
-        business_phone: settingsMap.business_phone || "",
+        payments: payments || [],
+        business_name: tenant?.nome_comercio || "HuskyPDV",
+        business_phone: sMap.business_phone || "",
+        business_address: sMap.business_address || "",
       });
     })();
   }, [id]);
 
-  // Dispara impressão automática ao terminar de carregar.
   useEffect(() => {
     if (!data) return;
-    const t = setTimeout(() => {
-      try { window.focus(); window.print(); } catch {}
-    }, 150);
+    const t = setTimeout(() => { try { window.focus(); window.print(); } catch {} }, 200);
     const onAfter = () => {
       setTimeout(() => {
         if (window.opener) window.close();
-        else window.history.length > 1 ? window.history.back() : (window.location.href = "/");
+        else window.history.length > 1 ? window.history.back() : (window.location.href = "/caixa");
       }, 200);
     };
     window.addEventListener("afterprint", onAfter);
     return () => { clearTimeout(t); window.removeEventListener("afterprint", onAfter); };
   }, [data]);
 
-  if (error) return <div style={{ padding: 24, fontFamily: "sans-serif" }}>{error}</div>;
-  if (!data) return <div style={{ padding: 24, fontFamily: "sans-serif" }}>Carregando…</div>;
+  if (error) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#000", background: "#fff" }}>{error}</div>;
+  if (!data) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#000", background: "#fff" }}>Carregando…</div>;
 
-  const { order, items, complByItem, business_name, business_phone } = data;
+  const { order, items, complByItem, payments, business_name, business_phone, business_address } = data;
   const productsTotal = items.reduce(
     (s: number, it: any) => s + Number(it.price) * Number(it.quantity), 0,
   );
   const total = Number(order.total ?? productsTotal);
-  const dashes = "-".repeat(paper === "58mm" ? 32 : 42);
   const tableLabel = order.restaurant_tables?.internal_number ?? order.restaurant_tables?.name ?? "";
-  const brl = (n: number) => `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
+  const dashes = "-".repeat(dashCount);
+  const fmt = (n: number) => (Number(n) || 0).toFixed(2).replace(".", ",");
+  const brl = (n: number) => `R$ ${fmt(n)}`;
+  const dateFmt = (d: string | Date) =>
+    new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  // Número do recibo: últimos 5 dígitos do id em decimal
+  const receiptNumber = parseInt(order.id.replace(/\D/g, "").slice(-6), 10) || 0;
 
   return (
     <>
       <style>{`
-        @page { size: ${widthMm}mm auto; margin: 0; }
-        html, body { background: #fff !important; margin: 0; padding: 0; }
-        body * { visibility: hidden; }
-        .receipt, .receipt * { visibility: visible; }
+        html, body { background: #fff !important; color: #000 !important; margin: 0; padding: 0; }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 11px; }
         .receipt {
-          position: absolute; left: 0; top: 0;
           width: ${widthMm}mm;
-          font-family: 'Courier New', Consolas, monospace;
-          font-size: 12px; line-height: 1.0; color: #000;
-          padding: 1mm 0;
+          padding: 3mm;
+          margin: 0 auto;
+          box-sizing: border-box;
+          color: #000;
           font-variant-numeric: tabular-nums;
+          line-height: 1.15;
         }
-        .receipt div, .receipt p { margin: 0; padding: 0; line-height: 1.0; }
-        .receipt .center { text-align: center; }
-        .receipt .bold { font-weight: 700; }
-        .receipt .upper { text-transform: uppercase; }
-        .receipt .big { font-size: 14px; }
-        .receipt .xl { font-size: 16px; }
-        .receipt table.items { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.0; }
-        .receipt table.items td, .receipt table.items th { padding: 0; vertical-align: top; line-height: 1.0; }
-        .receipt table.items th { font-weight: 700; text-align: left; }
-        .receipt td.prod, .receipt th.prod { text-align: left; word-break: break-word; }
-        .receipt td.qnt, .receipt th.qnt { text-align: center; width: 7mm; padding-left: 1mm; }
-        .receipt td.unit, .receipt th.unit { text-align: right; width: 13mm; padding-left: 1mm; }
-        .receipt td.tot, .receipt th.tot { text-align: right; width: 14mm; padding-left: 1mm; }
-        .receipt tr.compl td { font-size: 11px; font-style: italic; padding-left: 2mm; }
-        .receipt .totals .row { display: flex; justify-content: space-between; }
-        .receipt .totals .grand { font-size: 16px; font-weight: 700; margin-top: 1mm; }
+        .receipt * { box-sizing: border-box; }
+        .center { text-align: center; }
+        .right  { text-align: right; }
+        .bold   { font-weight: 700; }
+        .upper  { text-transform: uppercase; }
+        .big    { font-size: 13px; }
+        .xl     { font-size: 16px; }
+        .separator { border-top: 1px dashed #000; margin: 4px 0; }
+
+        .meta-row { display: flex; justify-content: space-between; gap: 6px; }
+
+        .items-header, .item-row {
+          display: grid;
+          grid-template-columns: 1fr 24px 42px 48px;
+          column-gap: 2px;
+          align-items: start;
+        }
+        .items-header { font-weight: 700; }
+        .item-name { word-break: break-word; }
+        .item-row .qnt  { text-align: center; }
+        .item-row .unit { text-align: right; }
+        .item-row .tot  { text-align: right; }
+        .compl { padding-left: 4mm; font-size: 10px; font-style: italic; }
+
+        .totals-row { display: flex; justify-content: space-between; }
+        .total-row {
+          display: flex; justify-content: space-between;
+          font-size: 14px; font-weight: 700; margin-top: 8px;
+        }
+
+        @page { size: ${pageMm}mm auto; margin: 0; }
         @media print {
-          body * { visibility: hidden; }
-          .receipt, .receipt * { visibility: visible; }
+          html, body { background: #fff !important; }
+          .no-print { display: none !important; }
         }
       `}</style>
+
       <div className="receipt">
+        {/* Cabeçalho */}
         <div className="center bold upper big">{business_name}</div>
         {business_phone && <div className="center">{business_phone}</div>}
-        <div className="center bold upper big">CONTA{tableLabel ? ` / MESA ${tableLabel}` : ""}</div>
-        <div className="center">{dashes}</div>
-        <div className="center">NAO E DOCUMENTO FISCAL</div>
-        <div className="center">{dashes}</div>
-        {order.customer_name && <div>Cliente: {order.customer_name}</div>}
-        <div>{new Date().toLocaleString("pt-BR")}</div>
-        <div className="center">{dashes}</div>
-
-        <table className="items">
-          <thead>
-            <tr>
-              <th className="prod">PRODUTO</th>
-              <th className="qnt">QNT</th>
-              <th className="unit">UNIT</th>
-              <th className="tot">TOTAL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it: any) => {
-              const unit = Number(it.price);
-              const sub = unit * Number(it.quantity);
-              const compl = complByItem[it.id] || [];
-              return (
-                <>
-                  <tr key={it.id}>
-                    <td className="prod">{it.product_name}</td>
-                    <td className="qnt">{it.quantity}</td>
-                    <td className="unit">{unit.toFixed(2).replace(".", ",")}</td>
-                    <td className="tot">{sub.toFixed(2).replace(".", ",")}</td>
-                  </tr>
-                  {compl.length > 0 && (
-                    <tr className="compl" key={it.id + "-c"}>
-                      <td colSpan={4}>+ {compl.join(", ")}</td>
-                    </tr>
-                  )}
-                </>
-              );
-            })}
-          </tbody>
-        </table>
-        <div className="center">{dashes}</div>
-        <div className="totals">
-          <div className="row"><span>PRODUTOS:</span><span>{brl(productsTotal)}</span></div>
-          <div className="row grand"><span>TOTAL:</span><span>{brl(total)}</span></div>
+        {business_address && <div className="center">{business_address}</div>}
+        <div className="center bold upper big" style={{ marginTop: 2 }}>
+          CONTA/MESA {tableLabel || "—"}
         </div>
-        <div className="center">{dashes}</div>
+        <div className="center">NÃO É DOCUMENTO FISCAL</div>
+
+        <div className="separator" />
+
+        {/* Meta */}
+        {order.waiter_name && <div>Atendente: {order.waiter_name}</div>}
+        <div className="meta-row">
+          <span>Abertura: {dateFmt(order.created_at)}</span>
+        </div>
+        <div className="meta-row">
+          <span>Impressão: {dateFmt(new Date())}</span>
+          <span>Nº {receiptNumber}</span>
+        </div>
+
+        <div className="separator" />
+
+        {/* Itens */}
+        <div className="items-header">
+          <span>PRODUTO</span>
+          <span style={{ textAlign: "center" }}>QNT</span>
+          <span style={{ textAlign: "right" }}>UNIT</span>
+          <span style={{ textAlign: "right" }}>TOTAL</span>
+        </div>
+
+        {items.map((it: any) => {
+          const unit = Number(it.price);
+          const qty = Number(it.quantity);
+          const sub = unit * qty;
+          const compl = complByItem[it.id] || [];
+          return (
+            <div key={it.id}>
+              <div className="item-row">
+                <span className="item-name upper">{it.product_name}</span>
+                <span className="qnt">{qty % 1 === 0 ? qty : qty.toFixed(3).replace(".", ",")}</span>
+                <span className="unit">{fmt(unit)}</span>
+                <span className="tot">{fmt(sub)}</span>
+              </div>
+              {compl.length > 0 && (
+                <div className="compl">+ {compl.map(c => c.name).join(", ")}</div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="separator" />
+
+        {/* Totais */}
+        <div className="totals-row">
+          <span>PRODUTOS:</span><span>{brl(productsTotal)}</span>
+        </div>
+        {total !== productsTotal && (
+          <div className="totals-row">
+            <span>{total < productsTotal ? "DESCONTO:" : "ACRÉSCIMO:"}</span>
+            <span>{brl(Math.abs(total - productsTotal))}</span>
+          </div>
+        )}
+        <div className="total-row">
+          <span>TOTAL:</span><span>{brl(total)}</span>
+        </div>
+
+        {payments.length > 0 && (
+          <>
+            <div className="separator" />
+            {payments.map((p: any, i: number) => (
+              <div className="totals-row" key={i}>
+                <span className="upper">{p.method}</span><span>{brl(Number(p.amount))}</span>
+              </div>
+            ))}
+          </>
+        )}
+
+        <div className="separator" />
         <div className="center bold">Volte sempre!!!</div>
         <div style={{ height: "6mm" }} />
       </div>

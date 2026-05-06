@@ -52,6 +52,29 @@ export default function SettingsPage() {
     if (tenant?.nome_comercio) setName(tenant.nome_comercio);
   }, [tenant?.nome_comercio]);
 
+  // Contato (impressão de recibos)
+  const { data: contactSettings } = useQuery({
+    queryKey: ["restaurant_setting", "contact"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("key, value")
+        .in("key", ["business_phone", "business_address"]);
+      const map: Record<string, string> = {};
+      for (const s of data || []) map[s.key] = s.value;
+      return map;
+    },
+  });
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+  useEffect(() => {
+    if (contactSettings) {
+      setPhone(contactSettings.business_phone || "");
+      setAddress(contactSettings.business_address || "");
+    }
+  }, [contactSettings]);
+
   // Logo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -61,6 +84,19 @@ export default function SettingsPage() {
   const [confirmPin, setConfirmPin] = useState("");
   const [savingPin, setSavingPin] = useState(false);
   const [removingPin, setRemovingPin] = useState(false);
+
+  const handleSaveContact = async () => {
+    setSavingContact(true);
+    try {
+      await upsert.mutateAsync({ key: "business_phone", value: phone.trim() });
+      await upsert.mutateAsync({ key: "business_address", value: address.trim() });
+      toast.success("Dados de contato salvos!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   // ── Mutations ──
   const handleSaveName = async () => {
@@ -280,6 +316,38 @@ export default function SettingsPage() {
               {savingName ? "Salvando..." : "Salvar"}
             </button>
           </div>
+        </div>
+
+        {/* Contato (impressão) */}
+        <div className="space-y-3 pt-2 border-t">
+          <div>
+            <label className="text-sm font-medium">Telefone</label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Ex.: (37) 99182-1347"
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Aparece no topo do recibo impresso.</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Endereço (opcional)</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Rua, número — Cidade/UF"
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <button
+            onClick={handleSaveContact}
+            disabled={savingContact}
+            className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60 transition-opacity"
+          >
+            {savingContact ? "Salvando..." : "Salvar contato"}
+          </button>
         </div>
       </section>
 
