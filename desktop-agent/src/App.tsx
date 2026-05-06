@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Store } from "@tauri-apps/plugin-store";
 import {
@@ -6,7 +6,11 @@ import {
   SUPABASE_ANON_KEY,
   AGENT_VERSION,
   HEARTBEAT_INTERVAL_MS,
+  POLL_INTERVAL_MS,
+  POLL_BATCH,
 } from "./config";
+import { heartbeat, pollJobs, sha256Hex, updateJobStatus, type PrintJob } from "./api";
+import { renderJob } from "./render";
 
 type AgentConfig = {
   agent_id: string;
@@ -35,35 +39,6 @@ export function App() {
     })();
   }, []);
 
-  // Heartbeat enquanto pareado
-  useEffect(() => {
-    if (!config) return;
-    let alive = true;
-    const beat = async () => {
-      try {
-        await fetch(`${SUPABASE_URL}/rest/v1/rpc/agent_heartbeat`, {
-          method: "POST",
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            p_token_hash: await sha256(config.agent_token),
-            p_agent_host: await invoke<string>("get_hostname").catch(() => "windows"),
-            p_agent_version: AGENT_VERSION,
-          }),
-        });
-      } catch (e) {
-        console.warn("heartbeat failed", e);
-      }
-      if (alive) setTimeout(beat, HEARTBEAT_INTERVAL_MS);
-    };
-    beat();
-    return () => {
-      alive = false;
-    };
-  }, [config]);
-
   if (loading) return <div className="app"><p className="muted">Carregando…</p></div>;
 
   return (
@@ -71,7 +46,7 @@ export function App() {
       <h1>HuskyPDV Agent</h1>
       <p className="subtitle">Agente de impressão para Windows · v{AGENT_VERSION}</p>
       {config ? (
-        <Paired config={config} store={store!} onUnpair={() => setConfig(null)} />
+        <Paired config={config} store={store!} onUnpair={() => setConfig(null)} setConfig={setConfig} />
       ) : (
         <Pair onPaired={async (c) => { await store!.set(STORE_KEY, c); await store!.save(); setConfig(c); }} />
       )}
@@ -131,47 +106,123 @@ function Pair({ onPaired }: { onPaired: (c: AgentConfig) => void }) {
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Notebook do Caixa" />
       {err && <div className="error">{err}</div>}
       <div style={{ height: 16 }} />
-      <button onClick={submit} disabled={busy}>{busy ? "Parearndo…" : "Parear agora"}</button>
+      <button onClick={submit} disabled={busy}>{busy ? "Pareando…" : "Parear agora"}</button>
     </div>
   );
 }
 
-function Paired({ config, store, onUnpair }: { config: AgentConfig; store: Store; onUnpair: () => void }) {
+function Paired({
+  config, store, onUnpair, setConfig,
+}: {
+  config: AgentConfig;
+  store: Store;
+  onUnpair: () => void;
+  setConfig: (c: AgentConfig) => void;
+}) {
   const [printers, setPrinters] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>(config.printer_name ?? "");
   const [testing, setTesting] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [online, setOnline] = useState(true);
+  const [stats, setStats] = useState({ printed: 0, failed: 0, lastJobAt: null as Date | null });
+  const [lastError, setLastError] = useState<string | null>(null);
+  const runningRef = useRef(false);
 
+  // Lista impressoras
   useEffect(() => {
     invoke<string[]>("list_printers")
       .then((p) => { setPrinters(p); if (!selected && p[0]) setSelected(p[0]); })
       .catch(() => setPrinters([]));
   }, []);
 
+  // Online/offline browser
   useEffect(() => {
-    const onOnline = () => setOnline(true);
-    const onOffline = () => setOnline(false);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
+    const onOn = () => setOnline(true);
+    const onOff = () => setOnline(false);
+    window.addEventListener("online", onOn);
+    window.addEventListener("offline", onOff);
     return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
+      window.removeEventListener("online", onOn);
+      window.removeEventListener("offline", onOff);
     };
   }, []);
+
+  // Heartbeat
+  useEffect(() => {
+    let alive = true;
+    const beat = async () => {
+      try {
+        const host = await invoke<string>("get_hostname").catch(() => "windows");
+        const hash = await sha256Hex(config.agent_token);
+        await heartbeat(hash, host, AGENT_VERSION);
+      } catch {/* ignore — polling tbm atualiza last_seen_at */}
+      if (alive) setTimeout(beat, HEARTBEAT_INTERVAL_MS);
+    };
+    beat();
+    return () => { alive = false; };
+  }, [config.agent_token]);
+
+  // Polling de jobs
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => {
+      if (!alive) return;
+      if (!selected) { // sem impressora escolhida, não puxa nada
+        if (alive) setTimeout(tick, POLL_INTERVAL_MS);
+        return;
+      }
+      if (runningRef.current) {
+        if (alive) setTimeout(tick, POLL_INTERVAL_MS);
+        return;
+      }
+      runningRef.current = true;
+      try {
+        const jobs = await pollJobs(config.agent_token, POLL_BATCH);
+        for (const job of jobs) {
+          await processJob(job);
+        }
+      } catch (e: any) {
+        setLastError(e?.message ?? String(e));
+      } finally {
+        runningRef.current = false;
+        if (alive) setTimeout(tick, POLL_INTERVAL_MS);
+      }
+    };
+    tick();
+    return () => { alive = false; };
+  }, [config.agent_token, selected, config.tenant_name]);
+
+  const processJob = async (job: PrintJob) => {
+    try {
+      const text = renderJob(job.payload, config.tenant_name);
+      await invoke("print_raw", { printer: selected, text });
+      await updateJobStatus(config.agent_token, job.id, "printed");
+      setStats((s) => ({ printed: s.printed + 1, failed: s.failed, lastJobAt: new Date() }));
+      setLastError(null);
+    } catch (e: any) {
+      const msg = typeof e === "string" ? e : (e?.message ?? "Erro de impressão");
+      setStats((s) => ({ printed: s.printed, failed: s.failed + 1, lastJobAt: new Date() }));
+      setLastError(msg);
+      try {
+        await updateJobStatus(config.agent_token, job.id, "error", msg);
+      } catch {/* ignore */}
+    }
+  };
 
   const savePrinter = async (name: string) => {
     setSelected(name);
     const updated = { ...config, printer_name: name };
     await store.set(STORE_KEY, updated);
     await store.save();
+    setConfig(updated);
   };
 
   const test = async () => {
     if (!selected) { setMsg({ ok: false, text: "Escolha uma impressora primeiro." }); return; }
     setTesting(true); setMsg(null);
     try {
-      await invoke("print_test", { printer: selected, station: config.station, tenant: config.tenant_name });
+      const text = renderJob({ type: "test" }, config.tenant_name);
+      await invoke("print_raw", { printer: selected, text });
       setMsg({ ok: true, text: "Cupom de teste enviado para a impressora." });
     } catch (e: any) {
       setMsg({ ok: false, text: typeof e === "string" ? e : "Falha ao imprimir." });
@@ -209,7 +260,7 @@ function Paired({ config, store, onUnpair }: { config: AgentConfig; store: Store
         </select>
         {printers.length === 0 && (
           <p className="muted" style={{ marginTop: 8 }}>
-            Nenhuma impressora detectada. Instale o driver da sua impressora térmica e clique em recarregar.
+            Nenhuma impressora detectada. Instale o driver e clique em recarregar.
           </p>
         )}
         <div className="row">
@@ -224,13 +275,19 @@ function Paired({ config, store, onUnpair }: { config: AgentConfig; store: Store
       </div>
 
       <div className="card">
+        <h2 style={{ marginTop: 0, fontSize: 16 }}>Atividade</h2>
+        <p className="muted" style={{ margin: "4px 0" }}>
+          Impressos: <strong>{stats.printed}</strong> · Erros: <strong>{stats.failed}</strong>
+        </p>
+        <p className="muted" style={{ margin: "4px 0" }}>
+          Último job: {stats.lastJobAt ? stats.lastJobAt.toLocaleTimeString("pt-BR") : "—"}
+        </p>
+        {lastError && <div className="error">Último erro: {lastError}</div>}
+      </div>
+
+      <div className="card">
         <button className="secondary" onClick={unpair}>Remover pareamento</button>
       </div>
     </>
   );
-}
-
-async function sha256(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
