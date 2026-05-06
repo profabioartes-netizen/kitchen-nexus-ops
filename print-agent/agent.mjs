@@ -21,11 +21,20 @@ import { spawn, execFile } from "node:child_process";
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
   supabaseUrl: process.env.SUPABASE_URL || "https://rydfhkphvhkqxwpqoeku.supabase.co",
-  supabaseKey: process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZGZoa3BodmhrcXh3cHFvZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTYwMzUsImV4cCI6MjA5MzU3MjAzNX0.2u0w1SiYUoG34A0SRqUnvQOBjy94xkvfq0p3XjLdgzo",
+  // ⚠️ SERVICE ROLE KEY: bypassa RLS. Por isso TODAS as queries filtram por tenant_id.
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+    || process.env.SUPABASE_ANON_KEY
+    || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZGZoa3BodmhrcXh3cHFvZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTYwMzUsImV4cCI6MjA5MzU3MjAzNX0.2u0w1SiYUoG34A0SRqUnvQOBjy94xkvfq0p3XjLdgzo",
+  // Tenant fixo deste notebook. Hardcoded para Espetinho do Marcelo (único tenant ativo).
+  tenantId: process.env.TENANT_ID || "00000000-0000-0000-0000-000000000001",
   pollInterval: parseInt(process.env.POLL_INTERVAL_MS || "5000"),
 };
 
-const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+const TENANT_ID = CONFIG.tenantId;
 
 // ── ESC/POS helpers ─────────────────────────────────────────────────
 const ESC = 0x1b;
