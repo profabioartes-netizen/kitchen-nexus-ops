@@ -13,6 +13,10 @@
 
 import { createClient } from "@supabase/supabase-js";
 import net from "node:net";
+import os from "node:os";
+import fs from "node:fs";
+import path from "node:path";
+import { spawn, execFile } from "node:child_process";
 
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
