@@ -38,6 +38,140 @@ export default function PrintersPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletePinInput, setDeletePinInput] = useState("");
 
+  // Diagnostic mode state
+  type DiagEvent = { ts: string; level: "info" | "ok" | "warn" | "error"; msg: string };
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [diagRunning, setDiagRunning] = useState(false);
+  const [diagEvents, setDiagEvents] = useState<DiagEvent[]>([]);
+  const [diagJobId, setDiagJobId] = useState<string | null>(null);
+  const diagLogRef = useRef<HTMLDivElement>(null);
+
+  const pushDiag = (level: DiagEvent["level"], msg: string) => {
+    const ts = new Date().toLocaleTimeString("pt-BR", { hour12: false }) + "." +
+      String(new Date().getMilliseconds()).padStart(3, "0");
+    setDiagEvents((prev) => [...prev, { ts, level, msg }]);
+    setTimeout(() => diagLogRef.current?.scrollTo({ top: diagLogRef.current.scrollHeight }), 50);
+  };
+
+  const runFullDiagnostic = async (printer: any) => {
+    if (diagRunning) return;
+    setDiagOpen(true);
+    setDiagEvents([]);
+    setDiagJobId(null);
+    setDiagRunning(true);
+
+    pushDiag("info", `🚀 Iniciando diagnóstico completo da impressora "${printer.name}" (estação: ${printer.station})`);
+    pushDiag("info", `📋 Configuração: ${printer.connection_type === "usb" ? `USB → ${printer.usb_device || "(vazio)"}` : `Rede → ${printer.ip}:${printer.port}`}`);
+
+    // Step 1: agent online
+    if (!isOnline(printer)) {
+      pushDiag("warn", `⚠️  Impressora sem heartbeat recente do agente (last_seen_at=${printer.last_seen_at ?? "null"}). Verifique se o agente está rodando no notebook.`);
+    } else {
+      pushDiag("ok", `✅ Agente conectado (último heartbeat: ${new Date(printer.last_seen_at).toLocaleTimeString("pt-BR")})`);
+    }
+
+    // Step 2: create test job
+    pushDiag("info", "📤 Criando job de teste no banco de dados...");
+    const testPayload = {
+      type: "test",
+      title: "DIAGNÓSTICO COMPLETO",
+      printer_name: printer.name,
+      station: printer.station,
+      message: "Este é um ticket de diagnóstico gerado pelo modo de teste. Se você está lendo este texto, a impressão funcionou de ponta a ponta.",
+      diagnostic_id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+    };
+
+    const { data: created, error: insertErr } = await supabase
+      .from("print_jobs")
+      .insert({
+        station: printer.station,
+        printer_id: printer.id,
+        status: "pending",
+        payload: testPayload,
+      })
+      .select()
+      .single();
+
+    if (insertErr || !created) {
+      pushDiag("error", `❌ Falha ao criar job: ${insertErr?.message ?? "desconhecido"}`);
+      setDiagRunning(false);
+      return;
+    }
+
+    pushDiag("ok", `✅ Job criado: #${created.id.slice(0, 8)} (status=pending)`);
+    setDiagJobId(created.id);
+
+    // Step 3: subscribe to job status changes via Realtime + polling fallback
+    pushDiag("info", "👂 Aguardando agente processar o job (timeout: 30s)...");
+
+    const startedAt = Date.now();
+    const TIMEOUT_MS = 30_000;
+    let resolved = false;
+
+    const channel = supabase
+      .channel(`diag_job_${created.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "print_jobs", filter: `id=eq.${created.id}` },
+        (payload) => {
+          const newRow: any = payload.new;
+          const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
+          if (newRow.status === "processing") {
+            pushDiag("info", `⚙️  [${elapsed}s] Agente pegou o job (status=processing)`);
+          } else if (newRow.status === "printed") {
+            pushDiag("ok", `✅ [${elapsed}s] IMPRESSO COM SUCESSO! printed_at=${newRow.printed_at}`);
+            pushDiag("ok", "🎉 Diagnóstico finalizado: o ciclo completo funcionou. Verifique fisicamente o ticket impresso.");
+            resolved = true;
+            cleanup();
+          } else if (newRow.status === "error") {
+            pushDiag("error", `❌ [${elapsed}s] FALHA NA IMPRESSÃO. Verifique os logs do agente (pm2 logs coffee-print ou agent.log).`);
+            resolved = true;
+            cleanup();
+          }
+        }
+      )
+      .subscribe();
+
+    // Polling fallback (caso Realtime esteja indisponível)
+    const pollInterval = setInterval(async () => {
+      if (resolved) return;
+      const { data } = await supabase
+        .from("print_jobs")
+        .select("status, printed_at")
+        .eq("id", created.id)
+        .single();
+      if (data && (data.status === "printed" || data.status === "error") && !resolved) {
+        const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
+        if (data.status === "printed") {
+          pushDiag("ok", `✅ [${elapsed}s] (via polling) IMPRESSO COM SUCESSO! printed_at=${data.printed_at}`);
+          pushDiag("ok", "🎉 Diagnóstico finalizado.");
+        } else {
+          pushDiag("error", `❌ [${elapsed}s] (via polling) FALHA NA IMPRESSÃO.`);
+        }
+        resolved = true;
+        cleanup();
+      }
+    }, 2000);
+
+    const timeoutHandle = setTimeout(() => {
+      if (!resolved) {
+        pushDiag("error", `⏱️  TIMEOUT após ${TIMEOUT_MS / 1000}s — o agente não processou o job.`);
+        pushDiag("warn", "🔍 Causas prováveis: (1) agente parado, (2) tenant_id divergente, (3) SERVICE_ROLE_KEY incorreta no .env do agente.");
+        cleanup();
+      }
+    }, TIMEOUT_MS);
+
+    function cleanup() {
+      clearInterval(pollInterval);
+      clearTimeout(timeoutHandle);
+      supabase.removeChannel(channel);
+      setDiagRunning(false);
+      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
+    }
+  };
+
+
   // Track Realtime (WebSocket) connection status with reconnection
   useEffect(() => {
     let retryTimeout: ReturnType<typeof setTimeout> | null = null;
