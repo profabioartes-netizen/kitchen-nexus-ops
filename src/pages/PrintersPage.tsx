@@ -74,8 +74,12 @@ export default function PrintersPage() {
     if (generatingCode) return;
     setGeneratingCode(true);
     try {
+      const impersonatedTenantId = (() => {
+        try { return sessionStorage.getItem("impersonate_tenant_id"); } catch { return null; }
+      })();
       const { data, error } = await supabase.functions.invoke("generate-pairing-code", {
         body: { station: installerStation },
+        headers: impersonatedTenantId ? { "x-tenant-id": impersonatedTenantId } : undefined,
       });
       if (error) throw error;
       setPairingCode(data.code);
