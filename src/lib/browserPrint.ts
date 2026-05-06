@@ -1,0 +1,127 @@
+// Impressão térmica via navegador (window.print) — fallback que não depende do HuskyPDV Agent.
+// Útil quando o Agent ainda não está instalado, está offline, ou a impressão pela fila falha.
+
+export type BrowserPrintItem = {
+  product_name: string;
+  quantity: number;
+  price?: number;
+  complements?: string[];
+};
+
+export type BrowserPrintPayload = {
+  type?: "test" | "bill" | "kitchen";
+  title?: string;
+  business_name?: string;
+  business_phone?: string | null;
+  table_name?: string | null;
+  customer_name?: string | null;
+  waiter_name?: string | null;
+  items?: BrowserPrintItem[];
+  total?: number;
+  payment_method?: string;
+  change?: number | null;
+  footer_message?: string;
+  message?: string;
+  paper?: "80mm" | "58mm";
+};
+
+const escape = (s: any) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+function buildHtml(p: BrowserPrintPayload): string {
+  const paper = p.paper ?? "80mm";
+  const widthMm = paper === "58mm" ? 58 : 80;
+  const items = p.items ?? [];
+  const itemsHtml = items
+    .map((it) => {
+      const sub = (it.price ?? 0) * (it.quantity ?? 1);
+      const compl =
+        it.complements && it.complements.length
+          ? `<div class="compl">+ ${it.complements.map(escape).join(", ")}</div>`
+          : "";
+      return `<div class="row">
+        <div class="line">
+          <span class="qty">${it.quantity}x</span>
+          <span class="name">${escape(it.product_name)}</span>
+          <span class="price">R$ ${sub.toFixed(2)}</span>
+        </div>
+        ${compl}
+      </div>`;
+    })
+    .join("");
+
+  return `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>${escape(p.title ?? "Cupom")}</title>
+<style>
+  @page { size: ${widthMm}mm auto; margin: 2mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000; width: ${widthMm}mm; }
+  .center { text-align: center; }
+  .bold { font-weight: 700; }
+  .big { font-size: 14px; }
+  .sep { border-top: 1px dashed #000; margin: 4px 0; }
+  .row { margin: 2px 0; }
+  .line { display: flex; justify-content: space-between; gap: 4px; }
+  .qty { min-width: 22px; }
+  .name { flex: 1; }
+  .price { white-space: nowrap; }
+  .compl { font-size: 11px; padding-left: 22px; font-style: italic; }
+  .total { font-size: 14px; font-weight: 700; display: flex; justify-content: space-between; margin-top: 4px; }
+  .muted { font-size: 10px; }
+  @media print {
+    body { width: ${widthMm}mm; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="center bold big">${escape(p.business_name ?? "HuskyPDV")}</div>
+  ${p.business_phone ? `<div class="center muted">${escape(p.business_phone)}</div>` : ""}
+  <div class="sep"></div>
+  <div class="center bold">${escape(p.title ?? (p.type === "bill" ? "CONTA" : p.type === "kitchen" ? "PEDIDO COZINHA" : "TESTE DE IMPRESSÃO"))}</div>
+  ${p.table_name ? `<div>Mesa/Local: <b>${escape(p.table_name)}</b></div>` : ""}
+  ${p.customer_name ? `<div>Cliente: ${escape(p.customer_name)}</div>` : ""}
+  ${p.waiter_name ? `<div>Atendente: ${escape(p.waiter_name)}</div>` : ""}
+  <div class="muted">${new Date().toLocaleString("pt-BR")}</div>
+  <div class="sep"></div>
+  ${items.length ? itemsHtml : `<div>${escape(p.message ?? "Cupom de teste — impressão pelo navegador OK.")}</div>`}
+  ${typeof p.total === "number" ? `<div class="sep"></div><div class="total"><span>TOTAL</span><span>R$ ${p.total.toFixed(2)}</span></div>` : ""}
+  ${p.payment_method ? `<div>Pagto: ${escape(p.payment_method)}</div>` : ""}
+  ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: R$ ${p.change.toFixed(2)}</div>` : ""}
+  <div class="sep"></div>
+  <div class="center muted">${escape(p.footer_message ?? "Obrigado!")}</div>
+  <div class="center muted">Impresso via navegador</div>
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => { try { window.focus(); window.print(); } catch(_) {} }, 100);
+    });
+    window.addEventListener('afterprint', () => { setTimeout(() => window.close(), 200); });
+  </script>
+</body>
+</html>`;
+}
+
+export function printViaBrowser(payload: BrowserPrintPayload): boolean {
+  try {
+    const html = buildHtml(payload);
+    const w = window.open("", "_blank", "width=400,height=700");
+    if (!w) {
+      alert("Pop-up bloqueado pelo navegador. Permita pop-ups para imprimir pelo navegador.");
+      return false;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    return true;
+  } catch (e) {
+    console.error("[browserPrint] erro:", e);
+    return false;
+  }
+}
