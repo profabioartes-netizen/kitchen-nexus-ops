@@ -108,11 +108,25 @@ export default function PrintersPage() {
 
   const handleDownloadInstaller = () => {
     if (!installerAvailable) {
-      toast.error("Instalador ainda não publicado. Entre em contato com o suporte.");
+      toast.message("Instalador ainda não publicado.", {
+        description: "Abrindo a página de ajuda com instruções alternativas (impressão pelo navegador).",
+      });
+      navigate("/impressoras/ajuda");
       return;
     }
     window.open(AGENT_INSTALLER_URL, "_blank", "noopener");
     toast.success("Download iniciado. Execute o instalador no computador da impressora.");
+  };
+
+  const handleBrowserPrintTest = () => {
+    const ok = printViaBrowser({
+      type: "test",
+      title: "TESTE — IMPRESSÃO NAVEGADOR",
+      business_name: "HuskyPDV",
+      message: "Se este cupom saiu pela impressora térmica do sistema, o fallback nativo está funcionando.",
+      paper: "80mm",
+    });
+    if (ok) toast.success("Janela de impressão aberta.");
   };
 
   const pushDiag = (level: DiagEvent["level"], msg: string) => {
