@@ -317,6 +317,38 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+
+        {/* Contato (impressão) */}
+        <div className="space-y-3 pt-2 border-t">
+          <div>
+            <label className="text-sm font-medium">Telefone</label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Ex.: (37) 99182-1347"
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="text-[11px] text-muted-foreground mt-1">Aparece no topo do recibo impresso.</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Endereço (opcional)</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Rua, número — Cidade/UF"
+              className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <button
+            onClick={handleSaveContact}
+            disabled={savingContact}
+            className="rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60 transition-opacity"
+          >
+            {savingContact ? "Salvando..." : "Salvar contato"}
+          </button>
+        </div>
       </section>
 
       {/* PIN de Segurança */}
