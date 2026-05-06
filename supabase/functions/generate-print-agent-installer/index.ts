@@ -256,9 +256,13 @@ Deno.serve(async (req) => {
       // sem body, usa default
     }
 
-    // ── 4. Read agent.mjs from disk (shipped alongside) ────────
-    const agentPath = new URL("./agent.mjs", import.meta.url);
-    const agentSource = await Deno.readTextFile(agentPath);
+    // ── 4. Read agent.mjs (bundled as a sibling module via fetch) ──
+    const agentUrl = new URL("./agent.mjs", import.meta.url);
+    const agentRes = await fetch(agentUrl);
+    if (!agentRes.ok) {
+      throw new Error(`Falha ao carregar agent.mjs: HTTP ${agentRes.status}`);
+    }
+    const agentSource = await agentRes.text();
 
     // ── 5. Build zip ───────────────────────────────────────────
     const zip = new JSZip();
