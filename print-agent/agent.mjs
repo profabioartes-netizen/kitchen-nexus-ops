@@ -1201,10 +1201,10 @@ function setupRealtime() {
     .channel("print_jobs_realtime")
     .on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "print_jobs" },
+      { event: "INSERT", schema: "public", table: "print_jobs", filter: `tenant_id=eq.${TENANT_ID}` },
       (payload) => {
         const newJob = payload.new;
-        if (newJob && newJob.status === "pending") {
+        if (newJob && newJob.status === "pending" && newJob.tenant_id === TENANT_ID) {
           console.log(`  ⚡ Realtime: novo job ${newJob.id.slice(0, 8)} (${newJob.station})`);
           processJobDirect(newJob);
         }
@@ -1212,10 +1212,10 @@ function setupRealtime() {
     )
     .on(
       "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "print_jobs" },
+      { event: "UPDATE", schema: "public", table: "print_jobs", filter: `tenant_id=eq.${TENANT_ID}` },
       (payload) => {
         const updated = payload.new;
-        if (updated && updated.status === "pending") {
+        if (updated && updated.status === "pending" && updated.tenant_id === TENANT_ID) {
           processedIds.delete(updated.id);
           console.log(`  🔄 Realtime: reimpressão job ${updated.id.slice(0, 8)}`);
           processJobDirect(updated);
