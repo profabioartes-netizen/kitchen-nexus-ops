@@ -4,7 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
 import { LogOut, RefreshCw, ShieldAlert } from "lucide-react";
-import brandLogo from "@/assets/logo-espetinho.png";
+import huskyLogo from "@/assets/husky-pdv-logo.png";
 
 export function AppLayout() {
   const isMobile = useIsMobile();
