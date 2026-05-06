@@ -123,7 +123,9 @@ function buildHtml(p: BrowserPrintPayload): string {
   ${p.waiter_name ? `<div>Atendente: ${escape(p.waiter_name)}</div>` : ""}
   <div class="muted">${new Date().toLocaleString("pt-BR")}</div>
   <div class="sep"></div>
-  ${items.length ? itemsHtml : `<div>${escape(p.message ?? "Cupom de teste — impressão pelo navegador OK.")}</div>`}
+  ${items.length
+    ? `<table class="items"><tbody>${itemsHtml}</tbody></table>`
+    : `<div>${escape(p.message ?? "Cupom de teste — impressão pelo navegador OK.")}</div>`}
   ${typeof p.total === "number" ? `<div class="sep"></div><div class="total"><span>TOTAL</span><span>R$ ${p.total.toFixed(2)}</span></div>` : ""}
   ${p.payment_method ? `<div>Pagto: ${escape(p.payment_method)}</div>` : ""}
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: R$ ${p.change.toFixed(2)}</div>` : ""}
