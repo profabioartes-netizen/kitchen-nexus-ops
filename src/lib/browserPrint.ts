@@ -196,16 +196,17 @@ function buildHtml(p: BrowserPrintPayload): string {
     <button onclick="window.close()">Fechar</button>
   </div>
 
+  <div class="receipt">
   <div class="center bold upper big">${escape(p.business_name ?? "HuskyPDV")}</div>
   ${p.business_phone ? `<div class="center">${escape(p.business_phone)}</div>` : ""}
   <div class="center bold upper big">${escape(title)}${p.table_name ? ` / MESA ${escape(p.table_name)}` : ""}</div>
-  <div class="center dashes">${dashes}</div>
-  <div class="center">NAO E DOCUMENTO FISCAL</div>
-  <div class="center dashes">${dashes}</div>
+  <hr class="separator" />
+  <div class="center bold">NAO E DOCUMENTO FISCAL</div>
+  <hr class="separator" />
   ${p.customer_name ? `<div>Cliente: ${escape(p.customer_name)}</div>` : ""}
   ${p.waiter_name ? `<div>Atendente: ${escape(p.waiter_name)}</div>` : ""}
   <div>${new Date().toLocaleString("pt-BR")}</div>
-  <div class="center dashes">${dashes}</div>
+  <hr class="separator" />
 
   ${
     items.length
@@ -220,7 +221,7 @@ function buildHtml(p: BrowserPrintPayload): string {
           </thead>
           <tbody>${itemsHtml}</tbody>
         </table>
-        <div class="center dashes">${dashes}</div>
+        <hr class="separator" />
         <div class="totals">
           <div class="row"><span>PRODUTOS:</span><span>${brl(productsTotal)}</span></div>
           <div class="row grand"><span>TOTAL:</span><span>${brl(total)}</span></div>
@@ -231,9 +232,10 @@ function buildHtml(p: BrowserPrintPayload): string {
   ${p.payment_method ? `<div>Pagto: ${escape(p.payment_method)}</div>` : ""}
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: ${brl(p.change)}</div>` : ""}
 
-  <div class="center dashes">${dashes}</div>
+  <hr class="separator" />
   <div class="center bold">Volte sempre!!!</div>
   <div style="height:6mm"></div>
+  </div>
 
   <script>
     window.addEventListener('load', () => {
