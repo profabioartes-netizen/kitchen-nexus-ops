@@ -846,58 +846,103 @@ export default function PrintersPage() {
                 </div>
               ) : (
                 <div className="space-y-3 rounded-md border bg-card p-3">
-                  <button
-                    type="button"
-                    onClick={detectUsbPrinters}
-                    disabled={discovering}
-                    className="w-full flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-60"
-                  >
-                    {discovering ? (
-                      <><Loader2 className="h-4 w-4 animate-spin" /> Detectando...</>
-                    ) : (
-                      <><Printer className="h-4 w-4" /> Detectar impressoras do Windows</>
-                    )}
-                  </button>
-
-                  {discoveries.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-muted-foreground">Selecione a impressora instalada no Windows:</p>
-                      {discoveries.map((d) => {
-                        const selected = form.usb_device === d.device_id;
-                        return (
-                          <button
-                            key={d.device_id}
-                            type="button"
-                            onClick={() => selectDiscoveredPrinter(d)}
-                            className={`w-full text-left rounded-md border px-3 py-2 text-sm transition-colors ${
-                              selected
-                                ? "border-accent bg-accent/10 text-accent"
-                                : "hover:bg-secondary"
-                            }`}
-                          >
-                            <div className="font-medium">{d.display_name}</div>
-                            <div className="text-xs text-muted-foreground truncate">{d.device_id}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {discoveryError && (
-                    <p className="text-xs text-destructive">{discoveryError}</p>
-                  )}
-
-                  {!discoveryError && discoveries.length === 0 && !discovering && (
-                    <p className="text-xs text-muted-foreground">
-                      Lista as impressoras instaladas no Windows do computador onde o agente está rodando (Epson TM-T20X, Elgin, Bematech, etc). A impressão será enviada via spooler do sistema operacional.
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Nome exato da impressora no Windows
+                    </label>
+                    <input
+                      type="text"
+                      value={form.usb_device}
+                      onChange={(e) => setForm({ ...form, usb_device: e.target.value })}
+                      placeholder="Ex: EPSON TM-T20X Receipt"
+                      className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                      Digite o nome <strong>exato</strong> que aparece em <em>Painel de Controle → Dispositivos e Impressoras</em> no Windows.
+                      Em caso de dúvida, abra o PowerShell e rode <code className="font-mono bg-secondary/60 px-1 rounded text-[10px]">Get-Printer | Select Name</code>.
                     </p>
-                  )}
+                  </div>
 
-                  {form.usb_device && (
-                    <div className="text-xs text-muted-foreground">
-                      Selecionada: <span className="font-medium text-foreground">{form.usb_device}</span>
+                  {/* Sugestões rápidas */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "EPSON TM-T20X Receipt",
+                      "EPSON TM-T20",
+                      "Elgin i9",
+                      "Bematech MP-4200 TH",
+                      "POS-80",
+                    ].map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => setForm({ ...form, usb_device: name, name: form.name?.trim() ? form.name : name })}
+                        className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                          form.usb_device === name
+                            ? "border-accent bg-accent/15 text-accent"
+                            : "border-border bg-secondary/40 hover:bg-secondary"
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-start gap-2 rounded-md border border-accent/30 bg-accent/5 p-2.5 text-[11px] text-muted-foreground">
+                    <Printer className="h-3.5 w-3.5 text-accent mt-0.5 flex-shrink-0" />
+                    <div>
+                      <strong className="text-foreground">Como funciona:</strong> a impressão será enviada via spooler do Windows. Funciona com qualquer impressora térmica ESC/POS reconhecida pelo sistema (Epson TM-T20X, Elgin, Bematech, etc.) — sem precisar de drivers USB extras.
                     </div>
-                  )}
+                  </div>
+
+                  {/* Detecção automática (opcional, requer agente atualizado) */}
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                      Tentar detectar automaticamente (requer agente v2+)
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      <button
+                        type="button"
+                        onClick={detectUsbPrinters}
+                        disabled={discovering}
+                        className="w-full flex items-center justify-center gap-2 rounded-md border border-accent/40 bg-card px-3 py-2 text-xs font-medium hover:bg-accent/10 disabled:opacity-60"
+                      >
+                        {discovering ? (
+                          <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Consultando agente...</>
+                        ) : (
+                          <><Printer className="h-3.5 w-3.5" /> Detectar impressoras instaladas</>
+                        )}
+                      </button>
+
+                      {discoveries.length > 0 && (
+                        <div className="space-y-1">
+                          {discoveries.map((d) => {
+                            const selected = form.usb_device === d.device_id;
+                            return (
+                              <button
+                                key={d.device_id}
+                                type="button"
+                                onClick={() => selectDiscoveredPrinter(d)}
+                                className={`w-full text-left rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
+                                  selected
+                                    ? "border-accent bg-accent/10 text-accent"
+                                    : "hover:bg-secondary"
+                                }`}
+                              >
+                                <div className="font-medium">{d.display_name}</div>
+                                <div className="text-[10px] text-muted-foreground truncate">{d.device_id}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {discoveryError && (
+                        <p className="text-[11px] text-destructive">
+                          {discoveryError} Use o campo acima para digitar o nome manualmente — esse caminho funciona sem depender de detecção.
+                        </p>
+                      )}
+                    </div>
+                  </details>
                 </div>
               )}
 
