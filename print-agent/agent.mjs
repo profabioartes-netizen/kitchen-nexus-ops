@@ -1233,12 +1233,13 @@ function setupRealtime() {
 
 // ── Startup ─────────────────────────────────────────────────────────
 console.log("");
-console.log("  ☕ Coffee Thrones — Agente de Impressão ESC/POS (TCP)");
+console.log("  ☕ HuskyPDV — Agente de Impressão ESC/POS");
 console.log("  ────────────────────────────────────────────────");
 console.log(`  Supabase:  ${CONFIG.supabaseUrl}`);
-console.log(`  Modo:      TCP direto (ESC/POS via socket)`);
+console.log(`  Plataforma: ${process.platform} (${os.hostname()})`);
+console.log(`  Modos:     Spooler (Windows/CUPS) + TCP direto`);
 console.log(`  Realtime:  WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
-console.log(`  Health:    TCP probe a cada 10s`);
+console.log(`  Health:    a cada 10s`);
 console.log("");
 
 // Initial printers fetch + health check
@@ -1248,7 +1249,9 @@ getPrinters().then((printers) => {
   } else {
     console.log("  Impressoras configuradas:");
     for (const p of printers) {
-      console.log(`    → ${p.station}: ${p.name} (${p.ip}:${p.port})`);
+      const isSpooler = p.connection_type === "usb" || (!!p.usb_device && !p.ip);
+      const dest = isSpooler ? `spooler:${p.usb_device || p.name}` : `${p.ip}:${p.port}`;
+      console.log(`    → ${p.station}: ${p.name} (${dest})`);
     }
   }
   console.log("");
