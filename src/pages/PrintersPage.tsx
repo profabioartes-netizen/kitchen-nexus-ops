@@ -54,57 +54,94 @@ export default function PrintersPage() {
     const publicUrl = resolvePublicUrl();
     const targetUrl = `${publicUrl}/caixa`;
     const iconUrl = `${publicUrl}/icons/huskypdv.ico`;
+
+    // PowerShell script — runs inside the .bat via -EncodedCommand (UTF-16LE base64)
+    // so we don't have to worry about cmd-level escaping of $, (, ), ", etc.
+    const ps = `
+$ErrorActionPreference = 'Stop'
+$url = '${targetUrl}'
+$iconUrl = '${iconUrl}'
+
+$candidates = @(
+  "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",
+  "${'${env:ProgramFiles(x86)}'}\\Google\\Chrome\\Application\\chrome.exe",
+  "$env:LocalAppData\\Google\\Chrome\\Application\\chrome.exe",
+  "${'${env:ProgramFiles(x86)}'}\\Microsoft\\Edge\\Application\\msedge.exe",
+  "$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe"
+)
+$browser = $null
+foreach ($p in $candidates) { if (Test-Path $p) { $browser = $p; break } }
+if (-not $browser) {
+  Write-Host 'Chrome ou Edge nao encontrado. Instale um deles e tente novamente.' -ForegroundColor Red
+  exit 1
+}
+
+$appDir = Join-Path $env:APPDATA 'HuskyPDV'
+if (-not (Test-Path $appDir)) { New-Item -ItemType Directory -Path $appDir | Out-Null }
+
+$iconPath = Join-Path $appDir 'huskypdv.ico'
+try {
+  Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing
+} catch {
+  Write-Host 'Aviso: nao foi possivel baixar o icone personalizado.' -ForegroundColor Yellow
+}
+
+$desktop = [Environment]::GetFolderPath('Desktop')
+$lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
+
+$sh = New-Object -ComObject WScript.Shell
+$s = $sh.CreateShortcut($lnk)
+$s.TargetPath = $browser
+$s.Arguments = '--kiosk-printing --app="' + $url + '"'
+$s.WorkingDirectory = Split-Path $browser
+if (Test-Path $iconPath) { $s.IconLocation = $iconPath } else { $s.IconLocation = $browser }
+$s.Description = 'HuskyPDV Caixa'
+$s.Save()
+
+Write-Host ''
+Write-Host '  Atalho criado com sucesso!' -ForegroundColor Green
+Write-Host '  Use o icone HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
+`;
+
+    // PowerShell -EncodedCommand expects a UTF-16LE base64 string.
+    const utf16le = new Uint8Array(ps.length * 2);
+    for (let i = 0; i < ps.length; i++) {
+      const code = ps.charCodeAt(i);
+      utf16le[i * 2] = code & 0xff;
+      utf16le[i * 2 + 1] = (code >> 8) & 0xff;
+    }
+    let binary = "";
+    for (let i = 0; i < utf16le.length; i++) binary += String.fromCharCode(utf16le[i]);
+    const encoded = btoa(binary);
+
     const bat = `@echo off
 chcp 65001 >nul
-title Ativar HuskyPDV Caixa
+title Configurando HuskyPDV Caixa
 echo.
 echo  ============================================
 echo    Configurando HuskyPDV Caixa
 echo  ============================================
 echo.
+echo  Aguarde, criando o atalho na Area de Trabalho...
+echo.
 
-set "PS_SCRIPT=%TEMP%\\huskypdv_setup.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}
 
-> "%PS_SCRIPT%" echo $url = '${targetUrl}'
->>"%PS_SCRIPT%" echo $iconUrl = '${iconUrl}'
->>"%PS_SCRIPT%" echo $candidates = @(
->>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",
->>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Google\\Chrome\\Application\\chrome.exe",
->>"%PS_SCRIPT%" echo   "$env:LocalAppData\\Google\\Chrome\\Application\\chrome.exe",
->>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Microsoft\\Edge\\Application\\msedge.exe",
->>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe"
->>"%PS_SCRIPT%" echo ^)
->>"%PS_SCRIPT%" echo $browser = $null
->>"%PS_SCRIPT%" echo foreach ($p in $candidates) { if (Test-Path $p) { $browser = $p; break } }
->>"%PS_SCRIPT%" echo if (-not $browser) { Write-Host 'Chrome ou Edge nao encontrado. Instale um deles e tente novamente.' -ForegroundColor Red; exit 1 }
->>"%PS_SCRIPT%" echo $appDir = Join-Path $env:APPDATA 'HuskyPDV'
->>"%PS_SCRIPT%" echo if (-not (Test-Path $appDir)) { New-Item -ItemType Directory -Path $appDir ^| Out-Null }
->>"%PS_SCRIPT%" echo $iconPath = Join-Path $appDir 'huskypdv.ico'
->>"%PS_SCRIPT%" echo try { Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing -ErrorAction Stop } catch { Write-Host 'Aviso: nao foi possivel baixar o icone personalizado.' -ForegroundColor Yellow }
->>"%PS_SCRIPT%" echo $desktop = [Environment]::GetFolderPath('Desktop')
->>"%PS_SCRIPT%" echo $lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
->>"%PS_SCRIPT%" echo $sh = New-Object -ComObject WScript.Shell
->>"%PS_SCRIPT%" echo $s = $sh.CreateShortcut($lnk)
->>"%PS_SCRIPT%" echo $s.TargetPath = $browser
->>"%PS_SCRIPT%" echo $s.Arguments = '--kiosk-printing --app=' + '"' + $url + '"'
->>"%PS_SCRIPT%" echo $s.WorkingDirectory = (Split-Path $browser)
->>"%PS_SCRIPT%" echo if (Test-Path $iconPath) { $s.IconLocation = $iconPath } else { $s.IconLocation = $browser }
->>"%PS_SCRIPT%" echo $s.Description = 'HuskyPDV Caixa'
->>"%PS_SCRIPT%" echo $s.Save()
->>"%PS_SCRIPT%" echo Write-Host ''
->>"%PS_SCRIPT%" echo Write-Host '  Atalho criado com sucesso!' -ForegroundColor Green
->>"%PS_SCRIPT%" echo Write-Host '  Use o icone HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
-del "%PS_SCRIPT%" >nul 2>&1
-
+echo.
+echo  ============================================
+echo    Pronto!
+echo  ============================================
+echo.
+echo   1. Use o atalho "HuskyPDV Caixa" na Area de Trabalho.
+echo   2. Ele abre o sistema em modo aplicativo.
+echo   3. A impressao sera automatica.
 echo.
 pause
 `;
     const blob = new Blob([bat], { type: "application/octet-stream" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "Ativar-Impressao-Automatica-HuskyPDV.bat";
+    link.download = "Ativar-HuskyPDV-Caixa.bat";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
