@@ -1,310 +1,46 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Loader2, Trash, Power, AlertTriangle, RotateCcw, XCircle, Circle, Wifi, WifiOff, Lock, Activity, CheckCircle2, Download, Monitor, Wrench, HelpCircle, Settings2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Printer, Plus, Edit2, Trash2, X, Lock, CheckCircle2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
-import { useTenant } from "@/contexts/TenantContext";
-import { PrintAgentsList } from "@/components/PrintAgentsList";
 import { printViaBrowser } from "@/lib/browserPrint";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getPrintMode, setPrintMode, type PrintMode } from "@/lib/printPreference";
+import { setPrintMode } from "@/lib/printPreference";
 
 const DELETE_PIN = "9774";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { pin: PAGE_PIN, pinEnabled } = useSecurityPin();
-  const { isSuperAdmin } = useTenant();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
-  const [advancedMode, setAdvancedMode] = useState(false);
-  const [printMode, setPrintModeState] = useState<PrintMode>(() => getPrintMode());
-  const [setupTab, setSetupTab] = useState<"native" | "agent">(() =>
-    getPrintMode() === "agent" ? "agent" : "native",
-  );
-  const updatePrintMode = (mode: PrintMode) => {
-    setPrintModeState(mode);
-    setPrintMode(mode);
-  };
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
+
+  // Garante que o terminal use sempre impressão pelo navegador (sem perguntar).
+  useEffect(() => { setPrintMode("native"); }, []);
+
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     name: "",
     station: "Caixa",
     model: "",
-    connection_type: "network" as "network" | "usb",
-    ip: "",
-    port: "9100",
-    usb_device: "",
     auto_print: true,
   });
-  const [testingId, setTestingId] = useState<string | null>(null);
-  const [discovering, setDiscovering] = useState(false);
-  const [discoveries, setDiscoveries] = useState<Array<{ device_id: string; display_name: string; reported_at: string }>>([]);
-  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
-  const [agentActive, setAgentActive] = useState(true);
-  const [wsConnected, setWsConnected] = useState(false);
-  const queueRef = useRef<HTMLDivElement>(null);
-
-  // Delete confirmation state
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletePinInput, setDeletePinInput] = useState("");
-
-  // Diagnostic mode state
-  type DiagEvent = { ts: string; level: "info" | "ok" | "warn" | "error"; msg: string };
-  const [diagOpen, setDiagOpen] = useState(false);
-  const [diagRunning, setDiagRunning] = useState(false);
-  const [diagEvents, setDiagEvents] = useState<DiagEvent[]>([]);
-  const [diagJobId, setDiagJobId] = useState<string | null>(null);
-  const diagLogRef = useRef<HTMLDivElement>(null);
-
-  // Installer station selection
-  const [installerStation, setInstallerStation] = useState<string>("Caixa");
-
-  // Pareamento de agente
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [pairingExpiresAt, setPairingExpiresAt] = useState<string | null>(null);
-  const [generatingCode, setGeneratingCode] = useState(false);
-  const [pairingTimeLeft, setPairingTimeLeft] = useState<number>(0);
-
-  // Tick countdown do código de pareamento
-  useEffect(() => {
-    if (!pairingExpiresAt) { setPairingTimeLeft(0); return; }
-    const tick = () => {
-      const ms = new Date(pairingExpiresAt).getTime() - Date.now();
-      const s = Math.max(0, Math.floor(ms / 1000));
-      setPairingTimeLeft(s);
-      if (s <= 0) { setPairingCode(null); setPairingExpiresAt(null); }
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [pairingExpiresAt]);
-
-  const handleGeneratePairingCode = async () => {
-    if (generatingCode) return;
-    setGeneratingCode(true);
-    try {
-      const impersonatedTenantId = (() => {
-        try { return sessionStorage.getItem("impersonate_tenant_id"); } catch { return null; }
-      })();
-      const { data, error } = await supabase.functions.invoke("generate-pairing-code", {
-        body: { station: installerStation },
-        headers: impersonatedTenantId ? { "x-tenant-id": impersonatedTenantId } : undefined,
-      });
-      if (error) throw error;
-      setPairingCode(data.code);
-      setPairingExpiresAt(data.expires_at);
-      toast.success("Código gerado! Válido por 10 minutos.");
-    } catch (e: any) {
-      toast.error("Erro ao gerar código: " + (e?.message || "desconhecido"));
-    } finally {
-      setGeneratingCode(false);
-    }
-  };
-
-  // URL pública do instalador .exe. Só consideramos válida se for https://...exe configurada via env.
-  const rawAgentUrl = (import.meta.env.VITE_AGENT_DOWNLOAD_URL as string | undefined)?.trim() ?? "";
-  const AGENT_INSTALLER_URL =
-    rawAgentUrl.startsWith("https://") && rawAgentUrl.toLowerCase().endsWith(".exe")
-      ? rawAgentUrl
-      : "";
-  const installerAvailable = AGENT_INSTALLER_URL.length > 0;
-
-  const handleDownloadInstaller = () => {
-    if (!installerAvailable) {
-      toast.message("Instalador ainda não publicado.", {
-        description: "Abrindo a página de ajuda com instruções alternativas (impressão pelo navegador).",
-      });
-      navigate("/impressoras/ajuda");
-      return;
-    }
-    window.open(AGENT_INSTALLER_URL, "_blank", "noopener");
-    toast.success("Download iniciado. Execute o instalador no computador da impressora.");
-  };
 
   const handleBrowserPrintTest = () => {
     const ok = printViaBrowser({
       type: "test",
-      title: "TESTE — IMPRESSÃO NAVEGADOR",
+      title: "TESTE DE IMPRESSÃO",
       business_name: "HuskyPDV",
-      message: "Se este cupom saiu pela impressora térmica do sistema, o fallback nativo está funcionando.",
+      message: "Se este cupom saiu corretamente, sua impressão está pronta para uso.",
       paper: "80mm",
     });
     if (ok) toast.success("Janela de impressão aberta.");
   };
-
-  const pushDiag = (level: DiagEvent["level"], msg: string) => {
-    const ts = new Date().toLocaleTimeString("pt-BR", { hour12: false }) + "." +
-      String(new Date().getMilliseconds()).padStart(3, "0");
-    setDiagEvents((prev) => [...prev, { ts, level, msg }]);
-    setTimeout(() => diagLogRef.current?.scrollTo({ top: diagLogRef.current.scrollHeight }), 50);
-  };
-
-  const runFullDiagnostic = async (printer: any) => {
-    if (diagRunning) return;
-    setDiagOpen(true);
-    setDiagEvents([]);
-    setDiagJobId(null);
-    setDiagRunning(true);
-
-    pushDiag("info", `🚀 Iniciando diagnóstico completo da impressora "${printer.name}" (estação: ${printer.station})`);
-    pushDiag("info", `📋 Configuração: ${printer.connection_type === "usb" ? `USB → ${printer.usb_device || "(vazio)"}` : `Rede → ${printer.ip}:${printer.port}`}`);
-
-    // Step 1: agent online
-    if (!isOnline(printer)) {
-      pushDiag("warn", `⚠️  Impressora sem heartbeat recente do agente (last_seen_at=${printer.last_seen_at ?? "null"}). Verifique se o agente está rodando no notebook.`);
-    } else {
-      pushDiag("ok", `✅ Agente conectado (último heartbeat: ${new Date(printer.last_seen_at).toLocaleTimeString("pt-BR")})`);
-    }
-
-    // Step 2: create test job
-    pushDiag("info", "📤 Criando job de teste no banco de dados...");
-    const testPayload = {
-      type: "test",
-      title: "DIAGNÓSTICO COMPLETO",
-      printer_name: printer.name,
-      station: printer.station,
-      message: "Este é um ticket de diagnóstico gerado pelo modo de teste. Se você está lendo este texto, a impressão funcionou de ponta a ponta.",
-      diagnostic_id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-    };
-
-    const { data: created, error: insertErr } = await supabase
-      .from("print_jobs")
-      .insert({
-        station: printer.station,
-        printer_id: printer.id,
-        status: "pending",
-        payload: testPayload,
-      })
-      .select()
-      .single();
-
-    if (insertErr || !created) {
-      pushDiag("error", `❌ Falha ao criar job: ${insertErr?.message ?? "desconhecido"}`);
-      setDiagRunning(false);
-      return;
-    }
-
-    pushDiag("ok", `✅ Job criado: #${created.id.slice(0, 8)} (status=pending)`);
-    setDiagJobId(created.id);
-
-    // Step 3: subscribe to job status changes via Realtime + polling fallback
-    pushDiag("info", "👂 Aguardando agente processar o job (timeout: 30s)...");
-
-    const startedAt = Date.now();
-    const TIMEOUT_MS = 30_000;
-    let resolved = false;
-
-    const channel = supabase
-      .channel(`diag_job_${created.id}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "print_jobs", filter: `id=eq.${created.id}` },
-        (payload) => {
-          const newRow: any = payload.new;
-          const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
-          if (newRow.status === "processing") {
-            pushDiag("info", `⚙️  [${elapsed}s] Agente pegou o job (status=processing)`);
-          } else if (newRow.status === "printed") {
-            pushDiag("ok", `✅ [${elapsed}s] IMPRESSO COM SUCESSO! printed_at=${newRow.printed_at}`);
-            pushDiag("ok", "🎉 Diagnóstico finalizado: o ciclo completo funcionou. Verifique fisicamente o ticket impresso.");
-            resolved = true;
-            cleanup();
-          } else if (newRow.status === "error") {
-            pushDiag("error", `❌ [${elapsed}s] FALHA NA IMPRESSÃO. Verifique C:\\HuskyPDV\\print-agent\\agent.log no computador do cliente.`);
-            resolved = true;
-            cleanup();
-          }
-        }
-      )
-      .subscribe();
-
-    // Polling fallback (caso Realtime esteja indisponível)
-    const pollInterval = setInterval(async () => {
-      if (resolved) return;
-      const { data } = await supabase
-        .from("print_jobs")
-        .select("status, printed_at")
-        .eq("id", created.id)
-        .single();
-      if (data && (data.status === "printed" || data.status === "error") && !resolved) {
-        const elapsed = ((Date.now() - startedAt) / 1000).toFixed(2);
-        if (data.status === "printed") {
-          pushDiag("ok", `✅ [${elapsed}s] (via polling) IMPRESSO COM SUCESSO! printed_at=${data.printed_at}`);
-          pushDiag("ok", "🎉 Diagnóstico finalizado.");
-        } else {
-          pushDiag("error", `❌ [${elapsed}s] (via polling) FALHA NA IMPRESSÃO.`);
-        }
-        resolved = true;
-        cleanup();
-      }
-    }, 2000);
-
-    const timeoutHandle = setTimeout(() => {
-      if (!resolved) {
-        pushDiag("error", `⏱️  TIMEOUT após ${TIMEOUT_MS / 1000}s — o agente não processou o job.`);
-        pushDiag("warn", "🔍 Causas prováveis: (1) agente parado, (2) tenant_id divergente, (3) SERVICE_ROLE_KEY incorreta no .env do agente.");
-        cleanup();
-      }
-    }, TIMEOUT_MS);
-
-    function cleanup() {
-      clearInterval(pollInterval);
-      clearTimeout(timeoutHandle);
-      supabase.removeChannel(channel);
-      setDiagRunning(false);
-      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-    }
-  };
-
-
-  // Track Realtime (WebSocket) connection status with reconnection
-  useEffect(() => {
-    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
-    let currentChannel: ReturnType<typeof supabase.channel> | null = null;
-
-    function connect() {
-      // Remove previous channel if exists
-      if (currentChannel) {
-        supabase.removeChannel(currentChannel);
-      }
-
-      currentChannel = supabase
-        .channel("ws_status_monitor_" + Date.now())
-        .on("postgres_changes", { event: "*", schema: "public", table: "print_jobs" }, () => {
-          queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-        })
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            setWsConnected(true);
-            if (retryTimeout) { clearTimeout(retryTimeout); retryTimeout = null; }
-          } else if (status === "CLOSED" || status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-            setWsConnected(false);
-            // Auto-reconnect after 5s
-            if (!retryTimeout) {
-              retryTimeout = setTimeout(() => {
-                retryTimeout = null;
-                connect();
-              }, 5000);
-            }
-          }
-        });
-    }
-
-    connect();
-
-    return () => {
-      if (retryTimeout) clearTimeout(retryTimeout);
-      if (currentChannel) supabase.removeChannel(currentChannel);
-    };
-  }, [queryClient]);
 
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
@@ -313,48 +49,7 @@ export default function PrintersPage() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: 10000, // refresh to pick up health status
   });
-
-  const PRINTER_ONLINE_WINDOW_MS = 120000;
-
-  const isOnline = (printer: any) => {
-    if (!printer.last_seen_at) return false;
-    const lastSeen = new Date(printer.last_seen_at).getTime();
-    return Date.now() - lastSeen < PRINTER_ONLINE_WINDOW_MS;
-  };
-
-  // Agent is considered connected if any printer has a recent heartbeat
-  const agentConnected = printers.some((p: any) => isOnline(p));
-
-  // Fetch all non-printed jobs for queue display
-  const { data: activeJobs = [] } = useQuery({
-    queryKey: ["print_jobs_active"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("print_jobs")
-        .select("*")
-        .in("status", ["pending", "processing", "error"])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data;
-    },
-    refetchInterval: 3000,
-  });
-
-  const pendingCount = activeJobs.filter((j) => j.status === "pending" || j.status === "processing").length;
-  const errorCount = activeJobs.filter((j) => j.status === "error").length;
-  const QUEUE_LIMIT = 30;
-  const queueOverflow = pendingCount > QUEUE_LIMIT;
-
-  // Auto-pause agent when queue overflows
-  useEffect(() => {
-    if (queueOverflow && agentActive) {
-      setAgentActive(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueOverflow]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -362,10 +57,10 @@ export default function PrintersPage() {
         name: form.name,
         station: form.station,
         model: form.model,
-        connection_type: form.connection_type,
-        ip: form.connection_type === "network" ? form.ip : "",
-        port: form.connection_type === "network" ? (parseInt(form.port) || 9100) : 9100,
-        usb_device: form.connection_type === "usb" ? form.usb_device : null,
+        connection_type: "network" as const,
+        ip: "",
+        port: 9100,
+        usb_device: null,
         auto_print: form.auto_print,
       };
       if (editing) {
@@ -384,40 +79,6 @@ export default function PrintersPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  const testPrintMutation = useMutation({
-    mutationFn: async (printer: any) => {
-      setTestingId(printer.id);
-      const { error } = await supabase.from("print_jobs").insert({
-        station: printer.station,
-        printer_id: printer.id,
-        status: "pending",
-        payload: {
-          type: "test",
-          title: "TESTE DE IMPRESSÃO",
-          printer_name: printer.name,
-          station: printer.station,
-          message: "Se você consegue ler este ticket, a impressora está configurada corretamente.",
-          timestamp: new Date().toISOString(),
-        },
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Teste enviado para a fila de impressão");
-      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-    },
-    onError: (err) => toast.error((err as Error).message),
-    onSettled: () => setTestingId(null),
-  });
-
-  const toggleActive = useMutation({
-    mutationFn: async (p: any) => {
-      const { error } = await supabase.from("printers").update({ active: !p.active }).eq("id", p.id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["printers"] }),
-  });
-
   const removeMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("printers").delete().eq("id", id);
@@ -429,111 +90,9 @@ export default function PrintersPage() {
     },
   });
 
-  const clearQueueMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("print_jobs")
-        .delete()
-        .in("status", ["pending", "processing", "error"]);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-      toast.success("Fila de impressão limpa com sucesso");
-    },
-    onError: () => toast.error("Erro ao limpar fila de impressão"),
-  });
-
-  const reprintMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      const { error } = await supabase
-        .from("print_jobs")
-        .update({ status: "pending", printed_at: null })
-        .eq("id", jobId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-      toast.success("Job reenviado para impressão");
-    },
-    onError: () => toast.error("Erro ao reenviar job"),
-  });
-
-  const cancelJobMutation = useMutation({
-    mutationFn: async (jobId: string) => {
-      const { error } = await supabase
-        .from("print_jobs")
-        .update({ status: "canceled" })
-        .eq("id", jobId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["print_jobs_active"] });
-      toast.success("Job cancelado");
-    },
-    onError: () => toast.error("Erro ao cancelar job"),
-  });
-
-  const detectUsbPrinters = async () => {
-    setDiscovering(true);
-    setDiscoveryError(null);
-    try {
-      // Marca a solicitação no agente (ele observa e responde gravando na tabela)
-      await supabase.from("print_jobs").insert({
-        station: "Caixa",
-        status: "pending",
-        payload: { type: "discover_usb", requested_at: new Date().toISOString() },
-      } as any);
-
-      // Aguarda até 6s pela resposta do agente, lendo a tabela
-      const since = new Date(Date.now() - 60_000).toISOString();
-      let found: any[] = [];
-      for (let i = 0; i < 12; i++) {
-        await new Promise((r) => setTimeout(r, 500));
-        const { data } = await supabase
-          .from("usb_printer_discoveries" as any)
-          .select("device_id, display_name, reported_at")
-          .gte("reported_at", since)
-          .order("reported_at", { ascending: false });
-        if (data && data.length > 0) {
-          found = data;
-          break;
-        }
-      }
-
-      setDiscoveries(found);
-      if (found.length === 0) {
-        setDiscoveryError("Nenhuma impressora USB encontrada. Verifique se o agente está ativo neste computador.");
-      }
-    } catch (e) {
-      setDiscoveryError("Erro ao consultar o agente. Verifique se ele está ativo neste computador.");
-    } finally {
-      setDiscovering(false);
-    }
-  };
-
-  const selectDiscoveredPrinter = (d: { device_id: string; display_name: string }) => {
-    setForm((f) => ({
-      ...f,
-      usb_device: d.device_id,
-      name: f.name?.trim() ? f.name : d.display_name,
-    }));
-  };
-
   const openNew = () => {
-    setForm({
-      name: "",
-      station: "Caixa",
-      model: "",
-      connection_type: "network",
-      ip: "",
-      port: "9100",
-      usb_device: "",
-      auto_print: true,
-    });
+    setForm({ name: "", station: "Caixa", model: "", auto_print: true });
     setEditing(null);
-    setDiscoveries([]);
-    setDiscoveryError(null);
     setShowForm(true);
   };
 
@@ -542,21 +101,10 @@ export default function PrintersPage() {
       name: p.name ?? "",
       station: p.station ?? "Caixa",
       model: p.model ?? "",
-      connection_type: (p.connection_type as "network" | "usb") ?? "network",
-      ip: p.ip ?? "",
-      port: String(p.port ?? "9100"),
-      usb_device: p.usb_device ?? "",
       auto_print: p.auto_print ?? true,
     });
     setEditing(p);
-    setDiscoveries([]);
-    setDiscoveryError(null);
     setShowForm(true);
-  };
-
-  const remove = (id: string) => {
-    setDeleteTargetId(id);
-    setDeletePinInput("");
   };
 
   const handleDeleteConfirm = () => {
@@ -572,25 +120,7 @@ export default function PrintersPage() {
     }
   };
 
-  const statusLabel: Record<string, string> = {
-    pending: "Pendente",
-    processing: "Processando",
-    printed: "Impresso",
-    error: "Erro",
-    canceled: "Cancelado",
-  };
-
-  const statusColor: Record<string, string> = {
-    pending: "bg-yellow-500/15 text-yellow-600",
-    processing: "bg-blue-500/15 text-blue-600",
-    printed: "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]",
-    error: "bg-destructive/15 text-destructive",
-    canceled: "bg-muted text-muted-foreground",
-  };
-
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+  if (isLoading) return <LoadingScreen />;
 
   if (!unlocked) {
     return (
@@ -610,12 +140,6 @@ export default function PrintersPage() {
               setPinInput(val);
               if (val === PAGE_PIN) setUnlocked(true);
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                if (pinInput === PAGE_PIN) setUnlocked(true);
-                else { setPinInput(""); toast.error("PIN incorreto!"); }
-              }
-            }}
             placeholder="••••"
             className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
           />
@@ -632,7 +156,7 @@ export default function PrintersPage() {
 
   return (
     <div className="p-6 h-full overflow-auto">
-      {/* Delete PIN confirmation dialog */}
+      {/* Delete PIN dialog */}
       {deleteTargetId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="rounded-lg border bg-card p-6 w-full max-w-sm mx-4 space-y-4 shadow-lg">
@@ -653,9 +177,7 @@ export default function PrintersPage() {
               maxLength={4}
               value={deletePinInput}
               onChange={(e) => setDeletePinInput(e.target.value.replace(/\D/g, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleDeleteConfirm();
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleDeleteConfirm(); }}
               placeholder="••••"
               className="w-full rounded-md border bg-background px-3 py-3 text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-ring"
             />
@@ -671,650 +193,133 @@ export default function PrintersPage() {
                 disabled={deletePinInput.length < 4 || removeMutation.isPending}
                 className="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                {removeMutation.isPending ? "Removendo..." : "Confirmar Exclusão"}
+                {removeMutation.isPending ? "Removendo..." : "Confirmar"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Diagnostic modal with live log */}
-      {diagOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="rounded-lg border bg-card w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-5 py-3 border-b">
-              <div className="flex items-center gap-2">
-                {diagRunning ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-accent" />
-                ) : (
-                  <CheckCircle2 className="h-5 w-5 text-[hsl(var(--status-free))]" />
-                )}
-                <h3 className="font-semibold">Diagnóstico de Impressão {diagJobId && <span className="text-xs font-mono text-muted-foreground ml-2">#{diagJobId.slice(0, 8)}</span>}</h3>
-              </div>
-              <button
-                onClick={() => { if (!diagRunning) { setDiagOpen(false); setDiagEvents([]); setDiagJobId(null); } }}
-                disabled={diagRunning}
-                className="rounded p-1.5 hover:bg-secondary disabled:opacity-30"
-                title={diagRunning ? "Aguarde o término do diagnóstico" : "Fechar"}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div
-              ref={diagLogRef}
-              className="flex-1 overflow-auto px-5 py-4 font-mono text-xs space-y-1 bg-black/40 text-slate-200"
-            >
-              {diagEvents.length === 0 && (
-                <div className="text-muted-foreground">Aguardando eventos...</div>
-              )}
-              {diagEvents.map((ev, i) => {
-                const color =
-                  ev.level === "ok" ? "text-emerald-400" :
-                  ev.level === "warn" ? "text-yellow-400" :
-                  ev.level === "error" ? "text-red-400" :
-                  "text-slate-300";
-                return (
-                  <div key={i} className="flex gap-3">
-                    <span className="text-slate-500 shrink-0">{ev.ts}</span>
-                    <span className={color}>{ev.msg}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="px-5 py-3 border-t flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                {diagRunning ? "🔄 Monitorando job em tempo real..." : "✔ Diagnóstico finalizado"}
-              </span>
-              <button
-                onClick={() => { if (!diagRunning) { setDiagOpen(false); setDiagEvents([]); setDiagJobId(null); } }}
-                disabled={diagRunning}
-                className="rounded-md border px-4 py-1.5 text-sm font-medium hover:bg-secondary disabled:opacity-50"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="max-w-3xl mx-auto space-y-8">
+        {/* HERO */}
+        <header className="text-center space-y-2 pt-4">
+          <h1 className="text-3xl font-semibold tracking-tight">🖨️ Impressão Rápida</h1>
+          <p className="text-muted-foreground">
+            Imprima pedidos diretamente pela impressora do computador.
+          </p>
+        </header>
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
-        <h1 className="text-2xl font-semibold">Impressoras</h1>
-        <div className="flex items-center gap-2">
-          {isSuperAdmin && (
-            <button
-              onClick={() => setAdvancedMode((v) => !v)}
-              className={`flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
-                advancedMode ? "bg-accent/15 text-accent border-accent/40" : "hover:bg-secondary"
-              }`}
-              title="Visível apenas para super admin / suporte"
-            >
-              <Wrench className="h-4 w-4" />
-              Modo avançado {advancedMode ? "ON" : "OFF"}
-            </button>
-          )}
-          <button onClick={openNew} className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90">
-            <Plus className="h-4 w-4" />
-            Nova Impressora
+        {/* CTA principal */}
+        <section className="rounded-2xl border bg-card p-8 text-center space-y-5 shadow-sm">
+          <button
+            onClick={handleBrowserPrintTest}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-foreground px-8 py-4 text-base font-semibold hover:opacity-90 transition-opacity shadow-sm"
+          >
+            <Printer className="h-5 w-5" />
+            Testar Impressão
           </button>
-        </div>
-      </div>
-
-      {/* Agente offline — banner persistente (simples para cliente) */}
-      {printers.length > 0 && !agentConnected && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 p-4 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <strong>Impressora offline.</strong> Verifique se o computador da impressora está ligado e conectado à internet.
-            </div>
+          <p className="text-xs text-muted-foreground">
+            Compatível com impressoras térmicas 58mm e 80mm.
+          </p>
+          <div className="inline-flex items-center gap-2 rounded-full bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))] px-3 py-1 text-xs font-medium">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Impressão pelo navegador ativada
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* Setup principal — IMPRESSÃO NATIVA em destaque, Agent em aba avançada */}
-      <div className="mb-4 rounded-lg border bg-card overflow-hidden">
-        <div className="flex items-start justify-between gap-3 p-4 border-b bg-secondary/20">
-          <div className="flex items-start gap-3">
-            <div className="rounded-md bg-accent/10 p-2 text-accent">
-              <Printer className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">Configurar impressão</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Por padrão, o HuskyPDV imprime direto pela impressora do sistema (navegador). Sem instalar nada.
+        {/* Como funciona */}
+        <section className="rounded-2xl border bg-card/40 p-6">
+          <h2 className="text-sm font-semibold mb-4 text-muted-foreground tracking-wide uppercase">
+            Como funciona
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { n: "1", t: "Conecte sua impressora ao computador" },
+              { n: "2", t: "Clique em “Testar Impressão”" },
+              { n: "3", t: "Escolha sua impressora" },
+              { n: "4", t: "Pronto ✅" },
+            ].map((s) => (
+              <div key={s.n} className="flex items-start gap-3">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent text-sm font-bold">
+                  {s.n}
+                </div>
+                <p className="text-sm text-foreground/90 leading-snug">{s.t}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Impressoras adicionais */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
+              Impressoras adicionais
+            </h2>
+            <button
+              onClick={openNew}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-secondary transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Impressora
+            </button>
+          </div>
+
+          {printers.length === 0 ? (
+            <div className="rounded-2xl border border-dashed bg-card/30 p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                📄 Nenhuma impressora adicional configurada.
               </p>
             </div>
-          </div>
-          {setupTab === "agent" && (
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                agentConnected
-                  ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
-                  : "bg-destructive/10 text-destructive"
-              }`}
-              title={agentConnected ? "Pelo menos uma impressora respondeu nos últimos 2 min" : "Nenhum agente respondeu recentemente"}
-            >
-              <Circle className={`h-2 w-2 ${agentConnected ? "fill-current animate-pulse" : "fill-current"}`} />
-              Agent {agentConnected ? "conectado" : "desconectado"}
-            </span>
-          )}
-        </div>
-
-        <Tabs value={setupTab} onValueChange={(v) => setSetupTab(v as "native" | "agent")} className="p-4">
-          <TabsList className="mb-4">
-            <TabsTrigger value="native" className="gap-2">
-              <Printer className="h-3.5 w-3.5" />
-              Impressora do Sistema
-              <span className="ml-1 rounded bg-accent/20 text-accent text-[10px] px-1.5 py-0.5 font-bold">RECOMENDADO</span>
-            </TabsTrigger>
-            <TabsTrigger value="agent" className="gap-2">
-              <Settings2 className="h-3.5 w-3.5" />
-              Configurações Avançadas
-            </TabsTrigger>
-          </TabsList>
-
-          {/* === ABA NATIVA (PRINCIPAL) === */}
-          <TabsContent value="native" className="mt-0">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="rounded-md border border-accent/40 bg-accent/5 p-4">
-                <div className="text-xs font-bold text-accent tracking-wider mb-2">IMPRESSÃO NATIVA</div>
-                <h4 className="text-base font-semibold mb-1">Imprima direto pelo navegador</h4>
-                <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-                  Funciona com qualquer impressora térmica reconhecida pelo Windows/Mac/Linux.
-                  Largura otimizada para papel <strong>80mm (72mm úteis)</strong> em fonte monoespaçada.
-                </p>
-                <button
-                  onClick={handleBrowserPrintTest}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90"
-                >
-                  <Printer className="h-4 w-4" />
-                  Testar impressão pelo navegador
-                </button>
-                <Link
-                  to="/impressoras/ajuda"
-                  className="mt-3 inline-flex items-center gap-1 text-[11px] underline text-muted-foreground hover:text-foreground"
-                >
-                  <HelpCircle className="h-3 w-3" /> Como configurar a impressora térmica no sistema
-                </Link>
-              </div>
-
-              <div className="rounded-md border bg-background p-4">
-                <div className="text-xs font-bold text-muted-foreground tracking-wider mb-2">PREFERÊNCIA DESTE TERMINAL</div>
-                <h4 className="text-sm font-semibold mb-2">Modo de impressão automática</h4>
-                <p className="text-[11px] text-muted-foreground mb-3">
-                  Salvo neste navegador. Define o que acontece ao finalizar uma venda.
-                </p>
-                <div className="space-y-2">
-                  {([
-                    { v: "native", label: "Sempre pelo navegador (recomendado)", desc: "Imprime direto sem perguntar." },
-                    { v: "agent",  label: "Sempre pelo Agent",                  desc: "Envia para o HuskyPDV Agent (precisa instalar)." },
-                    { v: "ask",    label: "Perguntar quando o Agent falhar",     desc: "Tenta o Agent e oferece fallback se der erro." },
-                  ] as { v: PrintMode; label: string; desc: string }[]).map((opt) => {
-                    const selected = printMode === opt.v;
-                    return (
-                      <button
-                        key={opt.v}
-                        onClick={() => updatePrintMode(opt.v)}
-                        className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
-                          selected
-                            ? "border-accent bg-accent/10"
-                            : "border-border hover:bg-secondary/50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`h-3.5 w-3.5 rounded-full border-2 flex-shrink-0 ${
-                              selected ? "border-accent bg-accent" : "border-muted-foreground/40"
-                            }`}
-                          />
-                          <span className="text-sm font-medium">{opt.label}</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-1 ml-5.5 pl-1">{opt.desc}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-3 italic">
-                  Atalho: defina como <strong>“Sempre pelo navegador”</strong> para nunca mais ver o popup de fallback.
-                </p>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* === ABA AVANÇADA (HUSKY AGENT) === */}
-          <TabsContent value="agent" className="mt-0">
-            <div className="rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3 mb-4 text-xs text-yellow-700 dark:text-yellow-300">
-              ⚠️ Use o Agent apenas se precisar de impressão automática em rede ou múltiplas estações (Caixa, Cozinha, Bar). Para a maioria dos casos, a aba <strong>Impressora do Sistema</strong> já resolve.
-            </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {/* Passo 1 */}
-              <div className="rounded-md border bg-background p-3">
-                <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 1</div>
-                <div className="text-xs font-semibold mb-2">Gerar código de pareamento</div>
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <label className="text-xs">Estação:</label>
-                  <select
-                    value={installerStation}
-                    onChange={(e) => setInstallerStation(e.target.value)}
-                    disabled={generatingCode || !!pairingCode}
-                    className="rounded-md border bg-background px-2 py-1 text-sm"
-                  >
-                    <option value="Caixa">Caixa</option>
-                    <option value="Cozinha">Cozinha</option>
-                    <option value="Bebidas">Bebidas</option>
-                    <option value="Sobremesa">Sobremesa</option>
-                  </select>
-                </div>
-                {pairingCode ? (
-                  <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
-                    <div className="font-mono text-2xl tracking-widest font-bold text-accent">
-                      {pairingCode.slice(0, 3)}-{pairingCode.slice(3)}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">
-                      Expira em {Math.floor(pairingTimeLeft / 60)}:{String(pairingTimeLeft % 60).padStart(2, "0")}
-                    </div>
-                    <button
-                      onClick={() => { setPairingCode(null); setPairingExpiresAt(null); }}
-                      className="text-[11px] underline text-muted-foreground mt-2"
-                    >
-                      Gerar outro
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleGeneratePairingCode}
-                    disabled={generatingCode}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
-                  >
-                    {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Gerar código
-                  </button>
-                )}
-              </div>
-
-              {/* Passo 2 */}
-              <div className="rounded-md border bg-background p-3">
-                <div className="text-[10px] font-bold mb-2 text-accent tracking-wider">PASSO 2</div>
-                <div className="text-xs font-semibold mb-2">Baixar HuskyPDV Agent</div>
-                <p className="text-[11px] text-muted-foreground mb-2">
-                  Instalador único <strong>.exe</strong>. Sem ZIP, sem terminal.
-                </p>
-                <button
-                  onClick={handleDownloadInstaller}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
-                >
-                  <Download className="h-4 w-4" />
-                  {installerAvailable ? "Baixar .exe" : "Ver instruções"}
-                </button>
-                {installerAvailable ? (
-                  <p className="text-[11px] text-muted-foreground mt-2">
-                    Após instalar, abra o app e digite o código do Passo 1.
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground mt-2 inline-flex items-center gap-1">
-                    <HelpCircle className="h-3 w-3" />
-                    Instalador não publicado — clique para alternativas.
-                  </p>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Lista de Agents pareados (visível para todos os usuários) */}
-      <PrintAgentsList />
-
-      {advancedMode && <>
-      {/* Action bar: Queue controls */}
-      <div className="flex flex-wrap items-center gap-4 mb-4 p-4 rounded-lg border bg-card">
-        <button
-          onClick={() => {
-            const target = printers.find((p: any) => p.active) || printers[0];
-            if (!target) {
-              toast.error("Cadastre uma impressora primeiro.");
-              return;
-            }
-            runFullDiagnostic(target);
-          }}
-          disabled={diagRunning || printers.length === 0}
-          className="flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          <Activity className="h-4 w-4" />
-          {diagRunning ? "Diagnóstico em curso..." : "Diagnóstico Completo"}
-        </button>
-
-        <button
-          onClick={() => clearQueueMutation.mutate()}
-          disabled={(pendingCount + errorCount) === 0 || clearQueueMutation.isPending}
-          className="flex items-center gap-2 rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-        >
-          <Trash className="h-4 w-4" />
-          Limpar fila de impressão
-        </button>
-
-
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">Fila atual:</span>
-          <span className="font-semibold text-foreground">{pendingCount} pedido{pendingCount !== 1 ? "s" : ""}</span>
-        </div>
-
-        {errorCount > 0 && (
-          <div className="flex items-center gap-2 text-sm text-destructive font-medium">
-            <AlertTriangle className="h-4 w-4" />
-            {errorCount} com erro
-          </div>
-        )}
-
-        <button
-          onClick={() => setAgentActive(!agentActive)}
-          className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-            agentActive
-              ? "bg-[hsl(var(--status-free)/0.15)] text-[hsl(var(--status-free))]"
-              : "bg-destructive/10 text-destructive"
-          }`}
-        >
-          <Power className="h-4 w-4" />
-          Agente: {agentActive ? "Ativo" : "Pausado"}
-        </button>
-
-        <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
-          wsConnected
-            ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
-            : "bg-destructive/10 text-destructive"
-        }`}>
-          {wsConnected ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
-          {wsConnected ? "WebSocket: conectado" : "Fallback: polling ativo"}
-        </div>
-
-        <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
-          agentConnected
-            ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
-            : "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
-        }`}>
-          <Circle className={`h-2.5 w-2.5 ${agentConnected ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-yellow-500 text-yellow-500"} ${agentConnected ? "animate-pulse" : ""}`} />
-          {agentConnected ? "Agente: conectado" : "Agente: desconectado"}
-        </div>
-      </div>
-
-      {/* Error alert banner */}
-      {errorCount > 0 && (
-        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-            <span>
-              ⚠ Existem <strong>{errorCount} pedido{errorCount !== 1 ? "s" : ""}</strong> com erro de impressão.
-            </span>
-          </div>
-          <button
-            onClick={() => queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="flex-shrink-0 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1 text-xs font-medium hover:bg-destructive/20 transition-colors"
-          >
-            Ver fila
-          </button>
-        </div>
-      )}
-
-      {/* Queue overflow warning */}
-      {queueOverflow && (
-        <div className="flex items-center justify-between gap-3 mb-4 p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400 text-sm">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-            <span>
-              Fila muito grande detectada ({pendingCount} pedidos). Agente pausado para evitar desperdício de papel.
-            </span>
-          </div>
-          <button
-            onClick={() => setAgentActive(true)}
-            className="flex-shrink-0 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs font-medium hover:bg-yellow-500/20 transition-colors"
-          >
-            Retomar agente
-          </button>
-        </div>
-      )}
-
-      {/* Print queue table — always visible */}
-      <div ref={queueRef} className="rounded-lg border bg-card overflow-hidden mb-6">
-        <div className="px-4 py-3 border-b bg-secondary/30">
-          <h3 className="text-sm font-semibold">Fila de Impressão</h3>
-        </div>
-        {activeJobs.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            Nenhum job na fila. Todos os pedidos foram processados.
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-secondary/20">
-                <th className="text-left px-4 py-2 font-medium">ID</th>
-                <th className="text-left px-4 py-2 font-medium">Estação</th>
-                <th className="text-left px-4 py-2 font-medium">Pedido / Mesa</th>
-                <th className="text-center px-4 py-2 font-medium">Status</th>
-                <th className="text-left px-4 py-2 font-medium">Criado em</th>
-                <th className="px-4 py-2 w-28 text-right font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeJobs.map((job) => {
-                const payload = job.payload as any;
-                const createdAt = new Date(job.created_at).toLocaleString("pt-BR", {
-                  day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
-                });
-                const orderInfo = [
-                  payload?.product_name,
-                  payload?.table_name ? `Local ${payload.location || payload.table_name}` : null,
-                  payload?.comanda_number ? `#${payload.comanda_number}` : null,
-                ].filter(Boolean).join(" · ") || "—";
-
-                return (
-                  <tr key={job.id} className={`border-b last:border-0 ${job.status === "error" ? "bg-destructive/5" : "hover:bg-secondary/30"}`}>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{job.id.slice(0, 8)}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{job.station}</td>
-                    <td className="px-4 py-3">{orderInfo}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColor[job.status] || ""}`}>
-                        {statusLabel[job.status] || job.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-xs">{createdAt}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          title="Reimprimir"
-                          onClick={() => {
-                            if (confirm("Reimprimir este job?")) reprintMutation.mutate(job.id);
-                          }}
-                          disabled={reprintMutation.isPending}
-                          className="rounded p-1.5 hover:bg-accent/10 text-accent"
-                        >
-                          <RotateCcw className="h-4 w-4" />
-                        </button>
-                        <button
-                          title="Cancelar job"
-                          onClick={() => cancelJobMutation.mutate(job.id)}
-                          disabled={cancelJobMutation.isPending}
-                          className="rounded p-1.5 hover:bg-destructive/10 text-destructive"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
+          ) : (
+            <div className="rounded-2xl border bg-card overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-secondary/40">
+                    <th className="text-left px-4 py-2.5 font-medium">Nome</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Setor</th>
+                    <th className="px-4 py-2.5 w-32"></th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <p className="text-sm text-muted-foreground mb-6">
-        Configure o roteamento de impressoras térmicas por estação. Jobs com erro <strong>não</strong> são reimpressos automaticamente — use o botão Reimprimir. Impressoras ficam online por até 2 minutos sem novo heartbeat do agente.
-      </p>
-
-      {/* Routing diagram — estações dinâmicas, derivadas das impressoras cadastradas no tenant */}
-      {(() => {
-        const stations = Array.from(
-          new Set(
-            printers
-              .map((p: any) => (p.station ?? "").toString().trim())
-              .filter((s: string) => s.length > 0)
-          )
-        ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-
-        if (stations.length === 0) {
-          return (
-            <div className="rounded-lg border bg-card p-4 mb-8 text-sm text-muted-foreground">
-              Nenhum setor de impressão configurado ainda. Cadastre uma impressora acima e defina um setor (ex: Caixa, Cozinha, Bar) para habilitar o roteamento de impressão.
+                </thead>
+                <tbody>
+                  {printers.map((p: any) => (
+                    <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/20">
+                      <td className="px-4 py-3 font-medium">
+                        <div className="flex items-center gap-2">
+                          <Printer className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <div>{p.name}</div>
+                            {p.model && <div className="text-xs text-muted-foreground font-normal">{p.model}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openEdit(p)} className="rounded p-1.5 hover:bg-secondary" title="Editar">
+                            <Edit2 className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => { setDeleteTargetId(p.id); setDeletePinInput(""); }}
+                            className="rounded p-1.5 hover:bg-destructive/10 text-destructive"
+                            title="Remover"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          );
-        }
-
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            {stations.map((station) => {
-              const stationPrinters = printers.filter((p) => p.station === station && p.active);
-              return (
-                <div key={station} className="rounded-lg border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Printer className="h-4 w-4 text-accent" />
-                    <h3 className="font-semibold text-sm">{station}</h3>
-                  </div>
-                  {stationPrinters.length > 0 ? (
-                    stationPrinters.map((p) => (
-                      <div key={p.id} className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        <Circle className={`h-2.5 w-2.5 flex-shrink-0 ${isOnline(p) ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
-                        <span>
-                          {p.name}
-                          {p.model ? ` — ${p.model}` : ""}
-                          {p.connection_type === "usb"
-                            ? ` (Windows${p.usb_device ? `: ${p.usb_device}` : ""})`
-                            : p.ip ? ` (${p.ip})` : ""}
-                        </span>
-                        {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">Nenhuma impressora ativa</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
-
-      </>}
-
-      {/* Printers list */}
-      <div className="rounded-lg border bg-card overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-secondary/50">
-              <th className="text-left px-4 py-2 font-medium">Nome</th>
-              <th className="text-left px-4 py-2 font-medium">Setor</th>
-              <th className="text-left px-4 py-2 font-medium">Conexão</th>
-              <th className="text-left px-4 py-2 font-medium">Endereço</th>
-              <th className="text-center px-4 py-2 font-medium">Auto</th>
-              <th className="text-center px-4 py-2 font-medium">Status</th>
-              <th className="text-left px-4 py-2 font-medium">Última resposta</th>
-              <th className="text-center px-4 py-2 font-medium">Ativa</th>
-              <th className="px-4 py-2 w-40"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {printers.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted-foreground">
-                  Nenhuma impressora configurada. Clique em <strong>Nova Impressora</strong> para começar.
-                </td>
-              </tr>
-            )}
-            {printers.map((p) => {
-              const online = isOnline(p);
-              const isUsb = p.connection_type === "usb";
-              return (
-              <tr key={p.id} className="border-b last:border-0 hover:bg-secondary/30">
-                <td className="px-4 py-3 font-medium">
-                  <div className="flex items-center gap-2">
-                    <Printer className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div>{p.name}</div>
-                      {p.model && <div className="text-xs text-muted-foreground font-normal">{p.model}</div>}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-muted-foreground">{p.station}</td>
-                <td className="px-4 py-3 text-muted-foreground uppercase text-xs">{isUsb ? "Windows" : "Rede"}</td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">
-                  {isUsb ? (p.usb_device || "—") : (p.ip ? `${p.ip}:${p.port}` : "—")}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                    p.auto_print
-                      ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
-                      : "bg-muted text-muted-foreground"
-                  }`}>
-                    {p.auto_print ? "Sim" : "Não"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    online
-                      ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]"
-                      : "bg-destructive/10 text-destructive"
-                  }`}>
-                    <Circle className={`h-2 w-2 ${online ? "fill-[hsl(var(--status-free))] text-[hsl(var(--status-free))]" : "fill-destructive text-destructive"}`} />
-                    {online ? "Online" : "Offline"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {p.last_seen_at ? (() => {
-                    const ms = Date.now() - new Date(p.last_seen_at).getTime();
-                    if (ms < 60_000) return `${Math.floor(ms / 1000)}s atrás`;
-                    if (ms < 3_600_000) return `${Math.floor(ms / 60_000)}min atrás`;
-                    if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)}h atrás`;
-                    return new Date(p.last_seen_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-                  })() : <span className="italic">nunca</span>}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <button
-                    onClick={() => toggleActive.mutate(p)}
-                    className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ${
-                      p.active ? "bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))]" : "bg-destructive/10 text-destructive"
-                    }`}
-                  >
-                    {p.active ? "Ativa" : "Inativa"}
-                  </button>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={() => testPrintMutation.mutate(p)}
-                      disabled={testingId === p.id}
-                      title="Testar impressão"
-                      className="rounded px-2 py-1 text-xs font-medium border border-accent/40 text-accent hover:bg-accent/10 disabled:opacity-50"
-                    >
-                      {testingId === p.id ? "..." : "Testar"}
-                    </button>
-                    <button onClick={() => openEdit(p)} className="rounded p-1 hover:bg-secondary" title="Editar">
-                      <Edit2 className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    <button onClick={() => remove(p.id)} className="rounded p-1 hover:bg-destructive/10 text-destructive" title="Remover">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
+          )}
+        </section>
       </div>
 
       {/* Form dialog */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30">
-          <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4">
+          <div className="w-full max-w-md rounded-2xl border bg-background p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">{editing ? "Editar Impressora" : "Nova Impressora"}</h2>
               <button onClick={() => setShowForm(false)} className="rounded p-1 hover:bg-secondary">
@@ -1323,190 +328,52 @@ export default function PrintersPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Nome da impressora</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Impressora Cozinha" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
+                <label className="text-sm font-medium text-muted-foreground">Nome</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Ex: Impressora Cozinha"
+                  className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Setor / Estação</label>
+                <label className="text-sm font-medium text-muted-foreground">Setor</label>
                 <input
                   type="text"
                   value={form.station}
                   onChange={(e) => setForm({ ...form, station: e.target.value })}
-                  placeholder="Ex: Caixa, Churrasqueira, Bar"
+                  placeholder="Ex: Caixa, Cozinha, Bar"
                   className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Use um nome livre. Esse setor aparecerá como destino de impressão no cadastro de produtos.
+                  Esse setor aparecerá como destino de impressão no cadastro de produtos.
                 </p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Tipo de conexão</label>
-                <div className="mt-1 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, connection_type: "network" })}
-                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                      form.connection_type === "network"
-                        ? "bg-accent text-accent-foreground border-accent"
-                        : "bg-card hover:bg-secondary"
-                    }`}
-                  >
-                    Rede (IP)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, connection_type: "usb" })}
-                    className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                      form.connection_type === "usb"
-                        ? "bg-accent text-accent-foreground border-accent"
-                        : "bg-card hover:bg-secondary"
-                    }`}
-                  >
-                    Windows / Local
-                  </button>
-                </div>
-              </div>
-
-              {form.connection_type === "network" ? (
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-muted-foreground">IP</label>
-                    <input type="text" value={form.ip} onChange={(e) => setForm({ ...form, ip: e.target.value })} placeholder="192.168.1.100" className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Porta</label>
-                    <input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: e.target.value })} className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3 rounded-md border bg-card p-3">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">
-                      Nome exato da impressora no Windows
-                    </label>
-                    <input
-                      type="text"
-                      value={form.usb_device}
-                      onChange={(e) => setForm({ ...form, usb_device: e.target.value })}
-                      placeholder="Ex: EPSON TM-T20X Receipt"
-                      className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-                      Digite o nome <strong>exato</strong> que aparece em <em>Painel de Controle → Dispositivos e Impressoras</em> no Windows.
-                      Em caso de dúvida, abra o PowerShell e rode <code className="font-mono bg-secondary/60 px-1 rounded text-[10px]">Get-Printer | Select Name</code>.
-                    </p>
-                  </div>
-
-                  {/* Sugestões rápidas */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "EPSON TM-T20X Receipt",
-                      "EPSON TM-T20",
-                      "Elgin i9",
-                      "Bematech MP-4200 TH",
-                      "POS-80",
-                    ].map((name) => (
-                      <button
-                        key={name}
-                        type="button"
-                        onClick={() => setForm({ ...form, usb_device: name, name: form.name?.trim() ? form.name : name })}
-                        className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                          form.usb_device === name
-                            ? "border-accent bg-accent/15 text-accent"
-                            : "border-border bg-secondary/40 hover:bg-secondary"
-                        }`}
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex items-start gap-2 rounded-md border border-accent/30 bg-accent/5 p-2.5 text-[11px] text-muted-foreground">
-                    <Printer className="h-3.5 w-3.5 text-accent mt-0.5 flex-shrink-0" />
-                    <div>
-                      <strong className="text-foreground">Como funciona:</strong> a impressão será enviada via spooler do Windows. Funciona com qualquer impressora térmica ESC/POS reconhecida pelo sistema (Epson TM-T20X, Elgin, Bematech, etc.) — sem precisar de drivers USB extras.
-                    </div>
-                  </div>
-
-                  {/* Detecção automática (opcional, requer agente atualizado) */}
-                  <details className="text-xs">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                      Tentar detectar automaticamente (requer agente v2+)
-                    </summary>
-                    <div className="mt-2 space-y-2">
-                      <button
-                        type="button"
-                        onClick={detectUsbPrinters}
-                        disabled={discovering}
-                        className="w-full flex items-center justify-center gap-2 rounded-md border border-accent/40 bg-card px-3 py-2 text-xs font-medium hover:bg-accent/10 disabled:opacity-60"
-                      >
-                        {discovering ? (
-                          <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Consultando agente...</>
-                        ) : (
-                          <><Printer className="h-3.5 w-3.5" /> Detectar impressoras instaladas</>
-                        )}
-                      </button>
-
-                      {discoveries.length > 0 && (
-                        <div className="space-y-1">
-                          {discoveries.map((d) => {
-                            const selected = form.usb_device === d.device_id;
-                            return (
-                              <button
-                                key={d.device_id}
-                                type="button"
-                                onClick={() => selectDiscoveredPrinter(d)}
-                                className={`w-full text-left rounded-md border px-2.5 py-1.5 text-xs transition-colors ${
-                                  selected
-                                    ? "border-accent bg-accent/10 text-accent"
-                                    : "hover:bg-secondary"
-                                }`}
-                              >
-                                <div className="font-medium">{d.display_name}</div>
-                                <div className="text-[10px] text-muted-foreground truncate">{d.device_id}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {discoveryError && (
-                        <p className="text-[11px] text-destructive">
-                          {discoveryError} Use o campo acima para digitar o nome manualmente — esse caminho funciona sem depender de detecção.
-                        </p>
-                      )}
-                    </div>
-                  </details>
-                </div>
-              )}
-
-              <label className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 cursor-pointer">
-                <div>
-                  <div className="text-sm font-medium">Impressão automática</div>
-                  <div className="text-xs text-muted-foreground">Envia tickets desta impressora automaticamente para a fila.</div>
-                </div>
+                <label className="text-sm font-medium text-muted-foreground">Modelo (opcional)</label>
                 <input
-                  type="checkbox"
-                  checked={form.auto_print}
-                  onChange={(e) => setForm({ ...form, auto_print: e.target.checked })}
-                  className="h-5 w-5 accent-accent"
+                  type="text"
+                  value={form.model}
+                  onChange={(e) => setForm({ ...form, model: e.target.value })}
+                  placeholder="Ex: Elgin i9"
+                  className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
-              </label>
+              </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2 mt-6">
-              {editing && (
-                <button
-                  onClick={() => testPrintMutation.mutate(editing)}
-                  disabled={testingId === editing.id}
-                  className="rounded-md border border-accent/40 text-accent px-4 py-2 text-sm font-medium hover:bg-accent/10 disabled:opacity-50 mr-auto"
-                >
-                  {testingId === editing.id ? "Enviando..." : "Testar impressão"}
-                </button>
-              )}
-              <button onClick={() => setShowForm(false)} className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-secondary">Cancelar</button>
-              <button disabled={!form.name.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate()} className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50">Salvar</button>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setShowForm(false)} className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-secondary">
+                Cancelar
+              </button>
+              <button
+                disabled={!form.name.trim() || saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+                className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>
