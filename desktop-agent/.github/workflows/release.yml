@@ -1,0 +1,58 @@
+name: Build & Release Windows Installer
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: desktop-agent/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop-agent/src-tauri
+
+      - name: Install frontend deps
+        working-directory: desktop-agent
+        run: npm install
+
+      - name: Build Tauri (NSIS .exe)
+        working-directory: desktop-agent
+        run: npm run tauri build -- --bundles nsis
+
+      - name: Rename installer to stable filename
+        shell: pwsh
+        run: |
+          $src = Get-ChildItem -Path desktop-agent/src-tauri/target/release/bundle/nsis -Filter *-setup.exe | Select-Object -First 1
+          if (-not $src) { throw "NSIS installer not found" }
+          Copy-Item $src.FullName "HuskyPDV-Agent-Setup.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HuskyPDV-Agent-Setup
+          path: HuskyPDV-Agent-Setup.exe
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: HuskyPDV-Agent-Setup.exe
+          generate_release_notes: true
+          draft: false
+          prerelease: false
