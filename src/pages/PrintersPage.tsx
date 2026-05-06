@@ -22,6 +22,14 @@ export default function PrintersPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [advancedMode, setAdvancedMode] = useState(false);
+  const [printMode, setPrintModeState] = useState<PrintMode>(() => getPrintMode());
+  const [setupTab, setSetupTab] = useState<"native" | "agent">(() =>
+    getPrintMode() === "agent" ? "agent" : "native",
+  );
+  const updatePrintMode = (mode: PrintMode) => {
+    setPrintModeState(mode);
+    setPrintMode(mode);
+  };
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
