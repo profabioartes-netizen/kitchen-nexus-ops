@@ -663,7 +663,7 @@ export default function PrintersPage() {
                           {p.name}
                           {p.model ? ` — ${p.model}` : ""}
                           {p.connection_type === "usb"
-                            ? ` (USB${p.usb_device ? `: ${p.usb_device}` : ""})`
+                            ? ` (Windows${p.usb_device ? `: ${p.usb_device}` : ""})`
                             : p.ip ? ` (${p.ip})` : ""}
                         </span>
                         {!isOnline(p) && <span className="text-destructive font-medium">Offline</span>}
