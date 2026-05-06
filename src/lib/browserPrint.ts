@@ -80,47 +80,62 @@ function buildHtml(p: BrowserPrintPayload): string {
 <style>
   @page { size: ${widthMm}mm auto; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { margin: 0; padding: 0; background: #fff; }
+  html, body { margin: 0; padding: 0; background: #fff !important; color: #000 !important; }
   body {
     font-family: 'Courier New', Consolas, monospace;
-    font-size: 12px;
-    line-height: 1.0;
+    font-size: 13px;
+    line-height: 1.25;
     color: #000;
+    font-weight: 700;
     width: ${widthMm}mm;
     padding: 1mm 0;
     -webkit-font-smoothing: none;
     font-variant-numeric: tabular-nums;
+    text-rendering: geometricPrecision;
   }
-  div, p { margin: 0; padding: 0; line-height: 1.0; }
+  .receipt, .receipt * {
+    color: #000 !important;
+    opacity: 1 !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+    text-shadow: 0 0 0 #000;
+  }
+  div, p { margin: 0; padding: 0; line-height: 1.25; }
   .center { text-align: center; }
   .right  { text-align: right; }
-  .bold   { font-weight: 700; }
+  .bold   { font-weight: 900 !important; }
   .upper  { text-transform: uppercase; }
-  .big    { font-size: 14px; }
-  .xl     { font-size: 16px; }
+  .big    { font-size: 14px; font-weight: 900 !important; }
+  .xl     { font-size: 16px; font-weight: 900 !important; }
   .dashes { letter-spacing: 0; white-space: nowrap; overflow: hidden; }
+
+  .separator { border: 0; border-top: 2px dashed #000; margin: 1mm 0; }
 
   table.items {
     width: 100%;
     border-collapse: collapse;
     font-family: 'Courier New', Consolas, monospace;
     font-variant-numeric: tabular-nums;
-    font-size: 12px;
-    line-height: 1.0;
+    font-size: 13px;
+    line-height: 1.25;
+    color: #000 !important;
+    font-weight: 700 !important;
   }
   table.items th, table.items td {
     padding: 0;
     vertical-align: top;
-    line-height: 1.0;
+    line-height: 1.25;
+    color: #000 !important;
   }
-  table.items th { font-weight: 700; text-align: left; }
+  table.items th { font-weight: 900 !important; text-align: left; }
   table.items td.prod, table.items th.prod { text-align: left;  word-break: break-word; }
   table.items td.qnt,  table.items th.qnt  { text-align: center; width: 7mm;  white-space: nowrap; padding-left: 1mm; }
   table.items td.unit, table.items th.unit { text-align: right;  width: 13mm; white-space: nowrap; padding-left: 1mm; }
   table.items td.tot,  table.items th.tot  { text-align: right;  width: 14mm; white-space: nowrap; padding-left: 1mm; }
   table.items tr.compl td {
-    font-size: 11px;
+    font-size: 12px;
     font-style: italic;
+    font-weight: 700 !important;
     padding-left: 2mm;
   }
 
@@ -128,11 +143,12 @@ function buildHtml(p: BrowserPrintPayload): string {
   .totals .row {
     display: flex;
     justify-content: space-between;
-    line-height: 1.0;
+    line-height: 1.25;
+    font-weight: 900 !important;
   }
   .totals .grand {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 900 !important;
     margin-top: 1mm;
   }
 
@@ -149,7 +165,28 @@ function buildHtml(p: BrowserPrintPayload): string {
 
   @media print {
     .controls, .no-print { display: none !important; }
+    html, body {
+      background: #fff !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
     body { width: ${widthMm}mm; margin: 0; padding: 0; }
+    .receipt, .receipt * {
+      color: #000 !important;
+      opacity: 1 !important;
+      font-weight: 700 !important;
+      filter: contrast(180%) brightness(80%);
+      text-shadow: 0 0 0 #000;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      text-rendering: geometricPrecision;
+    }
+    .receipt .bold,
+    .receipt .big,
+    .receipt .xl,
+    .receipt table.items th,
+    .receipt .totals .row,
+    .receipt .totals .grand { font-weight: 900 !important; }
   }
 </style>
 </head>
@@ -159,16 +196,17 @@ function buildHtml(p: BrowserPrintPayload): string {
     <button onclick="window.close()">Fechar</button>
   </div>
 
+  <div class="receipt">
   <div class="center bold upper big">${escape(p.business_name ?? "HuskyPDV")}</div>
   ${p.business_phone ? `<div class="center">${escape(p.business_phone)}</div>` : ""}
   <div class="center bold upper big">${escape(title)}${p.table_name ? ` / MESA ${escape(p.table_name)}` : ""}</div>
-  <div class="center dashes">${dashes}</div>
-  <div class="center">NAO E DOCUMENTO FISCAL</div>
-  <div class="center dashes">${dashes}</div>
+  <hr class="separator" />
+  <div class="center bold">NAO E DOCUMENTO FISCAL</div>
+  <hr class="separator" />
   ${p.customer_name ? `<div>Cliente: ${escape(p.customer_name)}</div>` : ""}
   ${p.waiter_name ? `<div>Atendente: ${escape(p.waiter_name)}</div>` : ""}
   <div>${new Date().toLocaleString("pt-BR")}</div>
-  <div class="center dashes">${dashes}</div>
+  <hr class="separator" />
 
   ${
     items.length
@@ -183,7 +221,7 @@ function buildHtml(p: BrowserPrintPayload): string {
           </thead>
           <tbody>${itemsHtml}</tbody>
         </table>
-        <div class="center dashes">${dashes}</div>
+        <hr class="separator" />
         <div class="totals">
           <div class="row"><span>PRODUTOS:</span><span>${brl(productsTotal)}</span></div>
           <div class="row grand"><span>TOTAL:</span><span>${brl(total)}</span></div>
@@ -194,9 +232,10 @@ function buildHtml(p: BrowserPrintPayload): string {
   ${p.payment_method ? `<div>Pagto: ${escape(p.payment_method)}</div>` : ""}
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: ${brl(p.change)}</div>` : ""}
 
-  <div class="center dashes">${dashes}</div>
+  <hr class="separator" />
   <div class="center bold">Volte sempre!!!</div>
   <div style="height:6mm"></div>
+  </div>
 
   <script>
     window.addEventListener('load', () => {
