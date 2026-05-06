@@ -13,6 +13,10 @@
 
 import { createClient } from "@supabase/supabase-js";
 import net from "node:net";
+import os from "node:os";
+import fs from "node:fs";
+import path from "node:path";
+import { spawn, execFile } from "node:child_process";
 
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
@@ -779,13 +783,178 @@ function sendToPrinterTcp(ip, port, data) {
   });
 }
 
-// ── Send to printer using IP from DB ────────────────────────────────
+// ── Windows Spooler: list installed printers via PowerShell ─────────
+function listWindowsPrinters() {
+  return new Promise((resolve) => {
+    if (process.platform !== "win32") return resolve([]);
+    const ps = `Get-Printer | Select-Object Name,Default,PrinterStatus,PortName | ConvertTo-Json -Compress`;
+    execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps], { timeout: 8000 }, (err, stdout) => {
+      if (err) return resolve([]);
+      try {
+        const raw = JSON.parse(stdout || "[]");
+        const arr = Array.isArray(raw) ? raw : [raw];
+        resolve(arr.map((p) => ({
+          name: p.Name,
+          isDefault: !!p.Default,
+          status: String(p.PrinterStatus || ""),
+          port: p.PortName || "",
+        })));
+      } catch {
+        resolve([]);
+      }
+    });
+  });
+}
+
+// ── CUPS: list installed printers (Linux/macOS fallback) ────────────
+function listCupsPrinters() {
+  return new Promise((resolve) => {
+    if (process.platform === "win32") return resolve([]);
+    execFile("lpstat", ["-p", "-d"], { timeout: 5000 }, (err, stdout) => {
+      if (err) return resolve([]);
+      const printers = [];
+      let defaultName = null;
+      for (const line of String(stdout).split(/\r?\n/)) {
+        const m = line.match(/^printer\s+(\S+)\s+(.+)$/i);
+        if (m) printers.push({ name: m[1], isDefault: false, status: m[2] || "", port: "" });
+        const d = line.match(/^system default destination:\s+(\S+)/i);
+        if (d) defaultName = d[1];
+      }
+      if (defaultName) printers.forEach((p) => { if (p.name === defaultName) p.isDefault = true; });
+      resolve(printers);
+    });
+  });
+}
+
+async function listInstalledPrinters() {
+  if (process.platform === "win32") return listWindowsPrinters();
+  return listCupsPrinters();
+}
+
+// ── Windows: send RAW ESC/POS bytes to spooler via P/Invoke ─────────
+function sendToWindowsSpooler(printerName, data) {
+  return new Promise((resolve, reject) => {
+    const tmpData = path.join(os.tmpdir(), `cprint_${Date.now()}_${Math.random().toString(36).slice(2)}.bin`);
+    try { fs.writeFileSync(tmpData, data); } catch (e) { return reject(e); }
+
+    const psScript = `
+$ErrorActionPreference = 'Stop'
+$printerName = $args[0]
+$filePath = $args[1]
+$bytes = [System.IO.File]::ReadAllBytes($filePath)
+Add-Type -TypeDefinition @"
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+public class RawPrinter {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct DOCINFOW { [MarshalAs(UnmanagedType.LPWStr)] public string pDocName; [MarshalAs(UnmanagedType.LPWStr)] public string pOutputFile; [MarshalAs(UnmanagedType.LPWStr)] public string pDataType; }
+  [DllImport("winspool.Drv", EntryPoint = "OpenPrinterW", SetLastError = true, CharSet = CharSet.Unicode)] public static extern bool OpenPrinter([MarshalAs(UnmanagedType.LPWStr)] string p, out IntPtr h, IntPtr d);
+  [DllImport("winspool.Drv", EntryPoint = "ClosePrinter", SetLastError = true)] public static extern bool ClosePrinter(IntPtr h);
+  [DllImport("winspool.Drv", EntryPoint = "StartDocPrinterW", SetLastError = true, CharSet = CharSet.Unicode)] public static extern bool StartDocPrinter(IntPtr h, int l, [In] ref DOCINFOW di);
+  [DllImport("winspool.Drv", EntryPoint = "EndDocPrinter", SetLastError = true)] public static extern bool EndDocPrinter(IntPtr h);
+  [DllImport("winspool.Drv", EntryPoint = "StartPagePrinter", SetLastError = true)] public static extern bool StartPagePrinter(IntPtr h);
+  [DllImport("winspool.Drv", EntryPoint = "EndPagePrinter", SetLastError = true)] public static extern bool EndPagePrinter(IntPtr h);
+  [DllImport("winspool.Drv", EntryPoint = "WritePrinter", SetLastError = true)] public static extern bool WritePrinter(IntPtr h, IntPtr buf, int n, out int written);
+  public static bool Send(string name, byte[] bytes) {
+    IntPtr h; if (!OpenPrinter(name, out h, IntPtr.Zero)) return false;
+    DOCINFOW di = new DOCINFOW(); di.pDocName = "HuskyPDV Ticket"; di.pDataType = "RAW";
+    if (!StartDocPrinter(h, 1, ref di)) { ClosePrinter(h); return false; }
+    if (!StartPagePrinter(h)) { EndDocPrinter(h); ClosePrinter(h); return false; }
+    IntPtr p = Marshal.AllocCoTaskMem(bytes.Length);
+    Marshal.Copy(bytes, 0, p, bytes.Length);
+    int written; bool ok = WritePrinter(h, p, bytes.Length, out written);
+    Marshal.FreeCoTaskMem(p);
+    EndPagePrinter(h); EndDocPrinter(h); ClosePrinter(h);
+    return ok;
+  }
+}
+"@ -Language CSharp
+$ok = [RawPrinter]::Send($printerName, $bytes)
+if (-not $ok) { Write-Error "WritePrinter failed"; exit 2 }
+Write-Host "OK"
+`;
+    const tmpPs = path.join(os.tmpdir(), `cprint_${Date.now()}.ps1`);
+    try { fs.writeFileSync(tmpPs, psScript); } catch (e) { return reject(e); }
+
+    const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", tmpPs, printerName, tmpData], { windowsHide: true });
+    let stderr = "";
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.on("error", (e) => { try { fs.unlinkSync(tmpData); } catch {} try { fs.unlinkSync(tmpPs); } catch {} reject(e); });
+    child.on("close", (code) => {
+      try { fs.unlinkSync(tmpData); } catch {}
+      try { fs.unlinkSync(tmpPs); } catch {}
+      if (code === 0) resolve();
+      else reject(new Error(`PowerShell RawPrint falhou (code=${code}): ${stderr.trim()}`));
+    });
+  });
+}
+
+// ── Unix CUPS: send RAW via lp -o raw ───────────────────────────────
+function sendToCupsPrinter(printerName, data) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("lp", ["-d", printerName, "-o", "raw"], { stdio: ["pipe", "pipe", "pipe"] });
+    let stderr = "";
+    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.on("error", reject);
+    child.on("close", (code) => code === 0 ? resolve() : reject(new Error(`lp falhou (code=${code}): ${stderr.trim()}`)));
+    child.stdin.end(data);
+  });
+}
+
+// ── Send to printer: spooler (Windows/CUPS) or TCP ──────────────────
 async function sendToPrinter(printer, data) {
+  const isSpooler = printer?.connection_type === "usb" || (!!printer?.usb_device && !printer?.ip);
+  if (isSpooler) {
+    const name = printer.usb_device || printer.name;
+    if (!name) throw new Error(`Impressora "${printer?.name || "?"}" sem nome de spooler configurado`);
+    if (process.platform === "win32") {
+      await sendToWindowsSpooler(name, data);
+    } else {
+      await sendToCupsPrinter(name, data);
+    }
+    return `spooler:${name}`;
+  }
   if (!printer?.ip) {
-    throw new Error(`Impressora "${printer?.name || "?"}" sem IP configurado`);
+    throw new Error(`Impressora "${printer?.name || "?"}" sem IP nem spooler configurado`);
   }
   await sendToPrinterTcp(printer.ip, printer.port || 9100, data);
   return `${printer.ip}:${printer.port || 9100}`;
+}
+
+// ── Handle discovery jobs (list installed Windows/CUPS printers) ────
+async function handleDiscoveryJob(job) {
+  console.log(`  🔎 Discovery: listando impressoras instaladas no sistema...`);
+  const printers = await listInstalledPrinters();
+  const tenantId = job.tenant_id;
+
+  if (!printers.length) {
+    console.warn("  ⚠️  Nenhuma impressora instalada encontrada no sistema.");
+  }
+
+  // Limpa descobertas antigas deste tenant (>10 min)
+  try {
+    const cutoff = new Date(Date.now() - 10 * 60_000).toISOString();
+    await supabase.from("usb_printer_discoveries").delete().lt("reported_at", cutoff).eq("tenant_id", tenantId);
+  } catch {}
+
+  for (const p of printers) {
+    const display = `${p.name}${p.isDefault ? " (padrão)" : ""}${p.status && p.status !== "Normal" ? " — " + p.status : ""}`;
+    try {
+      await supabase.from("usb_printer_discoveries").upsert({
+        tenant_id: tenantId,
+        device_id: p.name,
+        display_name: display,
+        reported_at: new Date().toISOString(),
+        agent_host: os.hostname(),
+      }, { onConflict: "tenant_id,device_id" });
+    } catch (e) {
+      console.error("  ❌ erro upsert discovery:", e.message);
+    }
+  }
+
+  await supabase.from("print_jobs").update({ status: "printed", printed_at: new Date().toISOString() }).eq("id", job.id);
+  console.log(`  ✅ Discovery: ${printers.length} impressora(s) reportada(s)`);
 }
 
 // ── Printers cache ──────────────────────────────────────────────────
@@ -832,6 +1001,18 @@ function isGroupedProductionJob(job) {
 async function processJob(job, printers) {
   if (processedIds.has(job.id)) return;
 
+  // Discovery jobs: list installed printers (qualquer estação)
+  const payloadType = job.payload?.type;
+  if (payloadType === "discover_usb" || payloadType === "discover_printers" || payloadType === "discover_windows") {
+    processedIds.add(job.id);
+    try { await handleDiscoveryJob(job); }
+    catch (e) {
+      console.error("❌ erro discovery:", e.message);
+      try { await supabase.from("print_jobs").update({ status: "error" }).eq("id", job.id); } catch {}
+    }
+    return;
+  }
+
   if (!AUTO_PRINT_STATIONS.includes(job.station)) return;
 
   if (!isGroupedProductionJob(job)) {
@@ -857,8 +1038,9 @@ async function processJob(job, printers) {
     return;
   }
 
-  if (!printer.ip) {
-    console.warn(`⚠️  Impressora "${printer.name}" sem IP — job ${job.id.slice(0, 8)} ignorado`);
+  const hasSpooler = !!printer.usb_device || printer.connection_type === "usb";
+  if (!printer.ip && !hasSpooler) {
+    console.warn(`⚠️  Impressora "${printer.name}" sem IP nem spooler — job ${job.id.slice(0, 8)} ignorado`);
     return;
   }
 
@@ -952,10 +1134,20 @@ async function healthCheckLoop() {
     const printers = await getPrinters();
     const now = new Date().toISOString();
 
-    for (const printer of printers) {
-      if (!printer.ip) continue;
+    // Cache lista de impressoras instaladas no SO uma vez por ciclo
+    let installed = null;
 
-      const online = await checkPrinterHealthTcp(printer.ip, printer.port || 9100);
+    for (const printer of printers) {
+      const isSpooler = printer.connection_type === "usb" || (!!printer.usb_device && !printer.ip);
+      let online = false;
+
+      if (isSpooler) {
+        if (installed === null) installed = await listInstalledPrinters();
+        const target = (printer.usb_device || printer.name || "").trim();
+        online = installed.some((p) => p.name === target);
+      } else if (printer.ip) {
+        online = await checkPrinterHealthTcp(printer.ip, printer.port || 9100);
+      }
 
       if (online) {
         await supabase
@@ -1041,12 +1233,13 @@ function setupRealtime() {
 
 // ── Startup ─────────────────────────────────────────────────────────
 console.log("");
-console.log("  ☕ Coffee Thrones — Agente de Impressão ESC/POS (TCP)");
+console.log("  ☕ HuskyPDV — Agente de Impressão ESC/POS");
 console.log("  ────────────────────────────────────────────────");
 console.log(`  Supabase:  ${CONFIG.supabaseUrl}`);
-console.log(`  Modo:      TCP direto (ESC/POS via socket)`);
+console.log(`  Plataforma: ${process.platform} (${os.hostname()})`);
+console.log(`  Modos:     Spooler (Windows/CUPS) + TCP direto`);
 console.log(`  Realtime:  WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
-console.log(`  Health:    TCP probe a cada 10s`);
+console.log(`  Health:    a cada 10s`);
 console.log("");
 
 // Initial printers fetch + health check
@@ -1056,7 +1249,9 @@ getPrinters().then((printers) => {
   } else {
     console.log("  Impressoras configuradas:");
     for (const p of printers) {
-      console.log(`    → ${p.station}: ${p.name} (${p.ip}:${p.port})`);
+      const isSpooler = p.connection_type === "usb" || (!!p.usb_device && !p.ip);
+      const dest = isSpooler ? `spooler:${p.usb_device || p.name}` : `${p.ip}:${p.port}`;
+      console.log(`    → ${p.station}: ${p.name} (${dest})`);
     }
   }
   console.log("");
