@@ -49,17 +49,19 @@ export default function PrintReceiptPage() {
         }
       }
 
-      const { data: tenant } = await supabase
+      const { data: settings } = await supabase
         .from("restaurant_settings")
-        .select("business_name, business_phone")
-        .maybeSingle();
+        .select("key, value")
+        .in("key", ["business_name", "business_phone"]);
+      const settingsMap: Record<string, string> = {};
+      for (const s of settings || []) settingsMap[s.key] = s.value;
 
       setData({
         order,
         items: items || [],
         complByItem,
-        business_name: tenant?.business_name || "HuskyPDV",
-        business_phone: tenant?.business_phone || "",
+        business_name: settingsMap.business_name || "HuskyPDV",
+        business_phone: settingsMap.business_phone || "",
       });
     })();
   }, [id]);
