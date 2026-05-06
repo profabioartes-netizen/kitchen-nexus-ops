@@ -8,6 +8,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3.10.1";
+import { AGENT_MJS_SOURCE } from "./agent-source.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -256,13 +257,8 @@ Deno.serve(async (req) => {
       // sem body, usa default
     }
 
-    // ── 4. Read agent.mjs (bundled as a sibling module via fetch) ──
-    const agentUrl = new URL("./agent.mjs", import.meta.url);
-    const agentRes = await fetch(agentUrl);
-    if (!agentRes.ok) {
-      throw new Error(`Falha ao carregar agent.mjs: HTTP ${agentRes.status}`);
-    }
-    const agentSource = await agentRes.text();
+    // ── 4. agent.mjs source (embedded at build time) ───────────
+    const agentSource = AGENT_MJS_SOURCE;
 
     // ── 5. Build zip ───────────────────────────────────────────
     const zip = new JSZip();
