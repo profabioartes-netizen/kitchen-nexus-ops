@@ -92,7 +92,8 @@ export default function SettingsPage() {
     try {
       await upsert.mutateAsync({ key: "business_phone", value: phone.trim() });
       await upsert.mutateAsync({ key: "business_address", value: address.trim() });
-      toast.success("Dados de contato salvos!");
+      await upsert.mutateAsync({ key: "business_type", value: businessType.trim() });
+      toast.success("Dados salvos!");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
