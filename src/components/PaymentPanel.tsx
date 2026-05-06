@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTenant } from "@/contexts/TenantContext";
+import { printViaBrowser } from "@/lib/browserPrint";
 
 type OrderItemComplement = {
   id: string;
