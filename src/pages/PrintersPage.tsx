@@ -42,6 +42,61 @@ export default function PrintersPage() {
     if (ok) toast.success("Janela de impressão aberta.");
   };
 
+  const downloadAutoPrintActivator = () => {
+    const url = window.location.origin;
+    const bat = `@echo off
+chcp 65001 >nul
+title Ativar Impressao Automatica - HuskyPDV
+echo.
+echo  ============================================
+echo   Ativando Impressao Automatica HuskyPDV
+echo  ============================================
+echo.
+
+set "PS_SCRIPT=%TEMP%\\huskypdv_create_shortcut.ps1"
+
+> "%PS_SCRIPT%" echo $url = '${url}'
+>>"%PS_SCRIPT%" echo $candidates = @(
+>>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",
+>>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Google\\Chrome\\Application\\chrome.exe",
+>>"%PS_SCRIPT%" echo   "$env:LocalAppData\\Google\\Chrome\\Application\\chrome.exe",
+>>"%PS_SCRIPT%" echo   "${'$'}{env:ProgramFiles(x86)}\\Microsoft\\Edge\\Application\\msedge.exe",
+>>"%PS_SCRIPT%" echo   "$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe"
+>>"%PS_SCRIPT%" echo ^)
+>>"%PS_SCRIPT%" echo $browser = $null
+>>"%PS_SCRIPT%" echo foreach ($p in $candidates) { if (Test-Path $p) { $browser = $p; break } }
+>>"%PS_SCRIPT%" echo if (-not $browser) { Write-Host 'Chrome ou Edge nao encontrado. Instale um deles e tente novamente.' -ForegroundColor Red; exit 1 }
+>>"%PS_SCRIPT%" echo $desktop = [Environment]::GetFolderPath('Desktop')
+>>"%PS_SCRIPT%" echo $lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
+>>"%PS_SCRIPT%" echo $sh = New-Object -ComObject WScript.Shell
+>>"%PS_SCRIPT%" echo $s = $sh.CreateShortcut($lnk)
+>>"%PS_SCRIPT%" echo $s.TargetPath = $browser
+>>"%PS_SCRIPT%" echo $s.Arguments = '--kiosk-printing --new-window "' + $url + '"'
+>>"%PS_SCRIPT%" echo $s.WorkingDirectory = (Split-Path $browser)
+>>"%PS_SCRIPT%" echo $s.IconLocation = $browser
+>>"%PS_SCRIPT%" echo $s.Description = 'HuskyPDV - Impressao automatica'
+>>"%PS_SCRIPT%" echo $s.Save()
+>>"%PS_SCRIPT%" echo Write-Host ''
+>>"%PS_SCRIPT%" echo Write-Host '  Atalho criado com sucesso!' -ForegroundColor Green
+>>"%PS_SCRIPT%" echo Write-Host '  Abra o HuskyPDV pelo atalho HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%PS_SCRIPT%"
+del "%PS_SCRIPT%" >nul 2>&1
+
+echo.
+pause
+`;
+    const blob = new Blob([bat], { type: "application/octet-stream" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "Ativar-Impressao-Automatica-HuskyPDV.bat";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    toast.success("Arquivo baixado. Abra-o para criar o atalho.");
+  };
+
   const { data: printers = [], isLoading } = useQuery({
     queryKey: ["printers"],
     queryFn: async () => {
@@ -249,30 +304,25 @@ export default function PrintersPage() {
           </div>
         </section>
 
-        {/* Impressão automática (kiosk-printing) */}
+        {/* Impressão automática */}
         <section className="rounded-2xl border bg-card/40 p-6 space-y-4">
           <div>
-            <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
-              Impressão automática (sem popup)
+            <h2 className="text-base font-semibold text-foreground">
+              Impressão automática
             </h2>
-            <p className="text-sm text-foreground/90 mt-1">
-              Para o cupom sair direto na impressora padrão, abra o Chrome ou Edge com o
-              parâmetro <code className="font-mono bg-secondary/60 px-1.5 py-0.5 rounded text-[12px]">--kiosk-printing</code>.
+            <p className="text-sm text-muted-foreground mt-1">
+              Para imprimir sem abrir a janela de impressão, prepare este computador uma única vez.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-lg border bg-background p-3">
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Chrome</div>
-              <code className="font-mono text-xs block break-all bg-secondary/40 rounded px-2 py-1.5">chrome.exe --kiosk-printing</code>
-            </div>
-            <div className="rounded-lg border bg-background p-3">
-              <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Edge</div>
-              <code className="font-mono text-xs block break-all bg-secondary/40 rounded px-2 py-1.5">msedge.exe --kiosk-printing</code>
-            </div>
-          </div>
+          <button
+            onClick={downloadAutoPrintActivator}
+            className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
+          >
+            <Printer className="h-4 w-4" />
+            Ativar neste computador
+          </button>
           <p className="text-xs text-muted-foreground">
-            Dica: crie um atalho na área de trabalho com esse parâmetro e abra o HuskyPDV por ele.
-            Sem o parâmetro, o sistema continua imprimindo normalmente — apenas exibe o popup do navegador.
+            Após ativar, abra o HuskyPDV pelo atalho <strong>"HuskyPDV Caixa"</strong> criado na Área de Trabalho.
           </p>
         </section>
 
