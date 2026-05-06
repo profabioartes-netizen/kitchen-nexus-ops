@@ -1,1 +1,19 @@
 project_id = "rydfhkphvhkqxwpqoeku"
+
+[functions.generate-print-agent-installer]
+verify_jwt = true
+
+[functions.generate-pairing-code]
+verify_jwt = true
+
+[functions.pair-print-agent]
+verify_jwt = false
+
+[functions.emit-nfce]
+verify_jwt = true
+
+[functions.manage-users]
+verify_jwt = true
+
+[functions.product-image-suggestions]
+verify_jwt = true
