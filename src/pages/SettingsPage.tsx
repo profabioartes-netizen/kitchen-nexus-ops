@@ -52,6 +52,29 @@ export default function SettingsPage() {
     if (tenant?.nome_comercio) setName(tenant.nome_comercio);
   }, [tenant?.nome_comercio]);
 
+  // Contato (impressão de recibos)
+  const { data: contactSettings } = useQuery({
+    queryKey: ["restaurant_setting", "contact"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("key, value")
+        .in("key", ["business_phone", "business_address"]);
+      const map: Record<string, string> = {};
+      for (const s of data || []) map[s.key] = s.value;
+      return map;
+    },
+  });
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+  useEffect(() => {
+    if (contactSettings) {
+      setPhone(contactSettings.business_phone || "");
+      setAddress(contactSettings.business_address || "");
+    }
+  }, [contactSettings]);
+
   // Logo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -61,6 +84,19 @@ export default function SettingsPage() {
   const [confirmPin, setConfirmPin] = useState("");
   const [savingPin, setSavingPin] = useState(false);
   const [removingPin, setRemovingPin] = useState(false);
+
+  const handleSaveContact = async () => {
+    setSavingContact(true);
+    try {
+      await upsert.mutateAsync({ key: "business_phone", value: phone.trim() });
+      await upsert.mutateAsync({ key: "business_address", value: address.trim() });
+      toast.success("Dados de contato salvos!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   // ── Mutations ──
   const handleSaveName = async () => {
