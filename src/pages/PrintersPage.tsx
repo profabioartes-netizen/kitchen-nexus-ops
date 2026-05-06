@@ -802,16 +802,18 @@ export default function PrintersPage() {
           <div className="rounded-md border bg-background p-3">
             <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 2 — Instalador Windows</div>
             <p className="text-xs text-muted-foreground mb-2">
-              Mesmo arquivo serve para qualquer cliente — a configuração vem do código.
+              Instalador único <strong>.exe</strong>. Sem ZIP, sem .bat, sem terminal.
             </p>
             <button
               onClick={handleDownloadInstaller}
-              disabled={downloadingInstaller}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
             >
-              {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Baixar HuskyPDV Agent (.zip)
+              <Download className="h-4 w-4" />
+              Baixar HuskyPDV Agent (.exe)
             </button>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Após instalar, abra o app e digite o código gerado no Passo 1.
+            </p>
           </div>
         </div>
       </div>
