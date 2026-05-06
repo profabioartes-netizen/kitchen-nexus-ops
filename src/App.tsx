@@ -17,6 +17,7 @@ import KitchenStationPage from "@/pages/KitchenStationPage";
 import ProductsPage from "@/pages/ProductsPage";
 import PrintersPage from "@/pages/PrintersPage";
 import PrintAgentPage from "@/pages/PrintAgentPage";
+import PrinterHelpPage from "@/pages/PrinterHelpPage";
 import ReportsPage from "@/pages/ReportsPage";
 import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
