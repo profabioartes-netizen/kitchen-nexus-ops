@@ -1138,6 +1138,7 @@ export default function PrintersPage() {
               <th className="text-left px-4 py-2 font-medium">Endereço</th>
               <th className="text-center px-4 py-2 font-medium">Auto</th>
               <th className="text-center px-4 py-2 font-medium">Status</th>
+              <th className="text-left px-4 py-2 font-medium">Última resposta</th>
               <th className="text-center px-4 py-2 font-medium">Ativa</th>
               <th className="px-4 py-2 w-40"></th>
             </tr>
