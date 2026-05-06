@@ -1,0 +1,1 @@
+UPDATE public.print_jobs SET status = 'canceled' WHERE status = 'pending';

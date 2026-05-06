@@ -21,11 +21,20 @@ import { spawn, execFile } from "node:child_process";
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
   supabaseUrl: process.env.SUPABASE_URL || "https://rydfhkphvhkqxwpqoeku.supabase.co",
-  supabaseKey: process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZGZoa3BodmhrcXh3cHFvZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTYwMzUsImV4cCI6MjA5MzU3MjAzNX0.2u0w1SiYUoG34A0SRqUnvQOBjy94xkvfq0p3XjLdgzo",
+  // ⚠️ SERVICE ROLE KEY: bypassa RLS. Por isso TODAS as queries filtram por tenant_id.
+  supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+    || process.env.SUPABASE_ANON_KEY
+    || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZGZoa3BodmhrcXh3cHFvZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTYwMzUsImV4cCI6MjA5MzU3MjAzNX0.2u0w1SiYUoG34A0SRqUnvQOBjy94xkvfq0p3XjLdgzo",
+  // Tenant fixo deste notebook. Hardcoded para Espetinho do Marcelo (único tenant ativo).
+  tenantId: process.env.TENANT_ID || "00000000-0000-0000-0000-000000000001",
   pollInterval: parseInt(process.env.POLL_INTERVAL_MS || "5000"),
 };
 
-const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+const supabase = createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+const TENANT_ID = CONFIG.tenantId;
 
 // ── ESC/POS helpers ─────────────────────────────────────────────────
 const ESC = 0x1b;
@@ -965,7 +974,7 @@ async function getPrinters() {
   if (Date.now() - printersCacheTime < 30000 && printersCache.length > 0) {
     return printersCache;
   }
-  const { data, error } = await supabase.from("printers").select("*").eq("active", true);
+  const { data, error } = await supabase.from("printers").select("*").eq("active", true).eq("tenant_id", TENANT_ID);
   if (error) {
     console.error("❌ Erro ao buscar impressoras:", error.message);
     return printersCache;
@@ -1092,6 +1101,7 @@ async function pollAndPrint() {
       .from("print_jobs")
       .select("*")
       .eq("status", "pending")
+      .eq("tenant_id", TENANT_ID)
       .order("created_at", { ascending: true })
       .limit(50);
 
@@ -1191,10 +1201,10 @@ function setupRealtime() {
     .channel("print_jobs_realtime")
     .on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "print_jobs" },
+      { event: "INSERT", schema: "public", table: "print_jobs", filter: `tenant_id=eq.${TENANT_ID}` },
       (payload) => {
         const newJob = payload.new;
-        if (newJob && newJob.status === "pending") {
+        if (newJob && newJob.status === "pending" && newJob.tenant_id === TENANT_ID) {
           console.log(`  ⚡ Realtime: novo job ${newJob.id.slice(0, 8)} (${newJob.station})`);
           processJobDirect(newJob);
         }
@@ -1202,10 +1212,10 @@ function setupRealtime() {
     )
     .on(
       "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "print_jobs" },
+      { event: "UPDATE", schema: "public", table: "print_jobs", filter: `tenant_id=eq.${TENANT_ID}` },
       (payload) => {
         const updated = payload.new;
-        if (updated && updated.status === "pending") {
+        if (updated && updated.status === "pending" && updated.tenant_id === TENANT_ID) {
           processedIds.delete(updated.id);
           console.log(`  🔄 Realtime: reimpressão job ${updated.id.slice(0, 8)}`);
           processJobDirect(updated);
@@ -1235,11 +1245,13 @@ function setupRealtime() {
 console.log("");
 console.log("  ☕ HuskyPDV — Agente de Impressão ESC/POS");
 console.log("  ────────────────────────────────────────────────");
-console.log(`  Supabase:  ${CONFIG.supabaseUrl}`);
+console.log(`  Supabase:   ${CONFIG.supabaseUrl}`);
+console.log(`  Tenant:     ${TENANT_ID}`);
+console.log(`  Auth:       ${process.env.SUPABASE_SERVICE_ROLE_KEY ? "service_role (env)" : "anon (RLS pode bloquear leituras!)"}`);
 console.log(`  Plataforma: ${process.platform} (${os.hostname()})`);
-console.log(`  Modos:     Spooler (Windows/CUPS) + TCP direto`);
-console.log(`  Realtime:  WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
-console.log(`  Health:    a cada 10s`);
+console.log(`  Modos:      Spooler (Windows/CUPS) + TCP direto`);
+console.log(`  Realtime:   WebSocket + fallback polling ${CONFIG.pollInterval}ms`);
+console.log(`  Health:     a cada 10s`);
 console.log("");
 
 // Initial printers fetch + health check
