@@ -59,13 +59,39 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: profile, error: profileErr } = await admin
+    // Resolve tenant: profile.tenant_id -> first active user_tenants link.
+    // Super admin can pass x-tenant-id (impersonation) and we validate access.
+    const headerTenantId = req.headers.get("x-tenant-id");
+
+    const { data: profile } = await admin
       .from("profiles")
       .select("tenant_id")
       .eq("id", userId)
       .maybeSingle();
 
-    if (profileErr || !profile?.tenant_id) {
+    let resolvedTenantId: string | null = profile?.tenant_id ?? null;
+
+    const { data: links } = await admin
+      .from("user_tenants")
+      .select("tenant_id, role, active")
+      .eq("user_id", userId)
+      .eq("active", true);
+
+    const isSuperAdmin = (links ?? []).some((l) => l.role === "super_admin");
+
+    if (headerTenantId) {
+      const allowed =
+        isSuperAdmin ||
+        (links ?? []).some((l) => l.tenant_id === headerTenantId);
+      if (allowed) resolvedTenantId = headerTenantId;
+    }
+
+    if (!resolvedTenantId) {
+      const firstLink = (links ?? []).find((l) => l.role !== "super_admin");
+      if (firstLink) resolvedTenantId = firstLink.tenant_id;
+    }
+
+    if (!resolvedTenantId) {
       return new Response(
         JSON.stringify({ error: "Usuário sem tenant vinculado" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -87,7 +113,7 @@ Deno.serve(async (req) => {
     const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
 
     const { error: insErr } = await admin.from("agent_pairing_codes").insert({
-      tenant_id: profile.tenant_id,
+      tenant_id: resolvedTenantId,
       code_hash: codeHash,
       station,
       suggested_name: suggestedName,
