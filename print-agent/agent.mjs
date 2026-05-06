@@ -20,8 +20,8 @@ import { spawn, execFile } from "node:child_process";
 
 // ── Config ──────────────────────────────────────────────────────────
 const CONFIG = {
-  supabaseUrl: process.env.SUPABASE_URL || "https://hzjplccmbjvvbinaqmny.supabase.co",
-  supabaseKey: process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6anBsY2NtYmp2dmJpbmFxbW55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQ1OTgsImV4cCI6MjA4ODY3MDU5OH0.oNkFASofgqJDoFFth1PNK3rKSQvllXSoysCZlo4azB0",
+  supabaseUrl: process.env.SUPABASE_URL || "https://rydfhkphvhkqxwpqoeku.supabase.co",
+  supabaseKey: process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZGZoa3BodmhrcXh3cHFvZWt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTYwMzUsImV4cCI6MjA5MzU3MjAzNX0.2u0w1SiYUoG34A0SRqUnvQOBjy94xkvfq0p3XjLdgzo",
   pollInterval: parseInt(process.env.POLL_INTERVAL_MS || "5000"),
 };
 
