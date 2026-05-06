@@ -760,41 +760,82 @@ export default function PrintersPage() {
         </div>
       )}
 
-      {/* Configurar notebook de impressão */}
+      {/* Instalar HuskyPDV Agent — fluxo novo com pareamento */}
       <div className="mb-4 p-4 rounded-lg border bg-card">
-        <div className="flex items-start gap-3 mb-3">
+        <div className="flex items-start gap-3 mb-4">
           <div className="rounded-md bg-accent/10 p-2 text-accent">
             <Monitor className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold">Configurar notebook de impressão</h3>
+            <h3 className="text-sm font-semibold">Instalar HuskyPDV Agent num novo computador</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Gera um <code>.zip</code> com Tenant ID e Estação já preenchidos. Basta descompactar no notebook do caixa
-              e rodar <code>INSTALAR.bat</code> como Administrador. O agente sobe sozinho no boot via Task Scheduler do Windows.
+              <strong>1.</strong> Escolha a estação e gere um código de 6 dígitos.{" "}
+              <strong>2.</strong> Baixe o instalador.{" "}
+              <strong>3.</strong> No computador do cliente, rode <code>INSTALAR.bat</code> como Administrador e digite o código.
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs text-muted-foreground">Estação:</label>
-          <select
-            value={installerStation}
-            onChange={(e) => setInstallerStation(e.target.value)}
-            disabled={downloadingInstaller}
-            className="rounded-md border bg-background px-3 py-1.5 text-sm"
-          >
-            <option value="Caixa">Caixa</option>
-            <option value="Cozinha">Cozinha</option>
-            <option value="Bebidas">Bebidas</option>
-            <option value="Sobremesa">Sobremesa</option>
-          </select>
-          <button
-            onClick={handleDownloadInstaller}
-            disabled={downloadingInstaller}
-            className="inline-flex items-center gap-2 rounded-md bg-accent text-accent-foreground px-4 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-60"
-          >
-            {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Baixar instalador para Windows (.zip)
-          </button>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          {/* Passo 1: gerar código */}
+          <div className="rounded-md border bg-background p-3">
+            <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 1 — Código de pareamento</div>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <label className="text-xs">Estação:</label>
+              <select
+                value={installerStation}
+                onChange={(e) => setInstallerStation(e.target.value)}
+                disabled={generatingCode || !!pairingCode}
+                className="rounded-md border bg-background px-2 py-1 text-sm"
+              >
+                <option value="Caixa">Caixa</option>
+                <option value="Cozinha">Cozinha</option>
+                <option value="Bebidas">Bebidas</option>
+                <option value="Sobremesa">Sobremesa</option>
+              </select>
+            </div>
+            {pairingCode ? (
+              <div className="rounded-md bg-accent/10 border border-accent/30 p-3 text-center">
+                <div className="font-mono text-3xl tracking-widest font-bold text-accent">
+                  {pairingCode.slice(0, 3)}-{pairingCode.slice(3)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Expira em {Math.floor(pairingTimeLeft / 60)}:{String(pairingTimeLeft % 60).padStart(2, "0")}
+                </div>
+                <button
+                  onClick={() => { setPairingCode(null); setPairingExpiresAt(null); }}
+                  className="text-xs underline text-muted-foreground mt-2"
+                >
+                  Gerar outro código
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleGeneratePairingCode}
+                disabled={generatingCode}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-accent text-accent-foreground px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+              >
+                {generatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                Gerar código de 6 dígitos
+              </button>
+            )}
+          </div>
+
+          {/* Passo 2: baixar instalador */}
+          <div className="rounded-md border bg-background p-3">
+            <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 2 — Instalador Windows</div>
+            <p className="text-xs text-muted-foreground mb-2">
+              Mesmo arquivo serve para qualquer cliente — a configuração vem do código.
+            </p>
+            <button
+              onClick={handleDownloadInstaller}
+              disabled={downloadingInstaller}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+            >
+              {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Baixar HuskyPDV Agent (.zip)
+            </button>
+          </div>
         </div>
       </div>
 
