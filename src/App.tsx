@@ -127,6 +127,10 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<AuthRoute />} />
 
+            {/* Impressão silenciosa (kiosk-printing friendly) — sem layout */}
+            <Route path="/print/receipt/:id" element={<PrintReceiptPage />} />
+            <Route path="/print/order/:id" element={<PrintReceiptPage />} />
+
             {/* Waiter mobile mode */}
             <Route path="/garcom/login" element={<WaiterLoginPage />} />
             <Route path="/garcom" element={<WaiterLayout />}>
