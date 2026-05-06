@@ -1101,6 +1101,7 @@ async function pollAndPrint() {
       .from("print_jobs")
       .select("*")
       .eq("status", "pending")
+      .eq("tenant_id", TENANT_ID)
       .order("created_at", { ascending: true })
       .limit(50);
 
