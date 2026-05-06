@@ -671,7 +671,11 @@ export type Database = {
       }
       print_jobs: {
         Row: {
+          agent_id: string | null
+          attempts: number
+          claimed_at: string | null
           created_at: string
+          error_message: string | null
           id: string
           payload: Json
           printed_at: string | null
@@ -681,7 +685,11 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          agent_id?: string | null
+          attempts?: number
+          claimed_at?: string | null
           created_at?: string
+          error_message?: string | null
           id?: string
           payload?: Json
           printed_at?: string | null
@@ -691,7 +699,11 @@ export type Database = {
           tenant_id?: string
         }
         Update: {
+          agent_id?: string | null
+          attempts?: number
+          claimed_at?: string | null
           created_at?: string
+          error_message?: string | null
           id?: string
           payload?: Json
           printed_at?: string | null
@@ -1275,6 +1287,29 @@ export type Database = {
           table_name: string
         }[]
       }
+      claim_print_jobs_for_agent: {
+        Args: { p_limit?: number; p_token_hash: string }
+        Returns: {
+          agent_id: string | null
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          payload: Json
+          printed_at: string | null
+          printer_id: string | null
+          station: string
+          status: string
+          tenant_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "print_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       consume_pairing_code: {
         Args: {
           p_agent_host: string
@@ -1415,6 +1450,15 @@ export type Database = {
         Returns: undefined
       }
       tenant_is_active: { Args: { _tenant_id: string }; Returns: boolean }
+      update_print_job_status: {
+        Args: {
+          p_error_message?: string
+          p_job_id: string
+          p_status: string
+          p_token_hash: string
+        }
+        Returns: undefined
+      }
       user_belongs_to_tenant: {
         Args: { _tenant_id: string; _user_id?: string }
         Returns: boolean
