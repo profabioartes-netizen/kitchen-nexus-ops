@@ -14,6 +14,7 @@ const DELETE_PIN = "9774";
 
 export default function PrintersPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { pin: PAGE_PIN, pinEnabled } = useSecurityPin();
   const { isSuperAdmin } = useTenant();
   const [unlocked, setUnlocked] = useState(false);
