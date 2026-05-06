@@ -96,6 +96,17 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
 export function NavigationRail() {
   const { profile, signOut } = useAuth();
   const { isSuperAdmin, tenant } = useTenant();
+  const { data: businessType } = useQuery({
+    queryKey: ["restaurant_setting", "business_type"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "business_type")
+        .maybeSingle();
+      return (data?.value as string) || "";
+    },
+  });
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("coffee-thrones-theme");
     return saved !== "light";
