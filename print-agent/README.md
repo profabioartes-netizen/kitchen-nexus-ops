@@ -1,111 +1,67 @@
 # HuskyPDV — Print Agent (`coffee-print`)
 
-Agente local que roda no notebook do estabelecimento e processa a fila de impressão (`print_jobs`) do HuskyPDV, enviando os tickets para a impressora térmica USB/serial conectada.
+Agente local que roda no notebook do estabelecimento e processa a fila de impressão (`print_jobs`) do HuskyPDV, enviando os tickets para a impressora térmica via Windows Spooler ou TCP/IP.
 
 ---
 
-## Visão geral
+## ⚡ Instalação RÁPIDA no Windows (recomendada)
 
-```
-PDV (navegador) → Supabase (print_jobs) → coffee-print → Impressora térmica
-```
+1. Copie a pasta `print-agent/` para o notebook em `C:\HuskyPDV\print-agent\`
+2. Crie o arquivo `.env` ao lado de `agent.mjs` com:
+   ```
+   SUPABASE_SERVICE_ROLE_KEY=<cole aqui a service key>
+   TENANT_ID=00000000-0000-0000-0000-000000000001
+   ```
+   ⚠️ **A SERVICE_ROLE_KEY é obrigatória.** Sem ela o agente conecta mas não consegue ler nenhum job (RLS bloqueia). Pegue em: Lovable Cloud → Settings → API.
+3. Clique com botão direito em `INSTALAR-WINDOWS.bat` → **Executar como Administrador**
+4. O instalador faz tudo: instala dependências, registra no Task Scheduler do Windows, inicia em background.
 
-- **1 instância por impressora física** (cada uma com seu `STATION`).
-- Polling a cada 2s na tabela `print_jobs` filtrando por `tenant_id` + `station`.
-- Atualiza `printers.last_seen_at` (heartbeat) para o painel mostrar status online.
-- Roda em background via **PM2** com autostart no boot.
-
----
-
-## Requisitos
-
-- Node.js 20+ (instalado automaticamente no Linux pelo `install.sh` se faltar)
-- Impressora térmica ESC/POS (POS-58 ou POS-80) conectada por **USB**
-- Acesso à internet (para falar com o Supabase)
+Para diagnosticar problemas, rode `DIAGNOSTICO.bat`.
 
 ---
 
-## Passo a passo (técnico)
+## Como funciona
 
-### 1. Conectar e identificar a impressora
-
-**Linux:**
-```bash
-ls -l /dev/usb/lp*
-# Esperado: /dev/usb/lp0
 ```
-Se não aparecer, verifique `dmesg | tail` ao plugar a impressora.
-
-**Windows:**
-- Painel de Controle → Dispositivos e Impressoras → instale o driver da impressora.
-- Compartilhe a impressora com um nome curto (ex.: `POS-80`).
-
-### 2. Baixar o agente para o notebook
-
-Copie a pasta `print-agent/` (deste repositório) para o notebook do cliente, por exemplo em `~/huskypdv-print-agent/` (Linux) ou `C:\HuskyPDV\print-agent\` (Windows).
-
-### 3. Coletar credenciais no painel Super Admin
-
-No HuskyPDV:
-1. Login como Super Admin → painel `/admin-platform`.
-2. Estabelecimentos → copiar o **UUID** do estabelecimento (será o `TENANT_ID`).
-3. Cloud → Settings → API → copiar a **Service Role Key**.
-
-### 4. Rodar o instalador
-
-**Linux/macOS:**
-```bash
-cd ~/huskypdv-print-agent
-chmod +x install.sh
-./install.sh
+PDV (navegador) → Supabase (print_jobs) → coffee-print (agente local) → Impressora térmica
 ```
 
-**Windows:**
-- Duplo clique em `install.bat` (rodar como Administrador na primeira vez para configurar o startup do PM2).
-
-O instalador vai pedir interativamente:
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `TENANT_ID`
-- `STATION` (default `Caixa`)
-- `PRINTER_DEVICE` (default `/dev/usb/lp0` ou `POS-80`)
-- `WIDTH` (default `48` para 80mm; use `32` para 58mm)
-
-### 5. Validar a impressão
-
-No PDV do estabelecimento:
-1. Vá em **Impressoras**.
-2. Clique no botão **Testar** da impressora cadastrada (cujo "Setor" é igual ao `STATION` do agente).
-3. O ticket deve sair em segundos.
+- O agente filtra `print_jobs` por `tenant_id` (definido no `.env`)
+- Para cada job pendente, gera bytes ESC/POS e envia direto pro Windows Spooler via P/Invoke `winspool.Drv` (RAW, não passa por driver de texto)
+- Atualiza `printers.last_seen_at` (heartbeat) para o painel mostrar status online
 
 ---
 
-## Múltiplas impressoras no mesmo notebook
+## Cadastro da impressora no PDV
 
-Para 2 impressoras (ex.: Caixa + Cozinha):
+Na tela **Impressoras** do HuskyPDV, ao adicionar uma impressora térmica USB conectada ao notebook:
 
-```bash
-# Copia a pasta para uma segunda instância
-cp -r ~/huskypdv-print-agent ~/huskypdv-print-agent-cozinha
-cd ~/huskypdv-print-agent-cozinha
-
-# Edita .env: STATION=Cozinha, PRINTER_DEVICE=/dev/usb/lp1
-nano .env
-
-# Registra com nome diferente no PM2
-pm2 start coffee-print.js --name coffee-print-cozinha
-pm2 save
-```
+- **Tipo de conexão**: `Windows / Local`
+- **Nome no Windows (`usb_device`)**: deve ser **EXATAMENTE** o nome da impressora no Windows.
+  - Para descobrir, rode no PowerShell: `Get-Printer | Select Name`
+  - Exemplo Epson: `EPSON TM-T20X Receipt` (atenção ao sufixo "Receipt" que o driver Epson adiciona)
+  - Exemplo Elgin: `Elgin i9`
+  - Exemplo Bematech: `Bematech MP-4200 TH`
 
 ---
 
-## Comandos PM2 úteis
+## Comandos úteis (Windows)
 
-```bash
-pm2 logs coffee-print          # ver logs em tempo real
-pm2 restart coffee-print       # reiniciar
-pm2 stop coffee-print          # parar
-pm2 status                     # status de todos os processos
-pm2 monit                      # dashboard interativo
+```powershell
+# Ver logs em tempo real
+Get-Content C:\HuskyPDV\print-agent\agent.log -Wait -Tail 30
+
+# Parar o agente
+taskkill /F /IM node.exe
+
+# Reiniciar manualmente
+wscript.exe C:\HuskyPDV\print-agent\run-agent.vbs
+
+# Listar impressoras instaladas no Windows
+Get-Printer | Select Name, PrinterStatus
+
+# Teste de impressão direto (sem o agente)
+"TESTE`n`n`n`n" | Out-Printer -Name "EPSON TM-T20X Receipt"
 ```
 
 ---
@@ -114,32 +70,46 @@ pm2 monit                      # dashboard interativo
 
 | Sintoma | Causa provável | Solução |
 |---|---|---|
-| `EACCES: permission denied /dev/usb/lp0` | Permissão no device | `sudo chmod 666 /dev/usb/lp0` (já feito pelo install.sh) |
-| Tickets ficam em `error` no painel | Impressora desligada / sem papel | Verificar impressora física + `pm2 logs coffee-print` |
-| Painel mostra impressora "offline" | Agente parou | `pm2 restart coffee-print` |
-| Caracteres acentuados saem errados | Codepage da impressora ≠ CP850 | Configurar a impressora física para CP850 ou ajustar renderer |
-| Job nunca é puxado | `STATION` no .env ≠ "Setor" no PDV | Conferir e reiniciar agente |
+| `pm2 não é reconhecido` | PM2 não instalado | Use `INSTALAR-WINDOWS.bat` (não depende de PM2) |
+| Agente roda mas nada imprime | `SUPABASE_SERVICE_ROLE_KEY` faltando no `.env` | Configurar service key — anon key não enxerga jobs (RLS) |
+| `Cannot find printer` | Nome do spooler errado | Conferir com `Get-Printer` e atualizar campo `usb_device` no PDV |
+| Painel mostra "offline" | Agente parou | Rodar `DIAGNOSTICO.bat` |
+| Caracteres errados | Codepage da impressora | Agente já envia PC860 — conferir DIP switch da impressora |
+
+---
+
+## Linux/macOS (avançado)
+
+```bash
+cd print-agent
+npm install
+export SUPABASE_SERVICE_ROLE_KEY=...
+export TENANT_ID=00000000-0000-0000-0000-000000000001
+node agent.mjs
+```
+
+Em Linux usa `lp -o raw` (CUPS). Em Mac igual.
 
 ---
 
 ## Segurança
 
-- A `SUPABASE_SERVICE_ROLE_KEY` no `.env` **bypassa RLS** — por isso o agente filtra explicitamente por `tenant_id` em **toda** query/update.
-- Esse arquivo `.env` deve ficar **apenas** no notebook do cliente. Nunca commitar.
-- Se o notebook for trocado, **rotacionar a service key** no painel Super Admin.
+- A `SUPABASE_SERVICE_ROLE_KEY` **bypassa RLS** — por isso o agente filtra explicitamente por `tenant_id` em **toda** query/update.
+- O `.env` deve ficar **apenas** no notebook do cliente. Nunca commitar.
+- Se o notebook for trocado, **rotacionar a service key** no painel.
 
 ---
 
-## Estrutura de arquivos
+## Estrutura
 
 ```
 print-agent/
-├── package.json        # dependências
-├── coffee-print.js     # loop principal (polling)
-├── renderers.js        # geração ESC/POS (bill/production/test/cancellation)
-├── .env.example        # template de configuração
-├── .env                # configuração real (criada pelo install)
-├── install.sh          # instalador Linux/macOS
-├── install.bat         # instalador Windows
-└── README.md           # este arquivo
+├── agent.mjs              # loop principal (ESM, Node 20+)
+├── package.json
+├── INSTALAR-WINDOWS.bat   # ⭐ instalador definitivo (usa Task Scheduler)
+├── DIAGNOSTICO.bat        # diagnóstico completo
+├── run-agent.vbs          # gerado automaticamente — inicia em background
+├── agent.log              # gerado automaticamente — logs do agente
+├── .env                   # configuração local (criar manualmente)
+└── README.md
 ```
