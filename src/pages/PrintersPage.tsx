@@ -49,9 +49,8 @@ export default function PrintersPage() {
   const [diagJobId, setDiagJobId] = useState<string | null>(null);
   const diagLogRef = useRef<HTMLDivElement>(null);
 
-  // Installer download state
+  // Installer station selection
   const [installerStation, setInstallerStation] = useState<string>("Caixa");
-  const [downloadingInstaller, setDownloadingInstaller] = useState(false);
 
   // Pareamento de agente
   const [pairingCode, setPairingCode] = useState<string | null>(null);
@@ -95,46 +94,14 @@ export default function PrintersPage() {
     }
   };
 
-  const handleDownloadInstaller = async () => {
-    if (downloadingInstaller) return;
-    setDownloadingInstaller(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess?.session?.access_token;
-      if (!token) {
-        toast.error("Faça login novamente para baixar o instalador.");
-        return;
-      }
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-print-agent-installer`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) {
-        let msg = `HTTP ${res.status}`;
-        try { msg = (await res.json()).error || msg; } catch { /* noop */ }
-        throw new Error(msg);
-      }
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      const objUrl = URL.createObjectURL(blob);
-      a.href = objUrl;
-      a.download = `huskypdv-agent.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(objUrl);
-      toast.success("Instalador baixado! Envie para o notebook do cliente.");
-    } catch (e) {
-      toast.error("Erro ao gerar instalador: " + (e as Error).message);
-    } finally {
-      setDownloadingInstaller(false);
-    }
+  // URL pública do instalador .exe (GitHub Releases). Configurável via VITE_AGENT_DOWNLOAD_URL.
+  const AGENT_INSTALLER_URL =
+    (import.meta.env.VITE_AGENT_DOWNLOAD_URL as string | undefined) ??
+    "https://github.com/huskypdv/desktop-agent/releases/latest/download/HuskyPDV-Agent-Setup.exe";
+
+  const handleDownloadInstaller = () => {
+    window.open(AGENT_INSTALLER_URL, "_blank", "noopener");
+    toast.success("Download iniciado. Execute o instalador no computador da impressora.");
   };
 
   const pushDiag = (level: DiagEvent["level"], msg: string) => {
@@ -834,16 +801,18 @@ export default function PrintersPage() {
           <div className="rounded-md border bg-background p-3">
             <div className="text-xs font-semibold mb-2 text-muted-foreground">PASSO 2 — Instalador Windows</div>
             <p className="text-xs text-muted-foreground mb-2">
-              Mesmo arquivo serve para qualquer cliente — a configuração vem do código.
+              Instalador único <strong>.exe</strong>. Sem ZIP, sem .bat, sem terminal.
             </p>
             <button
               onClick={handleDownloadInstaller}
-              disabled={downloadingInstaller}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-foreground text-background px-3 py-2 text-sm font-medium hover:opacity-90"
             >
-              {downloadingInstaller ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Baixar HuskyPDV Agent (.zip)
+              <Download className="h-4 w-4" />
+              Baixar HuskyPDV Agent (.exe)
             </button>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Após instalar, abra o app e digite o código gerado no Passo 1.
+            </p>
           </div>
         </div>
       </div>
