@@ -12,8 +12,10 @@ const DELETE_PIN = "9774";
 export default function PrintersPage() {
   const queryClient = useQueryClient();
   const { pin: PAGE_PIN, pinEnabled } = useSecurityPin();
+  const { isSuperAdmin } = useTenant();
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  const [advancedMode, setAdvancedMode] = useState(false);
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
