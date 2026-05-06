@@ -50,6 +50,44 @@ export default function PrintersPage() {
   const [installerStation, setInstallerStation] = useState<string>("Caixa");
   const [downloadingInstaller, setDownloadingInstaller] = useState(false);
 
+  // Pareamento de agente
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingExpiresAt, setPairingExpiresAt] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
+  const [pairingTimeLeft, setPairingTimeLeft] = useState<number>(0);
+
+  // Tick countdown do código de pareamento
+  useEffect(() => {
+    if (!pairingExpiresAt) { setPairingTimeLeft(0); return; }
+    const tick = () => {
+      const ms = new Date(pairingExpiresAt).getTime() - Date.now();
+      const s = Math.max(0, Math.floor(ms / 1000));
+      setPairingTimeLeft(s);
+      if (s <= 0) { setPairingCode(null); setPairingExpiresAt(null); }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [pairingExpiresAt]);
+
+  const handleGeneratePairingCode = async () => {
+    if (generatingCode) return;
+    setGeneratingCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-pairing-code", {
+        body: { station: installerStation },
+      });
+      if (error) throw error;
+      setPairingCode(data.code);
+      setPairingExpiresAt(data.expires_at);
+      toast.success("Código gerado! Válido por 10 minutos.");
+    } catch (e: any) {
+      toast.error("Erro ao gerar código: " + (e?.message || "desconhecido"));
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
   const handleDownloadInstaller = async () => {
     if (downloadingInstaller) return;
     setDownloadingInstaller(true);
@@ -68,7 +106,7 @@ export default function PrintersPage() {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ station: installerStation }),
+        body: JSON.stringify({}),
       });
       if (!res.ok) {
         let msg = `HTTP ${res.status}`;
@@ -76,16 +114,15 @@ export default function PrintersPage() {
         throw new Error(msg);
       }
       const blob = await res.blob();
-      const safeStation = installerStation.replace(/[^a-zA-Z0-9]/g, "_");
       const a = document.createElement("a");
       const objUrl = URL.createObjectURL(blob);
       a.href = objUrl;
-      a.download = `huskypdv-print-agent-${safeStation}.zip`;
+      a.download = `huskypdv-agent.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(objUrl);
-      toast.success("Instalador baixado! Envie para o notebook do caixa.");
+      toast.success("Instalador baixado! Envie para o notebook do cliente.");
     } catch (e) {
       toast.error("Erro ao gerar instalador: " + (e as Error).message);
     } finally {
