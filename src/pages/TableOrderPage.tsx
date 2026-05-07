@@ -24,6 +24,7 @@ import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import { resolveAndSyncOrderPrintLocation } from "@/lib/orderPrintLocation";
 import { printViaBrowser } from "@/lib/browserPrint";
+import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
