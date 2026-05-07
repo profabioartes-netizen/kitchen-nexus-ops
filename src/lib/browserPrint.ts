@@ -129,10 +129,11 @@ function buildHtml(p: BrowserPrintPayload): string {
 
   table.items {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
-    font-family: 'Courier New', Consolas, monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-variant-numeric: tabular-nums;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.25;
     color: #000 !important;
     font-weight: 700 !important;
@@ -142,17 +143,27 @@ function buildHtml(p: BrowserPrintPayload): string {
     vertical-align: top;
     line-height: 1.25;
     color: #000 !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700 !important;
   }
-  table.items th { font-weight: 900 !important; text-align: left; }
-  table.items td.prod, table.items th.prod { text-align: left;  word-break: break-word; }
-  table.items td.qnt,  table.items th.qnt  { text-align: center; width: 14mm; white-space: nowrap; padding-left: 1mm; }
-  table.items td.unit, table.items th.unit { text-align: right;  width: 13mm; white-space: nowrap; padding-left: 1mm; }
-  table.items td.tot,  table.items th.tot  { text-align: right;  width: 14mm; white-space: nowrap; padding-left: 1mm; }
+  table.items th { font-weight: 900 !important; }
+  table.items td.prod, table.items th.prod {
+    width: 45%;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding-right: 1mm;
+  }
+  table.items td.qnt,  table.items th.qnt  { width: 15%; text-align: right; white-space: nowrap; }
+  table.items td.unit, table.items th.unit { width: 20%; text-align: right; white-space: nowrap; padding-left: 1mm; }
+  table.items td.tot,  table.items th.tot  { width: 20%; text-align: right; white-space: nowrap; padding-left: 1mm; }
   table.items tr.compl td {
-    font-size: 12px;
+    font-size: 11px;
     font-style: italic;
     font-weight: 700 !important;
     padding-left: 2mm;
+    white-space: normal;
+    word-wrap: break-word;
   }
 
   .totals { margin-top: 1mm; }
