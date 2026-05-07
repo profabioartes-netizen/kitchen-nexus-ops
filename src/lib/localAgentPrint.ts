@@ -5,7 +5,10 @@
 import { printViaBrowser, type BrowserPrintPayload } from "./browserPrint";
 import { formatReceiptText } from "./receiptText";
 
-export const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
+// IMPORTANTE: usar `localhost` (não 127.0.0.1). Chrome/Edge tratam
+// `http://localhost` como "potentially trustworthy" e liberam fetch a partir
+// de páginas HTTPS. `http://127.0.0.1` é bloqueado por Mixed Content.
+export const LOCAL_AGENT_URL = "http://localhost:8080";
 const PRINT_ENDPOINT = `${LOCAL_AGENT_URL}/print`;
 const PING_ENDPOINT = `${LOCAL_AGENT_URL}/ping`;
 
