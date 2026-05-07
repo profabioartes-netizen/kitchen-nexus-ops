@@ -262,7 +262,7 @@ function buildHtml(p: BrowserPrintPayload): string {
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: ${brl(p.change)}</div>` : ""}
 
   <hr class="separator" />
-  <div class="center bold">Volte sempre!!!</div>
+  <div class="center bold">VOLTE SEMPRE!!!</div>
   <div style="height:6mm"></div>
   </div>
 
