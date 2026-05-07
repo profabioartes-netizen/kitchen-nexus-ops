@@ -275,7 +275,8 @@ export default function WaiterOrderPage() {
   const quickAddByProductId = async (productId: string) => {
     const product = products.find((p) => p.id === productId);
     if (!product) { toast.error("Produto não encontrado"); return; }
-    if (productsWithComplements.has(productId)) {
+    // Produtos vendidos por peso SEMPRE abrem o diálogo (precisa informar gramas)
+    if ((product as any).sale_type === "weight" || productsWithComplements.has(productId)) {
       setSelectedProduct(product);
       return;
     }
@@ -530,7 +531,8 @@ export default function WaiterOrderPage() {
   });
 
   const handleProductTap = (product: any) => {
-    if (productsWithComplements.has(product.id)) {
+    // Produtos por peso SEMPRE abrem o diálogo para informar gramas
+    if (product?.sale_type === "weight" || productsWithComplements.has(product.id)) {
       setSelectedProduct(product);
     } else {
       quickAdd.mutate(product);
