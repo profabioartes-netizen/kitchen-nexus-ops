@@ -43,7 +43,8 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
   const [selectedComplements, setSelectedComplements] = useState<SelectedComplement[]>([]);
-  const [grams, setGrams] = useState<string>("");
+  // Peso em KG (string para preservar formatação local com vírgula/ponto)
+  const [weightKg, setWeightKg] = useState<string>("");
 
   const isWeight = product?.sale_type === "weight";
   const pricePerKg = Number(product?.price_per_kg ?? product?.price ?? 0);
@@ -53,7 +54,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
       setQuantity(1);
       setNotes("");
       setSelectedComplements([]);
-      setGrams("");
+      setWeightKg("");
     }
   }, [product]);
 
