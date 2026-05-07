@@ -343,7 +343,7 @@ export default function TablesPage() {
       const tableOrders = allOrdersByTable[tableId] || [];
       const value = markDelivered ? new Date().toISOString() : null;
 
-      const ops: Promise<any>[] = [];
+      const ops: any[] = [];
       for (const ord of tableOrders) {
         ops.push(supabase.from("orders").update({ delivered_at: value } as any).eq("id", ord.id));
         if (markDelivered) {
