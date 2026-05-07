@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useTenant } from "@/contexts/TenantContext";
-import { printViaBrowser } from "@/lib/browserPrint";
+import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
 
@@ -959,9 +959,11 @@ export default function PaymentPanel({
                   footer_message: "Volte sempre!!!",
                 };
 
-                // Impressão sempre pelo navegador (HuskyPDV Caixa Launcher / Chrome --kiosk-printing).
-                const ok = printViaBrowser({ ...billPayload, paper: "80mm" });
-                if (ok) {
+                // Tenta Agente Local; se offline, fallback nativo (window.print via iframe).
+                const result = await printViaLocalAgent({ ...billPayload, paper: "80mm" });
+                if (result.ok && result.via === "agent") {
+                  toast.success("Impressão enviada");
+                } else if (result.ok) {
                   toast.success("Imprimindo conta...");
                 } else {
                   toast.error("Não foi possível abrir a impressão.");
