@@ -61,7 +61,26 @@ export default function PrintersPage() {
     const result = await printViaLocalAgent(payload);
     if (result.ok && result.via === "agent") toast.success("Impressão enviada");
     else if (result.ok) toast.success("Janela de impressão aberta.");
-    else toast.error("Não foi possível imprimir.");
+    else {
+      console.error("[PrintersPage] Falha na impressão", result);
+      toast.error(`Não foi possível imprimir. ${("error" in result && result.error) || ""}`);
+    }
+  };
+
+  const handleTestAgentConnection = async () => {
+    toast.info("Testando conexão com o Agente…");
+    const info = await pingLocalAgent();
+    if (info.online) {
+      const printer = info.printer ? ` Impressora: ${info.printer}` : "";
+      const version = info.version ? ` v${info.version}` : "";
+      toast.success(`Conectado ao Agente${version}.${printer}`);
+      alert(`✅ Conectado ao HuskyPrintAgent${version}.\nImpressora padrão: ${info.printer || "(nenhuma)"}`);
+    } else {
+      toast.error("Falha na Conexão com o Agente (127.0.0.1:8080)");
+      alert("❌ Falha na Conexão.\nVerifique se o HuskyPrintAgent está rodando em http://127.0.0.1:8080");
+    }
+    setAgentStatus(info.online ? "online" : "offline");
+    setAgentPrinter(info.printer);
   };
 
   // URL pública e estável do instalador NSIS (Tauri/Rust).
