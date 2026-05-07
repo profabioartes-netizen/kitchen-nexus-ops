@@ -141,9 +141,11 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
     }
   };
 
-  const gramsNum = parseInt(grams, 10) || 0;
-  const weightTotal = isWeight ? (gramsNum / 1000) * pricePerKg : 0;
-  const weightTotalRounded = Math.round(weightTotal * 100) / 100;
+  // Aceita vírgula ou ponto como separador decimal
+  const weightKgNum = parseFloat((weightKg || "").replace(",", ".")) || 0;
+  const gramsNum = Math.round(weightKgNum * 1000);
+  const weightTotal = isWeight ? weightKgNum * pricePerKg : 0;
+  const weightTotalRounded = Number(weightTotal.toFixed(2));
 
   const complementsTotal = selectedComplements.reduce((s, c) => s + c.price * c.quantity, 0);
   const itemTotal = isWeight
@@ -153,6 +155,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
   const handleAdd = () => {
     if (isWeight) {
       if (gramsNum <= 0) return;
+      const kgLabel = weightKgNum.toFixed(3).replace(".", ",");
       onAdd({
         product,
         quantity: 1,
@@ -161,7 +164,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
         complementsTotal: 0,
         grams: gramsNum,
         unitPriceOverride: weightTotalRounded,
-        productNameOverride: `${product.name} - ${gramsNum}g`,
+        productNameOverride: `${product.name} - ${kgLabel}kg`,
       });
       return;
     }
