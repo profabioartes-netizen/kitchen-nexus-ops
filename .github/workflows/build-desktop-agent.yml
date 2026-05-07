@@ -40,19 +40,19 @@ jobs:
         run: |
           $src = Get-ChildItem -Path desktop-agent/src-tauri/target/release/bundle/nsis -Filter *-setup.exe | Select-Object -First 1
           if (-not $src) { throw "NSIS installer not found" }
-          Copy-Item $src.FullName "HuskyPDV-Agent-Setup.exe"
+          Copy-Item $src.FullName "HuskyPrintAgent.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HuskyPDV-Agent-Setup
-          path: HuskyPDV-Agent-Setup.exe
+          name: HuskyPrintAgent
+          path: HuskyPrintAgent.exe
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: HuskyPDV-Agent-Setup.exe
+          files: HuskyPrintAgent.exe
           generate_release_notes: true
           draft: false
           prerelease: false
