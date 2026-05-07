@@ -67,7 +67,7 @@ export default function PrintersPage() {
   // Sempre aponta para a ÚLTIMA release publicada.
   // ⚠️ Substitua <ORG>/<REPO> pelo caminho do seu repositório no GitHub.
   const INSTALLER_URL =
-    "https://github.com/HuskyPDV/huskypdv/releases/latest/download/HuskyPrintAgent.exe";
+    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe";
 
 
   const downloadHuskyPdvCaixa = () => {
