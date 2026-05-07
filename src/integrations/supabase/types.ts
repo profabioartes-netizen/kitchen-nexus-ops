@@ -1321,6 +1321,7 @@ export type Database = {
         Returns: {
           agent_id: string
           station: string
+          stations: string[]
           tenant_id: string
           tenant_name: string
         }[]

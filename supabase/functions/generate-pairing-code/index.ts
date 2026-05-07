@@ -99,14 +99,26 @@ Deno.serve(async (req) => {
     }
 
     let station = "Caixa";
+    let stations: string[] = [];
     let suggestedName: string | null = null;
     try {
       const body = await req.json();
-      if (typeof body?.station === "string" && body.station.trim()) station = body.station.trim();
+      if (Array.isArray(body?.stations)) {
+        stations = body.stations
+          .map((s: unknown) => String(s ?? "").trim())
+          .filter((s: string) => s.length > 0);
+      }
+      if (typeof body?.station === "string" && body.station.trim()) {
+        station = body.station.trim();
+      }
       if (typeof body?.suggested_name === "string" && body.suggested_name.trim()) {
         suggestedName = body.suggested_name.trim();
       }
     } catch (_) { /* sem body */ }
+
+    if (stations.length === 0) stations = [station];
+    // garante que station legado seja o primeiro item
+    station = stations[0];
 
     const code = generate6DigitCode();
     const codeHash = await sha256Hex(code);
@@ -116,6 +128,7 @@ Deno.serve(async (req) => {
       tenant_id: resolvedTenantId,
       code_hash: codeHash,
       station,
+      stations,
       suggested_name: suggestedName,
       created_by_user_id: userId,
       expires_at: expiresAt,
@@ -129,7 +142,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ code, expires_at: expiresAt, station, suggested_name: suggestedName }),
+      JSON.stringify({ code, expires_at: expiresAt, station, stations, suggested_name: suggestedName }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {

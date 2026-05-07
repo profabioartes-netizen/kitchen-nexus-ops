@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
         tenant_id: row.tenant_id,
         tenant_name: row.tenant_name,
         station: row.station,
+        stations: row.stations ?? [row.station],
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

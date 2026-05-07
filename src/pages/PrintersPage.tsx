@@ -8,6 +8,8 @@ import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import { printViaBrowser } from "@/lib/browserPrint";
 import { printViaLocalAgent, pingLocalAgent } from "@/lib/localAgentPrint";
 import { setPrintMode } from "@/lib/printPreference";
+import { PrintAgentsList } from "@/components/PrintAgentsList";
+import { PairingCodeCard } from "@/components/PairingCodeCard";
 
 const DELETE_PIN = "9774";
 
@@ -340,7 +342,26 @@ export default function PrintersPage() {
           </ol>
         </section>
 
-        {/* Impressoras adicionais */}
+        {/* Pareamento por código */}
+        <PairingCodeCard />
+
+        {/* Lista de agentes pareados (com setores múltiplos) */}
+        <PrintAgentsList />
+
+        {/* Roteamento por setor — explicação */}
+        <section className="rounded-2xl border bg-card/40 p-6 text-sm text-muted-foreground space-y-2">
+          <h2 className="text-base font-semibold text-foreground">Como o roteamento funciona</h2>
+          <p>
+            Cada produto cadastrado tem um <strong>setor</strong> (Caixa, Cozinha, Bar, Sobremesa, ou setores que você
+            criar). Ao salvar uma comanda, o HuskyPDV separa os itens por setor e envia <strong>um ticket para cada</strong>:
+            os itens da Cozinha vão para a impressora dos PCs que escutam <em>Cozinha</em>; os do Bar vão para os PCs que
+            escutam <em>Bar</em>; recibos e cancelamentos vão sempre para o <em>Caixa</em>.
+          </p>
+          <p>
+            Em comércios com 1 só impressora, marque todos os setores no mesmo agente — tudo sai no mesmo lugar.
+            Quando crescer, basta parear novos PCs e marcar só o setor correspondente.
+          </p>
+        </section>
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-muted-foreground tracking-wide uppercase">
