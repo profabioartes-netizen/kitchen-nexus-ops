@@ -6,6 +6,9 @@ export type BrowserPrintItem = {
   quantity: number;
   price?: number;
   complements?: string[];
+  sale_type?: "unit" | "weight";
+  price_per_kg?: number | null;
+  grams?: number | null;
 };
 
 export type BrowserPrintPayload = {
