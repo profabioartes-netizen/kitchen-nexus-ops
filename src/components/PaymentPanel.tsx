@@ -237,40 +237,43 @@ export default function PaymentPanel({
 
   // ── Calculations ──
   const discount = useMemo(
-    () => (discountType === "percent" ? total * (discountValue / 100) : discountValue),
+    () => (discountType === "percent" ? FinanceUtils.multiply(total, discountValue / 100) : discountValue),
     [total, discountType, discountValue]
   );
-  const serviceFee = serviceFeeEnabled ? (total - discount) * (serviceFeePct / 100) : 0;
-  const grandTotal = Math.max(0, total - discount + extraCharge + serviceFee);
-  const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
-  const remaining = Math.max(0, Number((grandTotal - paidTotal).toFixed(2)));
+  const serviceFee = serviceFeeEnabled ? FinanceUtils.multiply(FinanceUtils.sum([total, -discount]), serviceFeePct / 100) : 0;
+  const grandTotal = Math.max(0, FinanceUtils.sum([total, -discount, extraCharge, serviceFee]));
+  const paidTotal = FinanceUtils.sum(payments.map((p) => p.amount));
+  const remaining = Math.max(0, FinanceUtils.sum([grandTotal, -paidTotal]));
 
   // ── Payment items total ──
   const splitEntriesTotal = useMemo(() => {
-    return splitEntries.reduce((sum, e) => sum + e.fractionedPrice, 0);
+    return FinanceUtils.sum(splitEntries.map((e) => e.fractionedPrice));
   }, [splitEntries]);
 
   const paymentItemsTotal = useMemo(() => {
-    return Object.entries(paymentItems).reduce((sum, [id, qty]) => {
-      const item = orderItems.find((i) => i.id === id);
-      return sum + (item ? Number(item.price) * qty : 0);
-    }, 0) + splitEntriesTotal;
+    const itemsSum = FinanceUtils.sum(
+      Object.entries(paymentItems).map(([id, qty]) => {
+        const item = orderItems.find((i) => i.id === id);
+        return item ? FinanceUtils.multiply(item.price, qty) : 0;
+      })
+    );
+    return FinanceUtils.sum([itemsSum, splitEntriesTotal]);
   }, [paymentItems, orderItems, splitEntriesTotal]);
 
   // Amount to pay = custom or payment items total or remaining
   const amountToPay = customAmount
-    ? Number(customAmount.replace(",", ".")) || 0
+    ? FinanceUtils.parseDecimal(customAmount) || 0
     : (Object.keys(paymentItems).length > 0 || splitEntries.length > 0)
       ? Math.min(paymentItemsTotal, remaining)
       : remaining;
 
   // Cash change
-  const cashGivenNum = Number(cashGiven.replace(",", ".")) || 0;
+  const cashGivenNum = FinanceUtils.parseDecimal(cashGiven) || 0;
   const amountToPayNum = typeof customAmount === "string" && customAmount.includes(",")
-    ? Number(customAmount.replace(",", ".")) || amountToPay
+    ? FinanceUtils.parseDecimal(customAmount) || amountToPay
     : amountToPay;
   const cashChange = selectedMethod === "cash" && cashGivenNum > amountToPayNum
-    ? Number((cashGivenNum - amountToPayNum).toFixed(2))
+    ? FinanceUtils.sum([cashGivenNum, -amountToPayNum])
     : 0;
 
   // ── Actions ──
