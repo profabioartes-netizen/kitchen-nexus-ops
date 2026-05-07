@@ -401,9 +401,15 @@ export default function KitchenStationPage() {
                 {/* Action */}
                 {!isLast && (
                   <button
-                    onClick={() => advanceStatus(item.id, status)}
+                    type="button"
+                    onPointerUp={(e) => {
+                      e.preventDefault();
+                      if (updateStatus.isPending) return;
+                      advanceStatus(item.id, status);
+                    }}
+                    onClick={(e) => e.preventDefault()}
                     disabled={updateStatus.isPending}
-                    className={`mt-auto flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 ${
+                    className={`mt-auto flex items-center justify-center gap-2 rounded-md py-3 sm:py-2 min-h-[48px] sm:min-h-0 text-base sm:text-sm font-semibold sm:font-medium hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 touch-manipulation select-none ${
                       delayed
                         ? "bg-destructive text-destructive-foreground"
                         : "bg-accent text-accent-foreground"

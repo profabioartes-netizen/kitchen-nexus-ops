@@ -1,46 +1,22 @@
-## Objetivo
+## Problema
 
-Restringir o que usuários com função GARÇOM (`profile.role === "waiter"`) veem no painel desktop/PDV. O garçom deve ter acesso apenas a abrir/gerenciar comandas — sem Relatórios, Vendas, gestão de quantidade de comandas, etc.
+No KDS/Cozinha (`/cozinha`), o botão **"Marcar Entregue"** (e demais botões de avanço de status) responde mal no mobile:
+- Área de toque pequena (`py-2`, ~32px de altura) — abaixo do mínimo recomendado de 44–48px.
+- Usa apenas `onClick`, que no mobile pode ter delay de ~300ms ou ser engolido se o dedo deslizar 1–2px.
+- Sem `touch-manipulation` / sem feedback visual de toque (`active:`).
+- Sem `select-none`, então toque longo seleciona texto em vez de disparar a ação.
 
-Hoje, mesmo existindo o modo mobile `/garcom`, se um garçom acessa o painel principal (`AppLayout`) ele enxerga toda a barra lateral e todos os botões do topo do Mapa de Comandas.
+## Alteração
 
-## Alterações
+Em `src/pages/KitchenStationPage.tsx`, no botão de avançar status (linhas ~402–421):
 
-### 1. `src/components/NavigationRail.tsx` — esconder itens para garçom
+1. **Aumentar área de toque no mobile**: `py-3 min-h-[48px]` em mobile, mantendo `sm:py-2` no desktop.
+2. **Tipografia mais legível**: `text-base font-semibold` no mobile, `sm:text-sm sm:font-medium` no desktop.
+3. **Resposta instantânea ao toque**: trocar `onClick` por `onPointerUp` com `e.preventDefault()`, eliminando o delay e mantendo um `onClick` neutralizado (apenas `preventDefault`) para evitar duplicação. Continua respeitando `updateStatus.isPending`.
+4. **Feedback tátil/visual**: adicionar `touch-manipulation`, `select-none`, `active:scale-[0.98]` e `transition-all`.
 
-- Ler `profile.role` do `useAuth()`.
-- Definir `isWaiter = profile?.role === "waiter"`.
-- Para garçom, exibir apenas:
-  - Operacional: **Comandas** (`/`)
-  - (ocultar Caixa, Abertura de Caixa, toda a seção Gestão e Plataforma)
-- Manter footer (tema, atualizar, sair, recolher) intacto.
+Mantém a lógica de Optimistic UI já implementada (a mutation `updateStatus` continua disparando o cache update imediato), apenas torna o toque confiável.
 
-Implementação: filtrar `operationalItems` e pular renderização da seção "Gestão" e "Plataforma" quando `isWaiter` for true.
+## Arquivo
 
-### 2. `src/pages/TablesPage.tsx` — esconder controles de gestão no topo
-
-No bloco de botões do header (linhas ~744–813), ocultar quando `profile?.role === "waiter"`:
-- Botão **Relatórios** (`navigate("/relatorios")`)
-- Botão **Usuários** (`navigate("/usuarios")`)
-- Popover **Qtd. Comandas** (controle de quantidade)
-
-Manter visível: busca, KPIs (Mesas Ocupadas / Livres / Média / Clientes) — são apenas leitura operacional, úteis para o garçom.
-
-> Observação: se o usuário também quiser ocultar os 4 cards de KPI no topo para o garçom, basta confirmar — adiciono um `if (!isWaiter)` ao redor do `Summary Bar`.
-
-### 3. `src/App.tsx` — guarda de rota (defesa em profundidade)
-
-Como as rotas `/relatorios`, `/vendas`, `/usuarios`, `/configuracoes`, `/produtos`, `/impressoras`, `/caixa`, `/controle-caixa` continuam acessíveis por URL direta, adicionar um wrapper simples `RequireNotWaiter` que redireciona garçons para `/`. Aplicar nessas rotas administrativas dentro do bloco já protegido por `RequireAuth`.
-
-## Detalhes técnicos
-
-- Fonte da verdade do papel: `profile.role` (já usado em `WaiterLayout` e `AuthRoute`).
-- Não mexer em RLS — é apenas restrição de UI/navegação.
-- Não alterar o fluxo `/garcom` (modo mobile dedicado continua funcionando como hoje).
-- Header mobile (`AppLayout`) já é mínimo (logo, atualizar, sair) — nenhuma mudança necessária ali.
-
-## Arquivos a editar
-
-- `src/components/NavigationRail.tsx`
-- `src/pages/TablesPage.tsx`
-- `src/App.tsx`
+- `src/pages/KitchenStationPage.tsx` (somente o bloco do botão de ação)
