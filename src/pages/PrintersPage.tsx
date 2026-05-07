@@ -50,136 +50,25 @@ export default function PrintersPage() {
     return "https://huskypdv.com";
   };
 
-  const downloadAutoPrintActivator = () => {
-    const publicUrl = resolvePublicUrl();
-    const targetUrl = `${publicUrl}/caixa`;
-    const iconUrl = `${publicUrl}/icons/huskypdv.ico`;
-
-    // PowerShell script — runs inside the .bat via -EncodedCommand (UTF-16LE base64)
-    // so we don't have to worry about cmd-level escaping of $, (, ), ", etc.
-    const ps = `
-$ErrorActionPreference = 'Stop'
-$url = '${targetUrl}'
-$iconUrl = '${iconUrl}'
-
-$candidates = @(
-  "$env:ProgramFiles\\Google\\Chrome\\Application\\chrome.exe",
-  "${'${env:ProgramFiles(x86)}'}\\Google\\Chrome\\Application\\chrome.exe",
-  "$env:LocalAppData\\Google\\Chrome\\Application\\chrome.exe",
-  "${'${env:ProgramFiles(x86)}'}\\Microsoft\\Edge\\Application\\msedge.exe",
-  "$env:ProgramFiles\\Microsoft\\Edge\\Application\\msedge.exe"
-)
-$browser = $null
-foreach ($p in $candidates) { if (Test-Path $p) { $browser = $p; break } }
-if (-not $browser) {
-  Write-Host 'Chrome ou Edge nao encontrado. Instale um deles e tente novamente.' -ForegroundColor Red
-  exit 1
-}
-
-$appDir = Join-Path $env:APPDATA 'HuskyPDV'
-if (-not (Test-Path $appDir)) { New-Item -ItemType Directory -Path $appDir | Out-Null }
-
-$iconPath = Join-Path $appDir 'huskypdv.ico'
-
-# Forca TLS 1.2 (PowerShell 5.1 padrao usa TLS 1.0 e Cloudflare rejeita)
-try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
-
-$iconOk = $false
-try {
-  if (Test-Path $iconPath) { Remove-Item $iconPath -Force -ErrorAction SilentlyContinue }
-  Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing -TimeoutSec 30
-  if ((Test-Path $iconPath) -and ((Get-Item $iconPath).Length -gt 1000)) { $iconOk = $true }
-} catch {
-  Write-Host ('Aviso: falha Invoke-WebRequest: ' + $_.Exception.Message) -ForegroundColor Yellow
-}
-
-if (-not $iconOk) {
-  try {
-    $wc = New-Object System.Net.WebClient
-    $wc.DownloadFile($iconUrl, $iconPath)
-    if ((Test-Path $iconPath) -and ((Get-Item $iconPath).Length -gt 1000)) { $iconOk = $true }
-  } catch {
-    Write-Host ('Aviso: WebClient falhou: ' + $_.Exception.Message) -ForegroundColor Yellow
-  }
-}
-
-$desktop = [Environment]::GetFolderPath('Desktop')
-$lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
-if (Test-Path $lnk) { Remove-Item $lnk -Force -ErrorAction SilentlyContinue }
-
-$sh = New-Object -ComObject WScript.Shell
-$s = $sh.CreateShortcut($lnk)
-$s.TargetPath = $browser
-$s.Arguments = '--kiosk-printing --app="' + $url + '"'
-$s.WorkingDirectory = Split-Path $browser
-if ($iconOk) { $s.IconLocation = $iconPath + ',0' } else { $s.IconLocation = $browser + ',0' }
-$s.Description = 'HuskyPDV Caixa'
-$s.Save()
-
-# Limpa cache de icones e reinicia Explorer para o icone novo aparecer imediatamente
-try {
-  $cacheDir = Join-Path $env:LOCALAPPDATA 'Microsoft\\Windows\\Explorer'
-  Get-ChildItem -Path $cacheDir -Filter 'iconcache_*.db' -Force -ErrorAction SilentlyContinue | ForEach-Object {
-    try { Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue } catch {}
-  }
-  Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-  Start-Sleep -Milliseconds 800
-  if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }
-} catch {}
-
-Write-Host ''
-if ($iconOk) {
-  Write-Host '  Atalho criado com icone HuskyPDV!' -ForegroundColor Green
-} else {
-  Write-Host '  Atalho criado (icone padrao - falha ao baixar logo).' -ForegroundColor Yellow
-}
-Write-Host '  Use o icone HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
-`;
-
-    // PowerShell -EncodedCommand expects a UTF-16LE base64 string.
-    const utf16le = new Uint8Array(ps.length * 2);
-    for (let i = 0; i < ps.length; i++) {
-      const code = ps.charCodeAt(i);
-      utf16le[i * 2] = code & 0xff;
-      utf16le[i * 2 + 1] = (code >> 8) & 0xff;
+  const downloadHuskyPdvCaixa = async () => {
+    const installerUrl = "/downloads/HuskyPDV-Caixa-Setup.exe";
+    try {
+      // Verifica se o instalador está hospedado antes de iniciar o download
+      const head = await fetch(installerUrl, { method: "HEAD" });
+      if (!head.ok) throw new Error("not-found");
+    } catch {
+      toast.error(
+        "Instalador ainda não está disponível. Atualize a página em alguns minutos."
+      );
+      return;
     }
-    let binary = "";
-    for (let i = 0; i < utf16le.length; i++) binary += String.fromCharCode(utf16le[i]);
-    const encoded = btoa(binary);
-
-    const bat = `@echo off
-chcp 65001 >nul
-title Configurando HuskyPDV Caixa
-echo.
-echo  ============================================
-echo    Configurando HuskyPDV Caixa
-echo  ============================================
-echo.
-echo  Aguarde, criando o atalho na Area de Trabalho...
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${encoded}
-
-echo.
-echo  ============================================
-echo    Pronto!
-echo  ============================================
-echo.
-echo   1. Use o atalho "HuskyPDV Caixa" na Area de Trabalho.
-echo   2. Ele abre o sistema em modo aplicativo.
-echo   3. A impressao sera automatica.
-echo.
-pause
-`;
-    const blob = new Blob([bat], { type: "application/octet-stream" });
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "Ativar-HuskyPDV-Caixa.bat";
+    link.href = installerUrl;
+    link.download = "HuskyPDV-Caixa-Setup.exe";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
-    toast.success("Arquivo baixado. Abra-o para criar o atalho.");
+    toast.success("Download iniciado. Abra o instalador para concluir.");
   };
 
   const { data: printers = [], isLoading } = useQuery({
