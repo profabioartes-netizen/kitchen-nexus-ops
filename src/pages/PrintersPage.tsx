@@ -21,13 +21,16 @@ export default function PrintersPage() {
   // Garante que o terminal use sempre impressão pelo navegador (sem perguntar).
   useEffect(() => { setPrintMode("native"); }, []);
 
-  // Indicador Agente Local: Online/Offline (faz ping leve a cada 10s).
+  // Indicador Agente Local: Online/Offline + impressora padrão.
   const [agentStatus, setAgentStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [agentPrinter, setAgentPrinter] = useState<string | undefined>(undefined);
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      const ok = await pingLocalAgent();
-      if (!cancelled) setAgentStatus(ok ? "online" : "offline");
+      const info = await pingLocalAgent();
+      if (cancelled) return;
+      setAgentStatus(info.online ? "online" : "offline");
+      setAgentPrinter(info.printer);
     };
     check();
     const id = setInterval(check, 10_000);
@@ -59,9 +62,9 @@ export default function PrintersPage() {
     else toast.error("Não foi possível imprimir.");
   };
 
-  // URL pública estática do instalador. Sempre aponta para o domínio oficial,
-  // independentemente de estar rodando no preview do Lovable ou em produção.
-  const INSTALLER_URL = "https://huskypdv.com/downloads/HuskyPDV-Caixa-Setup.exe";
+  // URL pública estática do instalador do HuskyPDV Print Agent (Python/Flask).
+  const INSTALLER_URL = "https://huskypdv.com/downloads/HuskyPrintAgent.exe";
+
 
   const downloadHuskyPdvCaixa = () => {
     // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate,
