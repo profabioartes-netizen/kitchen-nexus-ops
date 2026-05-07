@@ -430,6 +430,8 @@ export default function WaiterOrderPage() {
             status: "pending",
             payload: {
               items: stationItems,
+              business_name: businessName,
+              business_phone: businessPhone || null,
               table_name: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
               location: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || null,
               customer_name: order.customer_name || null,
