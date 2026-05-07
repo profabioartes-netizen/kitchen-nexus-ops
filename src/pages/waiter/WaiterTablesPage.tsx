@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Users, ChefHat } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantRealtime } from "@/hooks/useTenantRealtime";
 import { toast } from "sonner";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
