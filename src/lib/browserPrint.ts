@@ -28,11 +28,16 @@ export type BrowserPrintPayload = {
   paper?: "80mm" | "58mm";
 };
 
+import { removeAccents } from "./removeAccents";
+
 const escape = (s: any) =>
   String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+
+// Remove acentos + escapa HTML — usar para todo texto livre exibido no cupom
+const safe = (s: any) => escape(removeAccents(s));
 
 const brl = (n: number) =>
   `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
@@ -64,11 +69,11 @@ function buildHtml(p: BrowserPrintPayload): string {
         : it.product_name;
       const compl =
         it.complements && it.complements.length
-          ? `<tr class="compl"><td colspan="4">+ ${it.complements.map(escape).join(", ")}</td></tr>`
+          ? `<tr class="compl"><td colspan="4">+ ${it.complements.map(safe).join(", ")}</td></tr>`
           : "";
       return `<tr>
-        <td class="prod">${escape(displayName)}</td>
-        <td class="qnt">${escape(qntCell)}</td>
+        <td class="prod">${safe(displayName)}</td>
+        <td class="qnt">${safe(qntCell)}</td>
         <td class="unit">${unit.toFixed(2).replace(".", ",")}</td>
         <td class="tot">${sub.toFixed(2).replace(".", ",")}</td>
       </tr>${compl}`;
@@ -124,10 +129,11 @@ function buildHtml(p: BrowserPrintPayload): string {
 
   table.items {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
-    font-family: 'Courier New', Consolas, monospace;
+    font-family: 'Courier New', Courier, monospace;
     font-variant-numeric: tabular-nums;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.25;
     color: #000 !important;
     font-weight: 700 !important;
@@ -137,17 +143,27 @@ function buildHtml(p: BrowserPrintPayload): string {
     vertical-align: top;
     line-height: 1.25;
     color: #000 !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700 !important;
   }
-  table.items th { font-weight: 900 !important; text-align: left; }
-  table.items td.prod, table.items th.prod { text-align: left;  word-break: break-word; }
-  table.items td.qnt,  table.items th.qnt  { text-align: center; width: 14mm; white-space: nowrap; padding-left: 1mm; }
-  table.items td.unit, table.items th.unit { text-align: right;  width: 13mm; white-space: nowrap; padding-left: 1mm; }
-  table.items td.tot,  table.items th.tot  { text-align: right;  width: 14mm; white-space: nowrap; padding-left: 1mm; }
+  table.items th { font-weight: 900 !important; }
+  table.items td.prod, table.items th.prod {
+    width: 45%;
+    text-align: left;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    padding-right: 1mm;
+  }
+  table.items td.qnt,  table.items th.qnt  { width: 15%; text-align: right; white-space: nowrap; }
+  table.items td.unit, table.items th.unit { width: 20%; text-align: right; white-space: nowrap; padding-left: 1mm; }
+  table.items td.tot,  table.items th.tot  { width: 20%; text-align: right; white-space: nowrap; padding-left: 1mm; }
   table.items tr.compl td {
-    font-size: 12px;
+    font-size: 11px;
     font-style: italic;
     font-weight: 700 !important;
     padding-left: 2mm;
+    white-space: normal;
+    word-wrap: break-word;
   }
 
   .totals { margin-top: 1mm; }
@@ -208,14 +224,14 @@ function buildHtml(p: BrowserPrintPayload): string {
   </div>
 
   <div class="receipt">
-  <div class="center bold upper big">${escape(p.business_name ?? "HuskyPDV")}</div>
-  ${p.business_phone ? `<div class="center">${escape(p.business_phone)}</div>` : ""}
-  <div class="center bold upper big">${escape(title)}${p.table_name ? ` / MESA ${escape(p.table_name)}` : ""}</div>
+  <div class="center bold upper big">${safe(p.business_name ?? "HuskyPDV")}</div>
+  ${p.business_phone ? `<div class="center">${safe(p.business_phone)}</div>` : ""}
+  <div class="center bold upper big">${safe(title)}${p.table_name ? ` / MESA ${safe(p.table_name)}` : ""}</div>
   <hr class="separator" />
   <div class="center bold">NAO E DOCUMENTO FISCAL</div>
   <hr class="separator" />
-  ${p.customer_name ? `<div>Cliente: ${escape(p.customer_name)}</div>` : ""}
-  ${p.waiter_name ? `<div>Atendente: ${escape(p.waiter_name)}</div>` : ""}
+  ${p.customer_name ? `<div>Cliente: ${safe(p.customer_name)}</div>` : ""}
+  ${p.waiter_name ? `<div>Atendente: ${safe(p.waiter_name)}</div>` : ""}
   <div>${new Date().toLocaleString("pt-BR")}</div>
   <hr class="separator" />
 
@@ -237,10 +253,10 @@ function buildHtml(p: BrowserPrintPayload): string {
           <div class="row"><span>PRODUTOS:</span><span>${brl(productsTotal)}</span></div>
           <div class="row grand"><span>TOTAL:</span><span>${brl(total)}</span></div>
         </div>`
-      : `<div>${escape(p.message ?? "Cupom de teste — impressao pelo navegador OK.")}</div>`
+      : `<div>${safe(p.message ?? "Cupom de teste — impressao pelo navegador OK.")}</div>`
   }
 
-  ${p.payment_method ? `<div>Pagto: ${escape(p.payment_method)}</div>` : ""}
+  ${p.payment_method ? `<div>Pagto: ${safe(p.payment_method)}</div>` : ""}
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: ${brl(p.change)}</div>` : ""}
 
   <hr class="separator" />
