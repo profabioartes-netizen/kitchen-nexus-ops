@@ -17,6 +17,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
+import { FinanceUtils } from "@/lib/finance";
 
 type OrderItemComplement = {
   id: string;
