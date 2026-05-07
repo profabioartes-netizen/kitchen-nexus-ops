@@ -28,7 +28,7 @@ export type BrowserPrintPayload = {
   paper?: "80mm" | "58mm";
 };
 
-import { removeAccents } from "./removeAccents";
+import { sanitizeForThermalPrinter } from "./removeAccents";
 
 const escape = (s: any) =>
   String(s ?? "")
@@ -36,8 +36,9 @@ const escape = (s: any) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
-// Remove acentos + escapa HTML — usar para todo texto livre exibido no cupom
-const safe = (s: any) => escape(removeAccents(s));
+// Higieniza radicalmente (MAIÚSCULAS + sem acentos + ASCII puro) e escapa HTML.
+// Usar para TODO texto livre exibido no cupom térmico.
+const safe = (s: any) => escape(sanitizeForThermalPrinter(s));
 
 const brl = (n: number) =>
   `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
@@ -91,8 +92,9 @@ function buildHtml(p: BrowserPrintPayload): string {
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<title>${escape(title)}</title>
+<meta charset="ISO-8859-1" />
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>${safe(title)}</title>
 <style>
   @page { size: ${widthMm}mm auto; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -232,7 +234,7 @@ function buildHtml(p: BrowserPrintPayload): string {
   <hr class="separator" />
   ${p.customer_name ? `<div>Cliente: ${safe(p.customer_name)}</div>` : ""}
   ${p.waiter_name ? `<div>Atendente: ${safe(p.waiter_name)}</div>` : ""}
-  <div>${new Date().toLocaleString("pt-BR")}</div>
+  <div>${safe(new Date().toLocaleString("pt-BR"))}</div>
   <hr class="separator" />
 
   ${
@@ -260,7 +262,7 @@ function buildHtml(p: BrowserPrintPayload): string {
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: ${brl(p.change)}</div>` : ""}
 
   <hr class="separator" />
-  <div class="center bold">Volte sempre!!!</div>
+  <div class="center bold">VOLTE SEMPRE!!!</div>
   <div style="height:6mm"></div>
   </div>
 
