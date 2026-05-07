@@ -12,7 +12,7 @@ export function getPrintMode(): PrintMode {
     const v = localStorage.getItem(KEY);
     if (v === "native" || v === "agent" || v === "ask") return v;
   } catch {}
-  return "ask";
+  return "native";
 }
 
 export function setPrintMode(mode: PrintMode) {
