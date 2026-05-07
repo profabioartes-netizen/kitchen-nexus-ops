@@ -51,11 +51,15 @@ fn print_raw(printer: String, text: String) -> Result<(), String> {
     let tmp = std::env::temp_dir().join(format!("huskypdv-job-{nanos}.txt"));
 
     let mut f = std::fs::File::create(&tmp).map_err(|e| format!("temp write: {e}"))?;
+    // BOM UTF-8 para que Get-Content (PowerShell 5.1) detecte a codificação correta
+    // e os acentos (ç, ã, é...) sejam impressos sem virar mojibake.
+    f.write_all(&[0xEF, 0xBB, 0xBF]).map_err(|e| format!("temp write: {e}"))?;
     f.write_all(text.as_bytes()).map_err(|e| format!("temp write: {e}"))?;
     drop(f);
 
+    // -Encoding UTF8 reforça a leitura como UTF-8 também no PowerShell 7.x.
     let cmd = format!(
-        "Get-Content -Path '{}' -Raw | Out-Printer -Name '{}'",
+        "Get-Content -Encoding UTF8 -Raw -Path '{}' | Out-Printer -Name '{}'",
         tmp.display().to_string().replace('\'', "''"),
         printer.replace('\'', "''")
     );

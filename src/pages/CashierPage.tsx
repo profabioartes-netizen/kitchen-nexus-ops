@@ -27,7 +27,7 @@ export default function CashierPage() {
       const { data } = await supabase
         .from("restaurant_settings")
         .select("value")
-        .eq("key", "phone")
+        .eq("key", "business_phone")
         .maybeSingle();
       return (data?.value as any) ?? null;
     },

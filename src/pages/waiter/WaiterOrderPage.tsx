@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/contexts/TenantContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
@@ -33,8 +34,22 @@ type ShortcutTab = "popular" | "recent" | "repeat";
 export default function WaiterOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const { profile } = useAuth();
+  const { tenant } = useTenant();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "business_phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "business_phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+  });
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -415,6 +430,8 @@ export default function WaiterOrderPage() {
             status: "pending",
             payload: {
               items: stationItems,
+              business_name: businessName,
+              business_phone: businessPhone || null,
               table_name: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || "—",
               location: table?.sector || (order as any).current_location || table?.internal_number || table?.default_name || (order as any).origin_location || null,
               customer_name: order.customer_name || null,
@@ -462,7 +479,7 @@ export default function WaiterOrderPage() {
       const newQty = item.quantity + delta;
 
       if (newQty <= 0) {
-        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name, businessName, businessPhone });
         await supabase.from("order_items").delete().eq("id", itemId);
         const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
         await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}${sentLabel}`, order?.id, profile?.full_name);
@@ -484,7 +501,7 @@ export default function WaiterOrderPage() {
       if (!item) return;
 
       if (item) {
-        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name, businessName, businessPhone });
       }
       await supabase.from("order_items").delete().eq("id", itemId);
       await recalculateOrderTotal(order!.id);

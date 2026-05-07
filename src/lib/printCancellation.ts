@@ -10,12 +10,16 @@ export async function printCancellationIfNeeded({
   table,
   order,
   waiterName,
+  businessName,
+  businessPhone,
 }: {
   item: { id: string; product_id: string; product_name: string; quantity: number; sent_to_kitchen: boolean; notes?: string | null };
   products: { id: string; station?: string }[];
   table?: { name?: string; default_name?: string; sector?: string | null; internal_number?: string | null } | null;
   order?: { id: string; customer_name?: string | null; waiter_name?: string | null } | null;
   waiterName?: string | null;
+  businessName?: string | null;
+  businessPhone?: string | null;
 }) {
   if (!item.sent_to_kitchen) return;
 
@@ -45,6 +49,8 @@ export async function printCancellationIfNeeded({
     status: "pending",
     payload: {
       type: "cancellation",
+      business_name: businessName || null,
+      business_phone: businessPhone || null,
       product_name: item.product_name,
       quantity: item.quantity,
       table_name: table?.sector || (order as any)?.current_location || table?.internal_number || table?.default_name || (order as any)?.origin_location || "—",
