@@ -4,6 +4,7 @@
 //   UNIT -> R$/kg configurado no produto
 //   TOTAL -> price * quantity (mantido)
 import { supabase } from "@/integrations/supabase/client";
+import { FinanceUtils } from "@/lib/finance";
 
 export type EnrichedPrintItem = {
   product_name: string;
