@@ -1123,14 +1123,14 @@ export default function PaymentPanel({
                       // Add split entries for each fraction
                       addAllItems(splitAllDivisor);
                       // Create a payment for each fraction with its chosen method
-                      const fractionAmount = Number((grandTotal / splitAllDivisor).toFixed(2));
+                      const fractionAmount = FinanceUtils.round(grandTotal / splitAllDivisor, 2);
                       const newPayments: PaymentEntry[] = splitAllMethods.map((m) => ({
                         method: m,
                         amount: fractionAmount,
                       }));
                       // Adjust last payment for rounding
-                      const totalPaid = fractionAmount * (splitAllDivisor - 1);
-                      newPayments[newPayments.length - 1].amount = Number((grandTotal - totalPaid).toFixed(2));
+                      const totalPaid = FinanceUtils.multiply(fractionAmount, splitAllDivisor - 1);
+                      newPayments[newPayments.length - 1].amount = FinanceUtils.sum([grandTotal, -totalPaid]);
                       setPayments((prev) => [...prev, ...newPayments]);
 
                       // Track all items as paid
