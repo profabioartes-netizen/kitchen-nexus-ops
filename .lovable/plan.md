@@ -1,42 +1,19 @@
-# Apontar o botão de download para o seu repo real
+## Problema
 
-Vi no print que seu projeto está conectado ao GitHub em **`profabioartes-netizen/kitchen-nexus-ops`**. Hoje o botão "Baixar HuskyPrintAgent.exe" aponta para um placeholder (`HuskyPDV/huskypdv`) que dá 404. Vou corrigir isso.
+GitHub Actions só lê workflows em `.github/workflows/` na **raiz** do repositório. O arquivo atual está em `print-agent-py/.github/workflows/release.yml` (subpasta), por isso a aba Actions mostra a tela "Get started" e nenhum workflow aparece para rodar.
 
-## O que vou fazer (build mode)
+## Correção
 
-### 1. `src/pages/PrintersPage.tsx`
-Trocar a constante:
-```ts
-const INSTALLER_URL = "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe";
-```
+1. **Criar** `/.github/workflows/build-print-agent.yml` na raiz do repositório, com o mesmo conteúdo do atual (já usa `working-directory: print-agent-py`, então funciona da raiz sem ajustes).
 
-### 2. `print-agent-py/README.md`
-Substituir todas as ocorrências de `<ORG>/<REPO>` por `profabioartes-netizen/kitchen-nexus-ops` para os comandos ficarem prontos para copiar/colar.
+2. **Remover** o arquivo antigo `print-agent-py/.github/workflows/release.yml` (e a pasta `.github` dentro de `print-agent-py/`) para evitar confusão.
 
-## O que VOCÊ precisa fazer (1 vez só, ~3 minutos)
+## Resultado esperado
 
-Como o build do `.exe` precisa de um Windows com Python (que você não tem), o GitHub Actions vai fazer isso na nuvem **de graça**. Passos:
+Após o sync com o GitHub (automático), ao recarregar `https://github.com/profabioartes-netizen/kitchen-nexus-ops/actions`, vai aparecer o workflow **"Build & Release HuskyPrintAgent"** na lista da esquerda, com o botão **"Run workflow"** disponível.
 
-1. Abra: `https://github.com/profabioartes-netizen/kitchen-nexus-ops/actions`
-2. Na lista da esquerda, clique em **"Build & Release HuskyPrintAgent"**.
-3. Clique no botão **"Run workflow"** (verde, à direita) → branch `main` → **Run workflow**.
-4. Aguarde ~3 minutos (vai aparecer um check verde).
-5. Pronto. O `.exe` fica disponível em duas URLs:
-   - **Artifacts** (na própria execução) — para você baixar e testar manualmente
-   - **Releases** (`/releases/latest`) — só aparece se você criar uma tag
+## Próximos passos (manuais, do seu lado)
 
-### Para gerar a Release pública (URL estável que o botão usa)
-No próprio GitHub:
-1. Vá em **Releases** → **Draft a new release**.
-2. Em "Choose a tag" digite `print-agent-v1.0.0` → **Create new tag**.
-3. **Publish release**.
-4. Isso dispara o workflow novamente e anexa o `.exe` à release. Em ~3 min o botão "Baixar HuskyPrintAgent.exe" no `/impressoras` passa a funcionar.
-
-A URL estável que vai ficar no botão:
-```
-https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe
-```
-
-> O repositório precisa estar **público** para o download direto funcionar sem login. Se estiver privado, eu sugiro tornar **só esse asset** público publicando a Release como pública (é o padrão).
-
-Posso aplicar?
+1. Aba Actions → "Build & Release HuskyPrintAgent" → **Run workflow** (~3 min)
+2. Baixar o `.exe` em **Artifacts**
+3. (Opcional) Publicar tag `print-agent-v1.0.0` em Releases para ativar o link público estável do botão da tela `/impressoras`
