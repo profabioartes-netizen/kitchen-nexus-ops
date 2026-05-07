@@ -51,8 +51,8 @@ export function PrintAgentsList() {
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ["print_agents"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("print_agents")
+      const { data, error } = await (supabase
+        .from("print_agents") as any)
         .select("id,name,station,stations,agent_host,agent_version,printer_name,active,last_seen_at,paired_at")
         .order("paired_at", { ascending: false });
       if (error) throw error;
