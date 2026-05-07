@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Plus, Minus, StickyNote, Check } from "lucide-react";
+import { FinanceUtils } from "@/lib/finance";
 
 type Product = {
   id: string;
@@ -141,16 +142,22 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
     }
   };
 
-  // Aceita vírgula ou ponto como separador decimal
-  const weightKgNum = parseFloat((weightKg || "").replace(",", ".")) || 0;
+  // Cálculos centralizados em FinanceUtils (precisão decimal por centavos)
+  const weightKgNum = FinanceUtils.parseDecimal(weightKg) || 0;
   const gramsNum = Math.round(weightKgNum * 1000);
-  const weightTotal = isWeight ? weightKgNum * pricePerKg : 0;
-  const weightTotalRounded = Number(weightTotal.toFixed(2));
+  const weightTotalRounded = isWeight
+    ? FinanceUtils.weightedPrice(weightKgNum, pricePerKg)
+    : 0;
 
-  const complementsTotal = selectedComplements.reduce((s, c) => s + c.price * c.quantity, 0);
+  const complementsTotal = FinanceUtils.sum(
+    selectedComplements.map((c) => FinanceUtils.multiply(c.price, c.quantity))
+  );
   const itemTotal = isWeight
     ? weightTotalRounded
-    : (Number(product.price) + complementsTotal) * quantity;
+    : FinanceUtils.multiply(
+        FinanceUtils.sum([Number(product.price), complementsTotal]),
+        quantity
+      );
 
   const handleAdd = () => {
     if (isWeight) {

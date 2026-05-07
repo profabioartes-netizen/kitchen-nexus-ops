@@ -110,7 +110,8 @@ export default function KitchenStationPage() {
       if (error) throw error;
       return data as any[];
     },
-    refetchInterval: 5000,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   // Realtime subscription

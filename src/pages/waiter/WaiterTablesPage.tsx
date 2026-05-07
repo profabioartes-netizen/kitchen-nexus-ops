@@ -54,12 +54,14 @@ export default function WaiterTablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("restaurant_tables")
-        .select("*")
+        .select("id, name, default_name, internal_number, sector, status, sort_order, seats")
         .eq("active", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return data;
     },
+    staleTime: 5 * 60_000, // mudam raramente; realtime invalida quando preciso
+    refetchOnWindowFocus: false,
   });
 
   const { data: openOrders = [] } = useQuery({
@@ -67,12 +69,14 @@ export default function WaiterTablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
+        .select("id, table_id, status, total, waiter_name, customer_name, created_at")
         .not("status", "in", '("closed","finished","finalized","canceled","merged")')
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const ordersByTable = openOrders.reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
