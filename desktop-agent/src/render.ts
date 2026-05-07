@@ -75,7 +75,16 @@ export function renderJob(payload: any, tenantName: string): string {
     if (payload.location) out.push(`Local: ${payload.location}`);
     out.push(line());
     for (const it of payload.items ?? []) {
-      out.push(row(`${it.quantity ?? 1}x ${it.product_name ?? ""}`, brl((it.price ?? 0) * (it.quantity ?? 1))));
+      const qty = it.quantity ?? 1;
+      const price = Number(it.price ?? 0);
+      const isWeight = it.sale_type === "weight" && Number(it.grams ?? 0) > 0 && Number(it.price_per_kg ?? 0) > 0;
+      const rawName = String(it.product_name ?? "");
+      const cleanName = isWeight ? rawName.replace(/\s*-\s*\d+(?:[.,]\d+)?\s*g\s*$/i, "") : rawName;
+      const qtyLabel = isWeight ? `${(Number(it.grams) / 1000).toFixed(3).replace(".", ",")}kg` : `${qty}x`;
+      const unitVal = isWeight ? Number(it.price_per_kg) : price;
+      const lineTotal = price * qty;
+      out.push(row(`${qtyLabel} ${cleanName}`, brl(lineTotal)));
+      if (isWeight) out.push(row("  unit:", brl(unitVal)));
     }
     out.push(line());
     out.push(row("TOTAL", brl(payload.total)));
