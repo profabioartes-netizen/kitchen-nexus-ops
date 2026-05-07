@@ -681,13 +681,20 @@ function buildDanfeTicket(job) {
     const price = Number(item.price || 0);
     const itemTotal = price * qty;
     subtotal += itemTotal;
-    const name = upperPt(item.product_name || item.name || "ITEM");
-    const unitStr = price.toFixed(2).replace(".", ",");
+    const isWeight = item.sale_type === "weight" && Number(item.grams || 0) > 0 && Number(item.price_per_kg || 0) > 0;
+    const rawName = String(item.product_name || item.name || "ITEM");
+    const cleanName = isWeight ? rawName.replace(/\s*-\s*\d+(?:[.,]\d+)?\s*g\s*$/i, "") : rawName;
+    const name = upperPt(cleanName);
+    const unitVal = isWeight ? Number(item.price_per_kg) : price;
+    const unitStr = unitVal.toFixed(2).replace(".", ",");
     const totalStr = itemTotal.toFixed(2).replace(".", ",");
+    const qtyStr = isWeight
+      ? `${(Number(item.grams) / 1000).toFixed(3).replace(".", ",")}kg`
+      : String(qty);
 
     const wrappedName = wordWrap(name, itemsCol);
     // First line with all columns
-    const firstLine = String(qty).padEnd(qtyCol)
+    const firstLine = qtyStr.padEnd(qtyCol)
       + wrappedName[0].padEnd(itemsCol)
       + unitStr.padStart(priceCol)
       + totalStr.padStart(totalCol);
