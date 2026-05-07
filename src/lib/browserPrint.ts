@@ -140,7 +140,7 @@ function buildHtml(p: BrowserPrintPayload): string {
   }
   table.items th { font-weight: 900 !important; text-align: left; }
   table.items td.prod, table.items th.prod { text-align: left;  word-break: break-word; }
-  table.items td.qnt,  table.items th.qnt  { text-align: center; width: 7mm;  white-space: nowrap; padding-left: 1mm; }
+  table.items td.qnt,  table.items th.qnt  { text-align: center; width: 14mm; white-space: nowrap; padding-left: 1mm; }
   table.items td.unit, table.items th.unit { text-align: right;  width: 13mm; white-space: nowrap; padding-left: 1mm; }
   table.items td.tot,  table.items th.tot  { text-align: right;  width: 14mm; white-space: nowrap; padding-left: 1mm; }
   table.items tr.compl td {
