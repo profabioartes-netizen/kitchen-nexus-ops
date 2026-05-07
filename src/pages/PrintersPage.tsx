@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Printer, Plus, Edit2, Trash2, X, Lock, CheckCircle2 } from "lucide-react";
+import { Printer, Plus, Edit2, Trash2, X, Lock, CheckCircle2, Wifi, WifiOff } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
 import { printViaBrowser } from "@/lib/browserPrint";
+import { printViaLocalAgent, pingLocalAgent } from "@/lib/localAgentPrint";
 import { setPrintMode } from "@/lib/printPreference";
 
 const DELETE_PIN = "9774";
@@ -20,6 +21,19 @@ export default function PrintersPage() {
   // Garante que o terminal use sempre impressão pelo navegador (sem perguntar).
   useEffect(() => { setPrintMode("native"); }, []);
 
+  // Indicador Agente Local: Online/Offline (faz ping leve a cada 10s).
+  const [agentStatus, setAgentStatus] = useState<"checking" | "online" | "offline">("checking");
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      const ok = await pingLocalAgent();
+      if (!cancelled) setAgentStatus(ok ? "online" : "offline");
+    };
+    check();
+    const id = setInterval(check, 10_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
   const [editing, setEditing] = useState<any | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -31,15 +45,18 @@ export default function PrintersPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [deletePinInput, setDeletePinInput] = useState("");
 
-  const handleBrowserPrintTest = () => {
-    const ok = printViaBrowser({
-      type: "test",
+  const handleBrowserPrintTest = async () => {
+    const payload = {
+      type: "test" as const,
       title: "TESTE DE IMPRESSÃO",
       business_name: "HuskyPDV",
       message: "Se este cupom saiu corretamente, sua impressão está pronta para uso.",
-      paper: "80mm",
-    });
-    if (ok) toast.success("Janela de impressão aberta.");
+      paper: "80mm" as const,
+    };
+    const result = await printViaLocalAgent(payload);
+    if (result.ok && result.via === "agent") toast.success("Impressão enviada");
+    else if (result.ok) toast.success("Janela de impressão aberta.");
+    else toast.error("Não foi possível imprimir.");
   };
 
   // URL pública estática do instalador. Sempre aponta para o domínio oficial,
