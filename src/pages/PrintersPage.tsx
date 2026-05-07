@@ -42,29 +42,17 @@ export default function PrintersPage() {
     if (ok) toast.success("Janela de impressão aberta.");
   };
 
-  const resolvePublicUrl = (): string => {
-    const envUrl = (import.meta.env.VITE_PUBLIC_APP_URL as string | undefined)?.trim();
-    if (envUrl) return envUrl.replace(/\/+$/, "");
-    const origin = window.location.origin;
-    if (!/lovable\.(app|dev)/i.test(origin)) return origin.replace(/\/+$/, "");
-    return "https://huskypdv.com";
-  };
+  // URL pública estática do instalador. Sempre aponta para o domínio oficial,
+  // independentemente de estar rodando no preview do Lovable ou em produção.
+  const INSTALLER_URL = "https://huskypdv.com/downloads/HuskyPDV-Caixa-Setup.exe";
 
-  const downloadHuskyPdvCaixa = async () => {
-    const installerUrl = "/downloads/HuskyPDV-Caixa-Setup.exe";
-    try {
-      // Verifica se o instalador está hospedado antes de iniciar o download
-      const head = await fetch(installerUrl, { method: "HEAD" });
-      if (!head.ok) throw new Error("not-found");
-    } catch {
-      toast.error(
-        "Instalador ainda não está disponível. Atualize a página em alguns minutos."
-      );
-      return;
-    }
+  const downloadHuskyPdvCaixa = () => {
+    // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate,
+    // sem window.location, sem window.open. Não interfere na autenticação.
     const link = document.createElement("a");
-    link.href = installerUrl;
+    link.href = INSTALLER_URL;
     link.download = "HuskyPDV-Caixa-Setup.exe";
+    link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
