@@ -297,62 +297,93 @@ export default function TablesPage() {
     onError: (err) => toast.error((err as Error).message),
   });
 
-  // Toggle delivery for a single ORDER (not table)
+  // Toggle delivery for a single ORDER (not table) — paralelizado + optimistic
   const toggleOrderDelivered = useMutation({
     mutationFn: async ({ orderId, tableId, isDelivered }: { orderId: string; tableId: string; isDelivered: boolean }) => {
       const now = new Date().toISOString();
-      if (!isDelivered) {
-        // Mark order as delivered
-        await supabase.from("orders").update({ delivered_at: now } as any).eq("id", orderId);
-        await supabase.from("order_items")
-          .update({ delivered_at: now } as any)
-          .eq("order_id", orderId)
-          .is("delivered_at", null);
-      } else {
-        // Revert delivery
-        await supabase.from("orders").update({ delivered_at: null } as any).eq("id", orderId);
-        await supabase.from("order_items")
-          .update({ delivered_at: null } as any)
-          .eq("order_id", orderId);
-      }
-      // Recalculate table status based on all orders
-      await recalcTableDeliveryStatus(tableId);
+      const value = !isDelivered ? now : null;
+
+      const orderUpd = supabase.from("orders").update({ delivered_at: value } as any).eq("id", orderId);
+      const itemsUpd = !isDelivered
+        ? supabase.from("order_items").update({ delivered_at: value } as any).eq("order_id", orderId).is("delivered_at", null)
+        : supabase.from("order_items").update({ delivered_at: value } as any).eq("order_id", orderId);
+
+      await Promise.all([orderUpd, itemsUpd]);
+      // Recalc roda em background — não bloqueia o clique
+      void recalcTableDeliveryStatus(tableId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+    onMutate: async ({ orderId, tableId, isDelivered }) => {
+      const value = !isDelivered ? new Date().toISOString() : null;
+      await queryClient.cancelQueries({ queryKey: ["open_orders"] });
+      const prevOrders = queryClient.getQueryData<any[]>(["open_orders"]);
+      queryClient.setQueryData<any[]>(["open_orders"], (old) =>
+        old?.map((o) => (o.id === orderId ? { ...o, delivered_at: value } : o)) ?? old
+      );
+      const prevTables = queryClient.getQueryData<any[]>(["restaurant_tables"]);
+      queryClient.setQueryData<any[]>(["restaurant_tables"], (old) =>
+        old?.map((t) => (t.id === tableId ? { ...t, status: !isDelivered ? "delivered" : "occupied" } : t)) ?? old
+      );
+      return { prevOrders, prevTables };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prevOrders) queryClient.setQueryData(["open_orders"], ctx.prevOrders);
+      if (ctx?.prevTables) queryClient.setQueryData(["restaurant_tables"], ctx.prevTables);
+      toast.error("Erro ao atualizar status de entrega");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
     },
-    onError: () => toast.error("Erro ao atualizar status de entrega"),
   });
 
-  // Toggle ALL orders on a table as delivered
+  // Toggle ALL orders on a table as delivered — paralelizado entre pedidos
   const toggleAllOrdersDelivered = useMutation({
     mutationFn: async ({ tableId, markDelivered }: { tableId: string; markDelivered: boolean }) => {
       const tableOrders = allOrdersByTable[tableId] || [];
-      const now = new Date().toISOString();
+      const value = markDelivered ? new Date().toISOString() : null;
+
+      const ops: Promise<any>[] = [];
       for (const ord of tableOrders) {
+        ops.push(supabase.from("orders").update({ delivered_at: value } as any).eq("id", ord.id));
         if (markDelivered) {
-          await supabase.from("orders").update({ delivered_at: now } as any).eq("id", ord.id);
-          await supabase.from("order_items")
-            .update({ delivered_at: now } as any)
-            .eq("order_id", ord.id)
-            .is("delivered_at", null);
+          ops.push(
+            supabase.from("order_items")
+              .update({ delivered_at: value } as any)
+              .eq("order_id", ord.id)
+              .is("delivered_at", null)
+          );
         } else {
-          await supabase.from("orders").update({ delivered_at: null } as any).eq("id", ord.id);
-          await supabase.from("order_items")
-            .update({ delivered_at: null } as any)
-            .eq("order_id", ord.id);
+          ops.push(supabase.from("order_items").update({ delivered_at: value } as any).eq("order_id", ord.id));
         }
       }
-      await recalcTableDeliveryStatus(tableId);
+      await Promise.all(ops);
+      void recalcTableDeliveryStatus(tableId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+    onMutate: async ({ tableId, markDelivered }) => {
+      const value = markDelivered ? new Date().toISOString() : null;
+      await queryClient.cancelQueries({ queryKey: ["open_orders"] });
+      const prevOrders = queryClient.getQueryData<any[]>(["open_orders"]);
+      const ids = (allOrdersByTable[tableId] || []).map((o: any) => o.id);
+      queryClient.setQueryData<any[]>(["open_orders"], (old) =>
+        old?.map((o) => (ids.includes(o.id) ? { ...o, delivered_at: value } : o)) ?? old
+      );
+      const prevTables = queryClient.getQueryData<any[]>(["restaurant_tables"]);
+      queryClient.setQueryData<any[]>(["restaurant_tables"], (old) =>
+        old?.map((t) => (t.id === tableId ? { ...t, status: markDelivered ? "delivered" : "occupied" } : t)) ?? old
+      );
+      return { prevOrders, prevTables };
+    },
+    onError: (_e, _v, ctx: any) => {
+      if (ctx?.prevOrders) queryClient.setQueryData(["open_orders"], ctx.prevOrders);
+      if (ctx?.prevTables) queryClient.setQueryData(["restaurant_tables"], ctx.prevTables);
+      toast.error("Erro ao atualizar status de entrega");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
     },
-    onError: () => toast.error("Erro ao atualizar status de entrega"),
   });
 
   // Recalculate table status based on its orders' delivered_at
