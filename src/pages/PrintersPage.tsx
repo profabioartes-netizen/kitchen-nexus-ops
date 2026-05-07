@@ -80,26 +80,59 @@ $appDir = Join-Path $env:APPDATA 'HuskyPDV'
 if (-not (Test-Path $appDir)) { New-Item -ItemType Directory -Path $appDir | Out-Null }
 
 $iconPath = Join-Path $appDir 'huskypdv.ico'
+
+# Forca TLS 1.2 (PowerShell 5.1 padrao usa TLS 1.0 e Cloudflare rejeita)
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+
+$iconOk = $false
 try {
-  Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing
+  if (Test-Path $iconPath) { Remove-Item $iconPath -Force -ErrorAction SilentlyContinue }
+  Invoke-WebRequest -Uri $iconUrl -OutFile $iconPath -UseBasicParsing -TimeoutSec 30
+  if ((Test-Path $iconPath) -and ((Get-Item $iconPath).Length -gt 1000)) { $iconOk = $true }
 } catch {
-  Write-Host 'Aviso: nao foi possivel baixar o icone personalizado.' -ForegroundColor Yellow
+  Write-Host ('Aviso: falha Invoke-WebRequest: ' + $_.Exception.Message) -ForegroundColor Yellow
+}
+
+if (-not $iconOk) {
+  try {
+    $wc = New-Object System.Net.WebClient
+    $wc.DownloadFile($iconUrl, $iconPath)
+    if ((Test-Path $iconPath) -and ((Get-Item $iconPath).Length -gt 1000)) { $iconOk = $true }
+  } catch {
+    Write-Host ('Aviso: WebClient falhou: ' + $_.Exception.Message) -ForegroundColor Yellow
+  }
 }
 
 $desktop = [Environment]::GetFolderPath('Desktop')
 $lnk = Join-Path $desktop 'HuskyPDV Caixa.lnk'
+if (Test-Path $lnk) { Remove-Item $lnk -Force -ErrorAction SilentlyContinue }
 
 $sh = New-Object -ComObject WScript.Shell
 $s = $sh.CreateShortcut($lnk)
 $s.TargetPath = $browser
 $s.Arguments = '--kiosk-printing --app="' + $url + '"'
 $s.WorkingDirectory = Split-Path $browser
-if (Test-Path $iconPath) { $s.IconLocation = $iconPath } else { $s.IconLocation = $browser }
+if ($iconOk) { $s.IconLocation = $iconPath + ',0' } else { $s.IconLocation = $browser + ',0' }
 $s.Description = 'HuskyPDV Caixa'
 $s.Save()
 
+# Limpa cache de icones e reinicia Explorer para o icone novo aparecer imediatamente
+try {
+  $cacheDir = Join-Path $env:LOCALAPPDATA 'Microsoft\\Windows\\Explorer'
+  Get-ChildItem -Path $cacheDir -Filter 'iconcache_*.db' -Force -ErrorAction SilentlyContinue | ForEach-Object {
+    try { Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue } catch {}
+  }
+  Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+  Start-Sleep -Milliseconds 800
+  if (-not (Get-Process -Name explorer -ErrorAction SilentlyContinue)) { Start-Process explorer.exe }
+} catch {}
+
 Write-Host ''
-Write-Host '  Atalho criado com sucesso!' -ForegroundColor Green
+if ($iconOk) {
+  Write-Host '  Atalho criado com icone HuskyPDV!' -ForegroundColor Green
+} else {
+  Write-Host '  Atalho criado (icone padrao - falha ao baixar logo).' -ForegroundColor Yellow
+}
 Write-Host '  Use o icone HuskyPDV Caixa na Area de Trabalho.' -ForegroundColor Green
 `;
 

@@ -1,46 +1,26 @@
-## Problema
+## Por que o ícone não aparece
 
-O erro "Usuário sem tenant vinculado não pode inserir dados" aparece porque o usuário `minhaeradigital@gmail.com` (dono do tenant "Fábio Teste") **não tem registro na tabela `profiles`**, mesmo tendo vínculo válido em `user_tenants` com o tenant `71e98c23-...` como `admin_cliente`.
+Investiguei o `.ico` em `public/icons/huskypdv.ico` — está válido (multi-resolução 16→256, servido pela Cloudflare como `image/vnd.microsoft.icon`). O problema está no script PowerShell embutido no `.bat`:
 
-A função `current_tenant_id()` consulta apenas `profiles.tenant_id`, retorna NULL, e o trigger `enforce_tenant_id` bloqueia toda inserção/edição (categorias, produtos, configurações, etc.).
+1. **PowerShell 5.1 (padrão do Windows 10/11) usa TLS 1.0 por padrão.** Cloudflare exige TLS 1.2+, então `Invoke-WebRequest` falha silenciosamente. O `try/catch` engole o erro e o atalho fica sem ícone — caindo no fallback do Chrome.
+2. **`IconLocation` sem índice** (`,0`) é interpretado de forma inconsistente pelo Explorer quando o `.ico` tem múltiplas resoluções.
+3. **Cache de ícones do Windows** (`iconcache_*.db`) segura ícones antigos mesmo após o atalho ser corrigido, o que dá impressão de que "não funcionou".
 
-Outros usuários novos provavelmente terão o mesmo problema se o trigger de criação de profile não rodar / não preencher tenant_id.
+## Correções no `src/pages/PrintersPage.tsx`
 
-## Correção (migration SQL)
+Atualizar o script PowerShell embutido no gerador `.bat` para:
 
-1. **Backfill imediato**: criar/atualizar `profiles` para todos os usuários que já têm vínculo ativo em `user_tenants` mas estão sem `tenant_id` em `profiles`.
-   ```sql
-   INSERT INTO public.profiles (id, tenant_id)
-   SELECT ut.user_id, ut.tenant_id
-   FROM public.user_tenants ut
-   WHERE ut.active = true
-   ON CONFLICT (id) DO UPDATE
-     SET tenant_id = COALESCE(public.profiles.tenant_id, EXCLUDED.tenant_id);
-   ```
+- Forçar `[Net.ServicePointManager]::SecurityProtocol = Tls12` antes do download.
+- Validar download: arquivo precisa existir e ter > 1000 bytes; senão tentar novamente com `System.Net.WebClient` (fallback).
+- Mostrar mensagem clara se o download falhou (em vez de silencioso).
+- Remover `.lnk` antigo antes de recriar (evita herdar atributos cacheados).
+- Usar `IconLocation = "$iconPath,0"` (com índice explícito).
+- Limpar `iconcache_*.db` em `%LOCALAPPDATA%\Microsoft\Windows\Explorer` e reiniciar `explorer.exe` para o ícone novo aparecer imediatamente, sem precisar logoff.
 
-2. **Tornar `current_tenant_id()` resiliente**: fallback para `user_tenants` quando `profiles.tenant_id` for NULL — assim, mesmo que o profile não exista, o tenant é resolvido.
-   ```sql
-   CREATE OR REPLACE FUNCTION public.current_tenant_id(_user_id uuid DEFAULT auth.uid())
-   RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-     SELECT COALESCE(
-       (SELECT tenant_id FROM public.profiles WHERE id = _user_id),
-       (SELECT tenant_id FROM public.user_tenants
-         WHERE user_id = _user_id AND active = true
-         ORDER BY created_at ASC LIMIT 1)
-     )
-   $$;
-   ```
+Nenhuma mudança no `.ico` em si — ele já está correto.
 
-3. **Trigger de auto-sync**: quando uma linha for criada/atualizada em `user_tenants`, garantir que o `profiles.tenant_id` do usuário fique preenchido.
-   ```sql
-   CREATE OR REPLACE FUNCTION public.sync_profile_tenant() ...
-     INSERT INTO profiles(id, tenant_id) VALUES (NEW.user_id, NEW.tenant_id)
-     ON CONFLICT (id) DO UPDATE SET tenant_id = COALESCE(profiles.tenant_id, EXCLUDED.tenant_id);
-   CREATE TRIGGER trg_sync_profile_tenant AFTER INSERT OR UPDATE ON user_tenants ...
-   ```
+## Critério de aceite
 
-## Resultado
-
-- Fábio Teste consegue salvar configurações, criar categorias e produtos imediatamente.
-- Novos clientes onboardados via convite/edge function não cairão mais nesse buraco.
-- Nenhuma mudança de UI necessária.
+- Após rodar o `.bat`, o atalho "HuskyPDV Caixa" exibe o logo HuskyPDV (não mais ícone branco/Chrome).
+- Se o download falhar (sem internet), mensagem clara em amarelo informando.
+- Funciona em Windows 10/11 com PowerShell 5.1 padrão.
