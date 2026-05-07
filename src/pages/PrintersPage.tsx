@@ -76,8 +76,19 @@ export default function PrintersPage() {
       toast.success(`Conectado ao Agente${version}.${printer}`);
       alert(`✅ Conectado ao HuskyPrintAgent${version}.\nImpressora padrão: ${info.printer || "(nenhuma)"}`);
     } else {
-      toast.error("Falha na Conexão com o Agente (127.0.0.1:8080)");
-      alert("❌ Falha na Conexão.\nVerifique se o HuskyPrintAgent está rodando em http://127.0.0.1:8080");
+      toast.error("Falha na Conexão com o Agente local");
+      alert(
+        "❌ Não consegui falar com o HuskyPrintAgent.\n\n" +
+        "Checklist:\n" +
+        "1. Abra o Gerenciador de Tarefas (Ctrl+Shift+Esc) e procure por \"HuskyPDV Agent\" ou \"HuskyPrintAgent.exe\". Se NÃO aparecer, o programa fechou sozinho ao abrir.\n\n" +
+        "2. Se o programa fecha instantaneamente:\n" +
+        "   • Instale o Microsoft Edge WebView2 Runtime:\n" +
+        "     https://go.microsoft.com/fwlink/p/?LinkId=2124703\n" +
+        "   • Adicione exclusão no Windows Defender para a pasta de instalação.\n" +
+        "   • Veja o log em: %LOCALAPPDATA%\\HuskyPDV Agent\\agent.log\n\n" +
+        "3. Confira se a porta 8080 não está sendo usada por outro programa\n" +
+        "   (no CMD: netstat -ano | findstr :8080)."
+      );
     }
     setAgentStatus(info.online ? "online" : "offline");
     setAgentPrinter(info.printer);
