@@ -1,73 +1,56 @@
-# HuskyPDV Agent (Desktop)
+# HuskyPDV Desktop Agent (Tauri v2)
 
-Cliente desktop em **Tauri v2 + React** para Windows. Substitui o instalador `.zip + .bat`.
+Agente de impressão local em **Rust + Tauri v2**, distribuído como instalador
+NSIS `.exe` nativo do Windows. Substitui o antigo agente Python (PyInstaller),
+que era frequentemente bloqueado por antivírus como falso-positivo.
 
-## O que faz
+## 🚀 Como gerar o instalador (sem precisar de Rust no seu PC)
 
-1. App nativo Windows (~5-8 MB) instalado via `HuskyPDV-Agent-Setup.exe` (NSIS).
-2. Inicia com Windows (autostart).
-3. Pede o **código de pareamento de 6 dígitos** gerado no painel HuskyPDV em `/impressoras`.
-4. Lista as impressoras instaladas no Windows (via comando `wmic` / `Get-Printer`).
-5. Permite escolher uma impressora padrão e fazer **Teste de impressão**.
-6. Mantém status **online** enviando heartbeat a cada 30s para o backend.
+O build roda na nuvem via **GitHub Actions** em um runner Windows.
 
-## Setup local (desenvolvedor)
+1. Abra: <https://github.com/profabioartes-netizen/kitchen-nexus-ops/actions>
+2. Selecione o workflow **"Build & Release Windows Installer"**.
+3. Clique em **Run workflow** → branch `main` → botão verde **Run workflow**.
+4. Aguarde ~5–7 minutos (a primeira execução é mais lenta; depois fica em cache).
+5. Baixe **`HuskyPDV-Agent-Setup`** na seção **Artifacts** da execução.
 
-Pré-requisitos:
-- Node 20+
-- Rust (https://rustup.rs/)
-- Windows: Visual Studio Build Tools com "Desktop development with C++"
-
-```bash
-cd desktop-agent
-npm install
-npm run tauri dev
-```
-
-## Build manual de instalador
-
-```bash
-npm run tauri build
-# Saída: src-tauri/target/release/bundle/nsis/HuskyPDV-Agent_<versão>_x64-setup.exe
-```
-
-## Build automatizado (recomendado)
-
-Faça um push de tag `v*` para o repositório privado. O workflow em
-`.github/workflows/release.yml` builda o `.exe` no Windows runner do GitHub
-Actions e publica em **GitHub Releases**.
+### Publicar como Release pública (ativa o botão "Baixar" em `/impressoras`)
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-A URL pública do instalador (mesmo em repo privado, com token) ficará em:
-`https://github.com/<org>/<repo>/releases/latest/download/HuskyPDV-Agent-Setup.exe`
+Isso roda o workflow novamente e anexa o `.exe` à release pública. A URL fixa
+(usada pelo botão na tela de Impressoras) é:
 
-> Como o repo é privado, você precisa decidir se vai:
-> a) Tornar o release público (recomendado — só o binário fica acessível) via configuração da release, ou
-> b) Fazer proxy do download através de uma edge function do HuskyPDV que injeta o token GH.
-
-Por padrão o painel aponta pra `huskypdv-agent.s3.amazonaws.com` ou pra release pública — você ajusta a env `VITE_AGENT_DOWNLOAD_URL` no projeto Lovable.
-
-## Configuração que precisa estar no app
-
-O app embute apenas dados públicos (URL e ANON KEY do Supabase). A configuração
-sensível (token do agente) é gravada no `appConfigDir` após o pareamento.
-
-`src/config.ts`:
-```ts
-export const SUPABASE_URL = "https://rydfhkphvhkqxwpqoeku.supabase.co";
-export const SUPABASE_ANON_KEY = "<chave anon do projeto>";
+```
+https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPDV-Agent-Setup.exe
 ```
 
-## Roadmap
+## Por que Tauri/Rust em vez de Python?
 
-- [x] Pareamento 6 dígitos
-- [x] Listar impressoras Windows
-- [x] Teste de impressão
-- [x] Heartbeat
-- [ ] Processar fila de `print_jobs` em tempo real (precisa de edge function `agent-jobs`)
-- [ ] Auto-update via `tauri-plugin-updater`
-- [ ] Code signing (DigiCert / Azure Trusted Signing)
+- **Sem falso-positivo**: binário Rust nativo + instalador NSIS padrão é o mesmo
+  formato usado por Discord, VS Code, Spotify. Defender/Avast não reagem.
+- **Tamanho menor**: ~6 MB vs ~40 MB do PyInstaller.
+- **Sem janela preta**: roda silencioso na bandeja do sistema.
+
+## Instalação no PC do cliente
+
+1. Baixe o `HuskyPDV-Agent-Setup.exe` pelo botão na tela `/impressoras`.
+2. Execute o instalador (instalação per-machine, requer admin).
+3. O agente inicia automaticamente com o Windows (plugin `autostart` ativado).
+4. Defina a impressora térmica como **padrão** no Windows.
+5. Volte ao HuskyPDV → o badge fica **Online**.
+
+## Build local (opcional)
+
+Pré-requisitos: Node 20+, Rust stable, Visual Studio Build Tools.
+
+```bash
+cd desktop-agent
+npm install
+npm run tauri build -- --bundles nsis
+```
+
+Saída: `src-tauri/target/release/bundle/nsis/*-setup.exe`.
