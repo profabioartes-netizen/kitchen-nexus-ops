@@ -431,8 +431,8 @@ export default function PaymentPanel({
     const item = unpaidItems.find((i) => i.id === splitItemDialog.id);
     if (!item) return;
     if (splitMode === "quantity") {
-      const totalItemValue = Number(item.price) * item.remainingQty;
-      const fractionedValue = Number((totalItemValue / splitQtyDivisor).toFixed(2));
+      const totalItemValue = FinanceUtils.multiply(item.price, item.remainingQty);
+      const fractionedValue = FinanceUtils.round(totalItemValue / splitQtyDivisor, 2);
       // Add a split entry to the summary (does NOT consume from left panel)
       setSplitEntries((prev) => [
         ...prev,
