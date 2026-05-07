@@ -162,19 +162,19 @@ const App = () => (
               }
             >
               <Route path="/" element={<TablesPage />} />
-              <Route path="/mesas/gerenciar" element={<TableManagementPage />} />
+              <Route path="/mesas/gerenciar" element={<BlockWaiter><TableManagementPage /></BlockWaiter>} />
               <Route path="/mesas/:tableId/pedido" element={<TableOrderPage />} />
-              <Route path="/cozinha" element={<KitchenStationPage />} />
-              <Route path="/caixa" element={<CashierPage />} />
-              <Route path="/controle-caixa" element={<CashRegisterPage />} />
-              <Route path="/produtos" element={<ProductsPage />} />
-              <Route path="/impressoras" element={<PrintersPage />} />
-              <Route path="/impressoras/agente" element={<PrintAgentPage />} />
-              <Route path="/impressoras/ajuda" element={<PrinterHelpPage />} />
-              <Route path="/relatorios" element={<ReportsPage />} />
-              <Route path="/vendas" element={<SalesPage />} />
-              <Route path="/usuarios" element={<UsersPage />} />
-              <Route path="/configuracoes" element={<SettingsPage />} />
+              <Route path="/cozinha" element={<BlockWaiter><KitchenStationPage /></BlockWaiter>} />
+              <Route path="/caixa" element={<BlockWaiter><CashierPage /></BlockWaiter>} />
+              <Route path="/controle-caixa" element={<BlockWaiter><CashRegisterPage /></BlockWaiter>} />
+              <Route path="/produtos" element={<BlockWaiter><ProductsPage /></BlockWaiter>} />
+              <Route path="/impressoras" element={<BlockWaiter><PrintersPage /></BlockWaiter>} />
+              <Route path="/impressoras/agente" element={<BlockWaiter><PrintAgentPage /></BlockWaiter>} />
+              <Route path="/impressoras/ajuda" element={<BlockWaiter><PrinterHelpPage /></BlockWaiter>} />
+              <Route path="/relatorios" element={<BlockWaiter><ReportsPage /></BlockWaiter>} />
+              <Route path="/vendas" element={<BlockWaiter><SalesPage /></BlockWaiter>} />
+              <Route path="/usuarios" element={<BlockWaiter><UsersPage /></BlockWaiter>} />
+              <Route path="/configuracoes" element={<BlockWaiter><SettingsPage /></BlockWaiter>} />
             </Route>
 
             {/* Super Admin Platform */}
