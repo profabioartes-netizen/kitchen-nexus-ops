@@ -96,6 +96,7 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
 export function NavigationRail() {
   const { profile, signOut } = useAuth();
   const { isSuperAdmin, tenant } = useTenant();
+  const isWaiter = profile?.role === "waiter";
   const { data: businessType } = useQuery({
     queryKey: ["restaurant_setting", "business_type"],
     queryFn: async () => {
