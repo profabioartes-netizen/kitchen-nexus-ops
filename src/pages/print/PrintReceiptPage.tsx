@@ -48,6 +48,19 @@ export default function PrintReceiptPage() {
         }
       }
 
+      // Carrega sale_type/price_per_kg para identificar itens vendidos por peso
+      const productIds = Array.from(new Set((items || []).map((i: any) => i.product_id).filter(Boolean)));
+      const productMeta: Record<string, { sale_type?: string | null; price_per_kg?: number | null }> = {};
+      if (productIds.length) {
+        const { data: prods } = await supabase
+          .from("products")
+          .select("id, sale_type, price_per_kg")
+          .in("id", productIds);
+        for (const p of prods || []) {
+          productMeta[p.id] = { sale_type: (p as any).sale_type, price_per_kg: (p as any).price_per_kg };
+        }
+      }
+
       const { data: payments } = await supabase
         .from("payments")
         .select("method, amount")
@@ -70,6 +83,7 @@ export default function PrintReceiptPage() {
         order,
         items: items || [],
         complByItem,
+        productMeta,
         payments: payments || [],
         business_name: tenant?.nome_comercio || "HuskyPDV",
         business_phone: sMap.business_phone || "",
