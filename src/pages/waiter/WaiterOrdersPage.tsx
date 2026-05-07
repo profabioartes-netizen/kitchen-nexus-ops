@@ -25,11 +25,15 @@ export default function WaiterOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, restaurant_tables(name, sort_order)")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
+        .select("id, table_id, status, total, waiter_name, customer_name, created_at, restaurant_tables(name, sort_order)")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
       return data;
     },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const sortedOrders = useMemo(() => {
