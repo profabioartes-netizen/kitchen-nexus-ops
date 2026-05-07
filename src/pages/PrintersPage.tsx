@@ -244,12 +244,19 @@ export default function PrintersPage() {
             Imprima pedidos diretamente pela impressora do computador.
           </p>
           {/* Indicador Agente Local */}
-          <div className="flex justify-center pt-1">
+          <div className="flex flex-col items-center gap-1 pt-1">
             {agentStatus === "online" ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))] px-3 py-1 text-xs font-semibold">
-                <Wifi className="h-3.5 w-3.5" />
-                Agente Local: Online
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))] px-3 py-1 text-xs font-semibold">
+                  <Wifi className="h-3.5 w-3.5" />
+                  Agente Local: Online
+                </span>
+                {agentPrinter && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Impressora padrão: <strong className="text-foreground">{agentPrinter}</strong>
+                  </span>
+                )}
+              </>
             ) : agentStatus === "offline" ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1 text-xs font-semibold">
                 <WifiOff className="h-3.5 w-3.5" />
