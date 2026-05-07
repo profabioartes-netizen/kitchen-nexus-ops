@@ -25,9 +25,17 @@ type RawItem = {
   notes?: string | null;
 };
 
-/** Extrai gramas do nome no padrão "Nome - 378g". */
+/** Extrai gramas do nome no padrão "Nome - 378g" ou "Nome - 0,378kg". */
 export function extractGramsFromName(name: string): number | null {
-  const m = String(name || "").match(/(\d+(?:[.,]\d+)?)\s*g\s*$/i);
+  const s = String(name || "");
+  // Tenta "0,348 kg" / "0.348kg"
+  const mKg = s.match(/(\d+(?:[.,]\d+)?)\s*kg\s*$/i);
+  if (mKg) {
+    const n = parseFloat(mKg[1].replace(",", "."));
+    if (Number.isFinite(n) && n > 0) return Math.round(n * 1000);
+  }
+  // Fallback "378g"
+  const m = s.match(/(\d+(?:[.,]\d+)?)\s*g\s*$/i);
   if (!m) return null;
   const n = parseFloat(m[1].replace(",", "."));
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
