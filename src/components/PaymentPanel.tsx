@@ -959,7 +959,7 @@ export default function PaymentPanel({
                   total: grandTotal,
                   payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
                   change: payments.find(p => p.method === "cash") ?
-                    Math.max(0, payments.filter(p => p.method === "cash").reduce((s, p) => s + p.amount, 0) - grandTotal) : null,
+                    Math.max(0, FinanceUtils.sum([FinanceUtils.sum(payments.filter(p => p.method === "cash").map(p => p.amount)), -grandTotal])) : null,
                   footer_message: "Volte sempre!!!",
                 };
 
