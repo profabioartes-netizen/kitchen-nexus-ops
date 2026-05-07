@@ -54,7 +54,7 @@ export default function WaiterTablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("restaurant_tables")
-        .select("id, name, internal_number, sector, status, sort_order, seats")
+        .select("id, name, default_name, internal_number, sector, status, sort_order, seats")
         .eq("active", true)
         .order("sort_order", { ascending: true });
       if (error) throw error;
