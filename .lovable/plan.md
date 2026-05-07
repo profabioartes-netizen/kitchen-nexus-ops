@@ -1,71 +1,41 @@
-## Problema
+## Diagnóstico
 
-Para produtos vendidos por peso (ex.: "Refeição - 378g"), na impressão a coluna **UNIT** está mostrando o valor total do peso (R$ 30,20), e não o **preço do kg** configurado no produto. A coluna **QNT** também aparece como `1` em vez do peso.
+A impressão da conta no `PaymentPanel` segue o fluxo:
 
-Isso ocorre porque `order_items.price` guarda o subtotal do pesado (gramas × R$/kg) e `quantity = 1`. Os renderers de impressão hoje só recebem `{quantity, price}`, sem saber que é venda por peso.
+1. Lê `getPrintMode()` do localStorage (`src/lib/printPreference.ts`).
+2. Padrão é `"ask"` quando o usuário nunca abriu a página `/impressoras`.
+3. No modo `"ask"`/`"agent"`, tenta inserir um job em `print_jobs` para o **HuskyPDV Agent**.
+4. No PC do Marcelo o Agent não está pareado / não roda, então a inserção falha (timeout 6s) e o usuário vê **"Falha ao imprimir"**.
 
-## Solução
+A impressão **nativa pelo navegador** (`printViaBrowser` em `src/lib/browserPrint.ts`) já está pronta e funcional — usa `<iframe>` oculto + `window.print()` e o pop-up onde o Marcelo já selecionou a impressora correta.
 
-Enriquecer cada item no payload de impressão com metadados de venda por peso e ajustar todos os renderers para exibir, nesses casos:
+A página `PrintersPage` chama `setPrintMode("native")` no `useEffect`, mas só roda se o usuário abrir essa página antes de imprimir. Como o cliente nunca abriu, o modo continua em `"ask"`.
 
-- **QNT** → `0,378 kg` (ou `378 g`)
-- **UNIT** → `R$ 50,00` (preço por kg)
-- **TOTAL** → continua o mesmo (price × quantity)
+## Correção
 
-### Onde alterar
+### 1. `src/lib/printPreference.ts`
+Mudar o default de `getPrintMode()` de `"ask"` para `"native"`. A arquitetura atual (HuskyPDV Caixa Launcher + impressão pelo Chrome em modo `--kiosk-printing`) torna o Agent obsoleto para impressão de cupom não-fiscal.
 
-**1. Origem dos dados** — buscar `sale_type` e `price_per_kg` dos produtos referenciados pelos itens (já temos `product_id` em `order_items`):
+### 2. `src/components/PaymentPanel.tsx` (botão imprimir conta, ~linha 962-1013)
+Simplificar o fluxo: usar **sempre** `printViaBrowser(...)`. Remover:
+- a tentativa de `supabase.from("print_jobs").insert(...)`,
+- o `window.confirm` perguntando ao usuário,
+- a ramificação por `getPrintMode()`.
 
-- `src/pages/TableOrderPage.tsx` (mutation `printBill`)
-- `src/components/PaymentPanel.tsx` (recibo de pagamento)
-- `src/pages/CashierPage.tsx` (`printBill`, `printReceipt`, `handleFinalizeAndPrint`)
-- `src/pages/waiter/WaiterOrderPage.tsx` (impressão de cozinha — opcional, peso aparece só no nome)
+Mantém apenas: chamar `printViaBrowser({ ...billPayload, paper: "80mm" })` e `toast.success("Imprimindo...")`. Se retornar `false`, mostra `toast.error("Não foi possível abrir a impressão.")`.
 
-Em cada lugar, fazer um `select id, sale_type, price_per_kg` em `products` para os IDs dos itens e adicionar ao payload de cada item:
-```ts
-{
-  product_name, quantity, price,
-  sale_type: 'weight' | 'unit',
-  price_per_kg: number | null,
-  grams: number | null,   // extraído do product_name "... - 378g"
-  complements: [...],
-}
-```
+### 3. `src/pages/TableOrderPage.tsx` (linha 643)
+Mesma simplificação: usar `printViaBrowser` direto, sem branch por modo, para garantir consistência em todos os pontos de impressão de conta.
 
-`grams` é derivado do sufixo do nome (já é o padrão atual em `AddItemDialog.handleAdd`: `"${product.name} - ${gramsNum}g"`).
+### 4. (opcional) `src/pages/PrintersPage.tsx`
+Manter o `setPrintMode("native")` por compatibilidade, mas a UI de seleção de modo pode ser escondida já que só temos um caminho ativo.
 
-**2. Renderers** — quando `sale_type === 'weight'`:
+## Resultado esperado
 
-- `src/lib/browserPrint.ts` (linhas 50-65 — montagem de `<tr>`):
-  - Coluna QNT → `${(grams/1000).toFixed(3).replace('.',',')} kg`
-  - Coluna UNIT → preço por kg formatado
-  - Limpar o sufixo `" - 378g"` do nome (já está na coluna QNT)
+Marcelo clica em imprimir → o pop-up de impressão do Chrome abre (ou imprime direto se estiver com `--kiosk-printing` via HuskyPDV Caixa Launcher) → cupom sai na impressora térmica já selecionada. **Sem mais "Falha ao imprimir"**.
 
-- `print-agent/agent.mjs` (linhas 678-699 — loop de itens do recibo):
-  - Mesma lógica: trocar `qty` e `unitStr` quando `item.sale_type === 'weight'`
-  - Usar `item.price_per_kg` para UNIT
-  - `item.grams/1000` formatado como `0,378 kg` para QTD
+## Arquivos alterados
 
-- `supabase/functions/generate-print-agent-installer/agent-source.ts`:
-  - Esse arquivo é uma cópia "embedada" de `print-agent/agent.mjs` usada pelo instalador. Aplicar a mesma alteração para que novos instaladores gerados saiam corretos.
-
-- `desktop-agent/src/render.ts` (renderer Tauri novo):
-  - O loop de itens do recibo (`type === 'payment_receipt'`) precisa do mesmo tratamento condicional.
-
-- `src/pages/print/PrintReceiptPage.tsx` (recibo HTML alternativo):
-  - Mesmo ajuste nas colunas QNT/UNIT.
-
-### Detalhes técnicos
-
-- **Identificar peso sem mudar schema**: usamos `sale_type === 'weight'` vindo de `products` no payload. Não precisa migrar `order_items`.
-- **Extração de gramas**: usar regex `/(\d+)\s*g\s*$/i` no `product_name`. Fallback: se não der parse, calcular `Math.round((price / price_per_kg) * 1000)`.
-- **Formato**: `qtdKg = (grams/1000).toFixed(3).replace('.', ',')` → `"0,378"`. Concatenar `" kg"` na coluna QNT (no agent ESC/POS pode ficar `"0,378kg"` para caber em 4 colunas; verificar largura).
-- **Compatibilidade**: itens unitários continuam funcionando (campos novos `sale_type/price_per_kg/grams` são opcionais; renderers só agem quando `sale_type === 'weight'`).
-- **Limpeza do nome**: opcional remover `" - 378g"` do nome impresso (já que aparece na coluna QNT). Manter por enquanto para não quebrar layout de tickets de cozinha.
-
-## Resultado esperado no recibo
-
-```
-PRODUTO                       QNT       UNIT    TOTAL
-Refeição                   0,378 kg    50,00    30,20
-```
+- `src/lib/printPreference.ts`
+- `src/components/PaymentPanel.tsx`
+- `src/pages/TableOrderPage.tsx`
