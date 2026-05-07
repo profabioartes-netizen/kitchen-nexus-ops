@@ -65,10 +65,9 @@ export default function PrintersPage() {
   };
 
   // URL pública e estável do instalador NSIS (Tauri/Rust).
-  // Gerado pelo GitHub Actions — workflow .github/workflows/build-desktop-agent.yml.
-  // Sempre aponta para a ÚLTIMA release publicada (criar tag v0.1.0 no GitHub).
+  // Aponta para a release fixa `print-agent-v1.0.0` publicada no GitHub.
   const INSTALLER_URL =
-    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe";
+    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/download/print-agent-v1.0.0/HuskyPrintAgent.exe";
 
 
   const downloadHuskyPdvCaixa = () => {
