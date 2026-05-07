@@ -1,8 +1,9 @@
-// Cliente para o Agente Local de impressão (HTTP em http://127.0.0.1:8080).
-// Uso: tenta enviar o payload ao agente; se offline/erro, faz fallback para
-// impressão nativa (printViaBrowser ou window.print()).
+// Cliente para o HuskyPDV Print Agent (Python/Flask em http://127.0.0.1:8080).
+// Envia o cupom já formatado como texto monoespaçado (RAW) para o agente.
+// Se o agente estiver offline, faz fallback para impressão nativa pelo navegador.
 
 import { printViaBrowser, type BrowserPrintPayload } from "./browserPrint";
+import { formatReceiptText } from "./receiptText";
 
 export const LOCAL_AGENT_URL = "http://127.0.0.1:8080";
 const PRINT_ENDPOINT = `${LOCAL_AGENT_URL}/print`;
@@ -13,10 +14,15 @@ export type LocalAgentResult =
   | { ok: true; via: "browser" }
   | { ok: false; via: "browser"; error: string };
 
+export type AgentPingInfo = {
+  online: boolean;
+  printer?: string;
+  version?: string;
+};
+
 /**
- * Tenta enviar o payload de impressão para o Agente Local.
- * Se o agente estiver offline (erro de conexão), faz fallback para impressão
- * nativa via printViaBrowser (que dispara o window.print do iframe).
+ * Tenta enviar o cupom para o Print Agent. Em caso de erro/timeout,
+ * cai para `printViaBrowser` (window.print via iframe oculto).
  */
 export async function printViaLocalAgent(
   payload: BrowserPrintPayload,
@@ -26,23 +32,22 @@ export async function printViaLocalAgent(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const content = formatReceiptText(payload);
     const r = await fetch(PRINT_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ content, copies: 1 }),
       signal: controller.signal,
       mode: "cors",
     });
     clearTimeout(timer);
     if (r.ok) return { ok: true, via: "agent" };
-    // Status != 200 → considera falha e cai no fallback nativo
     const ok = printViaBrowser(payload);
     return ok
       ? { ok: true, via: "browser" }
       : { ok: false, via: "browser", error: `HTTP ${r.status}` };
   } catch (e) {
     clearTimeout(timer);
-    // Erro de conexão (agente offline) → fallback nativo
     const ok = printViaBrowser(payload);
     return ok
       ? { ok: true, via: "browser" }
@@ -51,10 +56,9 @@ export async function printViaLocalAgent(
 }
 
 /**
- * Verifica se o agente local está online. Tenta /ping primeiro; se não houver,
- * cai para uma chamada HEAD em /. Qualquer resposta HTTP conta como "online".
+ * Verifica se o agente local está online e retorna nome da impressora padrão.
  */
-export async function pingLocalAgent(timeoutMs = 1500): Promise<boolean> {
+export async function pingLocalAgent(timeoutMs = 1500): Promise<AgentPingInfo> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -65,24 +69,15 @@ export async function pingLocalAgent(timeoutMs = 1500): Promise<boolean> {
       cache: "no-store",
     });
     clearTimeout(timer);
-    return r.ok;
+    if (!r.ok) return { online: false };
+    const data = await r.json().catch(() => ({}));
+    return {
+      online: true,
+      printer: data?.printer || undefined,
+      version: data?.version || undefined,
+    };
   } catch {
     clearTimeout(timer);
-    // Fallback: tenta a raiz
-    try {
-      const controller2 = new AbortController();
-      const t2 = setTimeout(() => controller2.abort(), timeoutMs);
-      const r2 = await fetch(LOCAL_AGENT_URL, {
-        method: "GET",
-        signal: controller2.signal,
-        mode: "no-cors",
-        cache: "no-store",
-      });
-      clearTimeout(t2);
-      // no-cors retorna opaque; se chegou aqui sem throw, o socket respondeu.
-      return true;
-    } catch {
-      return false;
-    }
+    return { online: false };
   }
 }

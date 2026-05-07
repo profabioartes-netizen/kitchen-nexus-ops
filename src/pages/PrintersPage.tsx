@@ -21,13 +21,16 @@ export default function PrintersPage() {
   // Garante que o terminal use sempre impressão pelo navegador (sem perguntar).
   useEffect(() => { setPrintMode("native"); }, []);
 
-  // Indicador Agente Local: Online/Offline (faz ping leve a cada 10s).
+  // Indicador Agente Local: Online/Offline + impressora padrão.
   const [agentStatus, setAgentStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [agentPrinter, setAgentPrinter] = useState<string | undefined>(undefined);
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      const ok = await pingLocalAgent();
-      if (!cancelled) setAgentStatus(ok ? "online" : "offline");
+      const info = await pingLocalAgent();
+      if (cancelled) return;
+      setAgentStatus(info.online ? "online" : "offline");
+      setAgentPrinter(info.printer);
     };
     check();
     const id = setInterval(check, 10_000);
@@ -59,16 +62,15 @@ export default function PrintersPage() {
     else toast.error("Não foi possível imprimir.");
   };
 
-  // URL pública estática do instalador. Sempre aponta para o domínio oficial,
-  // independentemente de estar rodando no preview do Lovable ou em produção.
-  const INSTALLER_URL = "https://huskypdv.com/downloads/HuskyPDV-Caixa-Setup.exe";
+  // URL pública estática do instalador do HuskyPDV Print Agent (Python/Flask).
+  const INSTALLER_URL = "https://huskypdv.com/downloads/HuskyPrintAgent.exe";
+
 
   const downloadHuskyPdvCaixa = () => {
-    // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate,
-    // sem window.location, sem window.open. Não interfere na autenticação.
+    // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate.
     const link = document.createElement("a");
     link.href = INSTALLER_URL;
-    link.download = "HuskyPDV-Caixa-Setup.exe";
+    link.download = "HuskyPrintAgent.exe";
     link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
@@ -242,12 +244,19 @@ export default function PrintersPage() {
             Imprima pedidos diretamente pela impressora do computador.
           </p>
           {/* Indicador Agente Local */}
-          <div className="flex justify-center pt-1">
+          <div className="flex flex-col items-center gap-1 pt-1">
             {agentStatus === "online" ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))] px-3 py-1 text-xs font-semibold">
-                <Wifi className="h-3.5 w-3.5" />
-                Agente Local: Online
-              </span>
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--status-free)/0.12)] text-[hsl(var(--status-free))] px-3 py-1 text-xs font-semibold">
+                  <Wifi className="h-3.5 w-3.5" />
+                  Agente Local: Online
+                </span>
+                {agentPrinter && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Impressora padrão: <strong className="text-foreground">{agentPrinter}</strong>
+                  </span>
+                )}
+              </>
             ) : agentStatus === "offline" ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1 text-xs font-semibold">
                 <WifiOff className="h-3.5 w-3.5" />
@@ -302,14 +311,15 @@ export default function PrintersPage() {
           </div>
         </section>
 
-        {/* HuskyPDV Caixa - launcher oficial */}
+        {/* HuskyPDV Print Agent — servidor local Python */}
         <section className="rounded-2xl border bg-card/40 p-6 space-y-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              HuskyPDV Caixa
+              HuskyPDV Print Agent
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Instale o atalho oficial para abrir o caixa com impressão automática.
+              Instale o agente local para imprimir <strong>direto na impressora padrão do Windows</strong>,
+              sem abrir janela do navegador. Ideal para impressoras térmicas (Elgin, Epson, Bematech).
             </p>
           </div>
           <button
@@ -317,11 +327,14 @@ export default function PrintersPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
           >
             <Printer className="h-4 w-4" />
-            Baixar HuskyPDV Caixa
+            Baixar HuskyPrintAgent.exe
           </button>
-          <p className="text-xs text-muted-foreground">
-            Após instalar, abra o HuskyPDV pelo ícone <strong>"HuskyPDV Caixa"</strong> criado na Área de Trabalho.
-          </p>
+          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+            <li>Execute o <strong>HuskyPrintAgent.exe</strong> baixado.</li>
+            <li>Defina sua impressora térmica como <strong>padrão</strong> no Windows.</li>
+            <li>Clique em <strong>"Testar Impressão"</strong> acima — o cupom sai direto, sem janelas.</li>
+            <li>Para iniciar com o Windows: cole um atalho em <code>shell:startup</code>.</li>
+          </ol>
         </section>
 
         {/* Impressoras adicionais */}
