@@ -352,7 +352,7 @@ export default function PaymentPanel({
         const inPayment = paymentItems[item.id] ?? 0;
         const avail = item.remainingQty - inPayment;
         if (avail <= 0) continue;
-        const fractionedPrice = Number(((Number(item.price) * avail) / divisor).toFixed(2));
+        const fractionedPrice = FinanceUtils.round(FinanceUtils.multiply(item.price, avail) / divisor, 2);
         newEntries.push({
           uid: crypto.randomUUID(),
           itemId: item.id,
