@@ -999,8 +999,8 @@ export default function PaymentPanel({
           {splitItemDialog && (() => {
             const item = unpaidItems.find((i) => i.id === splitItemDialog.id);
             if (!item) return null;
-            const itemTotal = Number(item.price) * item.remainingQty;
-            const splitResult = splitMode === "quantity" ? Number((itemTotal / splitQtyDivisor).toFixed(2)) : 0;
+            const itemTotal = FinanceUtils.multiply(item.price, item.remainingQty);
+            const splitResult = splitMode === "quantity" ? FinanceUtils.round(itemTotal / splitQtyDivisor, 2) : 0;
             return (
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3">
