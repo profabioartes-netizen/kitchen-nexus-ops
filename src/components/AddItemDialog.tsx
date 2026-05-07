@@ -43,7 +43,8 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState("");
   const [selectedComplements, setSelectedComplements] = useState<SelectedComplement[]>([]);
-  const [grams, setGrams] = useState<string>("");
+  // Peso em KG (string para preservar formatação local com vírgula/ponto)
+  const [weightKg, setWeightKg] = useState<string>("");
 
   const isWeight = product?.sale_type === "weight";
   const pricePerKg = Number(product?.price_per_kg ?? product?.price ?? 0);
@@ -53,7 +54,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
       setQuantity(1);
       setNotes("");
       setSelectedComplements([]);
-      setGrams("");
+      setWeightKg("");
     }
   }, [product]);
 
@@ -140,9 +141,11 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
     }
   };
 
-  const gramsNum = parseInt(grams, 10) || 0;
-  const weightTotal = isWeight ? (gramsNum / 1000) * pricePerKg : 0;
-  const weightTotalRounded = Math.round(weightTotal * 100) / 100;
+  // Aceita vírgula ou ponto como separador decimal
+  const weightKgNum = parseFloat((weightKg || "").replace(",", ".")) || 0;
+  const gramsNum = Math.round(weightKgNum * 1000);
+  const weightTotal = isWeight ? weightKgNum * pricePerKg : 0;
+  const weightTotalRounded = Number(weightTotal.toFixed(2));
 
   const complementsTotal = selectedComplements.reduce((s, c) => s + c.price * c.quantity, 0);
   const itemTotal = isWeight
@@ -152,6 +155,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
   const handleAdd = () => {
     if (isWeight) {
       if (gramsNum <= 0) return;
+      const kgLabel = weightKgNum.toFixed(3).replace(".", ",");
       onAdd({
         product,
         quantity: 1,
@@ -160,7 +164,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
         complementsTotal: 0,
         grams: gramsNum,
         unitPriceOverride: weightTotalRounded,
-        productNameOverride: `${product.name} - ${gramsNum}g`,
+        productNameOverride: `${product.name} - ${kgLabel}kg`,
       });
       return;
     }
@@ -207,17 +211,20 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Peso (gramas)
+                  Peso (kg)
                 </label>
                 <input
-                  type="text"
-                  inputMode="numeric"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  inputMode="decimal"
                   autoFocus
-                  value={grams}
-                  onChange={(e) => setGrams(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="Ex: 450"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  placeholder="Ex: 0,348"
                   className="mt-1.5 w-full rounded-md border bg-card px-3 py-2.5 text-base font-semibold outline-none focus:ring-2 focus:ring-ring"
                 />
+                <p className="text-[10px] text-muted-foreground mt-1">Aceita ponto ou vírgula. Ex: 0,348 = 348g</p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-md border bg-muted/30 px-3 py-2">
@@ -231,7 +238,7 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
               </div>
               {gramsNum > 0 && (
                 <p className="text-[11px] text-muted-foreground">
-                  ({gramsNum}g ÷ 1000) × R$ {pricePerKg.toFixed(2)} = R$ {weightTotalRounded.toFixed(2)}
+                  {weightKgNum.toFixed(3).replace(".", ",")} kg × R$ {pricePerKg.toFixed(2)} = R$ {weightTotalRounded.toFixed(2)}
                 </p>
               )}
             </div>
