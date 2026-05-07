@@ -23,12 +23,12 @@ git push origin print-agent-v1.0.0
 A URL pública e estável do instalador (sempre a última versão) fica em:
 
 ```
-https://github.com/<ORG>/<REPO>/releases/latest/download/HuskyPrintAgent.exe
+https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe
 ```
 
 > Já está apontada no botão "Baixar HuskyPrintAgent.exe" da tela `/impressoras`.
 > Edite `src/pages/PrintersPage.tsx` (constante `INSTALLER_URL`) com o caminho
-> real do seu repo (`<ORG>/<REPO>`).
+> real do seu repo (`profabioartes-netizen/kitchen-nexus-ops`).
 
 ## Como funciona
 
