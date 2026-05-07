@@ -141,16 +141,22 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
     }
   };
 
-  // Aceita vírgula ou ponto como separador decimal
-  const weightKgNum = parseFloat((weightKg || "").replace(",", ".")) || 0;
+  // Cálculos centralizados em FinanceUtils (precisão decimal por centavos)
+  const weightKgNum = FinanceUtils.parseDecimal(weightKg) || 0;
   const gramsNum = Math.round(weightKgNum * 1000);
-  const weightTotal = isWeight ? weightKgNum * pricePerKg : 0;
-  const weightTotalRounded = Number(weightTotal.toFixed(2));
+  const weightTotalRounded = isWeight
+    ? FinanceUtils.weightedPrice(weightKgNum, pricePerKg)
+    : 0;
 
-  const complementsTotal = selectedComplements.reduce((s, c) => s + c.price * c.quantity, 0);
+  const complementsTotal = FinanceUtils.sum(
+    selectedComplements.map((c) => FinanceUtils.multiply(c.price, c.quantity))
+  );
   const itemTotal = isWeight
     ? weightTotalRounded
-    : (Number(product.price) + complementsTotal) * quantity;
+    : FinanceUtils.multiply(
+        FinanceUtils.sum([Number(product.price), complementsTotal]),
+        quantity
+      );
 
   const handleAdd = () => {
     if (isWeight) {
