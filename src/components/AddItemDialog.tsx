@@ -214,17 +214,27 @@ export default function AddItemDialog({ product, onClose, onAdd, isPending }: Ad
                   Peso (kg)
                 </label>
                 <input
-                  type="number"
-                  step="0.001"
-                  min="0"
+                  type="text"
                   inputMode="decimal"
                   autoFocus
                   value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
-                  placeholder="Ex: 0,348"
+                  onChange={(e) => {
+                    // Digite apenas dígitos — a vírgula é posicionada automaticamente (estilo balança).
+                    // Ex: digita "348" -> "0,348"; digita "1234" -> "1,234"; "12345" -> "12,345".
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    if (!digits) {
+                      setWeightKg("");
+                      return;
+                    }
+                    const padded = digits.padStart(4, "0");
+                    const intPart = padded.slice(0, padded.length - 3).replace(/^0+(?=\d)/, "");
+                    const decPart = padded.slice(-3);
+                    setWeightKg(`${intPart},${decPart}`);
+                  }}
+                  placeholder="0,000"
                   className="mt-1.5 w-full rounded-md border bg-card px-3 py-2.5 text-base font-semibold outline-none focus:ring-2 focus:ring-ring"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Aceita ponto ou vírgula. Ex: 0,348 = 348g</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Digite apenas números. Ex: 348 = 0,348 kg</p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-md border bg-muted/30 px-3 py-2">
