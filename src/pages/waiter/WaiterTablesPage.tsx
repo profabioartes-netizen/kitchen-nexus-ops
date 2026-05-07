@@ -29,21 +29,23 @@ export default function WaiterTablesPage() {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
-  // Realtime: sync tables and orders instantly
+  // Realtime estrito por tenant
+  useTenantRealtime({
+    channelKey: "waiter-tables",
+    tables: ["restaurant_tables", "orders", "order_items"],
+    invalidateKeys: [
+      ["restaurant_tables"],
+      ["open_orders"],
+      ["undelivered_item_counts_waiter"],
+    ],
+  });
+
+  // comanda_locks: canal separado
   useEffect(() => {
     const channel = supabase
-      .channel('waiter-tables-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-      })
+      .channel('waiter-locks-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
         queryClient.invalidateQueries({ queryKey: ["active_locks"] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts_waiter"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
