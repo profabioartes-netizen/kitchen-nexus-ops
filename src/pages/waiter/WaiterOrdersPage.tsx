@@ -1,42 +1,39 @@
-import { useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Clock, ShoppingBag } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantRealtime } from "@/hooks/useTenantRealtime";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function WaiterOrdersPage() {
   const navigate = useNavigate();
   const { profile } = useAuth();
-  const queryClient = useQueryClient();
 
-  // Realtime: sync orders instantly
-  useEffect(() => {
-    const channel = supabase
-      .channel('waiter-orders-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["waiter_open_orders"] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["waiter_open_orders"] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [queryClient]);
+  // Realtime estrito por tenant
+  useTenantRealtime({
+    channelKey: "waiter-orders",
+    tables: ["orders", "order_items"],
+    invalidateKeys: [["waiter_open_orders"]],
+  });
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["waiter_open_orders"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*, restaurant_tables(name, sort_order)")
-        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"]);
+        .select("id, table_id, status, total, waiter_name, customer_name, created_at, restaurant_tables(name, sort_order)")
+        .in("status", ["open", "billing_in_progress", "paid_pending_finalization"])
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
       return data;
     },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const sortedOrders = useMemo(() => {
