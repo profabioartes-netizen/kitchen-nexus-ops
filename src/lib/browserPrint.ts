@@ -28,11 +28,16 @@ export type BrowserPrintPayload = {
   paper?: "80mm" | "58mm";
 };
 
+import { removeAccents } from "./removeAccents";
+
 const escape = (s: any) =>
   String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+
+// Remove acentos + escapa HTML — usar para todo texto livre exibido no cupom
+const safe = (s: any) => escape(removeAccents(s));
 
 const brl = (n: number) =>
   `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
