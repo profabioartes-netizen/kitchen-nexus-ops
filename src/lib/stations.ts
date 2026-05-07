@@ -15,7 +15,7 @@ export async function listKnownStations(): Promise<string[]> {
   const [{ data: pr }, { data: pd }, { data: ag }] = await Promise.all([
     supabase.from("printers").select("station").eq("active", true),
     supabase.from("products").select("station").eq("active", true),
-    supabase.from("print_agents").select("station,stations").eq("active", true),
+    (supabase.from("print_agents") as any).select("station,stations").eq("active", true),
   ]);
   for (const r of pr ?? []) {
     const v = normalize((r as any).station);
