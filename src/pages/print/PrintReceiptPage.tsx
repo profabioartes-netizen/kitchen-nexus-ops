@@ -108,7 +108,7 @@ export default function PrintReceiptPage() {
   if (error) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#000", background: "#fff" }}>{error}</div>;
   if (!data) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#000", background: "#fff" }}>Carregando…</div>;
 
-  const { order, items, complByItem, payments, business_name, business_phone, business_address } = data;
+  const { order, items, complByItem, productMeta, payments, business_name, business_phone, business_address } = data;
   const productsTotal = items.reduce(
     (s: number, it: any) => s + Number(it.price) * Number(it.quantity), 0,
   );
