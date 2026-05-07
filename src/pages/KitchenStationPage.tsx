@@ -155,10 +155,31 @@ export default function KitchenStationPage() {
         .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["kitchen_items"] });
+      const previous = queryClient.getQueryData<any[]>(["kitchen_items"]);
+      const tsField: Record<string, string> = {
+        sent: "sent_at",
+        preparing: "preparing_at",
+        ready: "ready_at",
+        delivered: "delivered_at",
+      };
+      queryClient.setQueryData<any[]>(["kitchen_items"], (old) =>
+        (old ?? []).map((item) =>
+          item.id === id
+            ? { ...item, preparation_status: status, ...(tsField[status] ? { [tsField[status]]: new Date().toISOString() } : {}) }
+            : item
+        )
+      );
+      return { previous };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(["kitchen_items"], ctx.previous);
+      toast.error((err as Error).message);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["kitchen_items"] });
     },
-    onError: (err) => toast.error((err as Error).message),
   });
 
   const advanceStatus = (id: string, current: PrepStatus) => {
