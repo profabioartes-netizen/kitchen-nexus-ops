@@ -296,13 +296,22 @@ export default function PrintersPage() {
 
         {/* CTA principal */}
         <section className="rounded-2xl border bg-card p-8 text-center space-y-5 shadow-sm">
-          <button
-            onClick={handleBrowserPrintTest}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-foreground px-8 py-4 text-base font-semibold hover:opacity-90 transition-opacity shadow-sm"
-          >
-            <Printer className="h-5 w-5" />
-            Testar Impressão
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={handleBrowserPrintTest}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent text-accent-foreground px-8 py-4 text-base font-semibold hover:opacity-90 transition-opacity shadow-sm"
+            >
+              <Printer className="h-5 w-5" />
+              Testar Impressão
+            </button>
+            <button
+              onClick={handleTestAgentConnection}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background text-foreground px-6 py-4 text-base font-semibold hover:bg-muted transition-colors shadow-sm"
+            >
+              <Wifi className="h-5 w-5" />
+              Testar Conexão com Agente
+            </button>
+          </div>
           <p className="text-xs text-muted-foreground">
             Compatível com impressoras térmicas 58mm e 80mm.
           </p>
