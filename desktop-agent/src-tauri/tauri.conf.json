@@ -37,6 +37,9 @@
     "shortDescription": "Agente de impressão HuskyPDV",
     "longDescription": "Conecta impressoras térmicas locais ao painel HuskyPDV.",
     "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "installMode": "perMachine",
