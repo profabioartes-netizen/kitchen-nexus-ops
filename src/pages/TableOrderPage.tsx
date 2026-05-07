@@ -646,10 +646,8 @@ export default function TableOrderPage() {
       await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador`, order.id, profile?.full_name);
       return { via: "browser" as const };
     },
-    onSuccess: (res) => {
-      if (res?.via === "agent") toast.success("Conta enviada para impressão no Caixa!");
-      else if (res?.via === "browser-fallback") toast.success("Agente offline — abrindo impressão pelo navegador");
-      else toast.success("Imprimindo…");
+    onSuccess: () => {
+      toast.success("Imprimindo…");
     },
     onError: (err) => toast.error((err as Error).message),
   });
