@@ -72,6 +72,7 @@ export async function pingLocalAgent(timeoutMs = 1500): Promise<AgentPingInfo> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    console.info("[PrintAgent] PING", PING_ENDPOINT);
     const r = await fetch(PING_ENDPOINT, {
       method: "GET",
       signal: controller.signal,
@@ -79,15 +80,33 @@ export async function pingLocalAgent(timeoutMs = 1500): Promise<AgentPingInfo> {
       cache: "no-store",
     });
     clearTimeout(timer);
-    if (!r.ok) return { online: false };
+    if (!r.ok) {
+      console.error("[PrintAgent] PING HTTP", r.status, r.statusText);
+      return { online: false };
+    }
     const data = await r.json().catch(() => ({}));
+    console.info("[PrintAgent] PING OK", data);
     return {
       online: true,
       printer: data?.printer || undefined,
       version: data?.version || undefined,
     };
-  } catch {
+  } catch (e) {
     clearTimeout(timer);
+    const msg = (e as Error)?.message ?? String(e);
+    const isAbort = (e as Error)?.name === "AbortError";
+    if (isAbort) {
+      console.error("[PrintAgent] PING timeout — agente não respondeu em", timeoutMs, "ms");
+    } else if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+      console.error(
+        "[PrintAgent] PING bloqueado (Mixed Content/CORS/offline). URL:",
+        PING_ENDPOINT,
+        "— erro:",
+        msg,
+      );
+    } else {
+      console.error("[PrintAgent] PING falhou:", msg);
+    }
     return { online: false };
   }
 }
