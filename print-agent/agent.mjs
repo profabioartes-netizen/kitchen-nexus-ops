@@ -613,9 +613,9 @@ function buildDanfeTicket(job) {
   const date = saleDate.toLocaleDateString("pt-BR");
   const items = p.items || [];
 
-  const qtyCol = 4;
-  const priceCol = 10;
-  const totalCol = 10;
+  const qtyCol = 8;
+  const priceCol = 9;
+  const totalCol = 9;
   const itemsCol = COLS - qtyCol - priceCol - totalCol;
 
   const parts = [
