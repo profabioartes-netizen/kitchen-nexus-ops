@@ -69,11 +69,11 @@ function buildHtml(p: BrowserPrintPayload): string {
         : it.product_name;
       const compl =
         it.complements && it.complements.length
-          ? `<tr class="compl"><td colspan="4">+ ${it.complements.map(escape).join(", ")}</td></tr>`
+          ? `<tr class="compl"><td colspan="4">+ ${it.complements.map(safe).join(", ")}</td></tr>`
           : "";
       return `<tr>
-        <td class="prod">${escape(displayName)}</td>
-        <td class="qnt">${escape(qntCell)}</td>
+        <td class="prod">${safe(displayName)}</td>
+        <td class="qnt">${safe(qntCell)}</td>
         <td class="unit">${unit.toFixed(2).replace(".", ",")}</td>
         <td class="tot">${sub.toFixed(2).replace(".", ",")}</td>
       </tr>${compl}`;
