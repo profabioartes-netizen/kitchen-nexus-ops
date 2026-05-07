@@ -71,25 +71,27 @@ export default function TablesPage() {
   const [tableCountOpen, setTableCountOpen] = useState(false);
   const [tableCountValue, setTableCountValue] = useState("");
 
-  // Realtime: auto-refresh when tables or orders change in DB
+  // Realtime estrito: filtra por tenant_id no servidor + só invalida em colunas significativas
+  useTenantRealtime({
+    channelKey: "dashboard",
+    tables: ["restaurant_tables", "orders", "order_items"],
+    invalidateKeys: [
+      ["restaurant_tables"],
+      ["open_orders"],
+      ["today_revenue"],
+      ["avg_service_time"],
+      ["kitchen_orders_count"],
+      ["order_item_counts"],
+      ["undelivered_item_counts"],
+      ["unviewed_item_counts"],
+      ["preview_order_items"],
+    ],
+  });
+
+  // comanda_locks: canal separado (não tem campo significativo a filtrar)
   useEffect(() => {
     const channel = supabase
-      .channel('dashboard-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["open_orders"] });
-        queryClient.invalidateQueries({ queryKey: ["today_revenue"] });
-        queryClient.invalidateQueries({ queryKey: ["avg_service_time"] });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["kitchen_orders_count"] });
-        queryClient.invalidateQueries({ queryKey: ["order_item_counts"] });
-        queryClient.invalidateQueries({ queryKey: ["undelivered_item_counts"] });
-        queryClient.invalidateQueries({ queryKey: ["unviewed_item_counts"] });
-        queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
-      })
+      .channel('dashboard-locks-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comanda_locks' }, () => {
         queryClient.invalidateQueries({ queryKey: ["active_locks"] });
       })
