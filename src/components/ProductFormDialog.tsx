@@ -67,22 +67,14 @@ export function ProductFormDialog({ productId, onClose }: Props) {
     },
   });
 
-  // Estações de impressão dinâmicas: derivadas das impressoras ativas do tenant atual
+  // Setores disponíveis: união de impressoras + agentes + produtos + canônicos.
   const { data: printerStations = [] } = useQuery({
-    queryKey: ["printer_stations"],
+    queryKey: ["known_stations"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("printers")
-        .select("station, active")
-        .eq("active", true);
-      if (error) throw error;
-      const set = new Set<string>();
-      (data ?? []).forEach((p: any) => {
-        const s = (p.station ?? "").toString().trim();
-        if (s) set.add(s);
-      });
-      return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      const { listKnownStations } = await import("@/lib/stations");
+      return listKnownStations();
     },
+    staleTime: 60_000,
   });
 
   const { data: linkedGroups = [] } = useQuery({
