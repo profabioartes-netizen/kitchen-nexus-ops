@@ -1,26 +1,27 @@
-## Por que o ícone não aparece
+## Causa da lentidão no botão "MARCAR ENTREGUE"
 
-Investiguei o `.ico` em `public/icons/huskypdv.ico` — está válido (multi-resolução 16→256, servido pela Cloudflare como `image/vnd.microsoft.icon`). O problema está no script PowerShell embutido no `.bat`:
+Em `src/pages/TablesPage.tsx`, as duas mutations que marcam pedidos como entregues fazem **round-trips sequenciais ao banco** sem feedback otimista:
 
-1. **PowerShell 5.1 (padrão do Windows 10/11) usa TLS 1.0 por padrão.** Cloudflare exige TLS 1.2+, então `Invoke-WebRequest` falha silenciosamente. O `try/catch` engole o erro e o atalho fica sem ícone — caindo no fallback do Chrome.
-2. **`IconLocation` sem índice** (`,0`) é interpretado de forma inconsistente pelo Explorer quando o `.ico` tem múltiplas resoluções.
-3. **Cache de ícones do Windows** (`iconcache_*.db`) segura ícones antigos mesmo após o atalho ser corrigido, o que dá impressão de que "não funcionou".
+**`toggleOrderDelivered` (1 pedido)** — 5 round-trips em série:
+1. `UPDATE orders` (delivered_at)
+2. `UPDATE order_items` (delivered_at)
+3. `recalcTableDeliveryStatus` → `SELECT orders` + `UPDATE restaurant_tables`
 
-## Correções no `src/pages/PrintersPage.tsx`
+**`toggleAllOrdersDelivered` (todos os pedidos da mesa)** — pior ainda: loop `for ... await` sequencial. Para uma mesa com **N comandas**, são `2N + 2` round-trips em série. Com 4 comandas e 200ms de latência ≈ 2 segundos.
 
-Atualizar o script PowerShell embutido no gerador `.bat` para:
+Além disso, ambas só atualizam o cache **depois** que o servidor responde (`onSuccess` + 3 `invalidateQueries` que disparam refetch grande de `open_orders`, `preview_order_items`, `restaurant_tables`). Resultado: o botão "trava" até tudo terminar.
 
-- Forçar `[Net.ServicePointManager]::SecurityProtocol = Tls12` antes do download.
-- Validar download: arquivo precisa existir e ter > 1000 bytes; senão tentar novamente com `System.Net.WebClient` (fallback).
-- Mostrar mensagem clara se o download falhou (em vez de silencioso).
-- Remover `.lnk` antigo antes de recriar (evita herdar atributos cacheados).
-- Usar `IconLocation = "$iconPath,0"` (com índice explícito).
-- Limpar `iconcache_*.db` em `%LOCALAPPDATA%\Microsoft\Windows\Explorer` e reiniciar `explorer.exe` para o ícone novo aparecer imediatamente, sem precisar logoff.
+## Correções em `src/pages/TablesPage.tsx`
 
-Nenhuma mudança no `.ico` em si — ele já está correto.
+1. **Paralelizar** as queries dentro de cada mutation com `Promise.all` em vez de `await` sequencial.
+2. **`toggleAllOrdersDelivered`**: trocar o loop `for/await` por um único `Promise.all` com todas as N×2 operações disparadas simultaneamente.
+3. **Adicionar `onMutate` (optimistic update)** em ambas: atualizar `open_orders` e `restaurant_tables` no cache imediatamente — botão responde no clique.
+4. **Adicionar `onError` rollback** restaurando o snapshot anterior do cache.
+5. **Mover `recalcTableDeliveryStatus` para background** (`void recalcTableDeliveryStatus(tableId)`) — não bloqueia o `await` da mutation. O cálculo final cai no `onSettled`/refetch.
+6. **Mover `invalidateQueries` para `onSettled`** (em vez de `onSuccess`) — refetch acontece em background depois que o usuário já viu o resultado.
 
 ## Critério de aceite
 
-- Após rodar o `.bat`, o atalho "HuskyPDV Caixa" exibe o logo HuskyPDV (não mais ícone branco/Chrome).
-- Se o download falhar (sem internet), mensagem clara em amarelo informando.
-- Funciona em Windows 10/11 com PowerShell 5.1 padrão.
+- Clicar em "MARCAR ENTREGUE" muda a cor da comanda/mesa **instantaneamente** (< 50ms percebidos).
+- Mesa com várias comandas marca todas em paralelo (1× round-trip de tempo, não N×).
+- Em caso de erro, o estado volta ao anterior e mostra toast vermelho.
