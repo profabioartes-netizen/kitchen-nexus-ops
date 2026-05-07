@@ -1,0 +1,19 @@
+[package]
+name = "huskypdv-caixa"
+version = "1.0.0"
+edition = "2021"
+description = "HuskyPDV Caixa - launcher oficial"
+authors = ["HuskyPDV"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
