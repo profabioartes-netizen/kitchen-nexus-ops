@@ -33,6 +33,7 @@ export async function printViaLocalAgent(
 
   try {
     const content = formatReceiptText(payload);
+    console.info("[PrintAgent] POST", PRINT_ENDPOINT, { bytes: content.length });
     const r = await fetch(PRINT_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,13 +42,19 @@ export async function printViaLocalAgent(
       mode: "cors",
     });
     clearTimeout(timer);
-    if (r.ok) return { ok: true, via: "agent" };
+    const respText = await r.text().catch(() => "");
+    if (r.ok) {
+      console.info("[PrintAgent] OK", r.status, respText);
+      return { ok: true, via: "agent" };
+    }
+    console.error("[PrintAgent] HTTP error", r.status, r.statusText, respText);
     const ok = printViaBrowser(payload);
     return ok
       ? { ok: true, via: "browser" }
-      : { ok: false, via: "browser", error: `HTTP ${r.status}` };
+      : { ok: false, via: "browser", error: `HTTP ${r.status} ${respText}` };
   } catch (e) {
     clearTimeout(timer);
+    console.error("[PrintAgent] fetch failed", PRINT_ENDPOINT, e);
     const ok = printViaBrowser(payload);
     return ok
       ? { ok: true, via: "browser" }
