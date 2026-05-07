@@ -92,8 +92,9 @@ function buildHtml(p: BrowserPrintPayload): string {
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<title>${escape(title)}</title>
+<meta charset="ISO-8859-1" />
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>${safe(title)}</title>
 <style>
   @page { size: ${widthMm}mm auto; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
