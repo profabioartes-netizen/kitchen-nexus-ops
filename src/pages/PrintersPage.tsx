@@ -278,25 +278,25 @@ export default function PrintersPage() {
           </div>
         </section>
 
-        {/* Impressão automática */}
+        {/* HuskyPDV Caixa - launcher oficial */}
         <section className="rounded-2xl border bg-card/40 p-6 space-y-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              Impressão automática
+              HuskyPDV Caixa
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Para imprimir sem abrir a janela de impressão, prepare este computador uma única vez.
+              Instale o atalho oficial para abrir o caixa com impressão automática.
             </p>
           </div>
           <button
-            onClick={downloadAutoPrintActivator}
+            onClick={downloadHuskyPdvCaixa}
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
           >
             <Printer className="h-4 w-4" />
-            Ativar neste computador
+            Baixar HuskyPDV Caixa
           </button>
           <p className="text-xs text-muted-foreground">
-            Após ativar, abra o HuskyPDV pelo atalho <strong>"HuskyPDV Caixa"</strong> criado na Área de Trabalho.
+            Após instalar, abra o HuskyPDV pelo ícone <strong>"HuskyPDV Caixa"</strong> criado na Área de Trabalho.
           </p>
         </section>
 
