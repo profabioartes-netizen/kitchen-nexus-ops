@@ -95,6 +95,12 @@ function TenantGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+function BlockWaiter({ children }: { children: ReactNode }) {
+  const { profile } = useAuth();
+  if (profile?.role === "waiter") return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AuthRoute() {
   const { user, profile, loading, signOut } = useAuth();
   const [clearing, setClearing] = useState(false);
