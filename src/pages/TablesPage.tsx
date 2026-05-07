@@ -743,22 +743,26 @@ export default function TablesPage() {
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por Fábio Júnior</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => navigate("/relatorios")}
-            className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
-            title="Relatórios"
-          >
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            <span className="hidden sm:inline">Relatórios</span>
-          </button>
-          <button
-            onClick={() => navigate("/usuarios")}
-            className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
-            title="Usuários"
-          >
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span className="hidden sm:inline">Usuários</span>
-          </button>
+          {!isWaiter && (
+            <button
+              onClick={() => navigate("/relatorios")}
+              className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
+              title="Relatórios"
+            >
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <span className="hidden sm:inline">Relatórios</span>
+            </button>
+          )}
+          {!isWaiter && (
+            <button
+              onClick={() => navigate("/usuarios")}
+              className="flex items-center gap-1.5 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors"
+              title="Usuários"
+            >
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="hidden sm:inline">Usuários</span>
+            </button>
+          )}
           <div className="hidden sm:flex rounded-md border bg-card overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
@@ -768,49 +772,51 @@ export default function TablesPage() {
               Grade
             </button>
           </div>
-          <Popover open={tableCountOpen} onOpenChange={(open) => {
-            setTableCountOpen(open);
-            if (open) setTableCountValue(String(allTables.length));
-          }}>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors">
-                <Plus className="h-4 w-4 text-muted-foreground" />
-                <span className="hidden sm:inline">Qtd. Comandas</span>
-                <span className="sm:hidden">Qtd.</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-4" align="end">
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Quantidade de Comandas</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="200"
-                    value={tableCountValue}
-                    onChange={(e) => setTableCountValue(e.target.value)}
-                    className="mt-1"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} comandas</p>
+          {!isWaiter && (
+            <Popover open={tableCountOpen} onOpenChange={(open) => {
+              setTableCountOpen(open);
+              if (open) setTableCountValue(String(allTables.length));
+            }}>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-1.5 sm:gap-2 rounded-md border bg-card px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium hover:bg-secondary transition-colors">
+                  <Plus className="h-4 w-4 text-muted-foreground" />
+                  <span className="hidden sm:inline">Qtd. Comandas</span>
+                  <span className="sm:hidden">Qtd.</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-4" align="end">
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Quantidade de Comandas</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="200"
+                      value={tableCountValue}
+                      onChange={(e) => setTableCountValue(e.target.value)}
+                      className="mt-1"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Atual: {allTables.length} comandas</p>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setTableCountOpen(false)}
+                      className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      disabled={!tableCountValue || parseInt(tableCountValue) < 1 || saveTableCount.isPending}
+                      onClick={() => saveTableCount.mutate(parseInt(tableCountValue))}
+                      className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+                    >
+                      {saveTableCount.isPending ? "Salvando..." : "Salvar"}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setTableCountOpen(false)}
-                    className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    disabled={!tableCountValue || parseInt(tableCountValue) < 1 || saveTableCount.isPending}
-                    onClick={() => saveTableCount.mutate(parseInt(tableCountValue))}
-                    className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                  >
-                    {saveTableCount.isPending ? "Salvando..." : "Salvar"}
-                  </button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
 
