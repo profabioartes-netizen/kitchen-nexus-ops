@@ -322,9 +322,9 @@ export default function PaymentPanel({
       const item = orderItems.find((i) => i.id === itemId);
       const qty = paymentItems[itemId] ?? 0;
       if (item && qty > 0) {
-        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
-        const removedValue = Number(item.price) * qty;
-        const newAmount = Math.max(0, Number((existingAmount - removedValue).toFixed(2)));
+        const existingAmount = FinanceUtils.parseDecimal(customAmount) || 0;
+        const removedValue = FinanceUtils.multiply(item.price, qty);
+        const newAmount = Math.max(0, FinanceUtils.sum([existingAmount, -removedValue]));
         setCustomAmount(newAmount > 0 ? newAmount.toFixed(2) : "");
       }
     }
