@@ -224,14 +224,14 @@ function buildHtml(p: BrowserPrintPayload): string {
   </div>
 
   <div class="receipt">
-  <div class="center bold upper big">${escape(p.business_name ?? "HuskyPDV")}</div>
-  ${p.business_phone ? `<div class="center">${escape(p.business_phone)}</div>` : ""}
-  <div class="center bold upper big">${escape(title)}${p.table_name ? ` / MESA ${escape(p.table_name)}` : ""}</div>
+  <div class="center bold upper big">${safe(p.business_name ?? "HuskyPDV")}</div>
+  ${p.business_phone ? `<div class="center">${safe(p.business_phone)}</div>` : ""}
+  <div class="center bold upper big">${safe(title)}${p.table_name ? ` / MESA ${safe(p.table_name)}` : ""}</div>
   <hr class="separator" />
   <div class="center bold">NAO E DOCUMENTO FISCAL</div>
   <hr class="separator" />
-  ${p.customer_name ? `<div>Cliente: ${escape(p.customer_name)}</div>` : ""}
-  ${p.waiter_name ? `<div>Atendente: ${escape(p.waiter_name)}</div>` : ""}
+  ${p.customer_name ? `<div>Cliente: ${safe(p.customer_name)}</div>` : ""}
+  ${p.waiter_name ? `<div>Atendente: ${safe(p.waiter_name)}</div>` : ""}
   <div>${new Date().toLocaleString("pt-BR")}</div>
   <hr class="separator" />
 
