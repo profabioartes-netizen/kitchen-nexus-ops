@@ -1,69 +1,89 @@
-## Contexto: o que já existe
+## Objetivo
 
-O HuskyPDV **já tem** quase tudo para múltiplas impressoras por setor — só falta polimento:
+Corrigir o cupom impresso pelo navegador (HuskyPDV Caixa Launcher / Chrome em modo kiosk-printing) para:
+1. Eliminar caracteres estranhos em palavras acentuadas ("REFEIção" → "REFEICAO").
+2. Garantir alinhamento perfeito das colunas da tabela de itens, evitando que o TOTAL "vaze" para a linha de baixo (como acontece no cupom da foto: `30,` / `28`).
 
-- `products.station` (texto): cada produto já pode ter um setor (Cozinha, Bar, Sobremesa...).
-- `printers.station`: catálogo de setores que aparece no formulário de produto.
-- `print_agents.station`: **cada agente Tauri instalado é vinculado a 1 setor**. Ao parear, é escolhido onde aquele PC vai imprimir.
-- `print_jobs.station`: o ticket é criado com o setor do produto e a função RPC `claim_print_jobs_for_agent` só entrega ao agente os jobs do setor dele.
-- Em `WaiterOrderPage`/`TableOrderPage` (linhas ~411–445 e ~906–938), os itens da comanda **já são agrupados por `product.station`** e geram um `print_job` por setor. Caixa/recibo continua indo para o agente da estação `Caixa`.
+O componente impacto é `src/lib/browserPrint.ts` (que gera o HTML do cupom). Esse mesmo HTML é o que o launcher manda para a térmica.
 
-Ou seja: hoje, se o cliente parear 1 PC como "Cozinha" e outro como "Bar", já funciona. O que falta é (a) UX clara para configurar isso, (b) flexibilidade para 1 PC ouvir mais de um setor, e (c) lista gerenciada de setores em vez de texto livre.
+## Mudanças
 
----
+### 1. Utilitário `removeAccents`
 
-## Plano de mudanças
+Criar `src/lib/removeAccents.ts`:
 
-### 1. Permitir que 1 agente atenda múltiplos setores
-Hoje cada `print_agents` tem **um** `station` (texto). Em comércios pequenos com 1 só impressora, ele precisa imprimir Caixa **e** Cozinha. Solução:
+```ts
+export function removeAccents(input: unknown): string {
+  return String(input ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+```
 
-- Migração: adicionar `print_agents.stations text[] not null default '{}'` (mantém `station` para compatibilidade — backfill `stations = ARRAY[station]`).
-- Atualizar a função RPC `claim_print_jobs_for_agent`: trocar `WHERE station = v_agent.station` por `WHERE station = ANY(v_agent.stations)`.
-- Mesma mudança em `agent_pairing_codes`: aceitar `stations text[]` (e manter `station` como fallback do primeiro item).
-- Edge function `generate-pairing-code` e `pair-print-agent`: passar/retornar `stations` (array). Manter `station` retornando `stations[0]` para o agente Tauri atual continuar exibindo a estação principal sem precisar republicar binário.
+Usa NFD + strip de combining marks — cobre todos os acentos latinos (á, é, í, ó, ú, â, ê, ô, ã, õ, ç, ü, etc.) sem precisar de mapa manual.
 
-### 2. Lista gerenciada de setores (em vez de texto livre)
-Hoje "Setor" é um `<input type=text>` em `PrintersPage` e `ProductFormDialog` lê `printers.station` distinct. É frágil ("Cozinha" vs "cozinha" vs "Cozin").
+Observação: já existe `src/lib/normalize.ts` que faz NFD + lowercase para busca. O novo utilitário **não** faz lowercase (preserva o caixa original do nome do produto/cliente).
 
-- Introduzir setores **canônicos pré-criados** por tenant (semente: `Caixa`, `Cozinha`, `Bar`, `Sobremesa`) e UI para adicionar/renomear.
-- Implementação leve: usar a própria tabela `printers` como catálogo (já é assim), porém:
-  - Trocar input livre por `<select>` + botão "+ Novo setor" no `PrintersPage` e `ProductFormDialog`.
-  - Garantir uppercase-insensitive na hora de roteirizar (`station` salvo como digitado, mas comparação case-insensitive — fazemos isso normalizando para Title Case ao salvar).
+### 2. Aplicar `removeAccents` em `browserPrint.ts`
 
-### 3. UI de pareamento e gestão de agentes (`PrintersPage` + `PrintAgentsList`)
-- Ao gerar código de pareamento: mostrar **checkboxes de setores** ("este PC vai imprimir: ☑ Caixa ☑ Cozinha ☐ Bar").
-- Em `PrintAgentsList`, o badge de setor vira **chips múltiplos** editáveis (`Caixa` `Cozinha`). Botão "Editar setores" abre o mesmo seletor.
-- Adicionar coluna "Setores" e indicador visual de qual agente é o "padrão de Caixa" (qualquer agente que tenha `Caixa` em `stations`).
+Em `buildHtml()`, envolver o `escape()` para todos os campos visíveis no cupom:
+- `business_name`, `business_phone`
+- `title`, `table_name`
+- `customer_name`, `waiter_name`
+- `product_name` (após o cálculo de `displayName`)
+- `complements[]`
+- `payment_method`
+- `message` (cupom de teste)
 
-### 4. Compatibilidade com fluxo atual de impressão
-Sem mudanças nos call sites de `print_jobs.insert` em `WaiterOrderPage`, `TableOrderPage`, `CashierPage`, `printCancellation.ts`, `NfceStatus.tsx` — o agrupamento por setor já existe. Só garantir que:
-- Recibo/cupom de pagamento continua com `station: "Caixa"` (já está).
-- Ticket de cancelamento herda o setor do produto cancelado (já é gerado por item).
-- Se um produto não tiver `station` preenchido, cair no setor `Caixa` (fallback novo) para nunca perder ticket.
+Forma mais limpa: criar um helper local `safe(s) = escape(removeAccents(s))` e substituir as chamadas de `escape()` que recebem texto livre. Campos puramente numéricos (preços, quantidades, "R$ ...") seguem sem o tratamento.
 
-### 5. Documentação curta no painel
-Caixa de ajuda em `PrintersPage` explicando o modelo:
-> "Cada PC instalado escolhe quais setores vai imprimir. Produtos cadastrados como `Cozinha` saem na impressora dos PCs que escutam Cozinha. O Caixa imprime recibos e cancelamentos."
+### 3. Refatorar CSS da tabela de itens
 
----
+Trocar as larguras fixas em `mm` por **porcentagens fixas**, conforme pedido:
 
-## Arquivos a tocar
+```css
+table.items { table-layout: fixed; width: 100%; }
+table.items th, table.items td {
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 12px;
+  vertical-align: top;
+  padding: 0;
+}
+table.items td.prod, table.items th.prod {
+  width: 45%;
+  text-align: left;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding-right: 1mm;
+}
+table.items td.qnt,  table.items th.qnt  { width: 15%; text-align: right; white-space: nowrap; }
+table.items td.unit, table.items th.unit { width: 20%; text-align: right; white-space: nowrap; padding-left: 1mm; }
+table.items td.tot,  table.items th.tot  { width: 20%; text-align: right; white-space: nowrap; padding-left: 1mm; }
+```
 
-- **Migração SQL** (nova): adicionar `print_agents.stations text[]`, `agent_pairing_codes.stations text[]`, atualizar `claim_print_jobs_for_agent`, backfill.
-- `supabase/functions/generate-pairing-code/index.ts`: aceitar `stations: string[]`.
-- `supabase/functions/pair-print-agent/index.ts`: retornar `stations`.
-- `src/pages/PrintersPage.tsx`: dropdown de setores + UX de "novo setor".
-- `src/components/PrintAgentsList.tsx`: chips multi-setor, edição via checkboxes.
-- `src/components/ProductFormDialog.tsx`: dropdown alimentado pela lista canônica.
-- (Opcional, sem rebuild obrigatório do .exe) `desktop-agent/src/App.tsx`: exibir lista de setores em vez de uma string única — se não atualizado, ainda funciona pois `station` continua existindo.
+Pontos-chave:
+- `table-layout: fixed` força o navegador a respeitar as larguras de coluna (sem isso, o conteúdo "empurra" e estoura).
+- `white-space: nowrap` em QNT/UNIT/TOTAL impede a quebra do `30,28`.
+- `word-wrap: break-word` na coluna PRODUTO permite que nomes longos quebrem em múltiplas linhas dentro da própria célula.
+- Fonte forçada `'Courier New', Courier, monospace` com `font-weight: 700` em todo o cupom (já é o padrão do `body`, mas reforçado na tabela).
+- Diminuir levemente para `font-size: 12px` na tabela ajuda a caber as 4 colunas em 72mm sem aperto.
 
----
+Também alinhar o cabeçalho `QNT` à direita (hoje está `text-align: left` por causa da regra genérica `table.items th`).
+
+### 4. Sem mudanças em outros arquivos
+
+- O agente Tauri (`desktop-agent`) usa texto monoespaçado puro em `render.ts` — não tem o problema de tabela HTML, fica como está.
+- O `receiptText.ts` (texto plano) já não tem acentos relevantes; não muda.
+- O `caixa-launcher` apenas abre o Chrome em `--kiosk-printing` e não toca no HTML.
+
+## Arquivos editados
+
+- `src/lib/removeAccents.ts` (novo)
+- `src/lib/browserPrint.ts` (helper `safe()` + CSS da tabela)
 
 ## Resultado esperado
 
-- Cliente pode ter 1 ou N impressoras espalhadas: Caixa imprime recibos, Cozinha imprime ticket de produção da cozinha, Bar imprime bebidas, etc.
-- Crescer para Sobremesa / Padaria / Confeitaria é só adicionar o setor no painel e parear o novo PC marcando esse setor.
-- Quem só tem 1 PC pode marcar todos os setores num agente só — tudo sai numa impressora.
-- Nada quebra no fluxo atual: Caixa segue como padrão.
-
-Posso aplicar?
+- "REFEIÇÃO" imprime como `REFEICAO`, "Café Coado" como `CAFE COADO`, "Fábio" como `FABIO`.
+- Colunas da tabela alinhadas em 45/15/20/20%, com TOTAL `R$ 30,28` na mesma linha do produto, sem quebra.
+- Nomes longos de produto quebram dentro da própria célula PRODUTO sem desalinhar QNT/UNIT/TOTAL.
