@@ -1,107 +1,65 @@
+## Diagnóstico
 
-# Auditoria HuskyPDV — Preparação para Escala (+100 comandas / 10+ tenants)
+O `.exe` fecha instantaneamente **antes** de qualquer log Python rodar. Isso descarta hipóteses de "exceção no código". O culpado é o **bootstrap do PyInstaller `--onefile`**, que extrai DLLs/Python embarcado em `%TEMP%\_MEIxxxxxx` e executa de lá. Se essa extração falhar — antivírus, política de SRP/AppLocker, falta do VC++ Redistributable, `%TEMP%` sem permissão de execução — o processo morre em milissegundos sem deixar rastro, e como compilamos com `--noconsole`, nem mensagem de erro aparece.
 
-## Diagnóstico atual
+A correção real é em três frentes: build, runtime e fallback.
 
-**Cálculos financeiros**: dispersos em `AddItemDialog.tsx`, `PaymentPanel.tsx`, `recalculateOrderTotal.ts`, `printItems.ts`, `WaiterOrderPage.tsx`. Usam `Number`, `parseFloat` e `.toFixed(2)` ad-hoc — risco de arredondamento (ex: 0,1+0,2). Total da comanda já é recalculado no servidor via `recalculate_order_total` (✅ bom), mas a UI faz seus próprios totais paralelos.
+## O que fazer
 
-**Queries / React Query**: `TablesPage.tsx` tem **13 useQuery** simultâneos sem `staleTime`, sem paginação. Carrega TODAS as `orders` abertas + `order_items` + `restaurant_tables`. Com 100+ comandas × 20 itens = 2000+ rows por refetch, multiplicado por cada cliente conectado.
+### 1. `print-agent-py/agent.py` — reescrever com proteção total
 
-**Realtime**: 8 canais espalhados, todos com `event: '*'` (INSERT+UPDATE+DELETE de TODAS as colunas). Sem filtros `filter:` por tenant_id, sem restrição a colunas. Cada UPDATE de `viewed_at` ou `paid_quantity` dispara invalidação completa de queries pesadas.
+- `try/except` no nível de módulo (top-level), não só em `main()`.
+- `sys.excepthook` global gravando qualquer exceção não tratada.
+- Logging para `%TEMP%\HuskyPrintAgent.log` (RotatingFileHandler 512 KB × 2) **e** para `%LOCALAPPDATA%\HuskyPrintAgent\agent.log` como fallback se `%TEMP%` falhar.
+- Logs de startup explícitos: "iniciando", "checando win32print", "porta 8080 livre? sim/não", "bind ok", "servindo".
+- Detecção de porta 8080 ocupada com `socket.bind` antes de iniciar Flask. Se ocupada, mostra `MessageBoxW` e mantém processo vivo aguardando ENTER (no modo console) ou loga e sai (no modo silencioso).
+- `MessageBoxW` (via `ctypes.windll.user32`) para qualquer falha fatal, incluindo "win32print ausente" e "porta ocupada". Sempre cita o caminho do log.
+- `input("Pressione ENTER para sair…")` no final do `main()` quando rodando em modo console (detectado via `sys.stdout.isatty()`), assim a janela não fecha.
+- Bumpar versão para `1.0.1`.
 
-**Índices DB**: existem só `(tenant_id)` e PKs. **Faltam** índices compostos para os filtros mais usados:
-- `orders (tenant_id, status)` → toda listagem filtra por status='open'
-- `orders (tenant_id, table_id, status)` → busca da comanda da mesa
-- `orders (tenant_id, created_at)` → relatórios e dashboards
-- `order_items (order_id, preparation_status)` → KDS
-- `payments (tenant_id, created_at)` → caixa/relatórios
-- `table_activity_log (tenant_id, created_at)` → timeline
+### 2. `print-agent-py/build.bat` — compilar com console + hidden-imports + diagnostics
 
-## Plano de refatoração
+Substituir o build atual por dois targets:
 
-### 1. FinanceUtils centralizado (precisão decimal)
+- **HuskyPrintAgent.exe** (produção, sem console) — mesmo nome de hoje.
+- **HuskyPrintAgent-debug.exe** (com `--console` e `--debug=imports`) — gera log no stderr na hora do bootstrap, mostrando se o problema é DLL ausente.
 
-Novo `src/lib/finance.ts` baseado em **inteiros (centavos)** — solução mais leve que Big.js, zero dependência, mesma precisão para moeda:
+Adicionar flags críticas em ambos:
+- `--collect-all flask --collect-all flask_cors --collect-all werkzeug --collect-all jinja2`
+- `--hidden-import win32print --hidden-import win32api --hidden-import pywintypes`
+- `--runtime-tmpdir .` para que o PyInstaller extraia ao lado do `.exe` em vez de `%TEMP%` (resolve o caso de antivírus/política bloqueando `%TEMP%\_MEI*`).
+- `--noupx` (UPX é falso-positivo comum de antivírus).
 
-```ts
-export const FinanceUtils = {
-  parseDecimal(input): number          // aceita "1,5" "1.5" 1.5
-  toCents(value): number                // 12.34 → 1234
-  fromCents(cents): number              // 1234 → 12.34
-  multiply(a, b): number                // peso × preço, retorna number 2 casas
-  weightedPrice(kg, pricePerKg): number // 0.348 × 79.90
-  sum(values[]): number
-  formatBRL(value): string              // "R$ 12,34"
-  formatWeight(kg): string              // "0,348 kg"
-  round(value, decimals=2): number      // arredondamento bancário half-even
-}
-```
+### 3. `print-agent-py/README.md` — checklist para o cliente
 
-Substituir nos pontos: `AddItemDialog`, `PaymentPanel`, `WaiterOrderPage`, `printItems`, `ReceiptTemplate`, `CashierPage`, `SalesPage`, `ReportsPage`.
+Documentar passos quando o `.exe` fecha sozinho:
+1. Executar `HuskyPrintAgent-debug.exe` num CMD e enviar a saída.
+2. Instalar **Microsoft Visual C++ Redistributable 2015–2022 (x64)** — link direto.
+3. Adicionar exclusão no Windows Defender para a pasta do `.exe`.
+4. Conferir `%TEMP%\HuskyPrintAgent.log` e `%LOCALAPPDATA%\HuskyPrintAgent\agent.log`.
 
-### 2. Otimização React Query
+### 4. `src/pages/PrintersPage.tsx` — mensagem de erro do "Testar Conexão" mais útil
 
-**Adicionar staleTime/refetch tuning** nas queries de listagem:
-- `tables` / `categories` / `products`: `staleTime: 5min` (mudam raro, dependem só de realtime)
-- `openOrders` / `kitchen_items`: `staleTime: 30s`, remover `refetchInterval: 5000` do KDS (deixar só realtime)
-- `todayStats`, `avgServiceTime`: `staleTime: 60s`
-- Dashboard global: trocar agregações no cliente por **RPC** que retorna apenas o resumo
+Trocar o `alert` genérico atual por um diagnóstico passo-a-passo (checar processo no Gerenciador de Tarefas, baixar a versão `-debug`, instalar VC++ Redist, conferir log).
 
-**Paginação na listagem de pedidos** (`WaiterOrdersPage`):
-- `useInfiniteQuery` com `range(offset, offset+19)`, ordenado por `created_at DESC`
-- Lista virtualizada (`@tanstack/react-virtual`) quando >50 itens
+### 5. Disparar nova release
 
-**Seleção de colunas**: substituir `select("*")` por colunas específicas onde possível (especialmente `order_items` no KDS e nas previews).
+Após editar, o cliente baixa o `HuskyPrintAgent.exe` v1.0.1 pelo botão da própria tela de Impressoras (já aponta para a release fixa do GitHub). O CI/Action existente em `.github/workflows/build-desktop-agent.yml` precisa ser revisado — vou confirmar se ele cobre o `print-agent-py` ou só o `desktop-agent` Tauri (provavelmente só Tauri, então preciso adicionar um job `pyinstaller` ao workflow, ou usar o `build.bat` localmente).
 
-### 3. Realtime estrito
+## Por que isso resolve o que as tentativas anteriores não resolveram
 
-Para cada `.channel(...)`:
-- Adicionar `filter: 'tenant_id=eq.<id>'` (puxar do `TenantContext`) → reduz ~90% do tráfego em ambiente multi-tenant
-- Trocar `event: '*'` por eventos específicos (`UPDATE` para status/total; `INSERT` separado quando precisar)
-- Para `orders`, ouvir apenas mudanças relevantes: invalidar lista só quando `status` ou `total` mudam, não a cada `updated_at`. Implementar via callback que compara `payload.new` vs `payload.old` antes de invalidar.
-- Consolidar canais duplicados: `dashboard-sync`, `waiter-tables-sync`, `waiter-orders-sync` cobrem o mesmo evento → criar hook `useTenantRealtime()` único compartilhado.
-- Debounce nas invalidações (`setTimeout` 250ms agrupando múltiplos eventos do mesmo burst).
+- Tentativas anteriores assumiram **bug no Python** (exceção, porta, CORS). O processo morre **antes do Python rodar** — nenhum `try/except` em Python ajudaria.
+- `--runtime-tmpdir .` elimina a maior causa de "fecha sozinho": políticas que bloqueiam execução em `%TEMP%`.
+- `--collect-all` e `--hidden-import` cobrem o caso de PyInstaller não detectar dependências dinâmicas do Flask/pywin32 (gera `ImportError` no bootstrap, invisível com `--noconsole`).
+- Build `-debug` separado dá ao cliente uma forma de capturar o erro real sem recompilar.
+- `--noupx` evita falso-positivo de antivírus que mata o `.exe` antes mesmo de extrair.
 
-### 4. Índices de banco (migration)
+## Arquivos a editar
 
-```sql
-CREATE INDEX IF NOT EXISTS idx_orders_tenant_status         ON orders(tenant_id, status);
-CREATE INDEX IF NOT EXISTS idx_orders_tenant_table_status   ON orders(tenant_id, table_id, status);
-CREATE INDEX IF NOT EXISTS idx_orders_tenant_created_at     ON orders(tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_order_items_order_status     ON order_items(order_id, preparation_status);
-CREATE INDEX IF NOT EXISTS idx_order_items_tenant_created   ON order_items(tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payments_tenant_created      ON payments(tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_payments_order               ON payments(order_id);
-CREATE INDEX IF NOT EXISTS idx_table_activity_tenant_created ON table_activity_log(tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_comanda_locks_table          ON comanda_locks(table_id);
-CREATE INDEX IF NOT EXISTS idx_nfce_records_order           ON nfce_records(order_id);
-```
+- `print-agent-py/agent.py` — reescrita completa.
+- `print-agent-py/build.bat` — adicionar flags de empacotamento e build `-debug`.
+- `print-agent-py/README.md` — checklist de troubleshooting.
+- `src/pages/PrintersPage.tsx` — mensagem de erro melhor.
+- (Possivelmente) `.github/workflows/build-desktop-agent.yml` — adicionar job PyInstaller.
 
-RLS já usa `user_belongs_to_tenant(tenant_id)` — combinada com o índice `(tenant_id, ...)` o planner usa index scan ao invés de seq scan.
-
-### 5. REPLICA IDENTITY (necessário para realtime UPDATE eficiente)
-
-Verificar e garantir `REPLICA IDENTITY FULL` em `orders`, `order_items`, `payments` para que `payload.old` venha completo (necessário pro filtro "só invalida se status/total mudou").
-
----
-
-## Resposta direta: a estrutura suporta SaaS com 10 clientes nesse potencial?
-
-**Hoje, com cuidado: sim para ~5 clientes pequenos (até 30 comandas simultâneas cada). Para 10 clientes a 100+ comandas: não, sem este refactor.**
-
-Gargalos atuais que travariam:
-1. `TablesPage` faz 13 queries sem paginação → ~2-3s de carregamento por refresh com volume.
-2. Realtime sem filtro por tenant: cada cliente recebe eventos de todos os outros (Supabase Realtime tem cota — você estouraria antes dos 10 tenants).
-3. Sem índices compostos: `WHERE tenant_id=X AND status='open'` faz seq scan quando a tabela passa de ~50k linhas.
-4. Cálculos em `Number` JS: hoje aceitável; em escala, divergência de centavos vira reclamação semanal.
-
-**Após este plano**: a base aguenta confortavelmente 10 tenants × 100 comandas (1000 comandas ativas), com headroom para 50 tenants antes de precisar de read-replicas ou sharding.
-
-## Arquivos afetados
-
-- **novo**: `src/lib/finance.ts`
-- **novo**: `src/hooks/useTenantRealtime.ts`
-- **migration**: 10 índices acima + checagem REPLICA IDENTITY
-- **edit**: `src/components/AddItemDialog.tsx`, `src/components/PaymentPanel.tsx`, `src/lib/printItems.ts`, `src/lib/recalculateOrderTotal.ts` (consumidores), `src/pages/TablesPage.tsx`, `src/pages/KitchenStationPage.tsx`, `src/pages/waiter/WaiterTablesPage.tsx`, `src/pages/waiter/WaiterOrdersPage.tsx`, `src/pages/waiter/WaiterOrderPage.tsx`, `src/pages/TableOrderPage.tsx`, `src/pages/CashierPage.tsx`, `src/pages/SalesPage.tsx`, `src/pages/ReportsPage.tsx`
-
-Posso executar tudo numa única passagem ou dividir em fases (1. índices+finance → 2. realtime → 3. paginação) se preferir entregas incrementais.
+Aprovando, eu aplico tudo de uma vez.
