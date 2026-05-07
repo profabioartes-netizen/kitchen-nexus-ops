@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenant } from "@/contexts/TenantContext";
 import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
@@ -33,8 +34,22 @@ type ShortcutTab = "popular" | "recent" | "repeat";
 export default function WaiterOrderPage() {
   const { tableId } = useParams<{ tableId: string }>();
   const { profile } = useAuth();
+  const { tenant } = useTenant();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "business_phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "business_phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+  });
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
