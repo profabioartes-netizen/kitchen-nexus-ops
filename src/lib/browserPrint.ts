@@ -52,15 +52,23 @@ function buildHtml(p: BrowserPrintPayload): string {
 
   const itemsHtml = items
     .map((it) => {
-      const unit = it.price ?? 0;
-      const sub = unit * (it.quantity ?? 1);
+      const isWeight = it.sale_type === "weight" && (it.grams ?? 0) > 0 && (it.price_per_kg ?? 0) > 0;
+      const unit = isWeight ? Number(it.price_per_kg) : (it.price ?? 0);
+      const sub = (it.price ?? 0) * (it.quantity ?? 1);
+      // Para venda por peso: QNT vira "0,378 kg" e o nome perde o sufixo "- 378g"
+      const qntCell = isWeight
+        ? `${(Number(it.grams) / 1000).toFixed(3).replace(".", ",")} kg`
+        : String(it.quantity);
+      const displayName = isWeight
+        ? String(it.product_name).replace(/\s*-\s*\d+(?:[.,]\d+)?\s*g\s*$/i, "")
+        : it.product_name;
       const compl =
         it.complements && it.complements.length
           ? `<tr class="compl"><td colspan="4">+ ${it.complements.map(escape).join(", ")}</td></tr>`
           : "";
       return `<tr>
-        <td class="prod">${escape(it.product_name)}</td>
-        <td class="qnt">${it.quantity}</td>
+        <td class="prod">${escape(displayName)}</td>
+        <td class="qnt">${escape(qntCell)}</td>
         <td class="unit">${unit.toFixed(2).replace(".", ",")}</td>
         <td class="tot">${sub.toFixed(2).replace(".", ",")}</td>
       </tr>${compl}`;
