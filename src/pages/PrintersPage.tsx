@@ -67,11 +67,10 @@ export default function PrintersPage() {
 
 
   const downloadHuskyPdvCaixa = () => {
-    // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate,
-    // sem window.location, sem window.open. Não interfere na autenticação.
+    // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate.
     const link = document.createElement("a");
     link.href = INSTALLER_URL;
-    link.download = "HuskyPDV-Caixa-Setup.exe";
+    link.download = "HuskyPrintAgent.exe";
     link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
@@ -305,14 +304,15 @@ export default function PrintersPage() {
           </div>
         </section>
 
-        {/* HuskyPDV Caixa - launcher oficial */}
+        {/* HuskyPDV Print Agent — servidor local Python */}
         <section className="rounded-2xl border bg-card/40 p-6 space-y-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">
-              HuskyPDV Caixa
+              HuskyPDV Print Agent
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Instale o atalho oficial para abrir o caixa com impressão automática.
+              Instale o agente local para imprimir <strong>direto na impressora padrão do Windows</strong>,
+              sem abrir janela do navegador. Ideal para impressoras térmicas (Elgin, Epson, Bematech).
             </p>
           </div>
           <button
@@ -320,11 +320,14 @@ export default function PrintersPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
           >
             <Printer className="h-4 w-4" />
-            Baixar HuskyPDV Caixa
+            Baixar HuskyPrintAgent.exe
           </button>
-          <p className="text-xs text-muted-foreground">
-            Após instalar, abra o HuskyPDV pelo ícone <strong>"HuskyPDV Caixa"</strong> criado na Área de Trabalho.
-          </p>
+          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+            <li>Execute o <strong>HuskyPrintAgent.exe</strong> baixado.</li>
+            <li>Defina sua impressora térmica como <strong>padrão</strong> no Windows.</li>
+            <li>Clique em <strong>"Testar Impressão"</strong> acima — o cupom sai direto, sem janelas.</li>
+            <li>Para iniciar com o Windows: cole um atalho em <code>shell:startup</code>.</li>
+          </ol>
         </section>
 
         {/* Impressoras adicionais */}
