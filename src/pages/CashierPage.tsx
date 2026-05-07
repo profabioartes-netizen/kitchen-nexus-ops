@@ -7,6 +7,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 import { useTenant } from "@/contexts/TenantContext";
+import { FinanceUtils } from "@/lib/finance";
 
 interface OrderItem {
   id: string;
@@ -103,12 +104,12 @@ export default function CashierPage() {
 
   const removeItem = (id: string) => setOrder((prev) => prev.filter((o) => o.id !== id));
 
-  const subtotal = order.reduce((sum, o) => sum + o.price * o.qty, 0);
+  const subtotal = FinanceUtils.sum(order.map((o) => FinanceUtils.multiply(o.price, o.qty)));
 
   // Cash change calculation
-  const cashGivenNum = Number(cashGiven.replace(",", ".")) || 0;
+  const cashGivenNum = FinanceUtils.parseDecimal(cashGiven) || 0;
   const cashChange = selectedMethod === "cash" && cashGivenNum > subtotal
-    ? Number((cashGivenNum - subtotal).toFixed(2))
+    ? FinanceUtils.sum([cashGivenNum, -subtotal])
     : 0;
 
   const payMutation = useMutation({

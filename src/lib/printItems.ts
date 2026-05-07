@@ -4,6 +4,7 @@
 //   UNIT -> R$/kg configurado no produto
 //   TOTAL -> price * quantity (mantido)
 import { supabase } from "@/integrations/supabase/client";
+import { FinanceUtils } from "@/lib/finance";
 
 export type EnrichedPrintItem = {
   product_name: string;
@@ -31,13 +32,13 @@ export function extractGramsFromName(name: string): number | null {
   // Tenta "0,348 kg" / "0.348kg"
   const mKg = s.match(/(\d+(?:[.,]\d+)?)\s*kg\s*$/i);
   if (mKg) {
-    const n = parseFloat(mKg[1].replace(",", "."));
+    const n = FinanceUtils.parseDecimal(mKg[1]);
     if (Number.isFinite(n) && n > 0) return Math.round(n * 1000);
   }
   // Fallback "378g"
   const m = s.match(/(\d+(?:[.,]\d+)?)\s*g\s*$/i);
   if (!m) return null;
-  const n = parseFloat(m[1].replace(",", "."));
+  const n = FinanceUtils.parseDecimal(m[1]);
   return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
 }
 

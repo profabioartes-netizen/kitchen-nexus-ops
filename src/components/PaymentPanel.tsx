@@ -17,6 +17,7 @@ import { useTenant } from "@/contexts/TenantContext";
 import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
+import { FinanceUtils } from "@/lib/finance";
 
 type OrderItemComplement = {
   id: string;
@@ -236,40 +237,43 @@ export default function PaymentPanel({
 
   // ── Calculations ──
   const discount = useMemo(
-    () => (discountType === "percent" ? total * (discountValue / 100) : discountValue),
+    () => (discountType === "percent" ? FinanceUtils.multiply(total, discountValue / 100) : discountValue),
     [total, discountType, discountValue]
   );
-  const serviceFee = serviceFeeEnabled ? (total - discount) * (serviceFeePct / 100) : 0;
-  const grandTotal = Math.max(0, total - discount + extraCharge + serviceFee);
-  const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
-  const remaining = Math.max(0, Number((grandTotal - paidTotal).toFixed(2)));
+  const serviceFee = serviceFeeEnabled ? FinanceUtils.multiply(FinanceUtils.sum([total, -discount]), serviceFeePct / 100) : 0;
+  const grandTotal = Math.max(0, FinanceUtils.sum([total, -discount, extraCharge, serviceFee]));
+  const paidTotal = FinanceUtils.sum(payments.map((p) => p.amount));
+  const remaining = Math.max(0, FinanceUtils.sum([grandTotal, -paidTotal]));
 
   // ── Payment items total ──
   const splitEntriesTotal = useMemo(() => {
-    return splitEntries.reduce((sum, e) => sum + e.fractionedPrice, 0);
+    return FinanceUtils.sum(splitEntries.map((e) => e.fractionedPrice));
   }, [splitEntries]);
 
   const paymentItemsTotal = useMemo(() => {
-    return Object.entries(paymentItems).reduce((sum, [id, qty]) => {
-      const item = orderItems.find((i) => i.id === id);
-      return sum + (item ? Number(item.price) * qty : 0);
-    }, 0) + splitEntriesTotal;
+    const itemsSum = FinanceUtils.sum(
+      Object.entries(paymentItems).map(([id, qty]) => {
+        const item = orderItems.find((i) => i.id === id);
+        return item ? FinanceUtils.multiply(item.price, qty) : 0;
+      })
+    );
+    return FinanceUtils.sum([itemsSum, splitEntriesTotal]);
   }, [paymentItems, orderItems, splitEntriesTotal]);
 
   // Amount to pay = custom or payment items total or remaining
   const amountToPay = customAmount
-    ? Number(customAmount.replace(",", ".")) || 0
+    ? FinanceUtils.parseDecimal(customAmount) || 0
     : (Object.keys(paymentItems).length > 0 || splitEntries.length > 0)
       ? Math.min(paymentItemsTotal, remaining)
       : remaining;
 
   // Cash change
-  const cashGivenNum = Number(cashGiven.replace(",", ".")) || 0;
+  const cashGivenNum = FinanceUtils.parseDecimal(cashGiven) || 0;
   const amountToPayNum = typeof customAmount === "string" && customAmount.includes(",")
-    ? Number(customAmount.replace(",", ".")) || amountToPay
+    ? FinanceUtils.parseDecimal(customAmount) || amountToPay
     : amountToPay;
   const cashChange = selectedMethod === "cash" && cashGivenNum > amountToPayNum
-    ? Number((cashGivenNum - amountToPayNum).toFixed(2))
+    ? FinanceUtils.sum([cashGivenNum, -amountToPayNum])
     : 0;
 
   // ── Actions ──
@@ -278,9 +282,9 @@ export default function PaymentPanel({
     if (customAmount) {
       const item = orderItems.find((i) => i.id === itemId);
       if (item) {
-        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
-        const addedValue = Number(item.price) * qty;
-        setCustomAmount(Number((existingAmount + addedValue).toFixed(2)).toFixed(2));
+        const existingAmount = FinanceUtils.parseDecimal(customAmount) || 0;
+        const addedValue = FinanceUtils.multiply(item.price, qty);
+        setCustomAmount(FinanceUtils.sum([existingAmount, addedValue]).toFixed(2));
       }
     }
     setPaymentItems((prev) => ({
@@ -294,9 +298,9 @@ export default function PaymentPanel({
     if (customAmount) {
       const item = orderItems.find((i) => i.id === itemId);
       if (item) {
-        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
-        const removedValue = Number(item.price) * qty;
-        const newAmount = Math.max(0, Number((existingAmount - removedValue).toFixed(2)));
+        const existingAmount = FinanceUtils.parseDecimal(customAmount) || 0;
+        const removedValue = FinanceUtils.multiply(item.price, qty);
+        const newAmount = Math.max(0, FinanceUtils.sum([existingAmount, -removedValue]));
         setCustomAmount(newAmount > 0 ? newAmount.toFixed(2) : "");
       }
     }
@@ -318,9 +322,9 @@ export default function PaymentPanel({
       const item = orderItems.find((i) => i.id === itemId);
       const qty = paymentItems[itemId] ?? 0;
       if (item && qty > 0) {
-        const existingAmount = Number(customAmount.replace(",", ".")) || 0;
-        const removedValue = Number(item.price) * qty;
-        const newAmount = Math.max(0, Number((existingAmount - removedValue).toFixed(2)));
+        const existingAmount = FinanceUtils.parseDecimal(customAmount) || 0;
+        const removedValue = FinanceUtils.multiply(item.price, qty);
+        const newAmount = Math.max(0, FinanceUtils.sum([existingAmount, -removedValue]));
         setCustomAmount(newAmount > 0 ? newAmount.toFixed(2) : "");
       }
     }
@@ -348,7 +352,7 @@ export default function PaymentPanel({
         const inPayment = paymentItems[item.id] ?? 0;
         const avail = item.remainingQty - inPayment;
         if (avail <= 0) continue;
-        const fractionedPrice = Number(((Number(item.price) * avail) / divisor).toFixed(2));
+        const fractionedPrice = FinanceUtils.round(FinanceUtils.multiply(item.price, avail) / divisor, 2);
         newEntries.push({
           uid: crypto.randomUUID(),
           itemId: item.id,
@@ -427,8 +431,8 @@ export default function PaymentPanel({
     const item = unpaidItems.find((i) => i.id === splitItemDialog.id);
     if (!item) return;
     if (splitMode === "quantity") {
-      const totalItemValue = Number(item.price) * item.remainingQty;
-      const fractionedValue = Number((totalItemValue / splitQtyDivisor).toFixed(2));
+      const totalItemValue = FinanceUtils.multiply(item.price, item.remainingQty);
+      const fractionedValue = FinanceUtils.round(totalItemValue / splitQtyDivisor, 2);
       // Add a split entry to the summary (does NOT consume from left panel)
       setSplitEntries((prev) => [
         ...prev,
@@ -955,7 +959,7 @@ export default function PaymentPanel({
                   total: grandTotal,
                   payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
                   change: payments.find(p => p.method === "cash") ?
-                    Math.max(0, payments.filter(p => p.method === "cash").reduce((s, p) => s + p.amount, 0) - grandTotal) : null,
+                    Math.max(0, FinanceUtils.sum([FinanceUtils.sum(payments.filter(p => p.method === "cash").map(p => p.amount)), -grandTotal])) : null,
                   footer_message: "Volte sempre!!!",
                 };
 
@@ -995,8 +999,8 @@ export default function PaymentPanel({
           {splitItemDialog && (() => {
             const item = unpaidItems.find((i) => i.id === splitItemDialog.id);
             if (!item) return null;
-            const itemTotal = Number(item.price) * item.remainingQty;
-            const splitResult = splitMode === "quantity" ? Number((itemTotal / splitQtyDivisor).toFixed(2)) : 0;
+            const itemTotal = FinanceUtils.multiply(item.price, item.remainingQty);
+            const splitResult = splitMode === "quantity" ? FinanceUtils.round(itemTotal / splitQtyDivisor, 2) : 0;
             return (
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-3 rounded-md bg-muted p-3">
@@ -1119,14 +1123,14 @@ export default function PaymentPanel({
                       // Add split entries for each fraction
                       addAllItems(splitAllDivisor);
                       // Create a payment for each fraction with its chosen method
-                      const fractionAmount = Number((grandTotal / splitAllDivisor).toFixed(2));
+                      const fractionAmount = FinanceUtils.round(grandTotal / splitAllDivisor, 2);
                       const newPayments: PaymentEntry[] = splitAllMethods.map((m) => ({
                         method: m,
                         amount: fractionAmount,
                       }));
                       // Adjust last payment for rounding
-                      const totalPaid = fractionAmount * (splitAllDivisor - 1);
-                      newPayments[newPayments.length - 1].amount = Number((grandTotal - totalPaid).toFixed(2));
+                      const totalPaid = FinanceUtils.multiply(fractionAmount, splitAllDivisor - 1);
+                      newPayments[newPayments.length - 1].amount = FinanceUtils.sum([grandTotal, -totalPaid]);
                       setPayments((prev) => [...prev, ...newPayments]);
 
                       // Track all items as paid
