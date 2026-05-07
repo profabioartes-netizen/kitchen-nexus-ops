@@ -617,6 +617,16 @@ export default function TableOrderPage() {
         (order as any).origin_location ||
         "—";
 
+      const enrichedItems = await enrichItemsWithWeightInfo(
+        orderItems.map((i) => ({
+          product_id: (i as any).product_id ?? null,
+          product_name: i.product_name,
+          quantity: i.quantity,
+          price: Number(i.price),
+          complements: (complementsByItem[i.id] || []).map((c) => c.name),
+        })),
+      );
+
       const payload = {
         type: "bill" as const,
         title: "CONTA",
@@ -625,12 +635,7 @@ export default function TableOrderPage() {
         table_name: locationLabel,
         customer_name: order.customer_name || null,
         waiter_name: order.waiter_name || null,
-        items: orderItems.map((i) => ({
-          product_name: i.product_name,
-          quantity: i.quantity,
-          price: Number(i.price),
-          complements: (complementsByItem[i.id] || []).map((c) => c.name),
-        })),
+        items: enrichedItems,
         total: orderItems.reduce((s, i) => s + Number(i.price) * i.quantity, 0),
         footer_message: "Volte sempre!!!",
       };
