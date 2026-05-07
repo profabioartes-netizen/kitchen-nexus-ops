@@ -163,16 +163,20 @@ export function NavigationRail() {
       {/* Nav sections */}
       <div className="flex-1 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden py-2 px-2 no-scrollbar">
         <SectionLabel collapsed={collapsed} label="Operacional" />
-        {operationalItems.map((item) => (
+        {(isWaiter ? operationalItems.filter((i) => i.to === "/") : operationalItems).map((item) => (
           <SidebarItem key={item.to} item={item} collapsed={collapsed} />
         ))}
 
-        <SectionLabel collapsed={collapsed} label="Gestão" />
-        {managementItems.map((item) => (
-          <SidebarItem key={item.to} item={item} collapsed={collapsed} />
-        ))}
+        {!isWaiter && (
+          <>
+            <SectionLabel collapsed={collapsed} label="Gestão" />
+            {managementItems.map((item) => (
+              <SidebarItem key={item.to} item={item} collapsed={collapsed} />
+            ))}
+          </>
+        )}
 
-        {isSuperAdmin && (
+        {isSuperAdmin && !isWaiter && (
           <>
             <SectionLabel collapsed={collapsed} label="Plataforma" />
             <SidebarItem
