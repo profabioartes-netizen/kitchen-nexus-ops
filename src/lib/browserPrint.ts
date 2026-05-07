@@ -234,7 +234,7 @@ function buildHtml(p: BrowserPrintPayload): string {
   <hr class="separator" />
   ${p.customer_name ? `<div>Cliente: ${safe(p.customer_name)}</div>` : ""}
   ${p.waiter_name ? `<div>Atendente: ${safe(p.waiter_name)}</div>` : ""}
-  <div>${new Date().toLocaleString("pt-BR")}</div>
+  <div>${safe(new Date().toLocaleString("pt-BR"))}</div>
   <hr class="separator" />
 
   ${
