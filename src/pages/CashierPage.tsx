@@ -7,6 +7,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { normalize } from "@/lib/normalize";
 import { toast } from "sonner";
 import { useTenant } from "@/contexts/TenantContext";
+import { FinanceUtils } from "@/lib/finance";
 
 interface OrderItem {
   id: string;
