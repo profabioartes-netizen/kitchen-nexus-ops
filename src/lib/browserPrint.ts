@@ -253,10 +253,10 @@ function buildHtml(p: BrowserPrintPayload): string {
           <div class="row"><span>PRODUTOS:</span><span>${brl(productsTotal)}</span></div>
           <div class="row grand"><span>TOTAL:</span><span>${brl(total)}</span></div>
         </div>`
-      : `<div>${escape(p.message ?? "Cupom de teste — impressao pelo navegador OK.")}</div>`
+      : `<div>${safe(p.message ?? "Cupom de teste — impressao pelo navegador OK.")}</div>`
   }
 
-  ${p.payment_method ? `<div>Pagto: ${escape(p.payment_method)}</div>` : ""}
+  ${p.payment_method ? `<div>Pagto: ${safe(p.payment_method)}</div>` : ""}
   ${typeof p.change === "number" && p.change > 0 ? `<div>Troco: ${brl(p.change)}</div>` : ""}
 
   <hr class="separator" />
