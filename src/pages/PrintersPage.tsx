@@ -68,14 +68,14 @@ export default function PrintersPage() {
   // Gerado pelo GitHub Actions — workflow .github/workflows/build-desktop-agent.yml.
   // Sempre aponta para a ÚLTIMA release publicada (criar tag v0.1.0 no GitHub).
   const INSTALLER_URL =
-    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPDV-Agent-Setup.exe";
+    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe";
 
 
   const downloadHuskyPdvCaixa = () => {
     // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate.
     const link = document.createElement("a");
     link.href = INSTALLER_URL;
-    link.download = "HuskyPDV-Agent-Setup.exe";
+    link.download = "HuskyPrintAgent.exe";
     link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
@@ -335,7 +335,7 @@ export default function PrintersPage() {
             Baixar HuskyPDV Agent (Windows)
           </button>
           <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Execute o <strong>HuskyPDV-Agent-Setup.exe</strong> baixado e siga o instalador.</li>
+            <li>Execute o <strong>HuskyPrintAgent.exe</strong> baixado e siga o instalador.</li>
             <li>Defina sua impressora térmica como <strong>padrão</strong> no Windows.</li>
             <li>Clique em <strong>"Testar Impressão"</strong> acima — o cupom sai direto, sem janelas.</li>
             <li>Para iniciar com o Windows: cole um atalho em <code>shell:startup</code>.</li>
