@@ -62,8 +62,12 @@ export default function PrintersPage() {
     else toast.error("Não foi possível imprimir.");
   };
 
-  // URL pública estática do instalador do HuskyPDV Print Agent (Python/Flask).
-  const INSTALLER_URL = "https://huskypdv.com/downloads/HuskyPrintAgent.exe";
+  // URL pública e estável do instalador (gerado automaticamente pelo GitHub
+  // Actions — workflow em print-agent-py/.github/workflows/release.yml).
+  // Sempre aponta para a ÚLTIMA release publicada.
+  // ⚠️ Substitua <ORG>/<REPO> pelo caminho do seu repositório no GitHub.
+  const INSTALLER_URL =
+    "https://github.com/HuskyPDV/huskypdv/releases/latest/download/HuskyPrintAgent.exe";
 
 
   const downloadHuskyPdvCaixa = () => {
