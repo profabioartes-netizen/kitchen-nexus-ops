@@ -530,7 +530,7 @@ export default function TableOrderPage() {
       const newQty = item.quantity + delta;
 
       if (newQty <= 0) {
-        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+        await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name, businessName, businessPhone });
         await supabase.from("order_items").delete().eq("id", itemId);
         const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
         await logActivity(tableId!, "item_removed", `Removido: ${item.product_name}${sentLabel}`, order?.id);
@@ -560,7 +560,7 @@ export default function TableOrderPage() {
       const item = orderItems.find((i) => i.id === itemId);
       if (!item) return;
 
-      await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+      await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name, businessName, businessPhone });
       await supabase.from("order_items").delete().eq("id", itemId);
       await recalculateOrderTotal(order!.id);
       const sentLabel = item.sent_to_kitchen ? " (já enviado à cozinha)" : "";
@@ -1000,7 +1000,7 @@ export default function TableOrderPage() {
     if (!item) return;
 
 
-    await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name });
+    await printCancellationIfNeeded({ item, products, table, order, waiterName: profile?.full_name, businessName, businessPhone });
     await supabase.from("order_items").delete().eq("id", item.id);
     await recalculateOrderTotal(order.id);
     await logActivity(tableId!, "item_removed", `Removido (venda rápida): ${item.product_name}`, order.id, profile?.full_name);
