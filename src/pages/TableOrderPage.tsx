@@ -640,61 +640,14 @@ export default function TableOrderPage() {
         footer_message: "Volte sempre!!!",
       };
 
-      const mode = getPrintMode();
-
-      // Modo "native" → imprime direto pelo navegador, sem agente
-      if (mode === "native") {
-        const ok = printViaBrowser(payload);
-        if (!ok) throw new Error("Falha ao abrir janela de impressão");
-        await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador`, order.id, profile?.full_name);
-        return { via: "browser" as const };
-      }
-
-      // Caso contrário: tenta agente. Verifica se há agente Caixa online (heartbeat < 90s).
-      let agentOnline = false;
-      try {
-        const { data: agents } = await supabase
-          .from("print_agents")
-          .select("last_seen_at, active, station")
-          .eq("station", "Caixa")
-          .eq("active", true);
-        const now = Date.now();
-        agentOnline = !!agents?.some(
-          (a) => a.last_seen_at && now - new Date(a.last_seen_at).getTime() < 90_000,
-        );
-      } catch {
-        agentOnline = false;
-      }
-
-      if (mode === "agent" || agentOnline) {
-        const { error } = await supabase.from("print_jobs").insert({
-          station: "Caixa",
-          status: "pending",
-          payload: {
-            ...payload,
-            compact: true,
-            location: locationLabel,
-            origin: order.origin || "waiter",
-            order_id: order.id,
-          },
-        });
-        if (!error && agentOnline) {
-          await logActivity(tableId!, "print_bill", `Conta enviada ao agente Caixa`, order.id, profile?.full_name);
-          return { via: "agent" as const };
-        }
-        // Sem agente online OU falha → fallback navegador
-      }
-
-      // Fallback: navegador
+      // Impressão sempre pelo navegador (HuskyPDV Caixa Launcher / Chrome --kiosk-printing).
       const ok = printViaBrowser(payload);
       if (!ok) throw new Error("Falha ao abrir janela de impressão");
-      await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador (fallback)`, order.id, profile?.full_name);
-      return { via: "browser-fallback" as const };
+      await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador`, order.id, profile?.full_name);
+      return { via: "browser" as const };
     },
-    onSuccess: (res) => {
-      if (res?.via === "agent") toast.success("Conta enviada para impressão no Caixa!");
-      else if (res?.via === "browser-fallback") toast.success("Agente offline — abrindo impressão pelo navegador");
-      else toast.success("Imprimindo…");
+    onSuccess: () => {
+      toast.success("Imprimindo…");
     },
     onError: (err) => toast.error((err as Error).message),
   });
