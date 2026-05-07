@@ -23,7 +23,7 @@ import { printCancellationIfNeeded } from "@/lib/printCancellation";
 import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 import { recalculateOrderTotal } from "@/lib/recalculateOrderTotal";
 import { resolveAndSyncOrderPrintLocation } from "@/lib/orderPrintLocation";
-import { printViaBrowser } from "@/lib/browserPrint";
+import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
 
@@ -640,14 +640,14 @@ export default function TableOrderPage() {
         footer_message: "Volte sempre!!!",
       };
 
-      // Impressão sempre pelo navegador (HuskyPDV Caixa Launcher / Chrome --kiosk-printing).
-      const ok = printViaBrowser(payload);
-      if (!ok) throw new Error("Falha ao abrir janela de impressão");
-      await logActivity(tableId!, "print_bill", `Conta impressa pelo navegador`, order.id, profile?.full_name);
-      return { via: "browser" as const };
+      // Tenta Agente Local; se offline, fallback nativo (window.print via iframe).
+      const result = await printViaLocalAgent(payload);
+      if (!result.ok) throw new Error("Falha ao abrir janela de impressão");
+      await logActivity(tableId!, "print_bill", `Conta impressa via ${result.via}`, order.id, profile?.full_name);
+      return { via: result.via };
     },
-    onSuccess: () => {
-      toast.success("Imprimindo…");
+    onSuccess: (res) => {
+      toast.success(res.via === "agent" ? "Impressão enviada" : "Imprimindo…");
     },
     onError: (err) => toast.error((err as Error).message),
   });
