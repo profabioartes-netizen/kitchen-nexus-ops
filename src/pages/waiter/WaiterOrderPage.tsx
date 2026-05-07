@@ -531,7 +531,8 @@ export default function WaiterOrderPage() {
   });
 
   const handleProductTap = (product: any) => {
-    if (productsWithComplements.has(product.id)) {
+    // Produtos por peso SEMPRE abrem o diálogo para informar gramas
+    if (product?.sale_type === "weight" || productsWithComplements.has(product.id)) {
       setSelectedProduct(product);
     } else {
       quickAdd.mutate(product);
