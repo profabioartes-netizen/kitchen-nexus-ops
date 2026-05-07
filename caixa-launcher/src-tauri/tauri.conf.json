@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HuskyPDV Caixa",
+  "version": "1.0.0",
+  "identifier": "com.huskypdv.caixa",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": []
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ],
+    "publisher": "HuskyPDV",
+    "shortDescription": "HuskyPDV Caixa",
+    "longDescription": "Abre o HuskyPDV Caixa em modo aplicativo com impressao automatica.",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "languages": ["PortugueseBR"],
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}
