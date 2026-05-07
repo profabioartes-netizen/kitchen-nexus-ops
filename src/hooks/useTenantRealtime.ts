@@ -40,7 +40,8 @@ export function useTenantRealtime({
   channelKey,
 }: Options) {
   const queryClient = useQueryClient();
-  const { tenantId } = useTenant() as any;
+  const { tenant } = useTenant();
+  const tenantId = tenant?.id;
   const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
