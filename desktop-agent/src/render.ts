@@ -24,8 +24,12 @@ export function renderJob(payload: any, tenantName: string): string {
   const type = String(payload?.type ?? "");
   const out: string[] = [];
 
+  const phone = String(payload?.business_phone ?? "").trim();
+  const headerName = String(payload?.business_name ?? tenantName ?? "HuskyPDV").trim() || "HuskyPDV";
+
   out.push(line("="));
-  out.push(center(tenantName || "HuskyPDV"));
+  out.push(center(headerName));
+  if (phone) out.push(center(`Tel: ${phone}`));
   out.push(line("="));
 
   if (type === "test") {
