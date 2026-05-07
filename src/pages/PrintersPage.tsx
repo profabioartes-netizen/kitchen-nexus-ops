@@ -62,19 +62,18 @@ export default function PrintersPage() {
     else toast.error("Não foi possível imprimir.");
   };
 
-  // URL pública e estável do instalador (gerado automaticamente pelo GitHub
-  // Actions — workflow em print-agent-py/.github/workflows/release.yml).
-  // Sempre aponta para a ÚLTIMA release publicada.
-  // ⚠️ Substitua <ORG>/<REPO> pelo caminho do seu repositório no GitHub.
+  // URL pública e estável do instalador NSIS (Tauri/Rust).
+  // Gerado pelo GitHub Actions — workflow .github/workflows/build-desktop-agent.yml.
+  // Sempre aponta para a ÚLTIMA release publicada (criar tag v0.1.0 no GitHub).
   const INSTALLER_URL =
-    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPrintAgent.exe";
+    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/latest/download/HuskyPDV-Agent-Setup.exe";
 
 
   const downloadHuskyPdvCaixa = () => {
     // Download puro: cria <a download> e dispara click. Sem fetch, sem navigate.
     const link = document.createElement("a");
     link.href = INSTALLER_URL;
-    link.download = "HuskyPrintAgent.exe";
+    link.download = "HuskyPDV-Agent-Setup.exe";
     link.rel = "noopener";
     document.body.appendChild(link);
     link.click();
@@ -331,10 +330,10 @@ export default function PrintersPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent/90 transition-colors"
           >
             <Printer className="h-4 w-4" />
-            Baixar HuskyPrintAgent.exe
+            Baixar HuskyPDV Agent (Windows)
           </button>
           <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Execute o <strong>HuskyPrintAgent.exe</strong> baixado.</li>
+            <li>Execute o <strong>HuskyPDV-Agent-Setup.exe</strong> baixado e siga o instalador.</li>
             <li>Defina sua impressora térmica como <strong>padrão</strong> no Windows.</li>
             <li>Clique em <strong>"Testar Impressão"</strong> acima — o cupom sai direto, sem janelas.</li>
             <li>Para iniciar com o Windows: cole um atalho em <code>shell:startup</code>.</li>
