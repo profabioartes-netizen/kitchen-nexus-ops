@@ -48,6 +48,19 @@ export default function PrintReceiptPage() {
         }
       }
 
+      // Carrega sale_type/price_per_kg para identificar itens vendidos por peso
+      const productIds = Array.from(new Set((items || []).map((i: any) => i.product_id).filter(Boolean)));
+      const productMeta: Record<string, { sale_type?: string | null; price_per_kg?: number | null }> = {};
+      if (productIds.length) {
+        const { data: prods } = await supabase
+          .from("products")
+          .select("id, sale_type, price_per_kg")
+          .in("id", productIds);
+        for (const p of prods || []) {
+          productMeta[p.id] = { sale_type: (p as any).sale_type, price_per_kg: (p as any).price_per_kg };
+        }
+      }
+
       const { data: payments } = await supabase
         .from("payments")
         .select("method, amount")
@@ -70,6 +83,7 @@ export default function PrintReceiptPage() {
         order,
         items: items || [],
         complByItem,
+        productMeta,
         payments: payments || [],
         business_name: tenant?.nome_comercio || "HuskyPDV",
         business_phone: sMap.business_phone || "",
@@ -94,7 +108,7 @@ export default function PrintReceiptPage() {
   if (error) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#000", background: "#fff" }}>{error}</div>;
   if (!data) return <div style={{ padding: 24, fontFamily: "sans-serif", color: "#000", background: "#fff" }}>Carregando…</div>;
 
-  const { order, items, complByItem, payments, business_name, business_phone, business_address } = data;
+  const { order, items, complByItem, productMeta, payments, business_name, business_phone, business_address } = data;
   const productsTotal = items.reduce(
     (s: number, it: any) => s + Number(it.price) * Number(it.quantity), 0,
   );
@@ -209,15 +223,29 @@ export default function PrintReceiptPage() {
         </div>
 
         {items.map((it: any) => {
-          const unit = Number(it.price);
+          const meta = productMeta?.[it.product_id] || {};
+          const ppk = Number(meta.price_per_kg ?? 0);
+          const isWeight = meta.sale_type === "weight" && ppk > 0;
           const qty = Number(it.quantity);
-          const sub = unit * qty;
+          const sub = Number(it.price) * qty;
+          // Extrai gramas do nome (padrão "... - 378g") ou deriva do total
+          let grams: number | null = null;
+          const m = String(it.product_name || "").match(/(\d+(?:[.,]\d+)?)\s*g\s*$/i);
+          if (m) grams = Math.round(parseFloat(m[1].replace(",", ".")));
+          else if (isWeight) grams = Math.round((Number(it.price) / ppk) * 1000);
+          const cleanName = isWeight
+            ? String(it.product_name).replace(/\s*-\s*\d+(?:[.,]\d+)?\s*g\s*$/i, "")
+            : it.product_name;
+          const unit = isWeight ? ppk : Number(it.price);
+          const qntDisplay = isWeight && grams
+            ? `${(grams / 1000).toFixed(3).replace(".", ",")} kg`
+            : (qty % 1 === 0 ? String(qty) : qty.toFixed(3).replace(".", ","));
           const compl = complByItem[it.id] || [];
           return (
             <div key={it.id}>
               <div className="item-row">
-                <span className="item-name upper">{it.product_name}</span>
-                <span className="qnt">{qty % 1 === 0 ? qty : qty.toFixed(3).replace(".", ",")}</span>
+                <span className="item-name upper">{cleanName}</span>
+                <span className="qnt">{qntDisplay}</span>
                 <span className="unit">{fmt(unit)}</span>
                 <span className="tot">{fmt(sub)}</span>
               </div>

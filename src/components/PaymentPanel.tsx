@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTenant } from "@/contexts/TenantContext";
 import { printViaBrowser } from "@/lib/browserPrint";
+import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
 
 type OrderItemComplement = {
@@ -929,6 +930,16 @@ export default function PaymentPanel({
                   complementsByItem[c.order_item_id].push({ name: c.complement_name });
                 }
 
+                const enrichedBillItems = await enrichItemsWithWeightInfo(
+                  orderItems.map((o) => ({
+                    product_id: (o as any).product_id ?? null,
+                    product_name: o.product_name,
+                    quantity: o.quantity,
+                    price: Number(o.price),
+                    complements: (complementsByItem[o.id] || []).map((c) => c.name),
+                  })),
+                );
+
                 const billPayload = {
                   type: "bill" as const,
                   compact: true,
@@ -940,12 +951,7 @@ export default function PaymentPanel({
                   waiter_name: orderContext?.waiterName || null,
                   origin: orderContext?.origin || "waiter",
                   order_id: orderContext?.orderId || null,
-                  items: orderItems.map((o) => ({
-                    product_name: o.product_name,
-                    quantity: o.quantity,
-                    price: Number(o.price),
-                    complements: (complementsByItem[o.id] || []).map((c) => c.name),
-                  })),
+                  items: enrichedBillItems,
                   total: grandTotal,
                   payment_method: payments.map((p) => methodLabels[p.method] || p.method).join(", "),
                   change: payments.find(p => p.method === "cash") ?
