@@ -95,9 +95,9 @@ export default function PrintersPage() {
   };
 
   // URL pública e estável do instalador NSIS (Tauri/Rust).
-  // Aponta para a release fixa `print-agent-v1.0.0` publicada no GitHub.
+  // Aponta para a release fixa `print-agent-v0.1.1` publicada no GitHub.
   const INSTALLER_URL =
-    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/download/print-agent-v1.0.0/HuskyPrintAgent.exe";
+    "https://github.com/profabioartes-netizen/kitchen-nexus-ops/releases/download/print-agent-v0.1.1/HuskyPrintAgent.exe";
 
 
   const downloadHuskyPdvCaixa = () => {
