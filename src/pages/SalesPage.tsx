@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Download, ChevronDown, ChevronUp, Loader2, Filter, Lock, ShoppingBag,
+  Download, ChevronDown, ChevronUp, Loader2, Filter, Lock, ShoppingBag, Printer, Search,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { printViaLocalAgent } from "@/lib/localAgentPrint";
+import { useTenant } from "@/contexts/TenantContext";
 
 type QuickPeriod = "today" | "yesterday" | "7" | "30" | "month" | "custom";
 
@@ -33,9 +35,27 @@ export default function SalesPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [methodFilter, setMethodFilter] = useState("all");
+  const [searchCustomer, setSearchCustomer] = useState("");
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reprintingId, setReprintingId] = useState<string | null>(null);
   const { goLiveAt } = useGoLiveDate();
+  const { tenant } = useTenant();
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+    enabled: unlocked,
+  });
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
 
   const effectiveDateFrom = useMemo(() => {
     if (quickPeriod === "today") return new Date();
@@ -123,8 +143,12 @@ export default function SalesPage() {
       const ids = new Set(payments.filter((p: any) => p.method === methodFilter).map((p: any) => p.order_id));
       result = result.filter((o: any) => ids.has(o.id));
     }
+    const term = searchCustomer.trim().toLowerCase();
+    if (term) {
+      result = result.filter((o: any) => (o.customer_name || "").toLowerCase().includes(term));
+    }
     return result;
-  }, [orders, methodFilter, payments]);
+  }, [orders, methodFilter, payments, searchCustomer]);
 
   const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
   const pageOrders = filteredOrders.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -158,6 +182,57 @@ export default function SalesPage() {
     }
     toast.success(`Exportação ${type.toUpperCase()} concluída!`);
   }, [filteredOrders, paymentMap, tableMap]);
+
+  const handleReprint = useCallback(async (order: any) => {
+    setReprintingId(order.id);
+    try {
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("id, product_id, product_name, quantity, price, sale_type, grams, price_per_kg, n(complement_name, quantity)")
+        .eq("order_id", order.id);
+
+      const pmts = paymentMap.get(order.id) || [];
+      const table = order.table_id ? tableMap.get(order.table_id) : null;
+      const cashTotal = pmts.filter((p: any) => p.method === "cash").reduce((s: number, p: any) => s + Number(p.amount), 0);
+      const total = Number(order.total) || 0;
+      const change = cashTotal > 0 ? Math.max(0, cashTotal - total) : null;
+
+      const billPayload = {
+        type: "bill" as const,
+        business_name: businessName,
+        business_phone: businessPhone || null,
+        location: table ? (table.internal_number || table.name) : "Caixa",
+        table_name: table?.name || "Comanda",
+        customer_name: order.customer_name || null,
+        waiter_name: order.waiter_name || null,
+        items: (items || []).map((it: any) => ({
+          product_id: it.product_id ?? null,
+          product_name: it.product_name,
+          quantity: it.quantity,
+          price: Number(it.price),
+          sale_type: it.sale_type,
+          grams: it.grams,
+          price_per_kg: it.price_per_kg,
+          complements: (it.n || []).map((c: any) => c.complement_name),
+        })),
+        total,
+        payment_method: pmts.map((p: any) => methodLabels[p.method] || p.method).join(", "),
+        change,
+        footer_message: "Volte sempre!!!",
+        paper: "80mm" as const,
+      };
+
+      const result = await printViaLocalAgent(billPayload);
+      if (result.ok && result.via === "agent") toast.success("Impressão enviada");
+      else if (result.ok) toast.success("Imprimindo conta...");
+      else toast.error("Não foi possível abrir a impressão.");
+    } catch (e: any) {
+      toast.error("Erro ao reimprimir: " + (e?.message || "desconhecido"));
+    } finally {
+      setReprintingId(null);
+    }
+  }, [paymentMap, tableMap, businessName, businessPhone]);
+
 
   if (pinEnabled && !unlocked) {
     return (
@@ -265,6 +340,16 @@ export default function SalesPage() {
             <option key={m} value={m}>{methodLabels[m] || m}</option>
           ))}
         </select>
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchCustomer}
+            onChange={(e) => { setSearchCustomer(e.target.value); setPage(0); }}
+            placeholder="Buscar por cliente…"
+            className="w-full text-xs rounded-md border bg-background pl-7 pr-2 py-1.5"
+          />
+        </div>
         <span className="text-xs text-muted-foreground ml-auto">{filteredOrders.length} vendas</span>
       </div>
 
@@ -279,7 +364,7 @@ export default function SalesPage() {
                 <th className="text-left p-3 hidden lg:table-cell">Mesa</th>
                 <th className="text-right p-3">Total</th>
                 <th className="text-left p-3 hidden md:table-cell">Pagamento</th>
-                <th className="text-center p-3 w-10"></th>
+                <th className="text-center p-3 w-20"></th>
               </tr>
             </thead>
             <tbody>
@@ -295,6 +380,8 @@ export default function SalesPage() {
                     table={table}
                     expanded={expanded}
                     onToggle={() => setExpandedId(expanded ? null : o.id)}
+                    onReprint={() => handleReprint(o)}
+                    reprinting={reprintingId === o.id}
                   />
                 );
               })}
@@ -323,9 +410,11 @@ interface OrderRowProps {
   table: any;
   expanded: boolean;
   onToggle: () => void;
+  onReprint: () => void;
+  reprinting: boolean;
 }
 
-function OrderRow({ order, payments, table, expanded, onToggle }: OrderRowProps) {
+function OrderRow({ order, payments, table, expanded, onToggle, onReprint, reprinting }: OrderRowProps) {
   return (
     <>
       <tr className="border-b hover:bg-muted/20 cursor-pointer" onClick={onToggle}>
@@ -338,7 +427,17 @@ function OrderRow({ order, payments, table, expanded, onToggle }: OrderRowProps)
           {payments.map((p: any) => methodLabels[p.method] || p.method).join(", ") || "-"}
         </td>
         <td className="p-3 text-center">
-          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onReprint(); }}
+              disabled={reprinting}
+              title="Reimprimir cupom"
+              className="rounded-md hover:bg-muted/50 p-1.5 text-muted-foreground hover:text-accent disabled:opacity-50 transition-colors touch-manipulation"
+            >
+              {reprinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+            </button>
+            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
         </td>
       </tr>
       {expanded && (
