@@ -1,35 +1,39 @@
-## Objetivo
+## Recurso: F6 → Histórico de Lançamentos da Comanda
 
-Na tela **Vendas** (`/vendas`):
-1. Adicionar botão **"Reimprimir"** em cada linha de venda (mesmo finalizadas), que envia o cupom novamente para a impressora via Print Agent local (com fallback para impressão nativa do navegador).
-2. Adicionar **barra de pesquisa** para filtrar vendas por nome do cliente.
+Adicionar atalho **F6** na página da comanda aberta (`TableOrderPage`) que abre um modal listando cada item lançado com **data e hora** do lançamento.
 
-## Mudanças
+### Comportamento
 
-### `src/pages/SalesPage.tsx`
+- Tecla **F6** (em qualquer lugar da página da comanda, exceto inputs de texto): abre o modal.
+- **Esc** ou clique fora: fecha.
+- Funciona apenas com comanda aberta carregada.
 
-**Pesquisa por cliente**
-- Novo estado `searchCustomer` (string).
-- Input de busca posicionado ao lado do filtro "Pagamento" (ícone de lupa, placeholder "Buscar por cliente…").
-- `filteredOrders` passa a aplicar também: `o.customer_name?.toLowerCase().includes(searchCustomer.trim().toLowerCase())` quando o termo não estiver vazio (case-insensitive, sem acentos via `normalize`).
-- `setPage(0)` ao digitar, para resetar paginação.
+### Conteúdo do modal
 
-**Botão Reimprimir**
-- Novo botão `Printer` em cada `OrderRow` (coluna de ações, ao lado do chevron). Visível em todos os tamanhos.
-- Também disponível dentro do bloco expandido (`ExpandedDetails`), mais largo, para uso fácil no mobile.
-- Ao clicar:
-  1. Busca em paralelo: `restaurant_settings` (business_name, business_phone), `order_items` completo (com `id`, `product_id`, `product_name`, `quantity`, `price`), `order_item_complements` dos itens, e `restaurant_tables` (já em cache via `tableMap`).
-  2. Monta `billPayload` no mesmo formato usado em `PaymentPanel.tsx` (type `"bill"`, business_name/phone, location, table_name, customer_name, waiter_name, items com complementos, total, payment_method concatenado, change para dinheiro, footer "Volte sempre!!!", paper "80mm").
-  3. Chama `printViaLocalAgent(payload)` de `@/lib/localAgentPrint`.
-  4. Toast de sucesso/erro idêntico ao do PaymentPanel ("Impressão enviada" / "Imprimindo conta..." / "Não foi possível abrir a impressão.").
-- Estado `reprintingId` para mostrar `Loader2` no botão da linha em impressão e desabilitá-lo.
+Lista cronológica (mais recente primeiro) com:
 
-**Pequenos ajustes**
-- Reaproveitar `methodLabels` já existente para montar `payment_method`.
-- Não alterar regras de RLS / consultas existentes — apenas adicionar fetches sob demanda no clique.
-- Sem mudanças em `localAgentPrint.ts`, `PaymentPanel.tsx` ou demais arquivos.
+- Hora `HH:mm` + data `dd/MM/yyyy` (de `order_items.created_at`)
+- Nome do produto + quantidade
+- Complementos (se houver)
+- Preço unitário
+- Quem lançou: usa `orders.waiter_name` da comanda (não temos campo por item) e marca origem se `origin = 'self_service'` mostrando "Autoatendimento"
+- Status do item: Pendente / Enviado cozinha / Pronto / Entregue (derivado de `preparation_status` e `sent_to_kitchen`)
 
-## Critério de aceite
+Agrupamento opcional por "rodada" (mesmo minuto de lançamento) com separador visual para facilitar leitura.
 
-- Digitando "rogerio" no campo de busca, aparecem só vendas cujo cliente contenha "rogerio" (case-insensitive).
-- Clicar em "Reimprimir" em uma venda já finalizada envia o cupom para a mesma impressora usada no fechamento (com fallback de navegador se o agente estiver offline), exatamente como o botão 🧾 do PaymentPanel.
+### Detalhes técnicos
+
+- Arquivo: `src/pages/TableOrderPage.tsx`
+- Reaproveitar a query já existente `["order_items", order?.id]` (já traz `created_at`, `sent_at`, `preparation_status`, complementos via map).
+- Novo state `historyOpen: boolean`.
+- `useEffect` com listener `keydown` global: se `e.key === "F6"` e o target não for `INPUT/TEXTAREA/[contenteditable]`, `e.preventDefault()` e `setHistoryOpen(true)`.
+- Componente: `<Dialog>` (shadcn) já disponível no projeto, com `DialogContent` rolável (`max-h-[80vh] overflow-auto`).
+- Ordenação: copiar `items` e `sort` por `created_at` desc.
+- Formatadores: `toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })` e `toLocaleDateString("pt-BR")`.
+- Sem mudanças no banco — `order_items.created_at` já existe e é preenchido por `default now()`.
+- Dica visual no rodapé do painel direito da comanda: pequeno texto "F6: histórico" para descoberta.
+
+### Fora de escopo
+
+- Não registra usuário por item (schema atual não tem). Mostra apenas o garçom da comanda.
+- Não exporta/imprime o histórico (pode virar feature futura).
