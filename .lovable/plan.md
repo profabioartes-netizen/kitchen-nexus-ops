@@ -1,65 +1,35 @@
-## Diagnóstico
+## Objetivo
 
-O `.exe` fecha instantaneamente **antes** de qualquer log Python rodar. Isso descarta hipóteses de "exceção no código". O culpado é o **bootstrap do PyInstaller `--onefile`**, que extrai DLLs/Python embarcado em `%TEMP%\_MEIxxxxxx` e executa de lá. Se essa extração falhar — antivírus, política de SRP/AppLocker, falta do VC++ Redistributable, `%TEMP%` sem permissão de execução — o processo morre em milissegundos sem deixar rastro, e como compilamos com `--noconsole`, nem mensagem de erro aparece.
+Na tela **Vendas** (`/vendas`):
+1. Adicionar botão **"Reimprimir"** em cada linha de venda (mesmo finalizadas), que envia o cupom novamente para a impressora via Print Agent local (com fallback para impressão nativa do navegador).
+2. Adicionar **barra de pesquisa** para filtrar vendas por nome do cliente.
 
-A correção real é em três frentes: build, runtime e fallback.
+## Mudanças
 
-## O que fazer
+### `src/pages/SalesPage.tsx`
 
-### 1. `print-agent-py/agent.py` — reescrever com proteção total
+**Pesquisa por cliente**
+- Novo estado `searchCustomer` (string).
+- Input de busca posicionado ao lado do filtro "Pagamento" (ícone de lupa, placeholder "Buscar por cliente…").
+- `filteredOrders` passa a aplicar também: `o.customer_name?.toLowerCase().includes(searchCustomer.trim().toLowerCase())` quando o termo não estiver vazio (case-insensitive, sem acentos via `normalize`).
+- `setPage(0)` ao digitar, para resetar paginação.
 
-- `try/except` no nível de módulo (top-level), não só em `main()`.
-- `sys.excepthook` global gravando qualquer exceção não tratada.
-- Logging para `%TEMP%\HuskyPrintAgent.log` (RotatingFileHandler 512 KB × 2) **e** para `%LOCALAPPDATA%\HuskyPrintAgent\agent.log` como fallback se `%TEMP%` falhar.
-- Logs de startup explícitos: "iniciando", "checando win32print", "porta 8080 livre? sim/não", "bind ok", "servindo".
-- Detecção de porta 8080 ocupada com `socket.bind` antes de iniciar Flask. Se ocupada, mostra `MessageBoxW` e mantém processo vivo aguardando ENTER (no modo console) ou loga e sai (no modo silencioso).
-- `MessageBoxW` (via `ctypes.windll.user32`) para qualquer falha fatal, incluindo "win32print ausente" e "porta ocupada". Sempre cita o caminho do log.
-- `input("Pressione ENTER para sair…")` no final do `main()` quando rodando em modo console (detectado via `sys.stdout.isatty()`), assim a janela não fecha.
-- Bumpar versão para `1.0.1`.
+**Botão Reimprimir**
+- Novo botão `Printer` em cada `OrderRow` (coluna de ações, ao lado do chevron). Visível em todos os tamanhos.
+- Também disponível dentro do bloco expandido (`ExpandedDetails`), mais largo, para uso fácil no mobile.
+- Ao clicar:
+  1. Busca em paralelo: `restaurant_settings` (business_name, business_phone), `order_items` completo (com `id`, `product_id`, `product_name`, `quantity`, `price`), `order_item_complements` dos itens, e `restaurant_tables` (já em cache via `tableMap`).
+  2. Monta `billPayload` no mesmo formato usado em `PaymentPanel.tsx` (type `"bill"`, business_name/phone, location, table_name, customer_name, waiter_name, items com complementos, total, payment_method concatenado, change para dinheiro, footer "Volte sempre!!!", paper "80mm").
+  3. Chama `printViaLocalAgent(payload)` de `@/lib/localAgentPrint`.
+  4. Toast de sucesso/erro idêntico ao do PaymentPanel ("Impressão enviada" / "Imprimindo conta..." / "Não foi possível abrir a impressão.").
+- Estado `reprintingId` para mostrar `Loader2` no botão da linha em impressão e desabilitá-lo.
 
-### 2. `print-agent-py/build.bat` — compilar com console + hidden-imports + diagnostics
+**Pequenos ajustes**
+- Reaproveitar `methodLabels` já existente para montar `payment_method`.
+- Não alterar regras de RLS / consultas existentes — apenas adicionar fetches sob demanda no clique.
+- Sem mudanças em `localAgentPrint.ts`, `PaymentPanel.tsx` ou demais arquivos.
 
-Substituir o build atual por dois targets:
+## Critério de aceite
 
-- **HuskyPrintAgent.exe** (produção, sem console) — mesmo nome de hoje.
-- **HuskyPrintAgent-debug.exe** (com `--console` e `--debug=imports`) — gera log no stderr na hora do bootstrap, mostrando se o problema é DLL ausente.
-
-Adicionar flags críticas em ambos:
-- `--collect-all flask --collect-all flask_cors --collect-all werkzeug --collect-all jinja2`
-- `--hidden-import win32print --hidden-import win32api --hidden-import pywintypes`
-- `--runtime-tmpdir .` para que o PyInstaller extraia ao lado do `.exe` em vez de `%TEMP%` (resolve o caso de antivírus/política bloqueando `%TEMP%\_MEI*`).
-- `--noupx` (UPX é falso-positivo comum de antivírus).
-
-### 3. `print-agent-py/README.md` — checklist para o cliente
-
-Documentar passos quando o `.exe` fecha sozinho:
-1. Executar `HuskyPrintAgent-debug.exe` num CMD e enviar a saída.
-2. Instalar **Microsoft Visual C++ Redistributable 2015–2022 (x64)** — link direto.
-3. Adicionar exclusão no Windows Defender para a pasta do `.exe`.
-4. Conferir `%TEMP%\HuskyPrintAgent.log` e `%LOCALAPPDATA%\HuskyPrintAgent\agent.log`.
-
-### 4. `src/pages/PrintersPage.tsx` — mensagem de erro do "Testar Conexão" mais útil
-
-Trocar o `alert` genérico atual por um diagnóstico passo-a-passo (checar processo no Gerenciador de Tarefas, baixar a versão `-debug`, instalar VC++ Redist, conferir log).
-
-### 5. Disparar nova release
-
-Após editar, o cliente baixa o `HuskyPrintAgent.exe` v1.0.1 pelo botão da própria tela de Impressoras (já aponta para a release fixa do GitHub). O CI/Action existente em `.github/workflows/build-desktop-agent.yml` precisa ser revisado — vou confirmar se ele cobre o `print-agent-py` ou só o `desktop-agent` Tauri (provavelmente só Tauri, então preciso adicionar um job `pyinstaller` ao workflow, ou usar o `build.bat` localmente).
-
-## Por que isso resolve o que as tentativas anteriores não resolveram
-
-- Tentativas anteriores assumiram **bug no Python** (exceção, porta, CORS). O processo morre **antes do Python rodar** — nenhum `try/except` em Python ajudaria.
-- `--runtime-tmpdir .` elimina a maior causa de "fecha sozinho": políticas que bloqueiam execução em `%TEMP%`.
-- `--collect-all` e `--hidden-import` cobrem o caso de PyInstaller não detectar dependências dinâmicas do Flask/pywin32 (gera `ImportError` no bootstrap, invisível com `--noconsole`).
-- Build `-debug` separado dá ao cliente uma forma de capturar o erro real sem recompilar.
-- `--noupx` evita falso-positivo de antivírus que mata o `.exe` antes mesmo de extrair.
-
-## Arquivos a editar
-
-- `print-agent-py/agent.py` — reescrita completa.
-- `print-agent-py/build.bat` — adicionar flags de empacotamento e build `-debug`.
-- `print-agent-py/README.md` — checklist de troubleshooting.
-- `src/pages/PrintersPage.tsx` — mensagem de erro melhor.
-- (Possivelmente) `.github/workflows/build-desktop-agent.yml` — adicionar job PyInstaller.
-
-Aprovando, eu aplico tudo de uma vez.
+- Digitando "rogerio" no campo de busca, aparecem só vendas cujo cliente contenha "rogerio" (case-insensitive).
+- Clicar em "Reimprimir" em uma venda já finalizada envia o cupom para a mesma impressora usada no fechamento (com fallback de navegador se o agente estiver offline), exatamente como o botão 🧾 do PaymentPanel.
