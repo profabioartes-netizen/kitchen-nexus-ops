@@ -213,9 +213,13 @@ export default function TableOrderPage() {
       });
   }, [orderItems, queryClient]);
 
-  // F6 → abre histórico de lançamentos da comanda
+  // F6 → abre histórico de lançamentos da comanda; Esc fecha
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showHistory) {
+        setShowHistory(false);
+        return;
+      }
       if (e.key !== "F6") return;
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
@@ -225,7 +229,7 @@ export default function TableOrderPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [showHistory]);
 
   // Fetch payments for this order
   const { data: payments = [] } = useQuery({
