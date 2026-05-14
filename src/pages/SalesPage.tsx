@@ -35,9 +35,27 @@ export default function SalesPage() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date());
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   const [methodFilter, setMethodFilter] = useState("all");
+  const [searchCustomer, setSearchCustomer] = useState("");
   const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reprintingId, setReprintingId] = useState<string | null>(null);
   const { goLiveAt } = useGoLiveDate();
+  const { tenant } = useTenant();
+  const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
+
+  const { data: phoneSetting } = useQuery({
+    queryKey: ["restaurant_settings", "phone"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "phone")
+        .maybeSingle();
+      return (data?.value as any) ?? null;
+    },
+    enabled: unlocked,
+  });
+  const businessPhone = typeof phoneSetting === "string" ? phoneSetting : (phoneSetting?.value ?? "");
 
   const effectiveDateFrom = useMemo(() => {
     if (quickPeriod === "today") return new Date();
