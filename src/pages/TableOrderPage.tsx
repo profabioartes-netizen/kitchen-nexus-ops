@@ -213,6 +213,20 @@ export default function TableOrderPage() {
       });
   }, [orderItems, queryClient]);
 
+  // F6 → abre histórico de lançamentos da comanda
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "F6") return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
+      e.preventDefault();
+      setShowHistory(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Fetch payments for this order
   const { data: payments = [] } = useQuery({
     queryKey: ["order_payments", order?.id],
