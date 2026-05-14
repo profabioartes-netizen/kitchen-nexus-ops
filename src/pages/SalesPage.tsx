@@ -143,8 +143,12 @@ export default function SalesPage() {
       const ids = new Set(payments.filter((p: any) => p.method === methodFilter).map((p: any) => p.order_id));
       result = result.filter((o: any) => ids.has(o.id));
     }
+    const term = searchCustomer.trim().toLowerCase();
+    if (term) {
+      result = result.filter((o: any) => (o.customer_name || "").toLowerCase().includes(term));
+    }
     return result;
-  }, [orders, methodFilter, payments]);
+  }, [orders, methodFilter, payments, searchCustomer]);
 
   const totalPages = Math.ceil(filteredOrders.length / PAGE_SIZE);
   const pageOrders = filteredOrders.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
