@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { useTenant } from "@/contexts/TenantContext";
 
 type QuickPeriod = "today" | "yesterday" | "7" | "30" | "month" | "custom";
