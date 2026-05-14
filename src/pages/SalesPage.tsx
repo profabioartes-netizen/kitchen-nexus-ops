@@ -340,8 +340,51 @@ export default function SalesPage() {
             <option key={m} value={m}>{methodLabels[m] || m}</option>
           ))}
         </select>
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
+          <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchCustomer}
+            onChange={(e) => { setSearchCustomer(e.target.value); setPage(0); }}
+            placeholder="Buscar por cliente…"
+            className="w-full text-xs rounded-md border bg-background pl-7 pr-2 py-1.5"
+          />
+        </div>
         <span className="text-xs text-muted-foreground ml-auto">{filteredOrders.length} vendas</span>
       </div>
+
+      <div className="rounded-lg border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
+                <th className="text-left p-3">Data/Hora</th>
+                <th className="text-left p-3">Nº Venda</th>
+                <th className="text-left p-3 hidden md:table-cell">Cliente</th>
+                <th className="text-left p-3 hidden lg:table-cell">Mesa</th>
+                <th className="text-right p-3">Total</th>
+                <th className="text-left p-3 hidden md:table-cell">Pagamento</th>
+                <th className="text-center p-3 w-20"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageOrders.map((o: any) => {
+                const pmts = paymentMap.get(o.id) || [];
+                const table = o.table_id ? tableMap.get(o.table_id) : null;
+                const expanded = expandedId === o.id;
+                return (
+                  <OrderRow
+                    key={o.id}
+                    order={o}
+                    payments={pmts}
+                    table={table}
+                    expanded={expanded}
+                    onToggle={() => setExpandedId(expanded ? null : o.id)}
+                    onReprint={() => handleReprint(o)}
+                    reprinting={reprintingId === o.id}
+                  />
+                );
+              })}
 
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="overflow-x-auto">
