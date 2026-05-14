@@ -183,6 +183,57 @@ export default function SalesPage() {
     toast.success(`Exportação ${type.toUpperCase()} concluída!`);
   }, [filteredOrders, paymentMap, tableMap]);
 
+  const handleReprint = useCallback(async (order: any) => {
+    setReprintingId(order.id);
+    try {
+      const { data: items } = await supabase
+        .from("order_items")
+        .select("id, product_id, product_name, quantity, price, sale_type, grams, price_per_kg, n(complement_name, quantity)")
+        .eq("order_id", order.id);
+
+      const pmts = paymentMap.get(order.id) || [];
+      const table = order.table_id ? tableMap.get(order.table_id) : null;
+      const cashTotal = pmts.filter((p: any) => p.method === "cash").reduce((s: number, p: any) => s + Number(p.amount), 0);
+      const total = Number(order.total) || 0;
+      const change = cashTotal > 0 ? Math.max(0, cashTotal - total) : null;
+
+      const billPayload = {
+        type: "bill" as const,
+        business_name: businessName,
+        business_phone: businessPhone || null,
+        location: table ? (table.internal_number || table.name) : "Caixa",
+        table_name: table?.name || "Comanda",
+        customer_name: order.customer_name || null,
+        waiter_name: order.waiter_name || null,
+        items: (items || []).map((it: any) => ({
+          product_id: it.product_id ?? null,
+          product_name: it.product_name,
+          quantity: it.quantity,
+          price: Number(it.price),
+          sale_type: it.sale_type,
+          grams: it.grams,
+          price_per_kg: it.price_per_kg,
+          complements: (it.n || []).map((c: any) => c.complement_name),
+        })),
+        total,
+        payment_method: pmts.map((p: any) => methodLabels[p.method] || p.method).join(", "),
+        change,
+        footer_message: "Volte sempre!!!",
+        paper: "80mm" as const,
+      };
+
+      const result = await printViaLocalAgent(billPayload);
+      if (result.ok && result.via === "agent") toast.success("Impressão enviada");
+      else if (result.ok) toast.success("Imprimindo conta...");
+      else toast.error("Não foi possível abrir a impressão.");
+    } catch (e: any) {
+      toast.error("Erro ao reimprimir: " + (e?.message || "desconhecido"));
+    } finally {
+      setReprintingId(null);
+    }
+  }, [paymentMap, tableMap, businessName, businessPhone]);
+
+
   if (pinEnabled && !unlocked) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
