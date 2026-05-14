@@ -410,9 +410,11 @@ interface OrderRowProps {
   table: any;
   expanded: boolean;
   onToggle: () => void;
+  onReprint: () => void;
+  reprinting: boolean;
 }
 
-function OrderRow({ order, payments, table, expanded, onToggle }: OrderRowProps) {
+function OrderRow({ order, payments, table, expanded, onToggle, onReprint, reprinting }: OrderRowProps) {
   return (
     <>
       <tr className="border-b hover:bg-muted/20 cursor-pointer" onClick={onToggle}>
@@ -425,7 +427,17 @@ function OrderRow({ order, payments, table, expanded, onToggle }: OrderRowProps)
           {payments.map((p: any) => methodLabels[p.method] || p.method).join(", ") || "-"}
         </td>
         <td className="p-3 text-center">
-          {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onReprint(); }}
+              disabled={reprinting}
+              title="Reimprimir cupom"
+              className="rounded-md hover:bg-muted/50 p-1.5 text-muted-foreground hover:text-accent disabled:opacity-50 transition-colors touch-manipulation"
+            >
+              {reprinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+            </button>
+            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
         </td>
       </tr>
       {expanded && (
