@@ -102,6 +102,7 @@ export default function TableOrderPage() {
   const [mergeTarget, setMergeTarget] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   // Concurrency lock
   const { lockInfo, loading: lockLoading } = useComandaLock(
     tableId,
@@ -211,6 +212,24 @@ export default function TableOrderPage() {
         queryClient.invalidateQueries({ queryKey: ["preview_order_items"] });
       });
   }, [orderItems, queryClient]);
+
+  // F6 → abre histórico de lançamentos da comanda; Esc fecha
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showHistory) {
+        setShowHistory(false);
+        return;
+      }
+      if (e.key !== "F6") return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
+      e.preventDefault();
+      setShowHistory(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showHistory]);
 
   // Fetch payments for this order
   const { data: payments = [] } = useQuery({
@@ -1942,6 +1961,116 @@ export default function TableOrderPage() {
               >
                 {cancelOrder.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Histórico de lançamentos (F6) */}
+      {showHistory && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
+          onClick={() => setShowHistory(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-lg border bg-background shadow-lg flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b px-5 py-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-accent" />
+                <h3 className="font-semibold text-base">Histórico de Lançamentos</h3>
+                <span className="text-xs text-muted-foreground ml-2">
+                  {orderItems.length} {orderItems.length === 1 ? "item" : "itens"}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="rounded-md p-1 hover:bg-secondary"
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-auto flex-1 p-4">
+              {orderItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Nenhum item lançado ainda.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {[...orderItems]
+                    .sort(
+                      (a, b) =>
+                        new Date((b as any).created_at).getTime() -
+                        new Date((a as any).created_at).getTime()
+                    )
+                    .map((it: any) => {
+                      const dt = new Date(it.created_at);
+                      const time = dt.toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      });
+                      const date = dt.toLocaleDateString("pt-BR");
+                      const comps = (itemComplements as any[])
+                        .filter((c) => c.order_item_id === it.id)
+                        .map((c) => c.complement_name);
+                      const status = it.delivered_at
+                        ? "Entregue"
+                        : it.ready_at
+                        ? "Pronto"
+                        : it.preparing_at
+                        ? "Preparando"
+                        : it.sent_to_kitchen
+                        ? "Enviado"
+                        : "Pendente";
+                      const origem =
+                        order?.origin === "self_service" ? "Autoatendimento" : order?.waiter_name || "—";
+                      return (
+                        <li
+                          key={it.id}
+                          className="flex items-start justify-between gap-3 rounded-md border bg-card px-3 py-2"
+                        >
+                          <div className="flex flex-col items-center justify-center min-w-[60px] text-center">
+                            <span className="text-sm font-mono font-bold tabular-nums text-accent">
+                              {time}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground tabular-nums">
+                              {date}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {it.quantity}× {it.product_name}
+                            </p>
+                            {comps.length > 0 && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                + {comps.join(", ")}
+                              </p>
+                            )}
+                            {it.notes && (
+                              <p className="text-xs text-muted-foreground italic truncate">
+                                Obs: {it.notes}
+                              </p>
+                            )}
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              Por: {origem} · <span className="font-medium">{status}</span>
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-semibold tabular-nums">
+                              R$ {Number(it.price).toFixed(2)}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                </ul>
+              )}
+            </div>
+            <div className="border-t px-5 py-2 text-[11px] text-muted-foreground flex items-center justify-between">
+              <span>Atalho: F6</span>
+              <span>Esc para fechar</span>
             </div>
           </div>
         </div>
