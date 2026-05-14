@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Download, ChevronDown, ChevronUp, Loader2, Filter, Lock, ShoppingBag,
+  Download, ChevronDown, ChevronUp, Loader2, Filter, Lock, ShoppingBag, Printer, Search,
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { printViaLocalAgent } from "@/lib/localAgentPrint";
+import { useTenant } from "@/contexts/TenantContext";
 
 type QuickPeriod = "today" | "yesterday" | "7" | "30" | "month" | "custom";
 
