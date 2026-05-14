@@ -188,7 +188,7 @@ export default function SalesPage() {
     try {
       const { data: items } = await supabase
         .from("order_items")
-        .select("id, product_id, product_name, quantity, price, sale_type, grams, price_per_kg, n(complement_name, quantity)")
+        .select("id, product_id, product_name, quantity, price, n(complement_name, quantity)")
         .eq("order_id", order.id);
 
       const pmts = paymentMap.get(order.id) || [];
@@ -196,42 +196,47 @@ export default function SalesPage() {
       const cashTotal = pmts.filter((p: any) => p.method === "cash").reduce((s: number, p: any) => s + Number(p.amount), 0);
       const total = Number(order.total) || 0;
       const change = cashTotal > 0 ? Math.max(0, cashTotal - total) : null;
+      const created = new Date(order.created_at);
 
-      const billPayload = {
-        type: "bill" as const,
-        business_name: businessName,
-        business_phone: businessPhone || null,
-        location: table ? (table.internal_number || table.name) : "Caixa",
-        table_name: table?.name || "Comanda",
-        customer_name: order.customer_name || null,
-        waiter_name: order.waiter_name || null,
-        items: (items || []).map((it: any) => ({
-          product_id: it.product_id ?? null,
-          product_name: it.product_name,
-          quantity: it.quantity,
-          price: Number(it.price),
-          sale_type: it.sale_type,
-          grams: it.grams,
-          price_per_kg: it.price_per_kg,
-          complements: (it.n || []).map((c: any) => c.complement_name),
-        })),
-        total,
-        payment_method: pmts.map((p: any) => methodLabels[p.method] || p.method).join(", "),
-        change,
-        footer_message: "Volte sempre!!!",
-        paper: "80mm" as const,
-      };
-
-      const result = await printViaLocalAgent(billPayload);
-      if (result.ok && result.via === "agent") toast.success("Impressão enviada");
-      else if (result.ok) toast.success("Imprimindo conta...");
-      else toast.error("Não foi possível abrir a impressão.");
+      const { error } = await supabase.from("print_jobs").insert({
+        station: "Caixa",
+        status: "pending",
+        payload: {
+          type: "receipt",
+          compact: true,
+          business_name: businessName,
+          business_phone: businessPhone || null,
+          location: table ? (table.internal_number || table.name) : "Caixa",
+          table_name: table?.name || "Comanda",
+          customer_name: order.customer_name || null,
+          waiter_name: order.waiter_name || null,
+          origin: "reprint",
+          order_id: order.id,
+          items: (items || []).map((it: any) => ({
+            product_name: it.product_name,
+            quantity: it.quantity,
+            price: Number(it.price),
+            subtotal: Number(it.price) * Number(it.quantity),
+            complements: (it.n || []).map((c: any) => c.complement_name),
+          })),
+          total,
+          payment_method: pmts.map((p: any) => methodLabels[p.method] || p.method).join(", "),
+          change,
+          date: created.toLocaleDateString("pt-BR"),
+          time: created.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          footer_message: "** REIMPRESSAO ** Volte sempre!!!",
+          reprint: true,
+        },
+      });
+      if (error) throw error;
+      toast.success("Reimpressão enviada para o caixa!");
     } catch (e: any) {
       toast.error("Erro ao reimprimir: " + (e?.message || "desconhecido"));
     } finally {
       setReprintingId(null);
     }
   }, [paymentMap, tableMap, businessName, businessPhone]);
+
 
 
   if (pinEnabled && !unlocked) {
