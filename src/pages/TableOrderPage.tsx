@@ -220,16 +220,26 @@ export default function TableOrderPage() {
         setShowHistory(false);
         return;
       }
-      if (e.key !== "F6") return;
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
-      e.preventDefault();
-      setShowHistory(true);
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable;
+      if (e.key === "F6") {
+        if (isEditable) return;
+        e.preventDefault();
+        setShowHistory(true);
+        return;
+      }
+      if (e.key === "F10") {
+        if (isEditable) return;
+        e.preventDefault();
+        if (order && orderItems.length > 0 && !printBillRef.current?.isPending) {
+          printBillRef.current?.mutate();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showHistory]);
+  }, [showHistory, order, orderItems.length]);
 
   // Fetch payments for this order
   const { data: payments = [] } = useQuery({
