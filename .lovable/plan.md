@@ -1,20 +1,43 @@
-## Diagnóstico
+## Tela de Clientes Cadastrados
 
-A tela "Nova Comanda" cria a comanda corretamente em `TablesPage` (com número e cliente) e navega para `/mesas/<id>/pedido`. Porém, a `TableOrderPage` tem um `useEffect` que **auto-cria** uma comanda quando `tableOrders.length === 0` (linhas 484-490 de `TableOrderPage.tsx`).
+Criar uma página dedicada `/clientes` para visualizar, editar e gerenciar todos os clientes cadastrados no sistema (atualmente só é possível cadastrar via popup ao criar nova comanda).
 
-Há uma corrida: ao montar a página, a query `table_orders_all` ainda não retornou a comanda recém-inserida, então o efeito dispara e cria uma **segunda** comanda sem `origin_location` nem `customer_id` — exatamente o "Comanda 1" sem número que aparece no print.
+### Onde fica
 
-## Correção
+- Nova rota `/clientes` no `src/App.tsx`, dentro do bloco autenticado (`BlockWaiter` para não aparecer para garçom).
+- Novo item no menu lateral (`src/components/NavigationRail.tsx`) na seção **Gestão**, com ícone `Users` e label "Clientes".
 
-1. Em `src/pages/TablesPage.tsx`, no handler do `NewComandaDialog` (linha ~1448), passar `state` na navegação informando que a comanda já foi criada:
-   ```ts
-   navigate(`/mesas/${freeTable.id}/pedido`, {
-     state: { justCreatedOrderId: order.id, skipAutoCreate: true },
-   });
-   ```
+### O que a tela mostra
 
-2. Em `src/pages/TableOrderPage.tsx`:
-   - Estender o tipo de `navState` para incluir `skipAutoCreate?: boolean` e `justCreatedOrderId?: string`.
-   - No `useEffect` de auto-create (linha 485), adicionar a condição `!navState?.skipAutoCreate` para não duplicar quando a comanda já foi criada pelo fluxo Nova Comanda.
+Página `src/pages/CustomersPage.tsx` com:
 
-Sem outras mudanças. O auto-create continua funcionando ao acessar diretamente uma mesa livre pelo grid.
+- **Cabeçalho**: título "Clientes" + botão "Novo Cliente" + campo de busca (por nome ou telefone, ilike, debounce 200ms).
+- **Tabela / lista de cards** (responsivo — tabela no desktop, cards empilhados no mobile) listando:
+  - Nome, telefone/WhatsApp, aniversário, nº de visitas, última visita (data relativa), data de cadastro.
+  - Ações por linha: **Editar** e **Excluir** (com confirmação).
+- **Paginação** simples (50 por página) ou scroll infinito — usar paginação por offset.
+- **Estado vazio** amigável quando não houver clientes ou busca não retornar nada.
+
+### Modal de criar / editar
+
+Um único `Dialog` reaproveitado para criar e editar, com os campos da tabela `customers`:
+- `name` (obrigatório, máx 100)
+- `phone` (opcional, máx 20)
+- `birthday` (date, opcional)
+- `notes` (textarea, máx 500)
+
+Validação com `zod` (mesmo schema usado em `CustomerPicker`). Tenant é preenchido automaticamente pela trigger.
+
+### Detalhes técnicos
+
+- Usar `@tanstack/react-query` com query keys `["customers", search, page]` e invalidar após mutações.
+- Mutações: `insert`, `update` (por id) e `delete` (por id) em `customers` via cliente Supabase. RLS já cobre isolamento por tenant.
+- Excluir é hard delete — mostrar `AlertDialog` de confirmação alertando que comandas antigas mantêm o nome do cliente em `orders.customer_name` (não há FK, então delete é seguro), mas perderão o vínculo `customer_id`.
+- Campos de leitura `visit_count` e `last_visit_at` mostrados, sem edição (atualizados automaticamente por `get_or_create_open_order`).
+- Sem alterações de schema, sem alterações em edge functions.
+- Reaproveitar componentes shadcn já existentes (`Dialog`, `AlertDialog`, `Input`, `Button`, `Table`).
+
+### Arquivos afetados
+
+- **Novo**: `src/pages/CustomersPage.tsx`
+- **Editar**: `src/App.tsx` (registrar rota), `src/components/NavigationRail.tsx` (adicionar item de menu).
