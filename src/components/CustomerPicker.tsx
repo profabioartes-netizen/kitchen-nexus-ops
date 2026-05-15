@@ -49,7 +49,7 @@ export default function CustomerPicker({ onSelect, onSkip }: Props) {
       }
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; name: string; phone: string | null; visit_count: number; last_visit_at: string | null }>;
+      return ((data ?? []) as unknown) as Array<{ id: string; name: string; phone: string | null; visit_count: number; last_visit_at: string | null }>;
     },
   });
 
