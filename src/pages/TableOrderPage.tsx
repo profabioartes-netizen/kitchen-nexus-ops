@@ -2081,7 +2081,7 @@ export default function TableOrderPage() {
               )}
             </div>
             <div className="border-t px-5 py-2 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Atalho: F6</span>
+              <span>Atalhos: F6 histórico · F10 imprimir conta</span>
               <span>Esc para fechar</span>
             </div>
           </div>
