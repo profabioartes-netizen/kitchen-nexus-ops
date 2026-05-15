@@ -17,6 +17,7 @@ import {
   Shield,
   BarChart3,
   ShoppingBag,
+  Users,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenant } from "@/contexts/TenantContext";
@@ -39,6 +40,7 @@ const operationalItems: NavItem[] = [
 
 const managementItems: NavItem[] = [
   { to: "/produtos", icon: Package, label: "Produtos" },
+  { to: "/clientes", icon: Users, label: "Clientes" },
   { to: "/vendas", icon: ShoppingBag, label: "Vendas" },
   { to: "/relatorios", icon: BarChart3, label: "Relatórios" },
   { to: "/impressoras", icon: Printer, label: "Impressoras" },

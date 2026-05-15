@@ -22,6 +22,7 @@ import PrintReceiptPage from "@/pages/print/PrintReceiptPage";
 import ReportsPage from "@/pages/ReportsPage";
 import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
+import CustomersPage from "@/pages/CustomersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import TenantLoginPage from "@/pages/TenantLoginPage";
 import NotFound from "@/pages/NotFound";
@@ -174,6 +175,7 @@ const App = () => (
               <Route path="/relatorios" element={<BlockWaiter><ReportsPage /></BlockWaiter>} />
               <Route path="/vendas" element={<BlockWaiter><SalesPage /></BlockWaiter>} />
               <Route path="/usuarios" element={<BlockWaiter><UsersPage /></BlockWaiter>} />
+              <Route path="/clientes" element={<BlockWaiter><CustomersPage /></BlockWaiter>} />
               <Route path="/configuracoes" element={<BlockWaiter><SettingsPage /></BlockWaiter>} />
             </Route>
 
