@@ -681,6 +681,7 @@ export default function TableOrderPage() {
     },
     onError: (err) => toast.error((err as Error).message),
   });
+  printBillRef.current = { isPending: printBill.isPending, mutate: () => printBill.mutate() };
 
   // Pay — records payment and marks items as paid
   const payMutation = useMutation({
