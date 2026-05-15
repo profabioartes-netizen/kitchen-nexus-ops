@@ -690,6 +690,21 @@ export default function TablesPage() {
     return labels;
   }, [sortedTables]);
 
+  // Format "<number> — <name>" using origin_location (digited at "Nova Comanda") + customer_name.
+  // Falls back gracefully when one of them is missing.
+  const formatComandaLabel = (
+    ord: any | undefined,
+    fallback: string,
+  ): string => {
+    if (!ord) return fallback;
+    const num = ((ord.origin_location ?? ord.current_location ?? "") as string).toString().trim();
+    const name = (ord.customer_name as string | null) || null;
+    if (num && name) return `${num} — ${name}`;
+    if (num) return num;
+    if (name) return name;
+    return fallback;
+  };
+
   const filteredTables = useMemo(() => {
     if (!searchQuery.trim()) return sortedTables;
     const q = searchQuery.toLowerCase().trim();
@@ -706,7 +721,15 @@ export default function TablesPage() {
       const labelMatch = label.includes(q);
       const labelNumber = label.replace(/\D/g, "");
       const numberMatch = numericQ.length > 0 && labelNumber === numericQ;
-      return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch || labelMatch || numberMatch;
+      // Also match by user-entered comanda number stored in origin_location/current_location.
+      const originLocMatch = allOrders.some((o) => {
+        const loc = ((o as any).origin_location ?? (o as any).current_location ?? "").toString().toLowerCase();
+        if (!loc) return false;
+        if (loc.includes(q)) return true;
+        const locDigits = loc.replace(/\D/g, "");
+        return numericQ.length > 0 && locDigits === numericQ;
+      });
+      return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch || labelMatch || numberMatch || originLocMatch;
     });
   }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery, visualLabels]);
 
@@ -994,7 +1017,7 @@ export default function TablesPage() {
                                 <div key={ord.id} className="p-2">
                                   <div className="flex items-center justify-between mb-1.5">
                                     <p className="text-[10px] font-bold text-foreground flex items-center gap-1 flex-wrap">
-                                      👤 {ord.customer_name || ord.waiter_name || "Cliente"}
+                                      👤 {formatComandaLabel(ord, ord.waiter_name || "Cliente")}
                                       <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
                                       <span className="text-muted-foreground font-normal">
                                         <TableDuration createdAt={ord.created_at} />
@@ -1110,7 +1133,7 @@ export default function TablesPage() {
                 {/* Table header */}
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-display text-base sm:text-lg leading-tight truncate">
-                    {order?.customer_name || visualLabels[table.id] || table.name}
+                    {order ? formatComandaLabel(order, visualLabels[table.id] || table.name) : (visualLabels[table.id] || table.name)}
                   </span>
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
@@ -1341,7 +1364,7 @@ export default function TablesPage() {
                   </>
                 )}
                 {(order as any)?.customer_name && (
-                  <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{(order as any).customer_name}</span>
+                  <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{formatComandaLabel(order, (order as any).customer_name)}</span>
                 )}
                 {order?.waiter_name && (
                   <span className="text-[9px] text-muted-foreground truncate max-w-[110px]">{order.waiter_name}</span>
