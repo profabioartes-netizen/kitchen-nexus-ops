@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3 } from "lucide-react";
+import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3, FilePlus2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useTenantRealtime } from "@/hooks/useTenantRealtime";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
+import NewComandaDialog from "@/components/NewComandaDialog";
+import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -71,6 +73,8 @@ export default function TablesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tableCountOpen, setTableCountOpen] = useState(false);
   const [tableCountValue, setTableCountValue] = useState("");
+  const [newComandaOpen, setNewComandaOpen] = useState(false);
+  const [creatingComanda, setCreatingComanda] = useState(false);
 
   // Realtime estrito: filtra por tenant_id no servidor + só invalida em colunas significativas
   useTenantRealtime({
@@ -746,6 +750,15 @@ export default function TablesPage() {
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por Fábio Júnior</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setNewComandaOpen(true)}
+            className="flex items-center gap-1.5 rounded-md bg-accent text-accent-foreground px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+            title="Nova Comanda"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Nova Comanda</span>
+            <span className="sm:hidden">Nova</span>
+          </button>
           {!isWaiter && (
             <button
               onClick={() => navigate("/relatorios")}
@@ -1380,7 +1393,45 @@ export default function TablesPage() {
           </div>
         </div>
       )}
+
+      <NewComandaDialog
+        open={newComandaOpen}
+        onOpenChange={setNewComandaOpen}
+        isPending={creatingComanda}
+        onConfirm={async ({ number, customer }) => {
+          if (creatingComanda) return;
+          // Find next free table by sort order
+          const sorted = [...tables].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+          const freeTable = sorted.find((t: any) => t.status === "free");
+          if (!freeTable) {
+            toast.error("Não há mesas livres disponíveis. Libere uma comanda antes de criar uma nova.");
+            return;
+          }
+          setCreatingComanda(true);
+          try {
+            const order = await getOrCreateOpenOrder({
+              tableId: freeTable.id,
+              waiterName: profile?.full_name ?? user?.email ?? null,
+              customerName: customer?.name ?? null,
+              whatsappPhone: customer?.phone ?? null,
+              guests: 1,
+              location: number,
+              customerId: customer?.id ?? null,
+            });
+            queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+            queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+            setNewComandaOpen(false);
+            toast.success(`Comanda ${number} aberta`);
+            navigate(`/comanda/${freeTable.id}`);
+          } catch (e: any) {
+            toast.error(e?.message ?? "Erro ao criar comanda");
+          } finally {
+            setCreatingComanda(false);
+          }
+        }}
+      />
       </div>
     </div>
   );
 }
+
