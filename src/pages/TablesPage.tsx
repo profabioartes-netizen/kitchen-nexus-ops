@@ -76,6 +76,20 @@ export default function TablesPage() {
   const [newComandaOpen, setNewComandaOpen] = useState(false);
   const [creatingComanda, setCreatingComanda] = useState(false);
 
+  // F3 → abrir "Nova Comanda" (ignora se foco está em input/textarea/contentEditable)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "F3") return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select" || target?.isContentEditable) return;
+      e.preventDefault();
+      if (!newComandaOpen) setNewComandaOpen(true);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [newComandaOpen]);
+
   // Realtime estrito: filtra por tenant_id no servidor + só invalida em colunas significativas
   useTenantRealtime({
     channelKey: "dashboard",
