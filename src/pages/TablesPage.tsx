@@ -1393,7 +1393,45 @@ export default function TablesPage() {
           </div>
         </div>
       )}
+
+      <NewComandaDialog
+        open={newComandaOpen}
+        onOpenChange={setNewComandaOpen}
+        isPending={creatingComanda}
+        onConfirm={async ({ number, customer }) => {
+          if (creatingComanda) return;
+          // Find next free table by sort order
+          const sorted = [...tables].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+          const freeTable = sorted.find((t: any) => t.status === "free");
+          if (!freeTable) {
+            toast.error("Não há mesas livres disponíveis. Libere uma comanda antes de criar uma nova.");
+            return;
+          }
+          setCreatingComanda(true);
+          try {
+            const order = await getOrCreateOpenOrder({
+              tableId: freeTable.id,
+              waiterName: profile?.full_name ?? user?.email ?? null,
+              customerName: customer?.name ?? null,
+              whatsappPhone: customer?.phone ?? null,
+              guests: 1,
+              location: number,
+              customerId: customer?.id ?? null,
+            });
+            queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
+            queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+            setNewComandaOpen(false);
+            toast.success(`Comanda ${number} aberta`);
+            navigate(`/comanda/${freeTable.id}?orderId=${order.id}`);
+          } catch (e: any) {
+            toast.error(e?.message ?? "Erro ao criar comanda");
+          } finally {
+            setCreatingComanda(false);
+          }
+        }}
+      />
       </div>
     </div>
   );
 }
+
