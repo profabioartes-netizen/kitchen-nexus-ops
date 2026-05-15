@@ -750,6 +750,15 @@ export default function TablesPage() {
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">Sistema Desenvolvido por Fábio Júnior</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setNewComandaOpen(true)}
+            className="flex items-center gap-1.5 rounded-md bg-accent text-accent-foreground px-2 sm:px-3 py-2 text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+            title="Nova Comanda"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Nova Comanda</span>
+            <span className="sm:hidden">Nova</span>
+          </button>
           {!isWaiter && (
             <button
               onClick={() => navigate("/relatorios")}
