@@ -1017,7 +1017,7 @@ export default function TablesPage() {
                                 <div key={ord.id} className="p-2">
                                   <div className="flex items-center justify-between mb-1.5">
                                     <p className="text-[10px] font-bold text-foreground flex items-center gap-1 flex-wrap">
-                                      👤 {ord.customer_name || ord.waiter_name || "Cliente"}
+                                      👤 {formatComandaLabel(ord, ord.waiter_name || "Cliente")}
                                       <span className="text-muted-foreground font-normal">· {ordItems.length} {ordItems.length === 1 ? "item" : "itens"}</span>
                                       <span className="text-muted-foreground font-normal">
                                         <TableDuration createdAt={ord.created_at} />
@@ -1133,7 +1133,7 @@ export default function TablesPage() {
                 {/* Table header */}
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-display text-base sm:text-lg leading-tight truncate">
-                    {order?.customer_name || visualLabels[table.id] || table.name}
+                    {order ? formatComandaLabel(order, visualLabels[table.id] || table.name) : (visualLabels[table.id] || table.name)}
                   </span>
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
@@ -1364,7 +1364,7 @@ export default function TablesPage() {
                   </>
                 )}
                 {(order as any)?.customer_name && (
-                  <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{(order as any).customer_name}</span>
+                  <span className="text-[8px] text-accent font-medium truncate max-w-[110px]">{formatComandaLabel(order, (order as any).customer_name)}</span>
                 )}
                 {order?.waiter_name && (
                   <span className="text-[9px] text-muted-foreground truncate max-w-[110px]">{order.waiter_name}</span>
