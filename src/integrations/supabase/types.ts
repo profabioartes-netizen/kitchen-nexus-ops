@@ -317,6 +317,45 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          birthday: string | null
+          created_at: string
+          id: string
+          last_visit_at: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          tenant_id: string
+          updated_at: string
+          visit_count: number
+        }
+        Insert: {
+          birthday?: string | null
+          created_at?: string
+          id?: string
+          last_visit_at?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          visit_count?: number
+        }
+        Update: {
+          birthday?: string | null
+          created_at?: string
+          id?: string
+          last_visit_at?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          visit_count?: number
+        }
+        Relationships: []
+      }
       nfce_records: {
         Row: {
           chave_acesso: string | null
@@ -508,6 +547,7 @@ export type Database = {
         Row: {
           created_at: string
           current_location: string | null
+          customer_id: string | null
           customer_name: string | null
           delivered_at: string | null
           guests: number | null
@@ -526,6 +566,7 @@ export type Database = {
         Insert: {
           created_at?: string
           current_location?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           delivered_at?: string | null
           guests?: number | null
@@ -544,6 +585,7 @@ export type Database = {
         Update: {
           created_at?: string
           current_location?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           delivered_at?: string | null
           guests?: number | null
@@ -1339,6 +1381,7 @@ export type Database = {
             Returns: {
               created_at: string
               current_location: string | null
+              customer_id: string | null
               customer_name: string | null
               delivered_at: string | null
               guests: number | null
@@ -1373,6 +1416,43 @@ export type Database = {
             Returns: {
               created_at: string
               current_location: string | null
+              customer_id: string | null
+              customer_name: string | null
+              delivered_at: string | null
+              guests: number | null
+              id: string
+              merged_from: string[] | null
+              origin: string
+              origin_location: string | null
+              status: string
+              table_id: string | null
+              tenant_id: string
+              total: number
+              updated_at: string
+              waiter_name: string | null
+              whatsapp_phone: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "orders"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_customer_id?: string
+              p_customer_name?: string
+              p_guests?: number
+              p_location?: string
+              p_table_id: string
+              p_waiter_name?: string
+              p_whatsapp_phone?: string
+            }
+            Returns: {
+              created_at: string
+              current_location: string | null
+              customer_id: string | null
               customer_name: string | null
               delivered_at: string | null
               guests: number | null
@@ -1406,6 +1486,7 @@ export type Database = {
         Returns: {
           created_at: string
           current_location: string | null
+          customer_id: string | null
           customer_name: string | null
           delivered_at: string | null
           guests: number | null
