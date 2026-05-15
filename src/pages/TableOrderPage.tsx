@@ -66,7 +66,7 @@ export default function TableOrderPage() {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const navState = location.state as { customerName?: string; sector?: string } | null;
+  const navState = location.state as { customerName?: string; sector?: string; skipAutoCreate?: boolean; justCreatedOrderId?: string } | null;
   const queryClient = useQueryClient();
   const { tenant } = useTenant();
   const businessName = (tenant?.nome_comercio || "ESTABELECIMENTO").toUpperCase();
@@ -483,7 +483,7 @@ export default function TableOrderPage() {
 
   // Auto-create order for free tables — only if NO order exists at all
   useEffect(() => {
-    if (!tableLoading && !orderLoading && tableOrders.length === 0 && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current) {
+    if (!tableLoading && !orderLoading && tableOrders.length === 0 && tableId && !autoCreatedRef.current && !createOrder.isPending && !leavingRef.current && !navState?.skipAutoCreate) {
       autoCreatedRef.current = true;
       createOrder.mutate({ customerName: navState?.customerName });
     }

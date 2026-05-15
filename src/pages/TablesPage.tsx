@@ -1459,7 +1459,9 @@ export default function TablesPage() {
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
             setNewComandaOpen(false);
             toast.success(`Comanda ${number} aberta`);
-            navigate(`/mesas/${freeTable.id}/pedido`);
+            navigate(`/mesas/${freeTable.id}/pedido`, {
+              state: { justCreatedOrderId: order.id, skipAutoCreate: true },
+            });
           } catch (e: any) {
             toast.error(e?.message ?? "Erro ao criar comanda");
           } finally {
