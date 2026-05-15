@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3 } from "lucide-react";
+import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3, FilePlus2 } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useTenantRealtime } from "@/hooks/useTenantRealtime";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
+import NewComandaDialog from "@/components/NewComandaDialog";
+import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -71,6 +73,8 @@ export default function TablesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tableCountOpen, setTableCountOpen] = useState(false);
   const [tableCountValue, setTableCountValue] = useState("");
+  const [newComandaOpen, setNewComandaOpen] = useState(false);
+  const [creatingComanda, setCreatingComanda] = useState(false);
 
   // Realtime estrito: filtra por tenant_id no servidor + só invalida em colunas significativas
   useTenantRealtime({
