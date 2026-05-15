@@ -213,7 +213,8 @@ export default function TableOrderPage() {
       });
   }, [orderItems, queryClient]);
 
-  // F6 → abre histórico de lançamentos da comanda; Esc fecha
+  const printBillRef = useRef<{ isPending: boolean; mutate: () => void } | null>(null);
+  // F6 → histórico; F10 → imprimir conta; Esc fecha modal
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && showHistory) {
