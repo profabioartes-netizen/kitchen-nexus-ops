@@ -1,19 +1,10 @@
-## Bug
+## Atalho F3 → abrir "Nova Comanda"
 
-Após selecionar/cadastrar o cliente em "Nova Comanda", a navegação envia o usuário para `/comanda/<id>`, mas essa rota não existe no `App.tsx`. A rota correta da página de pedido é `/mesas/:tableId/pedido` (já usada nos outros pontos do `TablesPage`).
+Em `src/pages/TablesPage.tsx`, adicionar um `useEffect` que registra um listener global de `keydown`:
 
-## Correção
+- Dispara quando `e.key === "F3"`.
+- Ignora se o foco está em `input`, `textarea`, ou elemento `contentEditable` (evita conflito com digitação).
+- Ignora se já há diálogo aberto (`newComandaOpen`) ou se outro modal/lock está ativo.
+- Chama `e.preventDefault()` (cancela o "buscar próximo" do navegador) e `setNewComandaOpen(true)`.
 
-`src/pages/TablesPage.tsx` (linha ~1448): trocar
-
-```ts
-navigate(`/comanda/${freeTable.id}`);
-```
-
-por
-
-```ts
-navigate(`/mesas/${freeTable.id}/pedido`);
-```
-
-Sem outras mudanças. Após o ajuste, o fluxo "Nova Comanda → escolher cliente → Confirmar" abrirá a comanda recém-criada normalmente.
+Sem outras mudanças; o restante do fluxo (passo 1 número → passo 2 cliente → cria comanda) já existe.
