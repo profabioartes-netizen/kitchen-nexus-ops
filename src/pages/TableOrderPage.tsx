@@ -213,23 +213,34 @@ export default function TableOrderPage() {
       });
   }, [orderItems, queryClient]);
 
-  // F6 → abre histórico de lançamentos da comanda; Esc fecha
+  const printBillRef = useRef<{ isPending: boolean; mutate: () => void } | null>(null);
+  // F6 → histórico; F10 → imprimir conta; Esc fecha modal
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && showHistory) {
         setShowHistory(false);
         return;
       }
-      if (e.key !== "F6") return;
       const t = e.target as HTMLElement | null;
       const tag = t?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable) return;
-      e.preventDefault();
-      setShowHistory(true);
+      const isEditable = tag === "INPUT" || tag === "TEXTAREA" || t?.isContentEditable;
+      if (e.key === "F6") {
+        if (isEditable) return;
+        e.preventDefault();
+        setShowHistory(true);
+        return;
+      }
+      if (e.key === "F10") {
+        if (isEditable) return;
+        e.preventDefault();
+        if (order && orderItems.length > 0 && !printBillRef.current?.isPending) {
+          printBillRef.current?.mutate();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [showHistory]);
+  }, [showHistory, order, orderItems.length]);
 
   // Fetch payments for this order
   const { data: payments = [] } = useQuery({
@@ -670,6 +681,7 @@ export default function TableOrderPage() {
     },
     onError: (err) => toast.error((err as Error).message),
   });
+  printBillRef.current = { isPending: printBill.isPending, mutate: () => printBill.mutate() };
 
   // Pay — records payment and marks items as paid
   const payMutation = useMutation({
@@ -2069,7 +2081,7 @@ export default function TableOrderPage() {
               )}
             </div>
             <div className="border-t px-5 py-2 text-[11px] text-muted-foreground flex items-center justify-between">
-              <span>Atalho: F6</span>
+              <span>Atalhos: F6 histórico · F10 imprimir conta</span>
               <span>Esc para fechar</span>
             </div>
           </div>
