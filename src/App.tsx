@@ -22,6 +22,7 @@ import PrintReceiptPage from "@/pages/print/PrintReceiptPage";
 import ReportsPage from "@/pages/ReportsPage";
 import SalesPage from "@/pages/SalesPage";
 import UsersPage from "@/pages/UsersPage";
+import CustomersPage from "@/pages/CustomersPage";
 import SettingsPage from "@/pages/SettingsPage";
 import TenantLoginPage from "@/pages/TenantLoginPage";
 import NotFound from "@/pages/NotFound";
