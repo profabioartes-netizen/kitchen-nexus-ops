@@ -8,6 +8,14 @@ interface Order {
   created_at: string;
   status: string;
   origin?: string;
+  origin_location?: string | null;
+  current_location?: string | null;
+}
+
+function formatOrderLabel(o: Order): string {
+  const num = (o.origin_location || o.current_location || "").toString().trim();
+  const name = o.customer_name || o.waiter_name || "Sem nome";
+  return num ? `${num} — ${name}` : name;
 }
 
 interface Props {
@@ -33,7 +41,7 @@ export default function OrderSelector({ orders, selectedOrderId, onSelect, onCre
         <div className="flex-1 overflow-auto py-1.5 space-y-1 px-2">
           {orders.map((o) => {
             const isActive = o.id === selectedOrderId;
-            const label = o.customer_name || o.waiter_name || "Sem nome";
+            const label = formatOrderLabel(o);
             return (
               <button
                 key={o.id}
@@ -80,7 +88,7 @@ export default function OrderSelector({ orders, selectedOrderId, onSelect, onCre
       </span>
       {orders.map((o) => {
         const isActive = o.id === selectedOrderId;
-        const label = o.customer_name || o.waiter_name || "Sem nome";
+        const label = formatOrderLabel(o);
         return (
           <button
             key={o.id}
