@@ -175,6 +175,7 @@ const App = () => (
               <Route path="/relatorios" element={<BlockWaiter><ReportsPage /></BlockWaiter>} />
               <Route path="/vendas" element={<BlockWaiter><SalesPage /></BlockWaiter>} />
               <Route path="/usuarios" element={<BlockWaiter><UsersPage /></BlockWaiter>} />
+              <Route path="/clientes" element={<BlockWaiter><CustomersPage /></BlockWaiter>} />
               <Route path="/configuracoes" element={<BlockWaiter><SettingsPage /></BlockWaiter>} />
             </Route>
 
