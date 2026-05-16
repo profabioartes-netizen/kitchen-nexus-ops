@@ -49,6 +49,11 @@ const customerSchema = z.object({
 
 function formatDate(d: string | null) {
   if (!d) return "—";
+  // Parse YYYY-MM-DD as local date to avoid timezone shift
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+  if (iso) {
+    return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  }
   try {
     return new Date(d).toLocaleDateString("pt-BR");
   } catch {
