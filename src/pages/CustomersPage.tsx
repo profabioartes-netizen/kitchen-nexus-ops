@@ -224,46 +224,48 @@ export default function CustomersPage() {
       {!isLoading && rows.length > 0 && (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="text-left px-4 py-3">Nome</th>
-                  <th className="text-left px-4 py-3">Telefone</th>
-                  <th className="text-left px-4 py-3">Aniversário</th>
-                  <th className="text-right px-4 py-3">Visitas</th>
-                  <th className="text-left px-4 py-3">Última visita</th>
-                  <th className="text-right px-4 py-3">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((c) => (
-                  <tr key={c.id} className="border-t hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">{c.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{c.phone || "—"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{formatDate(c.birthday)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{c.visit_count}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{formatRelative(c.last_visit_at)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(c)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => setDeleteTarget(c)}
-                          title="Excluir"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
+          <div className="hidden md:block border rounded-lg">
+            <ScrollArea className="h-[calc(100vh-280px)]">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground sticky top-0 z-10">
+                  <tr>
+                    <th className="text-left px-4 py-3">Nome</th>
+                    <th className="text-left px-4 py-3">Telefone</th>
+                    <th className="text-left px-4 py-3">Aniversário</th>
+                    <th className="text-right px-4 py-3">Visitas</th>
+                    <th className="text-left px-4 py-3">Última visita</th>
+                    <th className="text-right px-4 py-3">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((c) => (
+                    <tr key={c.id} className="border-t hover:bg-muted/30">
+                      <td className="px-4 py-3 font-medium">{c.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{c.phone || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatDate(c.birthday)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{c.visit_count}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{formatRelative(c.last_visit_at)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(c)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setDeleteTarget(c)}
+                            title="Excluir"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ScrollArea>
           </div>
 
           {/* Mobile cards */}
