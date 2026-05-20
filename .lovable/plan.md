@@ -1,43 +1,57 @@
-## Tela de Clientes Cadastrados
+# Sincronia em tempo real entre Caixa e Garçom
 
-Criar uma página dedicada `/clientes` para visualizar, editar e gerenciar todos os clientes cadastrados no sistema (atualmente só é possível cadastrar via popup ao criar nova comanda).
+## Diagnóstico (causa raiz encontrada)
 
-### Onde fica
+Verifiquei a publicação `supabase_realtime` no banco e o resultado é alarmante:
 
-- Nova rota `/clientes` no `src/App.tsx`, dentro do bloco autenticado (`BlockWaiter` para não aparecer para garçom).
-- Novo item no menu lateral (`src/components/NavigationRail.tsx`) na seção **Gestão**, com ícone `Users` e label "Clientes".
+```
+publication tables:
+- usb_printer_discoveries   ← única tabela publicada
+```
 
-### O que a tela mostra
+**Nenhuma das tabelas operacionais (`orders`, `order_items`, `restaurant_tables`, `comanda_locks`, `payments`) está incluída na publicação de Realtime.**
 
-Página `src/pages/CustomersPage.tsx` com:
+Isso significa que:
+- Tanto a tela do **Caixa** (`TablesPage`) quanto o **PWA do Garçom** (`WaiterTablesPage`/`WaiterOrdersPage`) chamam `useTenantRealtime` corretamente e abrem o canal — mas o Postgres **nunca emite eventos** dessas tabelas para o Realtime.
+- O painel só atualiza quando o React Query refaz a query por outro motivo (foco da janela, recarregar manual, intervalo de poll). Daí a sensação de "demora" ou "não aparece" no caixa quando o garçom lança uma comanda nova.
 
-- **Cabeçalho**: título "Clientes" + botão "Novo Cliente" + campo de busca (por nome ou telefone, ilike, debounce 200ms).
-- **Tabela / lista de cards** (responsivo — tabela no desktop, cards empilhados no mobile) listando:
-  - Nome, telefone/WhatsApp, aniversário, nº de visitas, última visita (data relativa), data de cadastro.
-  - Ações por linha: **Editar** e **Excluir** (com confirmação).
-- **Paginação** simples (50 por página) ou scroll infinito — usar paginação por offset.
-- **Estado vazio** amigável quando não houver clientes ou busca não retornar nada.
+Também detectei que `restaurant_tables`, `comanda_locks` e `order_item_complements` estão com `REPLICA IDENTITY DEFAULT` (apenas a PK no payload `old`). Para o hook `useTenantRealtime` filtrar UPDATEs por "colunas significativas" via comparação `old vs new`, é obrigatório `REPLICA IDENTITY FULL` (já está OK em `orders`, `order_items`, `payments`).
 
-### Modal de criar / editar
+## O que será feito
 
-Um único `Dialog` reaproveitado para criar e editar, com os campos da tabela `customers`:
-- `name` (obrigatório, máx 100)
-- `phone` (opcional, máx 20)
-- `birthday` (date, opcional)
-- `notes` (textarea, máx 500)
+### 1. Migration de Realtime
 
-Validação com `zod` (mesmo schema usado em `CustomerPicker`). Tenant é preenchido automaticamente pela trigger.
+Uma única migration que:
 
-### Detalhes técnicos
+- **Adiciona à publicação `supabase_realtime`** as tabelas:
+  - `orders`
+  - `order_items`
+  - `order_item_complements`
+  - `restaurant_tables`
+  - `comanda_locks`
+  - `payments`
+  - `table_activity_log` (para a timeline aparecer ao vivo no preview da comanda)
+  - `self_service_sessions` (para sessões de QR code refletirem na hora)
 
-- Usar `@tanstack/react-query` com query keys `["customers", search, page]` e invalidar após mutações.
-- Mutações: `insert`, `update` (por id) e `delete` (por id) em `customers` via cliente Supabase. RLS já cobre isolamento por tenant.
-- Excluir é hard delete — mostrar `AlertDialog` de confirmação alertando que comandas antigas mantêm o nome do cliente em `orders.customer_name` (não há FK, então delete é seguro), mas perderão o vínculo `customer_id`.
-- Campos de leitura `visit_count` e `last_visit_at` mostrados, sem edição (atualizados automaticamente por `get_or_create_open_order`).
-- Sem alterações de schema, sem alterações em edge functions.
-- Reaproveitar componentes shadcn já existentes (`Dialog`, `AlertDialog`, `Input`, `Button`, `Table`).
+- **Seta `REPLICA IDENTITY FULL`** em:
+  - `restaurant_tables`
+  - `comanda_locks`
+  - `order_item_complements`
+  - `table_activity_log`
+  - `self_service_sessions`
 
-### Arquivos afetados
+Tudo idempotente (`IF NOT EXISTS` / checagem em `pg_publication_tables`) para poder rodar sem riscos.
 
-- **Novo**: `src/pages/CustomersPage.tsx`
-- **Editar**: `src/App.tsx` (registrar rota), `src/components/NavigationRail.tsx` (adicionar item de menu).
+### 2. Nenhuma mudança no frontend
+
+O hook `useTenantRealtime` e os canais já estão certos — só faltava o Postgres realmente publicar os eventos. Após a migration, os eventos passam a fluir e a invalidação do React Query roda em ~250ms (debounce já configurado), atualizando o caixa imediatamente quando o garçom lança/altera comanda.
+
+## Detalhes técnicos
+
+- Multi-tenant: o filtro por `tenant_id` já é aplicado no servidor pelo canal (`filter: tenant_id=eq.${tenantId}`), então adicionar as tabelas à publicação **não** aumenta tráfego entre tenants — cada cliente só recebe eventos do próprio tenant.
+- `REPLICA IDENTITY FULL` aumenta levemente o tamanho do WAL para UPDATEs nessas tabelas, mas é necessário para o filtro de "colunas significativas" funcionar (sem ele, todo UPDATE invalidaria queries, ficando pior).
+- A regra do projeto em `mem://tech/realtime-architecture` (REPLICA IDENTITY FULL requerido) será reforçada com esta migration.
+
+## Risco
+
+Baixo. Migration apenas adiciona tabelas a uma publicação e ajusta replica identity; não altera dados nem schema das tabelas. Reversível.
