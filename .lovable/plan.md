@@ -1,57 +1,36 @@
-# Sincronia em tempo real entre Caixa e Garçom
+# Comandas com número cadastrado + ordenação crescente
 
-## Diagnóstico (causa raiz encontrada)
+## O que muda
 
-Verifiquei a publicação `supabase_realtime` no banco e o resultado é alarmante:
+### 1. Rótulo da comanda usa o número cadastrado
 
-```
-publication tables:
-- usb_printer_discoveries   ← única tabela publicada
-```
+Hoje cada cartão mostra um rótulo sequencial automático "Comanda 1", "Comanda 2"… baseado na posição na grade (variável `visualLabels` em `TablesPage`). Esse rótulo aparece em dois lugares:
 
-**Nenhuma das tabelas operacionais (`orders`, `order_items`, `restaurant_tables`, `comanda_locks`, `payments`) está incluída na publicação de Realtime.**
+- No **cabeçalho do cartão** (combinado com o nome via `formatComandaLabel`).
+- Em um **badge separado** logo abaixo (linhas 1156–1165 de `src/pages/TablesPage.tsx`).
 
-Isso significa que:
-- Tanto a tela do **Caixa** (`TablesPage`) quanto o **PWA do Garçom** (`WaiterTablesPage`/`WaiterOrdersPage`) chamam `useTenantRealtime` corretamente e abrem o canal — mas o Postgres **nunca emite eventos** dessas tabelas para o Realtime.
-- O painel só atualiza quando o React Query refaz a query por outro motivo (foco da janela, recarregar manual, intervalo de poll). Daí a sensação de "demora" ou "não aparece" no caixa quando o garçom lança uma comanda nova.
+Mudança:
+- `visualLabels[t.id]` passa a ser `"Comanda <número-cadastrado>"`, onde o número vem de `order.origin_location` (ou `current_location` como fallback) — o mesmo valor que o usuário digita no diálogo "Nova Comanda".
+- Quando a mesa estiver livre (sem `order`), o fallback continua sendo `"Comanda N"` sequencial só para placeholder visual.
+- O **badge extra "Comanda N" antes do nome do cliente** (linhas 1156–1165) é **removido** — fica redundante, já que o cabeçalho agora carrega o número correto.
+- Aplicar o mesmo ajuste em `src/pages/waiter/WaiterTablesPage.tsx`, que também monta `Comanda ${i+1}` sequencial.
 
-Também detectei que `restaurant_tables`, `comanda_locks` e `order_item_complements` estão com `REPLICA IDENTITY DEFAULT` (apenas a PK no payload `old`). Para o hook `useTenantRealtime` filtrar UPDATEs por "colunas significativas" via comparação `old vs new`, é obrigatório `REPLICA IDENTITY FULL` (já está OK em `orders`, `order_items`, `payments`).
+### 2. Ordenação crescente pelo número da comanda
 
-## O que será feito
+Hoje as comandas abertas são ordenadas por `created_at` (mais antigas primeiro). Mudança em `sortedTables` (linhas ~668–696 de `TablesPage.tsx`):
 
-### 1. Migration de Realtime
-
-Uma única migration que:
-
-- **Adiciona à publicação `supabase_realtime`** as tabelas:
-  - `orders`
-  - `order_items`
-  - `order_item_complements`
-  - `restaurant_tables`
-  - `comanda_locks`
-  - `payments`
-  - `table_activity_log` (para a timeline aparecer ao vivo no preview da comanda)
-  - `self_service_sessions` (para sessões de QR code refletirem na hora)
-
-- **Seta `REPLICA IDENTITY FULL`** em:
-  - `restaurant_tables`
-  - `comanda_locks`
-  - `order_item_complements`
-  - `table_activity_log`
-  - `self_service_sessions`
-
-Tudo idempotente (`IF NOT EXISTS` / checagem em `pg_publication_tables`) para poder rodar sem riscos.
-
-### 2. Nenhuma mudança no frontend
-
-O hook `useTenantRealtime` e os canais já estão certos — só faltava o Postgres realmente publicar os eventos. Após a migration, os eventos passam a fluir e a invalidação do React Query roda em ~250ms (debounce já configurado), atualizando o caixa imediatamente quando o garçom lança/altera comanda.
+- Tabelas com comanda aberta continuam antes das livres.
+- Entre as ocupadas, ordenar por **`origin_location` interpretado como número** em ordem crescente (1, 10, 18, 40 — não alfabético "1, 10, 18, 40" já bate, mas comparação numérica garante para casos como "2" vs "10").
+- Comandas sem número cadastrado vão para o fim do grupo das ocupadas, mantendo `created_at` como desempate.
+- Mesma regra replicada em `WaiterTablesPage.tsx`.
 
 ## Detalhes técnicos
 
-- Multi-tenant: o filtro por `tenant_id` já é aplicado no servidor pelo canal (`filter: tenant_id=eq.${tenantId}`), então adicionar as tabelas à publicação **não** aumenta tráfego entre tenants — cada cliente só recebe eventos do próprio tenant.
-- `REPLICA IDENTITY FULL` aumenta levemente o tamanho do WAL para UPDATEs nessas tabelas, mas é necessário para o filtro de "colunas significativas" funcionar (sem ele, todo UPDATE invalidaria queries, ficando pior).
-- A regra do projeto em `mem://tech/realtime-architecture` (REPLICA IDENTITY FULL requerido) será reforçada com esta migration.
+- Parse: `parseInt(origin_location, 10)`; se `NaN`, trata como `Number.MAX_SAFE_INTEGER` para empurrar pro fim.
+- Comparação textual com `localeCompare(..., { numeric: true })` como tiebreak quando ambos não são puramente numéricos.
+- Nada muda no banco; é puramente de apresentação/ordenação no frontend.
 
-## Risco
+## Arquivos afetados
 
-Baixo. Migration apenas adiciona tabelas a uma publicação e ajusta replica identity; não altera dados nem schema das tabelas. Reversível.
+- `src/pages/TablesPage.tsx` — `visualLabels`, `sortedTables`, remoção do badge duplicado.
+- `src/pages/waiter/WaiterTablesPage.tsx` — `visualLabels`, `sortedTables`.
