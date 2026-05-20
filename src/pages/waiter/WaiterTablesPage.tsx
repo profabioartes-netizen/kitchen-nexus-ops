@@ -122,12 +122,23 @@ export default function WaiterTablesPage() {
 
   // Sort: occupied first, then free by sort_order
   const sortedTables = useMemo(() => {
+    const getComandaNum = (ord: any | undefined): number => {
+      if (!ord) return Number.MAX_SAFE_INTEGER;
+      const raw = (ord.origin_location ?? ord.current_location ?? "").toString().trim();
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+    };
     return [...tables].sort((a, b) => {
       const aHasOrder = occupiedTableIds.has(a.id);
       const bHasOrder = occupiedTableIds.has(b.id);
       if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
       if (aHasOrder && bHasOrder) {
-        return new Date(ordersByTable[a.id].created_at).getTime() - new Date(ordersByTable[b.id].created_at).getTime();
+        const aOrder = ordersByTable[a.id];
+        const bOrder = ordersByTable[b.id];
+        const aNum = getComandaNum(aOrder);
+        const bNum = getComandaNum(bOrder);
+        if (aNum !== bNum) return aNum - bNum;
+        return new Date(aOrder.created_at).getTime() - new Date(bOrder.created_at).getTime();
       }
       const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
       if (sortDiff !== 0) return sortDiff;
@@ -139,14 +150,17 @@ export default function WaiterTablesPage() {
     });
   }, [tables, occupiedTableIds, ordersByTable]);
 
-  // Simple sequential labels: Comanda 1, 2, 3... based on sorted position
+  // Visual label: prefers registered comanda number; falls back to sequential.
   const visualLabels = useMemo(() => {
     const labels: Record<string, string> = {};
     sortedTables.forEach((table, i) => {
-      labels[table.id] = `Comanda ${i + 1}`;
+      const ord = ordersByTable[table.id];
+      const raw = ord ? ((ord as any).origin_location ?? (ord as any).current_location ?? "").toString().trim() : "";
+      labels[table.id] = raw ? `Comanda ${raw}` : `Comanda ${i + 1}`;
     });
     return labels;
-  }, [sortedTables]);
+  }, [sortedTables, ordersByTable]);
+
 
   if (isLoading) {
     return <LoadingScreen />;

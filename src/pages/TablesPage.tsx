@@ -673,15 +673,25 @@ export default function TablesPage() {
       delivered: 2,
       free: 3,
     };
+    const getComandaNum = (ord: any | undefined): number => {
+      if (!ord) return Number.MAX_SAFE_INTEGER;
+      const raw = (ord.origin_location ?? ord.current_location ?? "").toString().trim();
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
+    };
     return [...tables].sort((a, b) => {
       const aHasOrder = !!ordersByTable[a.id];
       const bHasOrder = !!ordersByTable[b.id];
       // Tables with active orders always come first
       if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
-      // Among active tables, sort by order creation time (oldest first)
+      // Among active tables, sort by registered comanda number (ascending)
       if (aHasOrder && bHasOrder) {
         const aOrder = ordersByTable[a.id];
         const bOrder = ordersByTable[b.id];
+        const aNum = getComandaNum(aOrder);
+        const bNum = getComandaNum(bOrder);
+        if (aNum !== bNum) return aNum - bNum;
+        // Tiebreak: oldest order first
         return new Date(aOrder.created_at).getTime() - new Date(bOrder.created_at).getTime();
       }
       // Among free tables, keep original sort_order
@@ -695,14 +705,18 @@ export default function TablesPage() {
     });
   }, [tables, ordersByTable]);
 
-  // Deterministic visual label: based on full sortedTables (stable, doesn't shift with search)
+  // Visual label: prefers the registered comanda number from origin_location;
+  // falls back to sequential "Comanda N" only when no number was cadastrado.
   const visualLabels = useMemo(() => {
     const labels: Record<string, string> = {};
     sortedTables.forEach((t, i) => {
-      labels[t.id] = `Comanda ${i + 1}`;
+      const ord = ordersByTable[t.id];
+      const raw = ord ? ((ord.origin_location ?? ord.current_location ?? "") as string).toString().trim() : "";
+      labels[t.id] = raw ? `Comanda ${raw}` : `Comanda ${i + 1}`;
     });
     return labels;
-  }, [sortedTables]);
+  }, [sortedTables, ordersByTable]);
+
 
   // Format "<number> — <name>" using origin_location (digited at "Nova Comanda") + customer_name.
   // Falls back gracefully when one of them is missing.
@@ -1152,17 +1166,8 @@ export default function TablesPage() {
                   {order && <TableDuration createdAt={order.created_at} />}
                 </div>
 
-                {/* Comanda N badge — always visible when there's an order, for filtering by number */}
-                {order && order.customer_name && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span
-                      className="text-[9px] bg-foreground/10 rounded-full px-1.5 py-0.5 font-semibold uppercase tracking-wide"
-                      style={useInlineOccupied ? { backgroundColor: "#d4c8f5", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#86efac", color: "#15803d" } : undefined}
-                    >
-                      {visualLabels[table.id]}
-                    </span>
-                  </div>
-                )}
+
+
 
                 {order && ((table as any).sector || (table as any).internal_number) && (
                   <div className="flex items-center gap-2 mt-0.5">
