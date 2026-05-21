@@ -537,6 +537,13 @@ export default function TablesPage() {
   });
 
   const openTable = (id: string) => {
+    // Se a mesa está livre (sem comanda aberta), abrir o diálogo Nova Comanda
+    // para forçar o fluxo: número → cliente → itens.
+    if (!ordersByTable[id]) {
+      setTargetTableId(id);
+      setNewComandaOpen(true);
+      return;
+    }
     navigate(`/mesas/${id}/pedido`);
   };
 
