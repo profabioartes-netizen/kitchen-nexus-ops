@@ -1294,6 +1294,27 @@ export default function TablesPage() {
             );
           })}
         </div>
+        {filteredTables.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center py-16 px-4">
+            <UtensilsCrossed className="h-10 w-10 text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground">
+              {searchQuery.trim() ? "Nenhuma comanda encontrada" : "Nenhuma comanda aberta"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 mb-4">
+              {searchQuery.trim()
+                ? "Tente outro termo de busca."
+                : "Use o botão Nova Comanda (ou F3) para abrir uma."}
+            </p>
+            {!searchQuery.trim() && (
+              <button
+                onClick={() => setNewComandaOpen(true)}
+                className="rounded-md bg-accent text-accent-foreground px-4 py-2 text-sm font-medium hover:opacity-90"
+              >
+                Nova Comanda
+              </button>
+            )}
+          </div>
+        )}
         </LayoutGroup>
       )}
 
