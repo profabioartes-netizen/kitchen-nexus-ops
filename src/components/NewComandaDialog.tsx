@@ -13,9 +13,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onConfirm: (data: { number: string; customer: PickedCustomer | null }) => void;
   isPending?: boolean;
+  targetTableLabel?: string | null;
 }
 
-export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPending }: Props) {
+export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPending, targetTableLabel }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [number, setNumber] = useState("");
 
@@ -57,7 +58,9 @@ export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPend
                 className="w-full rounded-md border bg-background px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-ring"
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Será aberta na próxima mesa livre disponível.
+                {targetTableLabel
+                  ? `Para a comanda ${targetTableLabel}.`
+                  : "Será aberta na próxima mesa livre disponível."}
               </p>
             </div>
             <div className="flex gap-2">

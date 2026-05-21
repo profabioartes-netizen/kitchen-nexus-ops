@@ -1,36 +1,36 @@
-# Comandas com número cadastrado + ordenação crescente
+# Restaurar fluxo de criação: número → cliente → itens
 
-## O que muda
+## Diagnóstico
 
-### 1. Rótulo da comanda usa o número cadastrado
+O diálogo `NewComandaDialog` ainda tem o fluxo correto (passo 1: número; passo 2: cliente) e o handler em `TablesPage` (linhas 1443–1475) faz tudo certo — cria a comanda com `origin_location` = número, `customer_*` preenchidos, e só então navega para `/mesas/:id/pedido` com `skipAutoCreate: true`.
 
-Hoje cada cartão mostra um rótulo sequencial automático "Comanda 1", "Comanda 2"… baseado na posição na grade (variável `visualLabels` em `TablesPage`). Esse rótulo aparece em dois lugares:
+O problema é o **caminho alternativo**: quando o usuário **clica diretamente em um cartão de mesa LIVRE** na grade (`openTable(id)`, linha 539–541), o app navega direto para `TableOrderPage`, que então **auto-cria** uma comanda vazia (sem número, sem cliente) via `useEffect` em `src/pages/TableOrderPage.tsx` linhas 484–490. Isso pula totalmente as duas perguntas e cai direto na tela de itens.
 
-- No **cabeçalho do cartão** (combinado com o nome via `formatComandaLabel`).
-- Em um **badge separado** logo abaixo (linhas 1156–1165 de `src/pages/TablesPage.tsx`).
+## Correção
 
-Mudança:
-- `visualLabels[t.id]` passa a ser `"Comanda <número-cadastrado>"`, onde o número vem de `order.origin_location` (ou `current_location` como fallback) — o mesmo valor que o usuário digita no diálogo "Nova Comanda".
-- Quando a mesa estiver livre (sem `order`), o fallback continua sendo `"Comanda N"` sequencial só para placeholder visual.
-- O **badge extra "Comanda N" antes do nome do cliente** (linhas 1156–1165) é **removido** — fica redundante, já que o cabeçalho agora carrega o número correto.
-- Aplicar o mesmo ajuste em `src/pages/waiter/WaiterTablesPage.tsx`, que também monta `Comanda ${i+1}` sequencial.
+### `src/pages/TablesPage.tsx`
 
-### 2. Ordenação crescente pelo número da comanda
+- Alterar `openTable(id)` para diferenciar livre vs ocupada:
+  - **Livre** (sem `order` em `ordersByTable[id]`): abre o `NewComandaDialog` (mesmo diálogo do botão "Nova Comanda" / F3), pré-selecionando essa mesa específica em vez da "próxima livre".
+  - **Ocupada**: comportamento atual (navega direto para `/mesas/:id/pedido`).
+- O `onConfirm` do diálogo precisa de uma pequena extensão: quando aberto a partir do clique em uma mesa específica, usa essa mesa em vez de procurar a "primeira livre disponível". Implementado com um estado `targetTableId: string | null` que o handler de `openTable` seta antes de abrir o diálogo, e que é limpo no `onOpenChange(false)`.
+- Ajustar a `<p>` de ajuda no diálogo: quando há `targetTableId`, mostrar "Para esta comanda" em vez de "Será aberta na próxima mesa livre disponível". (Pode ser feito via prop opcional `targetTableLabel` no `NewComandaDialog`.)
 
-Hoje as comandas abertas são ordenadas por `created_at` (mais antigas primeiro). Mudança em `sortedTables` (linhas ~668–696 de `TablesPage.tsx`):
+### `src/components/NewComandaDialog.tsx`
 
-- Tabelas com comanda aberta continuam antes das livres.
-- Entre as ocupadas, ordenar por **`origin_location` interpretado como número** em ordem crescente (1, 10, 18, 40 — não alfabético "1, 10, 18, 40" já bate, mas comparação numérica garante para casos como "2" vs "10").
-- Comandas sem número cadastrado vão para o fim do grupo das ocupadas, mantendo `created_at` como desempate.
-- Mesma regra replicada em `WaiterTablesPage.tsx`.
+- Aceitar prop opcional `targetTableLabel?: string | null` para personalizar a mensagem do passo 1.
 
-## Detalhes técnicos
+### Não mexer em `TableOrderPage.tsx`
 
-- Parse: `parseInt(origin_location, 10)`; se `NaN`, trata como `Number.MAX_SAFE_INTEGER` para empurrar pro fim.
-- Comparação textual com `localeCompare(..., { numeric: true })` como tiebreak quando ambos não são puramente numéricos.
-- Nada muda no banco; é puramente de apresentação/ordenação no frontend.
+O auto-create permanece como fallback para fluxos legítimos (ex.: deep link direto, garçom-mobile). A correção é só fechar a porta no caminho do caixa pela grade.
+
+## Resultado
+
+- Botão "Nova Comanda" / F3 → diálogo (passo 1 número, passo 2 cliente) → tela de itens. ✅ (já funcionava)
+- Clique em mesa **livre** na grade → diálogo (passo 1 número, passo 2 cliente) → tela de itens. ✅ (novo)
+- Clique em mesa **ocupada** na grade → tela de itens direta. ✅ (sem mudança)
 
 ## Arquivos afetados
 
-- `src/pages/TablesPage.tsx` — `visualLabels`, `sortedTables`, remoção do badge duplicado.
-- `src/pages/waiter/WaiterTablesPage.tsx` — `visualLabels`, `sortedTables`.
+- `src/pages/TablesPage.tsx` — `openTable`, estado `targetTableId`, handler `onConfirm` usando `targetTableId` quando setado.
+- `src/components/NewComandaDialog.tsx` — prop `targetTableLabel` opcional.
