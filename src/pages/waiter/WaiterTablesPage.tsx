@@ -172,7 +172,7 @@ export default function WaiterTablesPage() {
 
       {/* Status legend */}
       <div className="flex gap-3 mb-4 overflow-x-auto">
-        {(["free", "occupied", "bill"] as TableStatus[]).map((s) => (
+        {(["occupied", "bill"] as TableStatus[]).map((s) => (
           <div key={s} className="flex items-center gap-1.5 flex-shrink-0">
             <div className={`h-2.5 w-2.5 rounded-full table-status-${s} border`} />
             <span className="text-[10px] text-muted-foreground">{statusLabels[s]}</span>
