@@ -674,43 +674,23 @@ export default function TablesPage() {
   const free = Math.max(0, tables.length - occupied);
 
   const sortedTables = useMemo(() => {
-    // Active tables (occupied/bill/delivered) come first, then free ones
-    const statusPriority: Record<string, number> = {
-      occupied: 0,
-      bill: 1,
-      delivered: 2,
-      free: 3,
-    };
+    // Mostrar apenas comandas abertas. Mesas livres não aparecem na grade.
     const getComandaNum = (ord: any | undefined): number => {
       if (!ord) return Number.MAX_SAFE_INTEGER;
       const raw = (ord.origin_location ?? ord.current_location ?? "").toString().trim();
       const n = parseInt(raw, 10);
       return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
     };
-    return [...tables].sort((a, b) => {
-      const aHasOrder = !!ordersByTable[a.id];
-      const bHasOrder = !!ordersByTable[b.id];
-      // Tables with active orders always come first
-      if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
-      // Among active tables, sort by registered comanda number (ascending)
-      if (aHasOrder && bHasOrder) {
+    return tables
+      .filter((t) => !!ordersByTable[t.id])
+      .sort((a, b) => {
         const aOrder = ordersByTable[a.id];
         const bOrder = ordersByTable[b.id];
         const aNum = getComandaNum(aOrder);
         const bNum = getComandaNum(bOrder);
         if (aNum !== bNum) return aNum - bNum;
-        // Tiebreak: oldest order first
         return new Date(aOrder.created_at).getTime() - new Date(bOrder.created_at).getTime();
-      }
-      // Among free tables, keep original sort_order
-      const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
-      if (sortDiff !== 0) return sortDiff;
-      return (a.internal_number || a.default_name || a.name).localeCompare(
-        b.internal_number || b.default_name || b.name,
-        "pt-BR",
-        { numeric: true, sensitivity: "base" }
-      );
-    });
+      });
   }, [tables, ordersByTable]);
 
   // Visual label: prefers the registered comanda number from origin_location;
