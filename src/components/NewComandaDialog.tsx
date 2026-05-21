@@ -58,7 +58,9 @@ export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPend
                 className="w-full rounded-md border bg-background px-3 py-2.5 text-base outline-none focus:ring-2 focus:ring-ring"
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Será aberta na próxima mesa livre disponível.
+                {targetTableLabel
+                  ? `Para a comanda ${targetTableLabel}.`
+                  : "Será aberta na próxima mesa livre disponível."}
               </p>
             </div>
             <div className="flex gap-2">
