@@ -120,7 +120,7 @@ export default function WaiterTablesPage() {
 
   const occupied = occupiedTableIds.size;
 
-  // Sort: occupied first, then free by sort_order
+  // Mostrar apenas comandas abertas. Mesas livres não aparecem na grade.
   const sortedTables = useMemo(() => {
     const getComandaNum = (ord: any | undefined): number => {
       if (!ord) return Number.MAX_SAFE_INTEGER;
@@ -128,26 +128,16 @@ export default function WaiterTablesPage() {
       const n = parseInt(raw, 10);
       return Number.isFinite(n) ? n : Number.MAX_SAFE_INTEGER;
     };
-    return [...tables].sort((a, b) => {
-      const aHasOrder = occupiedTableIds.has(a.id);
-      const bHasOrder = occupiedTableIds.has(b.id);
-      if (aHasOrder !== bHasOrder) return aHasOrder ? -1 : 1;
-      if (aHasOrder && bHasOrder) {
+    return tables
+      .filter((t) => occupiedTableIds.has(t.id))
+      .sort((a, b) => {
         const aOrder = ordersByTable[a.id];
         const bOrder = ordersByTable[b.id];
         const aNum = getComandaNum(aOrder);
         const bNum = getComandaNum(bOrder);
         if (aNum !== bNum) return aNum - bNum;
         return new Date(aOrder.created_at).getTime() - new Date(bOrder.created_at).getTime();
-      }
-      const sortDiff = (a.sort_order ?? 0) - (b.sort_order ?? 0);
-      if (sortDiff !== 0) return sortDiff;
-      return (a.internal_number || a.default_name || a.name).localeCompare(
-        b.internal_number || b.default_name || b.name,
-        "pt-BR",
-        { numeric: true, sensitivity: "base" }
-      );
-    });
+      });
   }, [tables, occupiedTableIds, ordersByTable]);
 
   // Visual label: prefers registered comanda number; falls back to sequential.
@@ -182,7 +172,7 @@ export default function WaiterTablesPage() {
 
       {/* Status legend */}
       <div className="flex gap-3 mb-4 overflow-x-auto">
-        {(["free", "occupied", "bill"] as TableStatus[]).map((s) => (
+        {(["occupied", "bill"] as TableStatus[]).map((s) => (
           <div key={s} className="flex items-center gap-1.5 flex-shrink-0">
             <div className={`h-2.5 w-2.5 rounded-full table-status-${s} border`} />
             <span className="text-[10px] text-muted-foreground">{statusLabels[s]}</span>
@@ -263,6 +253,15 @@ export default function WaiterTablesPage() {
             </button>
           );
         })}
+        {sortedTables.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center py-12 px-4">
+            <ChefHat className="h-10 w-10 text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground">Nenhuma comanda aberta</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              As comandas que você abrir aparecerão aqui.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,36 +1,34 @@
-# Restaurar fluxo de criação: número → cliente → itens
+# Grade exibe apenas comandas abertas
 
-## Diagnóstico
+## Objetivo
 
-O diálogo `NewComandaDialog` ainda tem o fluxo correto (passo 1: número; passo 2: cliente) e o handler em `TablesPage` (linhas 1443–1475) faz tudo certo — cria a comanda com `origin_location` = número, `customer_*` preenchidos, e só então navega para `/mesas/:id/pedido` com `skipAutoCreate: true`.
+Esconder cartões de mesas livres na grade. A grade só mostra comandas com pedido aberto. Quando não houver nenhuma comanda aberta, a grade fica vazia com um estado vazio amigável ("Nenhuma comanda aberta — use Nova Comanda / F3 para abrir").
 
-O problema é o **caminho alternativo**: quando o usuário **clica diretamente em um cartão de mesa LIVRE** na grade (`openTable(id)`, linha 539–541), o app navega direto para `TableOrderPage`, que então **auto-cria** uma comanda vazia (sem número, sem cliente) via `useEffect` em `src/pages/TableOrderPage.tsx` linhas 484–490. Isso pula totalmente as duas perguntas e cai direto na tela de itens.
+Criação continua igual: botão "Nova Comanda" (ou F3) abre o `NewComandaDialog` (passo 1 número → passo 2 cliente → itens). Não dependerá mais de clicar em cartão de mesa livre.
 
-## Correção
+## Mudanças
 
-### `src/pages/TablesPage.tsx`
+### `src/pages/TablesPage.tsx` (painel do caixa)
 
-- Alterar `openTable(id)` para diferenciar livre vs ocupada:
-  - **Livre** (sem `order` em `ordersByTable[id]`): abre o `NewComandaDialog` (mesmo diálogo do botão "Nova Comanda" / F3), pré-selecionando essa mesa específica em vez da "próxima livre".
-  - **Ocupada**: comportamento atual (navega direto para `/mesas/:id/pedido`).
-- O `onConfirm` do diálogo precisa de uma pequena extensão: quando aberto a partir do clique em uma mesa específica, usa essa mesa em vez de procurar a "primeira livre disponível". Implementado com um estado `targetTableId: string | null` que o handler de `openTable` seta antes de abrir o diálogo, e que é limpo no `onOpenChange(false)`.
-- Ajustar a `<p>` de ajuda no diálogo: quando há `targetTableId`, mostrar "Para esta comanda" em vez de "Será aberta na próxima mesa livre disponível". (Pode ser feito via prop opcional `targetTableLabel` no `NewComandaDialog`.)
+- Em `sortedTables`, filtrar para manter apenas mesas com `ordersByTable[id]` presente (ocupada / conta / entregue). Ordenação por número de comanda crescente já existente é mantida.
+- Remover/ocultar o cartão "livre" da grade — não renderizar mesas sem pedido.
+- Atualizar contadores/legenda: a contagem "ocupadas/total" pode permanecer no header (informativo), mas a legenda de status "Livre" deixa de fazer sentido na grade e é removida.
+- Estado vazio: quando `sortedTables.length === 0`, renderizar bloco centralizado com ícone + texto "Nenhuma comanda aberta" e botão "Nova Comanda" (dispara o mesmo handler do F3).
+- `openTable` simplifica: só lida com cartões ocupados (navega para `/mesas/:id/pedido`). Lógica de `targetTableId` para mesa livre torna-se irrelevante na grade, mas mantém-se o caminho do diálogo escolher automaticamente a próxima mesa livre por `sort_order` (comportamento atual do "Nova Comanda").
 
-### `src/components/NewComandaDialog.tsx`
+### `src/pages/waiter/WaiterTablesPage.tsx` (PWA do garçom)
 
-- Aceitar prop opcional `targetTableLabel?: string | null` para personalizar a mensagem do passo 1.
+- Mesma regra: filtrar `sortedTables` para incluir apenas `occupiedTableIds`.
+- Estado vazio equivalente, com botão/atalho para abrir nova comanda (fluxo do garçom já existente).
+- Header "ocupadas/total" mantido.
 
-### Não mexer em `TableOrderPage.tsx`
+### Não mexer
 
-O auto-create permanece como fallback para fluxos legítimos (ex.: deep link direto, garçom-mobile). A correção é só fechar a porta no caminho do caixa pela grade.
+- `NewComandaDialog`, criação de comanda, RLS, realtime, `TableOrderPage`, gestão de mesas em Configurações (lá continua listando todas as mesas cadastradas).
+- Mesas livres continuam existindo no banco e disponíveis para o diálogo selecionar — apenas não aparecem na grade operacional.
 
 ## Resultado
 
-- Botão "Nova Comanda" / F3 → diálogo (passo 1 número, passo 2 cliente) → tela de itens. ✅ (já funcionava)
-- Clique em mesa **livre** na grade → diálogo (passo 1 número, passo 2 cliente) → tela de itens. ✅ (novo)
-- Clique em mesa **ocupada** na grade → tela de itens direta. ✅ (sem mudança)
-
-## Arquivos afetados
-
-- `src/pages/TablesPage.tsx` — `openTable`, estado `targetTableId`, handler `onConfirm` usando `targetTableId` quando setado.
-- `src/components/NewComandaDialog.tsx` — prop `targetTableLabel` opcional.
+- Grade vazia quando não há comanda aberta.
+- Cada cartão visível = uma comanda aberta, ordenada por número crescente.
+- Criação por "Nova Comanda" / F3 inalterada.
