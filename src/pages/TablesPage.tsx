@@ -1446,21 +1446,39 @@ export default function TablesPage() {
 
       <NewComandaDialog
         open={newComandaOpen}
-        onOpenChange={setNewComandaOpen}
+        onOpenChange={(v) => {
+          setNewComandaOpen(v);
+          if (!v) setTargetTableId(null);
+        }}
         isPending={creatingComanda}
+        targetTableLabel={
+          targetTableId
+            ? (tables.find((t: any) => t.id === targetTableId) as any)?.name ?? null
+            : null
+        }
         onConfirm={async ({ number, customer }) => {
           if (creatingComanda) return;
-          // Find next free table by sort order
-          const sorted = [...tables].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-          const freeTable = sorted.find((t: any) => t.status === "free");
-          if (!freeTable) {
+          // Se veio do clique numa mesa específica, usa essa mesa; senão pega a próxima livre.
+          let target: any = null;
+          if (targetTableId) {
+            target = tables.find((t: any) => t.id === targetTableId) || null;
+            if (target && target.status !== "free") {
+              toast.error("Esta comanda já está ocupada.");
+              return;
+            }
+          }
+          if (!target) {
+            const sorted = [...tables].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+            target = sorted.find((t: any) => t.status === "free");
+          }
+          if (!target) {
             toast.error("Não há mesas livres disponíveis. Libere uma comanda antes de criar uma nova.");
             return;
           }
           setCreatingComanda(true);
           try {
             const order = await getOrCreateOpenOrder({
-              tableId: freeTable.id,
+              tableId: target.id,
               waiterName: profile?.full_name ?? user?.email ?? null,
               customerName: customer?.name ?? null,
               whatsappPhone: customer?.phone ?? null,
@@ -1471,8 +1489,9 @@ export default function TablesPage() {
             queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
             queryClient.invalidateQueries({ queryKey: ["open_orders"] });
             setNewComandaOpen(false);
+            setTargetTableId(null);
             toast.success(`Comanda ${number} aberta`);
-            navigate(`/mesas/${freeTable.id}/pedido`, {
+            navigate(`/mesas/${target.id}/pedido`, {
               state: { justCreatedOrderId: order.id, skipAutoCreate: true },
             });
           } catch (e: any) {
