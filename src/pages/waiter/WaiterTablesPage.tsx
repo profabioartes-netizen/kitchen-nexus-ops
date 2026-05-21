@@ -253,6 +253,15 @@ export default function WaiterTablesPage() {
             </button>
           );
         })}
+        {sortedTables.length === 0 && (
+          <div className="flex flex-col items-center justify-center text-center py-12 px-4">
+            <ChefHat className="h-10 w-10 text-muted-foreground/60 mb-3" />
+            <p className="text-sm font-medium text-foreground">Nenhuma comanda aberta</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              As comandas que você abrir aparecerão aqui.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
