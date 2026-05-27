@@ -133,6 +133,7 @@ export default function CustomersPage() {
     setPhone("");
     setBirthday("");
     setNotes("");
+    setIsVip(false);
     setDialogOpen(true);
   }
 
@@ -142,12 +143,13 @@ export default function CustomersPage() {
     setPhone(c.phone ?? "");
     setBirthday(c.birthday ?? "");
     setNotes(c.notes ?? "");
+    setIsVip(!!c.is_vip);
     setDialogOpen(true);
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const parsed = customerSchema.safeParse({ name, phone, notes, birthday });
+      const parsed = customerSchema.safeParse({ name, phone, notes, birthday, is_vip: isVip });
       if (!parsed.success) {
         throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       }
@@ -156,6 +158,7 @@ export default function CustomersPage() {
         phone: parsed.data.phone || null,
         notes: parsed.data.notes || null,
         birthday: parsed.data.birthday || null,
+        is_vip: !!isVip,
       };
       if (editing) {
         const { error } = await supabase.from("customers" as any).update(payload).eq("id", editing.id);
