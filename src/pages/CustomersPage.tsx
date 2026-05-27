@@ -420,6 +420,26 @@ export default function CustomersPage() {
                 rows={3}
               />
             </div>
+            <label
+              htmlFor="cust-vip"
+              className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 cursor-pointer hover:bg-amber-500/10 transition-colors"
+            >
+              <Checkbox
+                id="cust-vip"
+                checked={isVip}
+                onCheckedChange={(v) => setIsVip(!!v)}
+                className="mt-0.5 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  Cliente VIP (mensalista)
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Comandas deste cliente ficarão destacadas em <span className="text-amber-600 dark:text-amber-400 font-semibold">amarelo</span> no mapa, indicando que paga periodicamente.
+                </p>
+              </div>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
