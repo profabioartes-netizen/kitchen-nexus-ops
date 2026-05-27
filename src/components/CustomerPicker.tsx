@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, UserPlus, User, Phone, X } from "lucide-react";
+import { Search, UserPlus, User, Phone, X, Crown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
@@ -43,7 +43,7 @@ export default function CustomerPicker({ onSelect, onSkip }: Props) {
   const { data: results = [], isLoading } = useQuery({
     queryKey: ["customers_search", debounced],
     queryFn: async () => {
-      let q = supabase.from("customers" as any).select("id, name, phone, visit_count, last_visit_at").order("last_visit_at", { ascending: false, nullsFirst: false }).limit(15);
+      let q = supabase.from("customers" as any).select("id, name, phone, visit_count, last_visit_at, is_vip").order("last_visit_at", { ascending: false, nullsFirst: false }).limit(15);
       if (debounced) {
         q = q.or(`name.ilike.%${debounced}%,phone.ilike.%${debounced}%`);
       }
@@ -171,7 +171,15 @@ export default function CustomerPicker({ onSelect, onSkip }: Props) {
           >
             <User className="h-4 w-4 text-muted-foreground shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{c.name}</p>
+              <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                {c.name}
+                {(c as any).is_vip && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-yellow-400 text-yellow-900 px-1.5 py-0.5">
+                    <Crown className="h-2.5 w-2.5" />
+                    <span className="text-[8px] font-bold uppercase leading-none">VIP</span>
+                  </span>
+                )}
+              </p>
               {c.phone && (
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <Phone className="h-3 w-3" /> {c.phone}
