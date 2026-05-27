@@ -104,15 +104,18 @@ export default function CustomersPage() {
   }, [query]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["customers_list", debounced, page],
+    queryKey: ["customers_list", debounced, page, vipOnly],
     queryFn: async () => {
       let q = supabase
         .from("customers" as any)
-        .select("id, name, phone, birthday, notes, visit_count, last_visit_at, created_at", { count: "exact" })
+        .select("id, name, phone, birthday, notes, visit_count, last_visit_at, created_at, is_vip", { count: "exact" })
         .order("name", { ascending: true })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (debounced) {
         q = q.or(`name.ilike.%${debounced}%,phone.ilike.%${debounced}%`);
+      }
+      if (vipOnly) {
+        q = q.eq("is_vip", true);
       }
       const { data, error, count } = await q;
       if (error) throw error;
