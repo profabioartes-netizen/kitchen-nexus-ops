@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Users, ChefHat } from "lucide-react";
+import { Users, ChefHat, Crown } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantRealtime } from "@/hooks/useTenantRealtime";
@@ -23,6 +23,8 @@ const statusColors: Record<TableStatus, string> = {
   bill: "border-l-[hsl(var(--status-bill))] bg-[hsl(var(--status-bill)/0.06)]",
   delivered: "border-l-[#16a34a] bg-[#16a34a/0.06]",
 };
+
+const vipColor = "border-l-[#facc15] bg-[#fef9c3] text-[#854d0e]";
 
 
 export default function WaiterTablesPage() {
@@ -72,7 +74,7 @@ export default function WaiterTablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, table_id, status, total, waiter_name, customer_name, created_at")
+        .select("id, table_id, status, total, waiter_name, customer_name, customer_id, created_at, origin_location, current_location, guests")
         .not("status", "in", '("closed","finished","finalized","canceled","merged")')
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -80,6 +82,19 @@ export default function WaiterTablesPage() {
     },
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+  });
+
+  const { data: vipCustomerIds = new Set<string>() } = useQuery({
+    queryKey: ["vip_customer_ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers" as any)
+        .select("id")
+        .eq("is_vip", true);
+      if (error) throw error;
+      return new Set<string>(((data ?? []) as any[]).map((c) => c.id));
+    },
+    staleTime: 60_000,
   });
 
   const ordersByTable = openOrders.reduce<Record<string, (typeof openOrders)[0]>>((acc, o) => {
@@ -197,15 +212,22 @@ export default function WaiterTablesPage() {
               ? "bill"
               : (table.status === "delivered" && !hasPending ? "delivered" : "occupied"))
             : (table.status as TableStatus);
+          const isVip = !!(order && (order as any).customer_id && vipCustomerIds.has((order as any).customer_id));
           return (
             <button
               key={table.id}
               onClick={() => navigate(`/garcom/mesa/${table.id}`)}
-              className={`w-full flex items-center gap-3 rounded-xl border border-l-4 p-4 text-left transition-all active:scale-[0.98] ${statusColors[status] || ""} relative`}
+              className={`w-full flex items-center gap-3 rounded-xl border border-l-4 p-4 text-left transition-all active:scale-[0.98] ${isVip && status === "occupied" ? vipColor : (statusColors[status] || "")} relative`}
             >
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
+                  {isVip && (
+                    <span className="flex items-center gap-0.5 rounded-full bg-yellow-400 text-yellow-900 px-1.5 py-0.5 flex-shrink-0">
+                      <Crown className="h-2.5 w-2.5" />
+                      <span className="text-[8px] font-bold uppercase leading-none">VIP</span>
+                    </span>
+                  )}
                   <span className="font-semibold text-base truncate">
                     {order?.customer_name || visualLabels[table.id] || table.name}
                   </span>
