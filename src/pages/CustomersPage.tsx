@@ -82,6 +82,7 @@ export default function CustomersPage() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(0);
+  const [vipOnly, setVipOnly] = useState(false);
 
   const [editing, setEditing] = useState<Customer | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -92,6 +93,7 @@ export default function CustomersPage() {
   const [phone, setPhone] = useState("");
   const [birthday, setBirthday] = useState("");
   const [notes, setNotes] = useState("");
+  const [isVip, setIsVip] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
