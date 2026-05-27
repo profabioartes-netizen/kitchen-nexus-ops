@@ -306,7 +306,14 @@ export default function CustomersPage() {
               <div key={c.id} className="border rounded-lg p-3 bg-card">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{c.name}</p>
+                    <p className="font-medium truncate inline-flex items-center gap-2">
+                      {c.name}
+                      {c.is_vip && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                          <Crown className="h-3 w-3" /> VIP
+                        </span>
+                      )}
+                    </p>
                     {c.phone && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Phone className="h-3 w-3" /> {c.phone}
