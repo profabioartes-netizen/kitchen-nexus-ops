@@ -207,14 +207,26 @@ export default function CustomersPage() {
         </Button>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nome ou telefone..."
-          className="pl-9"
-        />
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome ou telefone..."
+            className="pl-9"
+          />
+        </div>
+        <Button
+          type="button"
+          variant={vipOnly ? "default" : "outline"}
+          onClick={() => { setVipOnly((v) => !v); setPage(0); }}
+          className={`gap-2 flex-shrink-0 ${vipOnly ? "bg-amber-500 hover:bg-amber-500/90 text-amber-950 border-amber-500" : ""}`}
+          title="Filtrar apenas clientes VIP"
+        >
+          <Crown className={`h-4 w-4 ${vipOnly ? "" : "text-amber-500"}`} />
+          <span className="hidden sm:inline">{vipOnly ? "VIPs" : "Apenas VIPs"}</span>
+        </Button>
       </div>
 
       {isLoading && (
