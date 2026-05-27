@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Search, UserPlus, Pencil, Trash2, Phone, Cake, User as UserIcon, Loader2 } from "lucide-react";
+import { Search, UserPlus, Pencil, Trash2, Phone, Cake, User as UserIcon, Loader2, Crown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
