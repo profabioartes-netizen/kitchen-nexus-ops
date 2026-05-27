@@ -38,6 +38,7 @@ interface Customer {
   visit_count: number;
   last_visit_at: string | null;
   created_at: string;
+  is_vip: boolean;
 }
 
 const PAGE_SIZE = 50;
@@ -47,6 +48,7 @@ const customerSchema = z.object({
   phone: z.string().trim().max(20).optional().or(z.literal("")),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
   birthday: z.string().optional().or(z.literal("")),
+  is_vip: z.boolean().optional(),
 });
 
 function formatDate(d: string | null) {
