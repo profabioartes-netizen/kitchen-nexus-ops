@@ -322,6 +322,7 @@ export type Database = {
           birthday: string | null
           created_at: string
           id: string
+          is_vip: boolean
           last_visit_at: string | null
           name: string
           notes: string | null
@@ -334,6 +335,7 @@ export type Database = {
           birthday?: string | null
           created_at?: string
           id?: string
+          is_vip?: boolean
           last_visit_at?: string | null
           name: string
           notes?: string | null
@@ -346,6 +348,7 @@ export type Database = {
           birthday?: string | null
           created_at?: string
           id?: string
+          is_vip?: boolean
           last_visit_at?: string | null
           name?: string
           notes?: string | null

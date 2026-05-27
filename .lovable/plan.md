@@ -1,34 +1,82 @@
-# Grade exibe apenas comandas abertas
-
 ## Objetivo
 
-Esconder cartões de mesas livres na grade. A grade só mostra comandas com pedido aberto. Quando não houver nenhuma comanda aberta, a grade fica vazia com um estado vazio amigável ("Nenhuma comanda aberta — use Nova Comanda / F3 para abrir").
+Marcar clientes como **VIP** (mensalistas que pagam depois) e destacar visualmente suas comandas em **amarelo** no mapa de mesas, além de permitir filtrar VIPs na tela de Clientes.
 
-Criação continua igual: botão "Nova Comanda" (ou F3) abre o `NewComandaDialog` (passo 1 número → passo 2 cliente → itens). Não dependerá mais de clicar em cartão de mesa livre.
+---
 
-## Mudanças
+## 1. Banco de dados
 
-### `src/pages/TablesPage.tsx` (painel do caixa)
+Adicionar coluna na tabela `customers`:
 
-- Em `sortedTables`, filtrar para manter apenas mesas com `ordersByTable[id]` presente (ocupada / conta / entregue). Ordenação por número de comanda crescente já existente é mantida.
-- Remover/ocultar o cartão "livre" da grade — não renderizar mesas sem pedido.
-- Atualizar contadores/legenda: a contagem "ocupadas/total" pode permanecer no header (informativo), mas a legenda de status "Livre" deixa de fazer sentido na grade e é removida.
-- Estado vazio: quando `sortedTables.length === 0`, renderizar bloco centralizado com ícone + texto "Nenhuma comanda aberta" e botão "Nova Comanda" (dispara o mesmo handler do F3).
-- `openTable` simplifica: só lida com cartões ocupados (navega para `/mesas/:id/pedido`). Lógica de `targetTableId` para mesa livre torna-se irrelevante na grade, mas mantém-se o caminho do diálogo escolher automaticamente a próxima mesa livre por `sort_order` (comportamento atual do "Nova Comanda").
+- `is_vip boolean NOT NULL DEFAULT false`
+- Índice parcial `idx_customers_vip ON customers(tenant_id) WHERE is_vip = true` para acelerar o filtro.
 
-### `src/pages/waiter/WaiterTablesPage.tsx` (PWA do garçom)
+Nenhuma alteração em RLS (a policy de tenant já cobre).
 
-- Mesma regra: filtrar `sortedTables` para incluir apenas `occupiedTableIds`.
-- Estado vazio equivalente, com botão/atalho para abrir nova comanda (fluxo do garçom já existente).
-- Header "ocupadas/total" mantido.
+---
 
-### Não mexer
+## 2. CustomersPage (cadastro/edição)
 
-- `NewComandaDialog`, criação de comanda, RLS, realtime, `TableOrderPage`, gestão de mesas em Configurações (lá continua listando todas as mesas cadastradas).
-- Mesas livres continuam existindo no banco e disponíveis para o diálogo selecionar — apenas não aparecem na grade operacional.
+- No formulário de cliente (`CustomersPage.tsx`), adicionar checkbox **"Cliente VIP (mensalista)"** com ícone de coroa/estrela amarela e um texto-ajuda curto explicando o efeito (comanda fica amarela).
+- Na listagem, exibir um badge amarelo "VIP" ao lado do nome dos clientes marcados.
+- **Ao lado da barra de pesquisa**, adicionar um toggle/chip de filtro **"Apenas VIPs"** (Crown icon, amarelo quando ativo). O filtro é aplicado client-side sobre a query existente.
 
-## Resultado
+---
 
-- Grade vazia quando não há comanda aberta.
-- Cada cartão visível = uma comanda aberta, ordenada por número crescente.
-- Criação por "Nova Comanda" / F3 inalterada.
+## 3. CustomerPicker (seleção na criação de comanda)
+
+- No `CustomerPicker.tsx` (usado no `NewComandaDialog`), exibir o badge VIP ao lado do nome do cliente nos resultados, para o garçom já reconhecer no momento da abertura.
+
+---
+
+## 4. Destaque amarelo da comanda VIP
+
+Hoje, comandas abertas/aguardando aparecem em **lilás/roxo**. Vamos derivar a cor a partir de `order.customer.is_vip`.
+
+### 4.1 Query
+
+Em `TablesPage.tsx` e `WaiterTablesPage.tsx`, expandir a query de `orders` para trazer `customer:customers(is_vip)` junto (join via `customer_id`), ou buscar em paralelo um `Set<vipCustomerId>` por tenant e cruzar em memória. Recomendado: **embed do customer** na própria query de orders abertos, já filtrado por tenant.
+
+### 4.2 Token semântico
+
+Em `src/index.css` e `tailwind.config.ts`, criar:
+
+- `--vip: <amarelo HSL>` (ex: dourado quente, alinhado ao "Coffee Thrones Gold")
+- `--vip-foreground`
+- `--vip-border`
+
+E classes utilitárias `bg-vip`, `text-vip`, `border-vip`.
+
+### 4.3 Aplicação nos cards
+
+No card da comanda (grade de mesas — desktop e waiter mobile):
+
+- Se `order.customer?.is_vip === true`: usar fundo/borda **amarelo VIP** no lugar do lilás.
+- Mantém os demais estados (verde = entregue, etc.) — VIP só substitui o roxo de "aguardando/aberta".
+- Adicionar um pequeno chip "VIP" (Crown icon) no canto superior do card para reforçar.
+
+### 4.4 Popover de preview da comanda
+
+No popover de preview (`OrderSelector`/preview de mesa), exibir também o badge VIP ao lado do nome do cliente.
+
+---
+
+## 5. Arquivos afetados
+
+- **Migração SQL**: nova coluna + índice em `customers`.
+- `src/pages/CustomersPage.tsx` — checkbox VIP, badge na lista, filtro "Apenas VIPs" ao lado da busca.
+- `src/components/CustomerPicker.tsx` — badge VIP nos resultados.
+- `src/pages/TablesPage.tsx` — join `customer.is_vip`, cor amarela no card.
+- `src/pages/waiter/WaiterTablesPage.tsx` — mesma lógica para o mobile do garçom.
+- `src/components/OrderSelector.tsx` (preview) — badge VIP.
+- `src/index.css` + `tailwind.config.ts` — tokens `--vip*`.
+- `src/integrations/supabase/types.ts` — regerado automaticamente após a migração.
+
+---
+
+## 6. Fora de escopo (proposto, confirmar se quiser depois)
+
+- Relatório separado de "saldo aberto de VIPs / mensalistas".
+- Bloqueio de fechamento automático ou regras de cobrança recorrente.
+
+Se concordar, ao aprovar eu já rodo a migração e implemento os ajustes de UI.

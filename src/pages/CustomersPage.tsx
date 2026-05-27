@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Search, UserPlus, Pencil, Trash2, Phone, Cake, User as UserIcon, Loader2 } from "lucide-react";
+import { Search, UserPlus, Pencil, Trash2, Phone, Cake, User as UserIcon, Loader2, Crown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
@@ -37,6 +38,7 @@ interface Customer {
   visit_count: number;
   last_visit_at: string | null;
   created_at: string;
+  is_vip: boolean;
 }
 
 const PAGE_SIZE = 50;
@@ -46,6 +48,7 @@ const customerSchema = z.object({
   phone: z.string().trim().max(20).optional().or(z.literal("")),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
   birthday: z.string().optional().or(z.literal("")),
+  is_vip: z.boolean().optional(),
 });
 
 function formatDate(d: string | null) {
@@ -79,6 +82,7 @@ export default function CustomersPage() {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [page, setPage] = useState(0);
+  const [vipOnly, setVipOnly] = useState(false);
 
   const [editing, setEditing] = useState<Customer | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -89,6 +93,7 @@ export default function CustomersPage() {
   const [phone, setPhone] = useState("");
   const [birthday, setBirthday] = useState("");
   const [notes, setNotes] = useState("");
+  const [isVip, setIsVip] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -99,15 +104,18 @@ export default function CustomersPage() {
   }, [query]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["customers_list", debounced, page],
+    queryKey: ["customers_list", debounced, page, vipOnly],
     queryFn: async () => {
       let q = supabase
         .from("customers" as any)
-        .select("id, name, phone, birthday, notes, visit_count, last_visit_at, created_at", { count: "exact" })
+        .select("id, name, phone, birthday, notes, visit_count, last_visit_at, created_at, is_vip", { count: "exact" })
         .order("name", { ascending: true })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (debounced) {
         q = q.or(`name.ilike.%${debounced}%,phone.ilike.%${debounced}%`);
+      }
+      if (vipOnly) {
+        q = q.eq("is_vip", true);
       }
       const { data, error, count } = await q;
       if (error) throw error;
@@ -125,6 +133,7 @@ export default function CustomersPage() {
     setPhone("");
     setBirthday("");
     setNotes("");
+    setIsVip(false);
     setDialogOpen(true);
   }
 
@@ -134,12 +143,13 @@ export default function CustomersPage() {
     setPhone(c.phone ?? "");
     setBirthday(c.birthday ?? "");
     setNotes(c.notes ?? "");
+    setIsVip(!!c.is_vip);
     setDialogOpen(true);
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const parsed = customerSchema.safeParse({ name, phone, notes, birthday });
+      const parsed = customerSchema.safeParse({ name, phone, notes, birthday, is_vip: isVip });
       if (!parsed.success) {
         throw new Error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       }
@@ -148,6 +158,7 @@ export default function CustomersPage() {
         phone: parsed.data.phone || null,
         notes: parsed.data.notes || null,
         birthday: parsed.data.birthday || null,
+        is_vip: !!isVip,
       };
       if (editing) {
         const { error } = await supabase.from("customers" as any).update(payload).eq("id", editing.id);
@@ -196,14 +207,26 @@ export default function CustomersPage() {
         </Button>
       </div>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por nome ou telefone..."
-          className="pl-9"
-        />
+      <div className="flex items-center gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome ou telefone..."
+            className="pl-9"
+          />
+        </div>
+        <Button
+          type="button"
+          variant={vipOnly ? "default" : "outline"}
+          onClick={() => { setVipOnly((v) => !v); setPage(0); }}
+          className={`gap-2 flex-shrink-0 ${vipOnly ? "bg-amber-500 hover:bg-amber-500/90 text-amber-950 border-amber-500" : ""}`}
+          title="Filtrar apenas clientes VIP"
+        >
+          <Crown className={`h-4 w-4 ${vipOnly ? "" : "text-amber-500"}`} />
+          <span className="hidden sm:inline">{vipOnly ? "VIPs" : "Apenas VIPs"}</span>
+        </Button>
       </div>
 
       {isLoading && (
@@ -240,7 +263,16 @@ export default function CustomersPage() {
                 <tbody>
                   {rows.map((c) => (
                     <tr key={c.id} className="border-t hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{c.name}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          {c.name}
+                          {c.is_vip && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                              <Crown className="h-3 w-3" /> VIP
+                            </span>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{c.phone || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{formatDate(c.birthday)}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{c.visit_count}</td>
@@ -274,7 +306,14 @@ export default function CustomersPage() {
               <div key={c.id} className="border rounded-lg p-3 bg-card">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{c.name}</p>
+                    <p className="font-medium truncate inline-flex items-center gap-2">
+                      {c.name}
+                      {c.is_vip && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                          <Crown className="h-3 w-3" /> VIP
+                        </span>
+                      )}
+                    </p>
                     {c.phone && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Phone className="h-3 w-3" /> {c.phone}
@@ -381,6 +420,26 @@ export default function CustomersPage() {
                 rows={3}
               />
             </div>
+            <label
+              htmlFor="cust-vip"
+              className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 cursor-pointer hover:bg-amber-500/10 transition-colors"
+            >
+              <Checkbox
+                id="cust-vip"
+                checked={isVip}
+                onCheckedChange={(v) => setIsVip(!!v)}
+                className="mt-0.5 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  Cliente VIP (mensalista)
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Comandas deste cliente ficarão destacadas em <span className="text-amber-600 dark:text-amber-400 font-semibold">amarelo</span> no mapa, indicando que paga periodicamente.
+                </p>
+              </div>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>

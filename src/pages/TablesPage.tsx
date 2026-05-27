@@ -169,6 +169,20 @@ export default function TablesPage() {
     },
   });
 
+  // VIP customer IDs (mensalistas) — comandas desses clientes ficam amarelas
+  const { data: vipCustomerIds = new Set<string>() } = useQuery({
+    queryKey: ["vip_customer_ids"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("customers" as any)
+        .select("id")
+        .eq("is_vip", true);
+      if (error) throw error;
+      return new Set<string>(((data ?? []) as any[]).map((c) => c.id));
+    },
+    staleTime: 60_000,
+  });
+
   // Kitchen orders: items sent to kitchen but not yet delivered
   const { data: kitchenCount = 0 } = useQuery({
     queryKey: ["kitchen_orders_count"],
