@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -167,6 +167,31 @@ export default function WaiterTablesPage() {
   }, [sortedTables, ordersByTable]);
 
 
+  const [vipOnly, setVipOnly] = useState<boolean>(() => {
+    try { return localStorage.getItem("tables_vip_only") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("tables_vip_only", vipOnly ? "1" : "0"); } catch {}
+  }, [vipOnly]);
+
+  const vipOpenCount = useMemo(
+    () => sortedTables.reduce((n, t) => {
+      const ord = ordersByTable[t.id] as any;
+      return n + (ord && ord.customer_id && vipCustomerIds.has(ord.customer_id) ? 1 : 0);
+    }, 0),
+    [sortedTables, ordersByTable, vipCustomerIds]
+  );
+
+  const visibleTables = useMemo(
+    () => vipOnly
+      ? sortedTables.filter((t) => {
+          const ord = ordersByTable[t.id] as any;
+          return ord && ord.customer_id && vipCustomerIds.has(ord.customer_id);
+        })
+      : sortedTables,
+    [sortedTables, ordersByTable, vipOnly, vipCustomerIds]
+  );
+
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -202,9 +227,20 @@ export default function WaiterTablesPage() {
         </p>
       )}
 
+      {/* VIP filter toggle */}
+      <button
+        onClick={() => setVipOnly((v) => !v)}
+        className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${vipOnly ? "" : "bg-card text-muted-foreground"}`}
+        style={vipOnly ? { backgroundColor: "#fef9c3", borderColor: "#facc15", color: "#854d0e" } : undefined}
+      >
+        <Crown className="h-3.5 w-3.5" />
+        Apenas VIPs
+        <span className="tabular-nums opacity-80">({vipOpenCount})</span>
+      </button>
+
       {/* Table list */}
       <div className="space-y-2">
-        {sortedTables.map((table) => {
+        {visibleTables.map((table) => {
           const order = ordersByTable[table.id];
           const hasPending = order ? (undeliveredCounts[order.id] || 0) > 0 : false;
           const status: TableStatus = order
@@ -275,13 +311,23 @@ export default function WaiterTablesPage() {
             </button>
           );
         })}
-        {sortedTables.length === 0 && (
+        {visibleTables.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center py-12 px-4">
             <ChefHat className="h-10 w-10 text-muted-foreground/60 mb-3" />
-            <p className="text-sm font-medium text-foreground">Nenhuma comanda aberta</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              As comandas que você abrir aparecerão aqui.
+            <p className="text-sm font-medium text-foreground">
+              {vipOnly ? "Nenhuma comanda VIP aberta" : "Nenhuma comanda aberta"}
             </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {vipOnly ? "Desative o filtro para ver todas." : "As comandas que você abrir aparecerão aqui."}
+            </p>
+            {vipOnly && (
+              <button
+                onClick={() => setVipOnly(false)}
+                className="mt-3 text-xs font-medium text-accent hover:underline"
+              >
+                Limpar filtro
+              </button>
+            )}
           </div>
         )}
       </div>
