@@ -71,6 +71,12 @@ export default function TablesPage() {
   const [quickEdit, setQuickEdit] = useState<QuickEditForm | null>(null);
   const [previewTableId, setPreviewTableId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [vipOnly, setVipOnly] = useState<boolean>(() => {
+    try { return localStorage.getItem("tables_vip_only") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("tables_vip_only", vipOnly ? "1" : "0"); } catch {}
+  }, [vipOnly]);
   const [tableCountOpen, setTableCountOpen] = useState(false);
   const [tableCountValue, setTableCountValue] = useState("");
   const [newComandaOpen, setNewComandaOpen] = useState(false);
@@ -736,11 +742,18 @@ export default function TablesPage() {
   };
 
   const filteredTables = useMemo(() => {
-    if (!searchQuery.trim()) return sortedTables;
+    let base = sortedTables;
+    if (vipOnly) {
+      base = base.filter((t) => {
+        const ord = ordersByTable[t.id] as any;
+        return ord && ord.customer_id && vipCustomerIds.has(ord.customer_id);
+      });
+    }
+    if (!searchQuery.trim()) return base;
     const q = searchQuery.toLowerCase().trim();
     // Allow searching by just the comanda number ("1", "12") or full label ("comanda 1")
     const numericQ = q.replace(/\D/g, "");
-    return sortedTables.filter((t) => {
+    return base.filter((t) => {
       const order = ordersByTable[t.id];
       const customerMatch = order?.customer_name?.toLowerCase().includes(q);
       const tableNameMatch = t.name.toLowerCase().includes(q);
@@ -761,7 +774,14 @@ export default function TablesPage() {
       });
       return customerMatch || tableNameMatch || waiterMatch || internalCustomerMatch || labelMatch || numberMatch || originLocMatch;
     });
-  }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery, visualLabels]);
+  }, [sortedTables, ordersByTable, allOrdersByTable, searchQuery, visualLabels, vipOnly, vipCustomerIds]);
+
+  const vipOpenCount = useMemo(() => {
+    return sortedTables.reduce((n, t) => {
+      const ord = ordersByTable[t.id] as any;
+      return n + (ord && ord.customer_id && vipCustomerIds.has(ord.customer_id) ? 1 : 0);
+    }, 0);
+  }, [sortedTables, ordersByTable, vipCustomerIds]);
 
   // Map of matched internal customer names per table (for "Contém: X" label)
   const searchMatchedCustomers = useMemo(() => {
@@ -929,23 +949,36 @@ export default function TablesPage() {
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="relative mb-3 sm:mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome do cliente..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 pr-9"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+      {/* Search bar + VIP filter */}
+      <div className="flex items-center gap-2 mb-3 sm:mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome do cliente..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <button
+          onClick={() => setVipOnly((v) => !v)}
+          title="Mostrar apenas comandas de clientes VIP"
+          className={`flex items-center gap-1.5 rounded-md border px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${vipOnly ? "" : "bg-card text-muted-foreground hover:bg-secondary"}`}
+          style={vipOnly ? { backgroundColor: "#fef9c3", borderColor: "#facc15", color: "#854d0e" } : undefined}
+        >
+          <Crown className="h-4 w-4" />
+          <span className="hidden sm:inline">Apenas VIPs</span>
+          <span className="sm:hidden">VIPs</span>
+          <span className="tabular-nums opacity-80">({vipOpenCount})</span>
+        </button>
       </div>
       </div>
 
@@ -957,6 +990,7 @@ export default function TablesPage() {
           <span className="text-xs text-muted-foreground italic">Arraste as comandas para reorganizar o layout</span>
         </div>
       )}
+
 
       {/* Grid View */}
       {viewMode === "grid" && (
