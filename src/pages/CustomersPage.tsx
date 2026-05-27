@@ -263,7 +263,16 @@ export default function CustomersPage() {
                 <tbody>
                   {rows.map((c) => (
                     <tr key={c.id} className="border-t hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{c.name}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          {c.name}
+                          {c.is_vip && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold uppercase">
+                              <Crown className="h-3 w-3" /> VIP
+                            </span>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground">{c.phone || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{formatDate(c.birthday)}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{c.visit_count}</td>
