@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3, FilePlus2 } from "lucide-react";
+import { Users, Grid3X3, Move, X, Check, Eye, ChefHat, UtensilsCrossed, CheckCircle2, Search, Plus, Lock, Clock, BarChart3, FilePlus2, Crown } from "lucide-react";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useTenantRealtime } from "@/hooks/useTenantRealtime";
 import { Input } from "@/components/ui/input";
@@ -969,7 +969,9 @@ export default function TablesPage() {
               ? (order.status === "billing_in_progress" ? "bill"
                 : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
               : (table.status as TableStatus);
-            const useInlineOccupied = effectiveStatus === "occupied";
+            const isVip = !!(order && (order as any).customer_id && vipCustomerIds.has((order as any).customer_id));
+            const useInlineOccupied = effectiveStatus === "occupied" && !isVip;
+            const useInlineVip = effectiveStatus === "occupied" && isVip;
             const useInlineDelivered = effectiveStatus === "delivered";
             const lock = locksByTable[table.id];
             const isLockedByOther = lock && lock.userId !== user?.id;
@@ -979,12 +981,20 @@ export default function TablesPage() {
                 layoutId={`comanda-${table.id}`}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 key={table.id}
-                className={`${!useInlineOccupied && !useInlineDelivered ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 sm:p-4 min-h-[160px] sm:min-h-[140px] cursor-pointer group touch-manipulation ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
-                style={useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
+                className={`${!useInlineOccupied && !useInlineDelivered && !useInlineVip ? `table-status-${effectiveStatus}` : ""} relative flex flex-col rounded-xl border-2 p-4 sm:p-4 min-h-[160px] sm:min-h-[140px] cursor-pointer group touch-manipulation ${isLockedByOther ? "ring-2 ring-orange-400/70 ring-offset-1 ring-offset-background" : ""}`}
+                style={useInlineVip ? { backgroundColor: "#fef9c3", borderColor: isLockedByOther ? "#fb923c" : "#facc15", color: "#854d0e" } : useInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: isLockedByOther ? "#fb923c" : "#c7b8f0", color: "#3730a3" } : useInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: isLockedByOther ? "#fb923c" : "#bbf7d6", color: "#166534" } : isLockedByOther ? { borderColor: "#fb923c" } : undefined}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => order ? openTable(table.id) : handleQuickEdit(table)}
               >
+
+                {/* VIP indicator */}
+                {isVip && (
+                  <div className="absolute top-1.5 left-1.5 z-20 flex items-center gap-0.5 rounded-full bg-yellow-400 text-yellow-900 px-1.5 py-0.5 shadow-sm">
+                    <Crown className="h-2.5 w-2.5" />
+                    <span className="text-[8px] font-bold uppercase leading-none">VIP</span>
+                  </div>
+                )}
 
                 {/* Lock indicator */}
                 {isLockedByOther && (
@@ -1351,20 +1361,22 @@ export default function TablesPage() {
                   ? (order.status === "billing_in_progress" ? "bill"
                     : (table.status === "delivered" && !tableHasPendingItems(table.id) ? "delivered" : "occupied"))
                   : (table.status as TableStatus);
-                const floorInlineOccupied = effectiveFloorStatus === "occupied";
+                const floorIsVip = !!(order && (order as any).customer_id && vipCustomerIds.has((order as any).customer_id));
+                const floorInlineOccupied = effectiveFloorStatus === "occupied" && !floorIsVip;
+                const floorInlineVip = effectiveFloorStatus === "occupied" && floorIsVip;
                 const floorInlineDelivered = effectiveFloorStatus === "delivered";
                 return (
               <div
                 key={table.id}
                 onPointerDown={(e) => handlePointerDown(e, table.id, x, y)}
-                className={`${!floorInlineOccupied && !floorInlineDelivered ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
+                className={`${!floorInlineOccupied && !floorInlineDelivered && !floorInlineVip ? `table-status-${effectiveFloorStatus}` : ""} absolute flex flex-col items-center justify-center rounded-lg border-2 cursor-grab active:cursor-grabbing select-none transition-shadow group ${isDragging ? "shadow-lg z-50 scale-105" : "hover:shadow-md"}`}
                 style={{
                   left: x,
                   top: y,
                   width: TABLE_W,
                   height: TABLE_H,
                   transition: isDragging ? "none" : "box-shadow 0.2s, transform 0.2s",
-                  ...(floorInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
+                  ...(floorInlineVip ? { backgroundColor: "#fef9c3", borderColor: "#facc15", color: "#854d0e" } : floorInlineOccupied ? { backgroundColor: "#ece8fb", borderColor: "#c7b8f0", color: "#3730a3" } : floorInlineDelivered ? { backgroundColor: "#bbf7d6", borderColor: "#bbf7d6", color: "#166534" } : {}),
                 }}
               >
                 {/* Delivery toggle on floor plan */}
