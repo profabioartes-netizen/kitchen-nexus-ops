@@ -1372,6 +1372,22 @@ export type Database = {
         }[]
       }
       current_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      get_customers_revenue: {
+        Args: { p_customer_ids: string[]; p_end: string; p_start: string }
+        Returns: {
+          customer_id: string
+          payment_count: number
+          total_revenue: number
+        }[]
+      }
+      get_customers_revenue_summary: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          customers_count: number
+          payments_count: number
+          total_revenue: number
+        }[]
+      }
       get_or_create_open_order:
         | {
             Args: {
