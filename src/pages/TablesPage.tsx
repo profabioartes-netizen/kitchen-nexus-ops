@@ -1558,9 +1558,39 @@ export default function TablesPage() {
               state: { justCreatedOrderId: order.id, skipAutoCreate: true },
             });
           } catch (e: any) {
+            if (e instanceof ComandaNumberInUseError) {
+              setNumberConflict({
+                number: e.conflict.number || number,
+                customerName: e.conflict.customerName,
+                tableId: e.conflict.tableId,
+                orderId: e.conflict.orderId,
+              });
+              return;
+            }
             toast.error(e?.message ?? "Erro ao criar comanda");
           } finally {
             setCreatingComanda(false);
+          }
+        }}
+      />
+
+      <ComandaNumberConflictDialog
+        open={!!numberConflict}
+        number={numberConflict?.number ?? ""}
+        customerName={numberConflict?.customerName ?? null}
+        onChooseAnother={() => {
+          setNumberConflict(null);
+          setBackToNumberToken((t) => t + 1);
+        }}
+        onViewOrder={() => {
+          const conflict = numberConflict;
+          setNumberConflict(null);
+          setNewComandaOpen(false);
+          setTargetTableId(null);
+          if (conflict?.tableId) {
+            navigate(`/mesas/${conflict.tableId}/pedido`, {
+              state: { justCreatedOrderId: conflict.orderId, skipAutoCreate: true },
+            });
           }
         }}
       />
