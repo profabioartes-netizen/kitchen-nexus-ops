@@ -14,9 +14,11 @@ interface Props {
   onConfirm: (data: { number: string; customer: PickedCustomer | null }) => void;
   isPending?: boolean;
   targetTableLabel?: string | null;
+  /** Ao mudar, volta ao passo 1 preservando o número digitado (ex.: número já em uso). */
+  backToNumberToken?: number;
 }
 
-export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPending, targetTableLabel }: Props) {
+export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPending, targetTableLabel, backToNumberToken }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [number, setNumber] = useState("");
 
@@ -26,6 +28,11 @@ export default function NewComandaDialog({ open, onOpenChange, onConfirm, isPend
       setNumber("");
     }
   }, [open]);
+
+  // Volta ao passo do número mantendo o valor digitado para correção
+  useEffect(() => {
+    if (backToNumberToken) setStep(1);
+  }, [backToNumberToken]);
 
   const goNext = () => {
     if (!number.trim()) return;
