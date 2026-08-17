@@ -1515,6 +1515,7 @@ export default function TablesPage() {
           if (!v) setTargetTableId(null);
         }}
         isPending={creatingComanda}
+        backToNumberToken={backToNumberToken}
         targetTableLabel={
           targetTableId
             ? (tables.find((t: any) => t.id === targetTableId) as any)?.name ?? null
