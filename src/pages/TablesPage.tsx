@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import NewComandaDialog from "@/components/NewComandaDialog";
 import ComandaNumberConflictDialog from "@/components/ComandaNumberConflictDialog";
-import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
+import { getOrCreateOpenOrder, ComandaNumberInUseError } from "@/lib/getOrCreateOpenOrder";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
