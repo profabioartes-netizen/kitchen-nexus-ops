@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import NewComandaDialog from "@/components/NewComandaDialog";
-import { getOrCreateOpenOrder } from "@/lib/getOrCreateOpenOrder";
+import ComandaNumberConflictDialog from "@/components/ComandaNumberConflictDialog";
+import { getOrCreateOpenOrder, ComandaNumberInUseError } from "@/lib/getOrCreateOpenOrder";
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -82,6 +83,8 @@ export default function TablesPage() {
   const [newComandaOpen, setNewComandaOpen] = useState(false);
   const [creatingComanda, setCreatingComanda] = useState(false);
   const [targetTableId, setTargetTableId] = useState<string | null>(null);
+  const [numberConflict, setNumberConflict] = useState<{ number: string; customerName: string | null; tableId: string | null; orderId: string } | null>(null);
+  const [backToNumberToken, setBackToNumberToken] = useState(0);
 
   // F3 → abrir "Nova Comanda" (ignora se foco está em input/textarea/contentEditable)
   useEffect(() => {
@@ -1512,6 +1515,7 @@ export default function TablesPage() {
           if (!v) setTargetTableId(null);
         }}
         isPending={creatingComanda}
+        backToNumberToken={backToNumberToken}
         targetTableLabel={
           targetTableId
             ? (tables.find((t: any) => t.id === targetTableId) as any)?.name ?? null
@@ -1556,9 +1560,39 @@ export default function TablesPage() {
               state: { justCreatedOrderId: order.id, skipAutoCreate: true },
             });
           } catch (e: any) {
+            if (e instanceof ComandaNumberInUseError) {
+              setNumberConflict({
+                number: e.conflict.number || number,
+                customerName: e.conflict.customerName,
+                tableId: e.conflict.tableId,
+                orderId: e.conflict.orderId,
+              });
+              return;
+            }
             toast.error(e?.message ?? "Erro ao criar comanda");
           } finally {
             setCreatingComanda(false);
+          }
+        }}
+      />
+
+      <ComandaNumberConflictDialog
+        open={!!numberConflict}
+        number={numberConflict?.number ?? ""}
+        customerName={numberConflict?.customerName ?? null}
+        onChooseAnother={() => {
+          setNumberConflict(null);
+          setBackToNumberToken((t) => t + 1);
+        }}
+        onViewOrder={() => {
+          const conflict = numberConflict;
+          setNumberConflict(null);
+          setNewComandaOpen(false);
+          setTargetTableId(null);
+          if (conflict?.tableId) {
+            navigate(`/mesas/${conflict.tableId}/pedido`, {
+              state: { justCreatedOrderId: conflict.orderId, skipAutoCreate: true },
+            });
           }
         }}
       />
