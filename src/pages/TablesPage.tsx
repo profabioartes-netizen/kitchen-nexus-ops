@@ -82,6 +82,8 @@ export default function TablesPage() {
   const [newComandaOpen, setNewComandaOpen] = useState(false);
   const [creatingComanda, setCreatingComanda] = useState(false);
   const [targetTableId, setTargetTableId] = useState<string | null>(null);
+  const [numberConflict, setNumberConflict] = useState<{ number: string; customerName: string | null; tableId: string | null; orderId: string } | null>(null);
+  const [backToNumberToken, setBackToNumberToken] = useState(0);
 
   // F3 → abrir "Nova Comanda" (ignora se foco está em input/textarea/contentEditable)
   useEffect(() => {
