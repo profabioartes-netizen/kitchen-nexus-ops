@@ -152,6 +152,10 @@ export default function PaymentPanel({
   onRemoveQuickItem,
   onRemoveItem,
   onUpdateItemQty,
+  creditPaid = 0,
+  creditPayments = [],
+  onPartialPay,
+  isPartialPending = false,
   orderContext,
 }: PaymentPanelProps) {
   const { tenant } = useTenant();
