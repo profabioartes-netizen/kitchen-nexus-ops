@@ -754,19 +754,45 @@ export default function PaymentPanel({
             <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-[11px] text-muted-foreground">
               <span>{orderItems.length} itens</span>
               <span>R$ {total.toFixed(2)}</span>
+              {creditPaid > 0 && <span className="text-[hsl(var(--status-free))]">Abatido: R$ {creditPaid.toFixed(2)}</span>}
               {paidTotal > 0 && <span className="text-accent">Pago: R$ {paidTotal.toFixed(2)}</span>}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-lg md:text-xl font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</span>
+          <span className="text-lg md:text-xl font-bold tabular-nums">R$ {netTotal.toFixed(2)}</span>
           <button onClick={onCancel} className="rounded-md p-1.5 hover:bg-secondary"><X className="h-4 w-4" /></button>
+        </div>
+      </div>
+
+      {/* Resumo financeiro da conta */}
+      <div className="grid grid-cols-3 gap-2 px-3 md:px-5 py-2 border-b bg-muted/40 flex-shrink-0">
+        <div className="text-center">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total da conta</p>
+          <p className="text-sm font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Já pago</p>
+          <p className="text-sm font-bold tabular-nums text-[hsl(var(--status-free))]">R$ {FinanceUtils.sum([creditPaid, paidTotal]).toFixed(2)}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo restante</p>
+          <p className="text-sm font-bold tabular-nums text-accent">R$ {remaining.toFixed(2)}</p>
         </div>
       </div>
 
       {/* Top action bar */}
       <div className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-1.5 border-b bg-card overflow-x-auto flex-shrink-0">
         <button onClick={payRemaining} disabled={remaining <= 0.01} className="rounded-md bg-accent text-accent-foreground px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">PAGAR RESTANTE</button>
+        {onPartialPay && (
+          <button
+            onClick={() => { setAbaterAmount(""); setAbaterMethod("cash"); setShowAbaterDialog(true); }}
+            disabled={remaining <= 0.01 || isPartialPending}
+            className="rounded-md bg-[hsl(var(--status-free))] text-white px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation"
+          >
+            ABATER VALOR
+          </button>
+        )}
         <button onClick={() => { setSplitAllDivisor(2); setSplitAllStep("count"); setShowSplitAllDialog(true); }} disabled={availableItems.length === 0} className="rounded-md bg-primary text-primary-foreground px-2.5 md:px-3 py-1.5 text-[11px] md:text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity whitespace-nowrap touch-manipulation">DIVIDIR TUDO</button>
         <div className="ml-auto flex items-center gap-1.5 md:gap-2">
           <button onClick={() => setDiscountValue(discountValue > 0 ? 0 : 10)} className={`rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors whitespace-nowrap touch-manipulation ${discountValue > 0 ? "bg-destructive text-destructive-foreground" : "border hover:bg-secondary"}`}>DESCONTO</button>
