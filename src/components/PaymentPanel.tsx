@@ -185,6 +185,11 @@ export default function PaymentPanel({
   const [cashGiven, setCashGiven] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string>("cash");
 
+  // ── Abater valor (pagamento parcial genérico, persistido) ──
+  const [showAbaterDialog, setShowAbaterDialog] = useState(false);
+  const [abaterAmount, setAbaterAmount] = useState("");
+  const [abaterMethod, setAbaterMethod] = useState<string>("cash");
+
   // ── Items added to current payment session ──
   const [paymentItems, setPaymentItems] = useState<Record<string, number>>({});
   const [accumulatedPaidItems, setAccumulatedPaidItems] = useState<Record<string, number>>({});
