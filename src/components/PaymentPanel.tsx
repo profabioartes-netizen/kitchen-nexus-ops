@@ -714,6 +714,25 @@ export default function PaymentPanel({
       ) : (
         <p className="text-center text-sm text-muted-foreground py-8">Nenhum item adicionado</p>
       )}
+      {creditPayments.length > 0 && (
+        <div className="mt-4 pt-4 border-t">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Abatimentos registrados</h3>
+          <div className="space-y-2">
+            {creditPayments.map((c) => (
+              <div key={c.id} className="rounded-md border border-[hsl(var(--status-free))]/40 bg-[hsl(var(--status-free))]/5 p-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{methodLabels[c.method] ?? c.method}</span>
+                  <span className="text-sm font-semibold tabular-nums">R$ {Number(c.amount).toFixed(2)}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(c.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  {c.created_by_name ? ` · ${c.created_by_name}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {payments.length > 0 && (
         <div className="mt-4 pt-4 border-t">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Pagamentos parciais</h3>
