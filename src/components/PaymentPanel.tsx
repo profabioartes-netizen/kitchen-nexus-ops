@@ -252,8 +252,10 @@ export default function PaymentPanel({
   );
   const serviceFee = serviceFeeEnabled ? FinanceUtils.multiply(FinanceUtils.sum([total, -discount]), serviceFeePct / 100) : 0;
   const grandTotal = Math.max(0, FinanceUtils.sum([total, -discount, extraCharge, serviceFee]));
+  // Abatimentos já registrados no banco reduzem o saldo devido
+  const netTotal = Math.max(0, FinanceUtils.sum([grandTotal, -creditPaid]));
   const paidTotal = FinanceUtils.sum(payments.map((p) => p.amount));
-  const remaining = Math.max(0, FinanceUtils.sum([grandTotal, -paidTotal]));
+  const remaining = Math.max(0, FinanceUtils.sum([netTotal, -paidTotal]));
 
   // ── Payment items total ──
   const splitEntriesTotal = useMemo(() => {
