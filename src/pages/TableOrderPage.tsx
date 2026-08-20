@@ -26,6 +26,8 @@ import { resolveAndSyncOrderPrintLocation } from "@/lib/orderPrintLocation";
 import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
+import { FinanceUtils } from "@/lib/finance";
+
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
