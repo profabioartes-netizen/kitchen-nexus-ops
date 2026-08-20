@@ -1220,6 +1220,93 @@ export default function PaymentPanel({
           </div>
         </div>
       )}
+
+      {/* Abater Valor dialog */}
+      {showAbaterDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/30 p-4">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <h3 className="font-semibold text-base mb-1">Abater Valor</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Recebimento parcial. A comanda permanece aberta com o saldo restante.
+            </p>
+
+            <div className="rounded-md bg-muted/50 p-3 mb-4 space-y-1 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Saldo atual</span><span className="font-bold tabular-nums">R$ {remaining.toFixed(2)}</span></div>
+              {creditPaid > 0 && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Já abatido</span><span className="font-semibold tabular-nums">R$ {creditPaid.toFixed(2)}</span></div>
+              )}
+            </div>
+
+            <label className="text-xs font-medium text-muted-foreground">Valor a receber agora</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoFocus
+              placeholder="0,00"
+              value={abaterAmount}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                const cents = parseInt(digits, 10) || 0;
+                setAbaterAmount((cents / 100).toFixed(2).replace(".", ","));
+              }}
+              className="mt-1 w-full rounded-md border bg-card px-3 py-2.5 text-lg font-bold text-right tabular-nums outline-none focus:ring-2 focus:ring-ring"
+            />
+
+            <div className="flex gap-1.5 mt-2">
+              {[0.25, 0.5, 1].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setAbaterAmount(FinanceUtils.round(remaining * f, 2).toFixed(2).replace(".", ","))}
+                  className="flex-1 rounded-md border py-1.5 text-[11px] font-semibold hover:bg-secondary transition-colors touch-manipulation"
+                >
+                  {f === 1 ? "Total" : `${f * 100}%`}
+                </button>
+              ))}
+            </div>
+
+            <label className="text-xs font-medium text-muted-foreground block mt-4 mb-1.5">Forma de pagamento</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {METHODS.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setAbaterMethod(m)}
+                  className={`rounded-md py-2.5 text-[10px] font-bold transition-all touch-manipulation ${
+                    abaterMethod === m
+                      ? `${methodColors[m]} ring-2 ring-ring ring-offset-1 ring-offset-background`
+                      : `${methodColors[m]} opacity-50 hover:opacity-80`
+                  }`}
+                >
+                  {methodLabels[m].split(" ").pop()?.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setShowAbaterDialog(false)}
+                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={isPartialPending || (FinanceUtils.parseDecimal(abaterAmount) || 0) <= 0}
+                onClick={() => {
+                  const value = FinanceUtils.round(FinanceUtils.parseDecimal(abaterAmount) || 0, 2);
+                  if (value <= 0) return;
+                  const capped = Math.min(value, remaining);
+                  onPartialPay?.(capped, abaterMethod);
+                  setShowAbaterDialog(false);
+                  setAbaterAmount("");
+                }}
+                className="flex-1 rounded-md bg-[hsl(var(--status-free))] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity touch-manipulation"
+              >
+                {isPartialPending ? "Registrando..." : "Confirmar abatimento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

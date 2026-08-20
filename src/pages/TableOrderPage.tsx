@@ -26,6 +26,8 @@ import { resolveAndSyncOrderPrintLocation } from "@/lib/orderPrintLocation";
 import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
+import { FinanceUtils } from "@/lib/finance";
+
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
 
@@ -256,6 +258,41 @@ export default function TableOrderPage() {
     },
     enabled: !!order?.id,
   });
+
+  // Abatimentos (créditos financeiros genéricos) já registrados nesta comanda
+  const creditPayments = (payments as any[]).filter((p) => p.kind === "credit");
+  const creditPaid = FinanceUtils.sum(creditPayments.map((p) => Number(p.amount)));
+
+  // Registra um abatimento parcial persistente — comanda permanece aberta
+  const partialPayMutation = useMutation({
+    mutationFn: async ({ amount, method }: { amount: number; method: string }) => {
+      if (!order) throw new Error("Sem pedido aberto");
+      const dbMethod = method === "credit" || method === "debit" ? "card" : method;
+      const { error } = await supabase.from("payments").insert({
+        order_id: order.id,
+        method: dbMethod,
+        amount,
+        kind: "credit",
+        created_by_name: profile?.full_name ?? null,
+      } as any);
+      if (error) throw error;
+      await logActivity(
+        tableId!,
+        "partial_payment",
+        `Abatimento de R$ ${amount.toFixed(2)} (${method}) registrado`,
+        order.id,
+        profile?.full_name
+      );
+      return amount;
+    },
+    onSuccess: (amount) => {
+      queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+      queryClient.invalidateQueries({ queryKey: ["table_activity"] });
+      toast.success(`Abatimento de R$ ${amount.toFixed(2)} registrado — comanda segue aberta`);
+    },
+    onError: (err) => toast.error("Erro ao registrar abatimento: " + (err as Error).message),
+  });
+
 
   // Fetch complements for all order items
   const orderItemIds = orderItems.map((i) => i.id);
@@ -1654,6 +1691,11 @@ export default function TableOrderPage() {
               onPay={(result) => payMutation.mutate(result)}
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
+              creditPaid={creditPaid}
+              creditPayments={creditPayments.map((p: any) => ({ id: p.id, method: p.method, amount: Number(p.amount), created_at: p.created_at, created_by_name: p.created_by_name }))}
+              onPartialPay={(amount, method) => partialPayMutation.mutate({ amount, method })}
+              isPartialPending={partialPayMutation.isPending}
+
               onAddQuickItem={addQuickItem}
               onRemoveQuickItem={removeQuickItem}
               onRemoveItem={(itemId) => updateQty.mutate({ itemId, delta: -1 })}
