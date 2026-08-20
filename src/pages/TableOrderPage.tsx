@@ -257,6 +257,41 @@ export default function TableOrderPage() {
     enabled: !!order?.id,
   });
 
+  // Abatimentos (créditos financeiros genéricos) já registrados nesta comanda
+  const creditPayments = (payments as any[]).filter((p) => p.kind === "credit");
+  const creditPaid = FinanceUtils.sum(creditPayments.map((p) => Number(p.amount)));
+
+  // Registra um abatimento parcial persistente — comanda permanece aberta
+  const partialPayMutation = useMutation({
+    mutationFn: async ({ amount, method }: { amount: number; method: string }) => {
+      if (!order) throw new Error("Sem pedido aberto");
+      const dbMethod = method === "credit" || method === "debit" ? "card" : method;
+      const { error } = await supabase.from("payments").insert({
+        order_id: order.id,
+        method: dbMethod,
+        amount,
+        kind: "credit",
+        created_by_name: profile?.full_name ?? null,
+      } as any);
+      if (error) throw error;
+      await logActivity(
+        tableId!,
+        "partial_payment",
+        `Abatimento de R$ ${amount.toFixed(2)} (${method}) registrado`,
+        order.id,
+        profile?.full_name
+      );
+      return amount;
+    },
+    onSuccess: (amount) => {
+      queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+      queryClient.invalidateQueries({ queryKey: ["table_activity"] });
+      toast.success(`Abatimento de R$ ${amount.toFixed(2)} registrado — comanda segue aberta`);
+    },
+    onError: (err) => toast.error("Erro ao registrar abatimento: " + (err as Error).message),
+  });
+
+
   // Fetch complements for all order items
   const orderItemIds = orderItems.map((i) => i.id);
   const { data: itemComplements = [] } = useQuery({
