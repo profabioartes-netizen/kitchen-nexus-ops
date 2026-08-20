@@ -1433,7 +1433,7 @@ export default function TableOrderPage() {
           )}
         </div>
 
-        <div className="flex-1 overflow-auto px-3 py-2 space-y-1">
+        <div className="flex-1 overflow-auto px-3 py-2 space-y-1 pb-6 md:pb-2 overscroll-contain">
           {orderItems.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-8">
               Toque num produto para adicionar
