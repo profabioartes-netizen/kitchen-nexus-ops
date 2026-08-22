@@ -206,6 +206,9 @@ export default function PaymentPanel({
   const [showAbaterDialog, setShowAbaterDialog] = useState(false);
   const [abaterAmount, setAbaterAmount] = useState("");
   const [abaterMethod, setAbaterMethod] = useState<string>("cash");
+  // ── Cancelamento (estorno) de abatimento ──
+  const [voidTarget, setVoidTarget] = useState<{ id: string; amount: number } | null>(null);
+  const [voidReason, setVoidReason] = useState("");
 
   // ── Items added to current payment session ──
   const [paymentItems, setPaymentItems] = useState<Record<string, number>>({});
