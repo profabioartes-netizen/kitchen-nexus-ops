@@ -27,6 +27,7 @@ import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
 import { FinanceUtils } from "@/lib/finance";
+import { useOrderBalance, translateBalanceError } from "@/lib/orderBalance";
 
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
