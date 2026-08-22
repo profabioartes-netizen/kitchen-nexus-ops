@@ -1130,7 +1130,10 @@ export default function TableOrderPage() {
     const unpaidQty = i.quantity - ((i as any).paid_quantity ?? 0);
     return s + Number(i.price) * unpaidQty;
   }, 0);
+  // Saldo restante: fonte única (servidor); fallback para o bruto não pago
+  const remainingDue = Math.max(0, Number(orderBalance?.remaining ?? total));
   const unsentCount = orderItems.filter((i) => !i.sent_to_kitchen).length;
+
   const unpaidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) < i.quantity);
   const paidItems = orderItems.filter((i) => ((i as any).paid_quantity ?? 0) >= i.quantity);
 
