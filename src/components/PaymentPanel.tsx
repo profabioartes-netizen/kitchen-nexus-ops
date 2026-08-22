@@ -59,12 +59,26 @@ interface PaymentPanelProps {
   onRemoveQuickItem?: (productId: string) => void;
   onRemoveItem?: (itemId: string) => void;
   onUpdateItemQty?: (itemId: string, delta: number) => void;
-  /** Abatimentos (créditos financeiros) já persistidos nesta comanda */
+  /** Abatimentos (créditos financeiros) já persistidos nesta comanda (inclui cancelados) */
   creditPaid?: number;
-  creditPayments?: Array<{ id: string; method: string; amount: number; created_at: string; created_by_name?: string | null }>;
+  creditPayments?: Array<{
+    id: string;
+    method: string;
+    amount: number;
+    created_at: string;
+    created_by_name?: string | null;
+    voided_at?: string | null;
+    voided_by_name?: string | null;
+    void_reason?: string | null;
+  }>;
   /** Registra um abatimento parcial persistente, mantendo a comanda aberta */
   onPartialPay?: (amount: number, method: string) => void;
   isPartialPending?: boolean;
+  /** Saldo oficial calculado no servidor (fonte única) */
+  balance?: { total: number; paid: number; remaining: number };
+  /** Cancela (estorna) um abatimento específico */
+  onVoidCredit?: (paymentId: string, reason: string, amount: number) => void;
+  isVoidPending?: boolean;
   /** Context for full bill printing */
   orderContext?: {
     orderId: string;
