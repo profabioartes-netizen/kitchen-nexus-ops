@@ -103,10 +103,11 @@ export default function TablesPage() {
   // Realtime estrito: filtra por tenant_id no servidor + só invalida em colunas significativas
   useTenantRealtime({
     channelKey: "dashboard",
-    tables: ["restaurant_tables", "orders", "order_items"],
+    tables: ["restaurant_tables", "orders", "order_items", "payments"],
     invalidateKeys: [
       ["restaurant_tables"],
       ["open_orders"],
+      ["open_orders_payments"],
       ["today_revenue"],
       ["avg_service_time"],
       ["kitchen_orders_count"],
