@@ -738,21 +738,53 @@ export default function PaymentPanel({
         <div className="mt-4 pt-4 border-t">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Abatimentos registrados</h3>
           <div className="space-y-2">
-            {creditPayments.map((c) => (
-              <div key={c.id} className="rounded-md border border-[hsl(var(--status-free))]/40 bg-[hsl(var(--status-free))]/5 p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{methodLabels[c.method] ?? c.method}</span>
-                  <span className="text-sm font-semibold tabular-nums">R$ {Number(c.amount).toFixed(2)}</span>
+            {creditPayments.map((c) => {
+              const isVoided = !!c.voided_at;
+              return (
+                <div
+                  key={c.id}
+                  className={`rounded-md border p-2.5 ${isVoided ? "border-destructive/40 bg-destructive/5 opacity-80" : "border-[hsl(var(--status-free))]/40 bg-[hsl(var(--status-free))]/5"}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{methodLabels[c.method] ?? c.method}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-semibold tabular-nums ${isVoided ? "line-through text-muted-foreground" : ""}`}>
+                        R$ {Number(c.amount).toFixed(2)}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold uppercase rounded-full px-1.5 py-0.5 ${isVoided ? "bg-destructive/15 text-destructive" : "bg-[hsl(var(--status-free))]/15 text-[hsl(var(--status-free))]"}`}
+                      >
+                        {isVoided ? "Cancelado" : "Ativo"}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {new Date(c.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    {c.created_by_name ? ` · ${c.created_by_name}` : ""}
+                  </p>
+                  {isVoided && (
+                    <p className="text-[10px] text-destructive mt-0.5">
+                      Cancelado em {new Date(c.voided_at as string).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      {c.voided_by_name ? ` por ${c.voided_by_name}` : ""}
+                      {c.void_reason ? ` · Motivo: ${c.void_reason}` : ""}
+                    </p>
+                  )}
+                  {!isVoided && onVoidCredit && (
+                    <button
+                      onClick={() => { setVoidReason(""); setVoidTarget({ id: c.id, amount: Number(c.amount) }); }}
+                      disabled={isVoidPending}
+                      className="mt-2 w-full rounded-md bg-destructive/15 text-destructive py-1.5 text-[11px] font-bold uppercase hover:bg-destructive/25 disabled:opacity-40 transition-colors touch-manipulation"
+                    >
+                      Cancelar abatimento
+                    </button>
+                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(c.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                  {c.created_by_name ? ` · ${c.created_by_name}` : ""}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
+
       {payments.length > 0 && (
         <div className="mt-4 pt-4 border-t">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Pagamentos parciais</h3>
