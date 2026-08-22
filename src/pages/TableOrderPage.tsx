@@ -1673,16 +1673,17 @@ export default function TableOrderPage() {
                 <span className="font-display text-xl">TOTAL</span>
                 <span className="font-display text-xl">R$ {total.toFixed(2)}</span>
               </div>
-              {payments.length > 0 && total > 0 && (
+              {payments.length > 0 && remainingDue > 0 && (
                 <button
-                  onClick={() => payMutation.mutate({ payments: [{ method: "cash", amount: total }], paidItems: {} })}
+                  onClick={() => payMutation.mutate({ payments: [{ method: "cash", amount: remainingDue }], paidItems: {} })}
                   disabled={payMutation.isPending}
                   className="w-full flex items-center justify-center gap-2 rounded-md bg-accent/15 border border-accent/30 text-accent py-2.5 text-sm font-semibold hover:bg-accent/25 transition-colors disabled:opacity-50"
                 >
                   <Banknote className="h-4 w-4" />
-                  Pagar Restante — R$ {total.toFixed(2)}
+                  Pagar Restante — R$ {remainingDue.toFixed(2)}
                 </button>
               )}
+
               <div className="grid grid-cols-2 gap-2">
                 <button
                   disabled={!order || orderItems.length === 0 || printBill.isPending}
