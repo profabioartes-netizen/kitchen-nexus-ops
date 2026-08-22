@@ -1732,9 +1732,12 @@ export default function TableOrderPage() {
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
               creditPaid={creditPaid}
-              creditPayments={creditPayments.map((p: any) => ({ id: p.id, method: p.method, amount: Number(p.amount), created_at: p.created_at, created_by_name: p.created_by_name }))}
+              creditPayments={creditPayments.map((p: any) => ({ id: p.id, method: p.method, amount: Number(p.amount), created_at: p.created_at, created_by_name: p.created_by_name, voided_at: p.voided_at ?? null, voided_by_name: p.voided_by_name ?? null, void_reason: p.void_reason ?? null }))}
               onPartialPay={(amount, method) => partialPayMutation.mutate({ amount, method })}
               isPartialPending={partialPayMutation.isPending}
+              balance={orderBalance}
+              onVoidCredit={(paymentId, reason, amount) => voidCreditMutation.mutate({ paymentId, reason, amount })}
+              isVoidPending={voidCreditMutation.isPending}
 
               onAddQuickItem={addQuickItem}
               onRemoveQuickItem={removeQuickItem}
