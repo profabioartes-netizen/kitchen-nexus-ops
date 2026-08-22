@@ -170,6 +170,9 @@ export default function PaymentPanel({
   creditPayments = [],
   onPartialPay,
   isPartialPending = false,
+  balance,
+  onVoidCredit,
+  isVoidPending = false,
   orderContext,
 }: PaymentPanelProps) {
   const { tenant } = useTenant();
