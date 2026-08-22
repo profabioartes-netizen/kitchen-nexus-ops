@@ -1361,6 +1361,47 @@ export default function PaymentPanel({
           </div>
         </div>
       )}
+
+      {/* Cancelar abatimento (estorno) */}
+      {voidTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/30 p-4">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <h3 className="font-semibold text-base mb-1">Cancelar abatimento</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              O lançamento de <strong>R$ {voidTarget.amount.toFixed(2)}</strong> será marcado como cancelado
+              e o saldo da comanda voltará a considerar esse valor. O histórico é preservado.
+            </p>
+            <label className="text-xs font-medium text-muted-foreground">Motivo do cancelamento *</label>
+            <textarea
+              autoFocus
+              rows={3}
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="Ex.: valor lançado errado"
+              className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => { setVoidTarget(null); setVoidReason(""); }}
+                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+              >
+                Voltar
+              </button>
+              <button
+                disabled={isVoidPending || voidReason.trim().length < 3}
+                onClick={() => {
+                  onVoidCredit?.(voidTarget.id, voidReason.trim(), voidTarget.amount);
+                  setVoidTarget(null);
+                  setVoidReason("");
+                }}
+                className="flex-1 rounded-md bg-destructive text-destructive-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity touch-manipulation"
+              >
+                {isVoidPending ? "Cancelando..." : "Confirmar cancelamento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
