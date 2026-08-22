@@ -624,6 +624,7 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          client_token: string | null
           created_at: string
           created_by_name: string | null
           id: string
@@ -631,9 +632,13 @@ export type Database = {
           method: string
           order_id: string
           tenant_id: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by_name: string | null
         }
         Insert: {
           amount: number
+          client_token?: string | null
           created_at?: string
           created_by_name?: string | null
           id?: string
@@ -641,9 +646,13 @@ export type Database = {
           method: string
           order_id: string
           tenant_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by_name?: string | null
         }
         Update: {
           amount?: number
+          client_token?: string | null
           created_at?: string
           created_by_name?: string | null
           id?: string
@@ -651,6 +660,9 @@ export type Database = {
           method?: string
           order_id?: string
           tenant_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by_name?: string | null
         }
         Relationships: [
           {
@@ -1534,6 +1546,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_order_balance: {
+        Args: { p_order_id: string }
+        Returns: {
+          order_id: string
+          paid: number
+          remaining: number
+          total: number
+        }[]
+      }
       get_safe_table_location: { Args: { p_table_id: string }; Returns: string }
       get_tenant_by_slug: {
         Args: { _slug: string }
@@ -1551,6 +1572,35 @@ export type Database = {
       recalculate_order_total: {
         Args: { p_order_id: string }
         Returns: undefined
+      }
+      register_order_credit: {
+        Args: {
+          p_amount: number
+          p_client_token?: string
+          p_created_by_name?: string
+          p_method: string
+          p_order_id: string
+        }
+        Returns: {
+          amount: number
+          client_token: string | null
+          created_at: string
+          created_by_name: string | null
+          id: string
+          kind: string
+          method: string
+          order_id: string
+          tenant_id: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by_name: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       release_comanda_lock: {
         Args: { p_table_id: string; p_user_id: string }
@@ -1577,6 +1627,33 @@ export type Database = {
           _user_id?: string
         }
         Returns: boolean
+      }
+      void_order_payment: {
+        Args: {
+          p_payment_id: string
+          p_reason: string
+          p_voided_by_name?: string
+        }
+        Returns: {
+          amount: number
+          client_token: string | null
+          created_at: string
+          created_by_name: string | null
+          id: string
+          kind: string
+          method: string
+          order_id: string
+          tenant_id: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by_name: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
