@@ -806,20 +806,16 @@ export default function TableOrderPage() {
       });
       const allItemsPaid = updatedItems.every((i) => (i.paid_quantity ?? 0) >= i.quantity);
 
-      // Calculate remaining unpaid total for the order
-      const unpaidTotal = updatedItems.reduce((s, i) => {
-        const unpaidQty = Math.max(0, i.quantity - (i.paid_quantity ?? 0));
-        return s + Number(i.price) * unpaidQty;
-      }, 0);
-      
+      // O total da comanda NUNCA é reduzido: ele permanece o total bruto dos itens.
+      // O saldo é derivado dos lançamentos válidos em payments (fonte única).
       if (allItemsPaid) {
         // All paid — move to paid_pending_finalization
-        await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal } as any).eq("id", order.id);
+        await supabase.from("orders").update({ status: "paid_pending_finalization" } as any).eq("id", order.id);
         await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
         await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
       } else {
-        // Partial payment — keep order open, update total to unpaid amount
-        await supabase.from("orders").update({ status: "billing_in_progress", total: unpaidTotal } as any).eq("id", order.id);
+        // Partial payment — comanda segue aberta e visível na grade
+        await supabase.from("orders").update({ status: "billing_in_progress" } as any).eq("id", order.id);
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
 
@@ -828,11 +824,15 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders_payments"] });
+      queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+      queryClient.invalidateQueries({ queryKey: ["order_balance"] });
       queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       setShowPayment(false);
       toast.success("Pagamento registrado!");
     },
+
     onError: (err) => toast.error((err as Error).message),
   });
 
