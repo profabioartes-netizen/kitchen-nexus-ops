@@ -1286,11 +1286,11 @@ export default function PaymentPanel({
             </p>
 
             <div className="rounded-md bg-muted/50 p-3 mb-4 space-y-1 text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">Saldo atual</span><span className="font-bold tabular-nums">R$ {remaining.toFixed(2)}</span></div>
-              {creditPaid > 0 && (
-                <div className="flex justify-between"><span className="text-muted-foreground">Já abatido</span><span className="font-semibold tabular-nums">R$ {creditPaid.toFixed(2)}</span></div>
-              )}
+              <div className="flex justify-between"><span className="text-muted-foreground">Total da comanda</span><span className="font-semibold tabular-nums">R$ {grandTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Já pago / abatido</span><span className="font-semibold tabular-nums">R$ {FinanceUtils.sum([serverPaid, paidTotal]).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Saldo restante</span><span className="font-bold tabular-nums">R$ {remaining.toFixed(2)}</span></div>
             </div>
+
 
             <label className="text-xs font-medium text-muted-foreground">Valor a receber agora</label>
             <input
