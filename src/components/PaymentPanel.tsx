@@ -827,7 +827,7 @@ export default function PaymentPanel({
             <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-[11px] text-muted-foreground">
               <span>{orderItems.length} itens</span>
               <span>R$ {total.toFixed(2)}</span>
-              {creditPaid > 0 && <span className="text-[hsl(var(--status-free))]">Abatido: R$ {creditPaid.toFixed(2)}</span>}
+              {serverPaid > 0 && <span className="text-[hsl(var(--status-free))]">Abatido: R$ {serverPaid.toFixed(2)}</span>}
               {paidTotal > 0 && <span className="text-accent">Pago: R$ {paidTotal.toFixed(2)}</span>}
             </div>
           </div>
@@ -841,13 +841,14 @@ export default function PaymentPanel({
       {/* Resumo financeiro da conta */}
       <div className="grid grid-cols-3 gap-2 px-3 md:px-5 py-2 border-b bg-muted/40 flex-shrink-0">
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total da conta</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total da comanda</p>
           <p className="text-sm font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</p>
         </div>
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Já pago</p>
-          <p className="text-sm font-bold tabular-nums text-[hsl(var(--status-free))]">R$ {FinanceUtils.sum([creditPaid, paidTotal]).toFixed(2)}</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Já pago / abatido</p>
+          <p className="text-sm font-bold tabular-nums text-[hsl(var(--status-free))]">R$ {FinanceUtils.sum([serverPaid, paidTotal]).toFixed(2)}</p>
         </div>
+
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo restante</p>
           <p className="text-sm font-bold tabular-nums text-accent">R$ {remaining.toFixed(2)}</p>
