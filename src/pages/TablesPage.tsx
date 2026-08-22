@@ -103,10 +103,11 @@ export default function TablesPage() {
   // Realtime estrito: filtra por tenant_id no servidor + só invalida em colunas significativas
   useTenantRealtime({
     channelKey: "dashboard",
-    tables: ["restaurant_tables", "orders", "order_items"],
+    tables: ["restaurant_tables", "orders", "order_items", "payments"],
     invalidateKeys: [
       ["restaurant_tables"],
       ["open_orders"],
+      ["open_orders_payments"],
       ["today_revenue"],
       ["avg_service_time"],
       ["kitchen_orders_count"],
@@ -176,6 +177,27 @@ export default function TablesPage() {
       if (error) throw error;
       return data ?? [];
     },
+  });
+
+  // Pagamentos/abatimentos VÁLIDOS das comandas abertas (cancelados excluídos) — base do saldo no card
+  const paidOrderIds = useMemo(() => (openOrders as any[]).map((o) => o.id), [openOrders]);
+  const { data: paidByOrder = {} as Record<string, number> } = useQuery({
+    queryKey: ["open_orders_payments", paidOrderIds.join(",")],
+    queryFn: async () => {
+      if (paidOrderIds.length === 0) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from("payments")
+        .select("order_id, amount, voided_at")
+        .in("order_id", paidOrderIds)
+        .is("voided_at", null);
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      for (const p of (data ?? []) as any[]) {
+        map[p.order_id] = (map[p.order_id] ?? 0) + Number(p.amount);
+      }
+      return map;
+    },
+    enabled: paidOrderIds.length > 0,
   });
 
   // VIP customer IDs (mensalistas) — comandas desses clientes ficam amarelas
@@ -1282,6 +1304,9 @@ export default function TablesPage() {
                 {order && (() => {
                   const tableOrders = allOrdersByTable[table.id] || [order];
                   const totalValue = tableOrders.reduce((sum, o) => sum + Number(o.total), 0);
+                  const paidValue = tableOrders.reduce((sum, o) => sum + Number((paidByOrder as any)[o.id] ?? 0), 0);
+                  const balanceValue = Math.max(0, Number((totalValue - paidValue).toFixed(2)));
+                  const isPartial = paidValue > 0 && balanceValue > 0;
                   const totalItems = tableOrders.reduce((sum, o) => sum + (orderItemCounts[o.id] || 0), 0);
                   const customerNames = tableOrders.length > 1
                     ? tableOrders.map(o => o.customer_name || o.waiter_name).filter(Boolean)
@@ -1294,6 +1319,17 @@ export default function TablesPage() {
                           {totalItems} {totalItems === 1 ? "item" : "itens"}
                         </span>
                       </div>
+                      {paidValue > 0 && (
+                        <div className="flex items-center justify-between text-[10px] tabular-nums">
+                          <span className="text-[hsl(var(--status-free))]">Pago R$ {paidValue.toFixed(2)}</span>
+                          <span className="font-semibold text-accent">Saldo R$ {balanceValue.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {isPartial && (
+                        <span className="inline-block rounded-full bg-[hsl(var(--status-free))]/15 text-[hsl(var(--status-free))] px-1.5 py-0.5 text-[9px] font-bold uppercase">
+                          Pagamento parcial
+                        </span>
+                      )}
                       {tableOrders.length > 1 && customerNames.length > 0 && (
                         <p className="text-[9px] text-muted-foreground truncate">
                           {customerNames.slice(0, 3).join(", ")}{customerNames.length > 3 ? ` +${customerNames.length - 3}` : ""}
@@ -1305,6 +1341,7 @@ export default function TablesPage() {
                     </div>
                   );
                 })()}
+
 
                 {/* Delivery toggle - multi-order aware */}
                 {(effectiveStatus === "occupied" || effectiveStatus === "delivered") && (() => {

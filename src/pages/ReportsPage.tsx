@@ -78,6 +78,7 @@ export default function ReportsPage() {
         .from("payments")
         .select("*, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id)")
         .eq("orders.status", "finalized")
+        .is("voided_at", null)
         .order("created_at", { ascending: true });
       if (goLiveAt) q = q.gte("orders.created_at", goLiveAt);
       const { data, error } = await q;

@@ -59,12 +59,26 @@ interface PaymentPanelProps {
   onRemoveQuickItem?: (productId: string) => void;
   onRemoveItem?: (itemId: string) => void;
   onUpdateItemQty?: (itemId: string, delta: number) => void;
-  /** Abatimentos (créditos financeiros) já persistidos nesta comanda */
+  /** Abatimentos (créditos financeiros) já persistidos nesta comanda (inclui cancelados) */
   creditPaid?: number;
-  creditPayments?: Array<{ id: string; method: string; amount: number; created_at: string; created_by_name?: string | null }>;
+  creditPayments?: Array<{
+    id: string;
+    method: string;
+    amount: number;
+    created_at: string;
+    created_by_name?: string | null;
+    voided_at?: string | null;
+    voided_by_name?: string | null;
+    void_reason?: string | null;
+  }>;
   /** Registra um abatimento parcial persistente, mantendo a comanda aberta */
   onPartialPay?: (amount: number, method: string) => void;
   isPartialPending?: boolean;
+  /** Saldo oficial calculado no servidor (fonte única) */
+  balance?: { total: number; paid: number; remaining: number };
+  /** Cancela (estorna) um abatimento específico */
+  onVoidCredit?: (paymentId: string, reason: string, amount: number) => void;
+  isVoidPending?: boolean;
   /** Context for full bill printing */
   orderContext?: {
     orderId: string;
@@ -156,6 +170,9 @@ export default function PaymentPanel({
   creditPayments = [],
   onPartialPay,
   isPartialPending = false,
+  balance,
+  onVoidCredit,
+  isVoidPending = false,
   orderContext,
 }: PaymentPanelProps) {
   const { tenant } = useTenant();
@@ -189,6 +206,9 @@ export default function PaymentPanel({
   const [showAbaterDialog, setShowAbaterDialog] = useState(false);
   const [abaterAmount, setAbaterAmount] = useState("");
   const [abaterMethod, setAbaterMethod] = useState<string>("cash");
+  // ── Cancelamento (estorno) de abatimento ──
+  const [voidTarget, setVoidTarget] = useState<{ id: string; amount: number } | null>(null);
+  const [voidReason, setVoidReason] = useState("");
 
   // ── Items added to current payment session ──
   const [paymentItems, setPaymentItems] = useState<Record<string, number>>({});
@@ -258,7 +278,9 @@ export default function PaymentPanel({
   const serviceFee = serviceFeeEnabled ? FinanceUtils.multiply(FinanceUtils.sum([total, -discount]), serviceFeePct / 100) : 0;
   const grandTotal = Math.max(0, FinanceUtils.sum([total, -discount, extraCharge, serviceFee]));
   // Abatimentos já registrados no banco reduzem o saldo devido
-  const netTotal = Math.max(0, FinanceUtils.sum([grandTotal, -creditPaid]));
+  // Fonte única: quando o saldo do servidor está disponível, ele manda.
+  const serverPaid = balance ? balance.paid : creditPaid;
+  const netTotal = Math.max(0, FinanceUtils.sum([grandTotal, -serverPaid]));
   const paidTotal = FinanceUtils.sum(payments.map((p) => p.amount));
   const remaining = Math.max(0, FinanceUtils.sum([netTotal, -paidTotal]));
 
@@ -718,21 +740,53 @@ export default function PaymentPanel({
         <div className="mt-4 pt-4 border-t">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Abatimentos registrados</h3>
           <div className="space-y-2">
-            {creditPayments.map((c) => (
-              <div key={c.id} className="rounded-md border border-[hsl(var(--status-free))]/40 bg-[hsl(var(--status-free))]/5 p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{methodLabels[c.method] ?? c.method}</span>
-                  <span className="text-sm font-semibold tabular-nums">R$ {Number(c.amount).toFixed(2)}</span>
+            {creditPayments.map((c) => {
+              const isVoided = !!c.voided_at;
+              return (
+                <div
+                  key={c.id}
+                  className={`rounded-md border p-2.5 ${isVoided ? "border-destructive/40 bg-destructive/5 opacity-80" : "border-[hsl(var(--status-free))]/40 bg-[hsl(var(--status-free))]/5"}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{methodLabels[c.method] ?? c.method}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-semibold tabular-nums ${isVoided ? "line-through text-muted-foreground" : ""}`}>
+                        R$ {Number(c.amount).toFixed(2)}
+                      </span>
+                      <span
+                        className={`text-[9px] font-bold uppercase rounded-full px-1.5 py-0.5 ${isVoided ? "bg-destructive/15 text-destructive" : "bg-[hsl(var(--status-free))]/15 text-[hsl(var(--status-free))]"}`}
+                      >
+                        {isVoided ? "Cancelado" : "Ativo"}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {new Date(c.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    {c.created_by_name ? ` · ${c.created_by_name}` : ""}
+                  </p>
+                  {isVoided && (
+                    <p className="text-[10px] text-destructive mt-0.5">
+                      Cancelado em {new Date(c.voided_at as string).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                      {c.voided_by_name ? ` por ${c.voided_by_name}` : ""}
+                      {c.void_reason ? ` · Motivo: ${c.void_reason}` : ""}
+                    </p>
+                  )}
+                  {!isVoided && onVoidCredit && (
+                    <button
+                      onClick={() => { setVoidReason(""); setVoidTarget({ id: c.id, amount: Number(c.amount) }); }}
+                      disabled={isVoidPending}
+                      className="mt-2 w-full rounded-md bg-destructive/15 text-destructive py-1.5 text-[11px] font-bold uppercase hover:bg-destructive/25 disabled:opacity-40 transition-colors touch-manipulation"
+                    >
+                      Cancelar abatimento
+                    </button>
+                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {new Date(c.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                  {c.created_by_name ? ` · ${c.created_by_name}` : ""}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
+
       {payments.length > 0 && (
         <div className="mt-4 pt-4 border-t">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Pagamentos parciais</h3>
@@ -773,7 +827,7 @@ export default function PaymentPanel({
             <div className="flex items-center gap-2 md:gap-3 text-[10px] md:text-[11px] text-muted-foreground">
               <span>{orderItems.length} itens</span>
               <span>R$ {total.toFixed(2)}</span>
-              {creditPaid > 0 && <span className="text-[hsl(var(--status-free))]">Abatido: R$ {creditPaid.toFixed(2)}</span>}
+              {serverPaid > 0 && <span className="text-[hsl(var(--status-free))]">Abatido: R$ {serverPaid.toFixed(2)}</span>}
               {paidTotal > 0 && <span className="text-accent">Pago: R$ {paidTotal.toFixed(2)}</span>}
             </div>
           </div>
@@ -787,13 +841,14 @@ export default function PaymentPanel({
       {/* Resumo financeiro da conta */}
       <div className="grid grid-cols-3 gap-2 px-3 md:px-5 py-2 border-b bg-muted/40 flex-shrink-0">
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total da conta</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total da comanda</p>
           <p className="text-sm font-bold tabular-nums">R$ {grandTotal.toFixed(2)}</p>
         </div>
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Já pago</p>
-          <p className="text-sm font-bold tabular-nums text-[hsl(var(--status-free))]">R$ {FinanceUtils.sum([creditPaid, paidTotal]).toFixed(2)}</p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Já pago / abatido</p>
+          <p className="text-sm font-bold tabular-nums text-[hsl(var(--status-free))]">R$ {FinanceUtils.sum([serverPaid, paidTotal]).toFixed(2)}</p>
         </div>
+
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo restante</p>
           <p className="text-sm font-bold tabular-nums text-accent">R$ {remaining.toFixed(2)}</p>
@@ -1231,11 +1286,11 @@ export default function PaymentPanel({
             </p>
 
             <div className="rounded-md bg-muted/50 p-3 mb-4 space-y-1 text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">Saldo atual</span><span className="font-bold tabular-nums">R$ {remaining.toFixed(2)}</span></div>
-              {creditPaid > 0 && (
-                <div className="flex justify-between"><span className="text-muted-foreground">Já abatido</span><span className="font-semibold tabular-nums">R$ {creditPaid.toFixed(2)}</span></div>
-              )}
+              <div className="flex justify-between"><span className="text-muted-foreground">Total da comanda</span><span className="font-semibold tabular-nums">R$ {grandTotal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Já pago / abatido</span><span className="font-semibold tabular-nums">R$ {FinanceUtils.sum([serverPaid, paidTotal]).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Saldo restante</span><span className="font-bold tabular-nums">R$ {remaining.toFixed(2)}</span></div>
             </div>
+
 
             <label className="text-xs font-medium text-muted-foreground">Valor a receber agora</label>
             <input
@@ -1301,6 +1356,47 @@ export default function PaymentPanel({
                 className="flex-1 rounded-md bg-[hsl(var(--status-free))] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity touch-manipulation"
               >
                 {isPartialPending ? "Registrando..." : "Confirmar abatimento"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancelar abatimento (estorno) */}
+      {voidTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/30 p-4">
+          <div className="w-full max-w-sm rounded-lg border bg-background p-5 shadow-lg">
+            <h3 className="font-semibold text-base mb-1">Cancelar abatimento</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              O lançamento de <strong>R$ {voidTarget.amount.toFixed(2)}</strong> será marcado como cancelado
+              e o saldo da comanda voltará a considerar esse valor. O histórico é preservado.
+            </p>
+            <label className="text-xs font-medium text-muted-foreground">Motivo do cancelamento *</label>
+            <textarea
+              autoFocus
+              rows={3}
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="Ex.: valor lançado errado"
+              className="mt-1 w-full rounded-md border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => { setVoidTarget(null); setVoidReason(""); }}
+                className="flex-1 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-secondary transition-colors touch-manipulation"
+              >
+                Voltar
+              </button>
+              <button
+                disabled={isVoidPending || voidReason.trim().length < 3}
+                onClick={() => {
+                  onVoidCredit?.(voidTarget.id, voidReason.trim(), voidTarget.amount);
+                  setVoidTarget(null);
+                  setVoidReason("");
+                }}
+                className="flex-1 rounded-md bg-destructive text-destructive-foreground px-4 py-2.5 text-sm font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity touch-manipulation"
+              >
+                {isVoidPending ? "Cancelando..." : "Confirmar cancelamento"}
               </button>
             </div>
           </div>

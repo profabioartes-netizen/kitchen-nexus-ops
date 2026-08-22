@@ -98,7 +98,7 @@ export default function SalesPage() {
     queryKey: ["sales_payments", orderIds],
     queryFn: async () => {
       if (!orderIds.length) return [];
-      const { data } = await supabase.from("payments").select("order_id, method, amount").in("order_id", orderIds);
+      const { data } = await supabase.from("payments").select("order_id, method, amount").in("order_id", orderIds).is("voided_at", null);
       return data || [];
     },
     enabled: orderIds.length > 0,

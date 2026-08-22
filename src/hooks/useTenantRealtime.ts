@@ -22,7 +22,7 @@ interface Options {
 const DEFAULT_SIGNIFICANT: Record<WatchedTable, string[]> = {
   orders: ["status", "total", "table_id", "customer_name", "current_location"],
   order_items: ["preparation_status", "quantity", "price", "sent_to_kitchen"],
-  payments: ["amount", "method"],
+  payments: ["amount", "method", "voided_at"],
   restaurant_tables: ["status", "name", "internal_number", "active"],
 };
 

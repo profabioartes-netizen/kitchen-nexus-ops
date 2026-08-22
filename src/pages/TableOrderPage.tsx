@@ -27,6 +27,7 @@ import { printViaLocalAgent } from "@/lib/localAgentPrint";
 import { enrichItemsWithWeightInfo } from "@/lib/printItems";
 import { getPrintMode } from "@/lib/printPreference";
 import { FinanceUtils } from "@/lib/finance";
+import { useOrderBalance, translateBalanceError } from "@/lib/orderBalance";
 
 
 type TableStatus = "free" | "occupied" | "bill" | "delivered";
@@ -259,22 +260,34 @@ export default function TableOrderPage() {
     enabled: !!order?.id,
   });
 
-  // Abatimentos (créditos financeiros genéricos) já registrados nesta comanda
+  // Abatimentos (créditos financeiros genéricos) registrados nesta comanda (inclui cancelados p/ histórico)
   const creditPayments = (payments as any[]).filter((p) => p.kind === "credit");
-  const creditPaid = FinanceUtils.sum(creditPayments.map((p) => Number(p.amount)));
+  const activeCreditPayments = creditPayments.filter((p) => !p.voided_at);
+  const creditPaid = FinanceUtils.sum(activeCreditPayments.map((p) => Number(p.amount)));
+
+  // Saldo oficial (servidor) — fonte única
+  const { data: orderBalance } = useOrderBalance(order?.id);
+
+  const invalidateBalance = () => {
+    queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+    queryClient.invalidateQueries({ queryKey: ["order_balance"] });
+    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+    queryClient.invalidateQueries({ queryKey: ["open_orders_payments"] });
+    queryClient.invalidateQueries({ queryKey: ["table_activity"] });
+  };
 
   // Registra um abatimento parcial persistente — comanda permanece aberta
   const partialPayMutation = useMutation({
     mutationFn: async ({ amount, method }: { amount: number; method: string }) => {
       if (!order) throw new Error("Sem pedido aberto");
-      const dbMethod = method === "credit" || method === "debit" ? "card" : method;
-      const { error } = await supabase.from("payments").insert({
-        order_id: order.id,
-        method: dbMethod,
-        amount,
-        kind: "credit",
-        created_by_name: profile?.full_name ?? null,
-      } as any);
+      const clientToken = `${order.id}:${Math.round(amount * 100)}:${method}:${Date.now()}`;
+      const { error } = await supabase.rpc("register_order_credit" as any, {
+        p_order_id: order.id,
+        p_amount: amount,
+        p_method: method,
+        p_created_by_name: profile?.full_name ?? null,
+        p_client_token: clientToken,
+      });
       if (error) throw error;
       await logActivity(
         tableId!,
@@ -286,12 +299,39 @@ export default function TableOrderPage() {
       return amount;
     },
     onSuccess: (amount) => {
-      queryClient.invalidateQueries({ queryKey: ["order_payments"] });
-      queryClient.invalidateQueries({ queryKey: ["table_activity"] });
+      invalidateBalance();
       toast.success(`Abatimento de R$ ${amount.toFixed(2)} registrado — comanda segue aberta`);
     },
-    onError: (err) => toast.error("Erro ao registrar abatimento: " + (err as Error).message),
+    onError: (err) => toast.error("Erro ao registrar abatimento: " + translateBalanceError(err)),
   });
+
+  // Cancela (estorna) um abatimento específico — server-side, idempotente
+  const voidCreditMutation = useMutation({
+    mutationFn: async ({ paymentId, reason, amount }: { paymentId: string; reason: string; amount: number }) => {
+      const { error } = await supabase.rpc("void_order_payment" as any, {
+        p_payment_id: paymentId,
+        p_reason: reason,
+        p_voided_by_name: profile?.full_name ?? null,
+      });
+      if (error) throw error;
+      if (order) {
+        await logActivity(
+          tableId!,
+          "partial_payment_voided",
+          `Abatimento de R$ ${amount.toFixed(2)} cancelado — motivo: ${reason}`,
+          order.id,
+          profile?.full_name
+        );
+      }
+      return amount;
+    },
+    onSuccess: (amount) => {
+      invalidateBalance();
+      toast.success(`Abatimento de R$ ${amount.toFixed(2)} cancelado — saldo restaurado`);
+    },
+    onError: (err) => toast.error("Erro ao cancelar abatimento: " + translateBalanceError(err)),
+  });
+
 
 
   // Fetch complements for all order items
@@ -766,20 +806,16 @@ export default function TableOrderPage() {
       });
       const allItemsPaid = updatedItems.every((i) => (i.paid_quantity ?? 0) >= i.quantity);
 
-      // Calculate remaining unpaid total for the order
-      const unpaidTotal = updatedItems.reduce((s, i) => {
-        const unpaidQty = Math.max(0, i.quantity - (i.paid_quantity ?? 0));
-        return s + Number(i.price) * unpaidQty;
-      }, 0);
-      
+      // O total da comanda NUNCA é reduzido: ele permanece o total bruto dos itens.
+      // O saldo é derivado dos lançamentos válidos em payments (fonte única).
       if (allItemsPaid) {
         // All paid — move to paid_pending_finalization
-        await supabase.from("orders").update({ status: "paid_pending_finalization", total: totalVal } as any).eq("id", order.id);
+        await supabase.from("orders").update({ status: "paid_pending_finalization" } as any).eq("id", order.id);
         await supabase.from("restaurant_tables").update({ status: "bill" }).eq("id", tableId!);
         await logActivity(tableId!, "payment_completed", `Pagamento concluído — aguardando finalização`, order.id);
       } else {
-        // Partial payment — keep order open, update total to unpaid amount
-        await supabase.from("orders").update({ status: "billing_in_progress", total: unpaidTotal } as any).eq("id", order.id);
+        // Partial payment — comanda segue aberta e visível na grade
+        await supabase.from("orders").update({ status: "billing_in_progress" } as any).eq("id", order.id);
         await supabase.from("restaurant_tables").update({ status: "occupied" }).eq("id", tableId!);
       }
 
@@ -788,11 +824,15 @@ export default function TableOrderPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["restaurant_tables"] });
       queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+      queryClient.invalidateQueries({ queryKey: ["open_orders_payments"] });
+      queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+      queryClient.invalidateQueries({ queryKey: ["order_balance"] });
       queryClient.invalidateQueries({ queryKey: ["table_orders_all", tableId] });
       queryClient.invalidateQueries({ queryKey: ["order_items", order?.id] });
       setShowPayment(false);
       toast.success("Pagamento registrado!");
     },
+
     onError: (err) => toast.error((err as Error).message),
   });
 
@@ -1692,9 +1732,12 @@ export default function TableOrderPage() {
               onCancel={() => setShowPayment(false)}
               isPending={payMutation.isPending}
               creditPaid={creditPaid}
-              creditPayments={creditPayments.map((p: any) => ({ id: p.id, method: p.method, amount: Number(p.amount), created_at: p.created_at, created_by_name: p.created_by_name }))}
+              creditPayments={creditPayments.map((p: any) => ({ id: p.id, method: p.method, amount: Number(p.amount), created_at: p.created_at, created_by_name: p.created_by_name, voided_at: p.voided_at ?? null, voided_by_name: p.voided_by_name ?? null, void_reason: p.void_reason ?? null }))}
               onPartialPay={(amount, method) => partialPayMutation.mutate({ amount, method })}
               isPartialPending={partialPayMutation.isPending}
+              balance={orderBalance}
+              onVoidCredit={(paymentId, reason, amount) => voidCreditMutation.mutate({ paymentId, reason, amount })}
+              isVoidPending={voidCreditMutation.isPending}
 
               onAddQuickItem={addQuickItem}
               onRemoveQuickItem={removeQuickItem}

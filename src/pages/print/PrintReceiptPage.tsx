@@ -64,7 +64,8 @@ export default function PrintReceiptPage() {
       const { data: payments } = await supabase
         .from("payments")
         .select("method, amount")
-        .eq("order_id", id);
+        .eq("order_id", id)
+        .is("voided_at", null);
 
       const { data: tenant } = await supabase
         .from("tenants")
