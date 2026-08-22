@@ -179,7 +179,7 @@ export default function TablesPage() {
   });
 
   // Pagamentos/abatimentos VÁLIDOS das comandas abertas (cancelados excluídos) — base do saldo no card
-  const openOrderIds = useMemo(() => (openOrders as any[]).map((o) => o.id), [openOrders]);
+  const paidOrderIds = useMemo(() => (openOrders as any[]).map((o) => o.id), [openOrders]);
   const { data: paidByOrder = {} as Record<string, number> } = useQuery({
     queryKey: ["open_orders_payments", openOrderIds.join(",")],
     queryFn: async () => {
