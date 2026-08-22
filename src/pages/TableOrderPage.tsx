@@ -259,22 +259,34 @@ export default function TableOrderPage() {
     enabled: !!order?.id,
   });
 
-  // Abatimentos (créditos financeiros genéricos) já registrados nesta comanda
+  // Abatimentos (créditos financeiros genéricos) registrados nesta comanda (inclui cancelados p/ histórico)
   const creditPayments = (payments as any[]).filter((p) => p.kind === "credit");
-  const creditPaid = FinanceUtils.sum(creditPayments.map((p) => Number(p.amount)));
+  const activeCreditPayments = creditPayments.filter((p) => !p.voided_at);
+  const creditPaid = FinanceUtils.sum(activeCreditPayments.map((p) => Number(p.amount)));
+
+  // Saldo oficial (servidor) — fonte única
+  const { data: orderBalance } = useOrderBalance(order?.id);
+
+  const invalidateBalance = () => {
+    queryClient.invalidateQueries({ queryKey: ["order_payments"] });
+    queryClient.invalidateQueries({ queryKey: ["order_balance"] });
+    queryClient.invalidateQueries({ queryKey: ["open_orders"] });
+    queryClient.invalidateQueries({ queryKey: ["open_orders_payments"] });
+    queryClient.invalidateQueries({ queryKey: ["table_activity"] });
+  };
 
   // Registra um abatimento parcial persistente — comanda permanece aberta
   const partialPayMutation = useMutation({
     mutationFn: async ({ amount, method }: { amount: number; method: string }) => {
       if (!order) throw new Error("Sem pedido aberto");
-      const dbMethod = method === "credit" || method === "debit" ? "card" : method;
-      const { error } = await supabase.from("payments").insert({
-        order_id: order.id,
-        method: dbMethod,
-        amount,
-        kind: "credit",
-        created_by_name: profile?.full_name ?? null,
-      } as any);
+      const clientToken = `${order.id}:${Math.round(amount * 100)}:${method}:${Date.now()}`;
+      const { error } = await supabase.rpc("register_order_credit" as any, {
+        p_order_id: order.id,
+        p_amount: amount,
+        p_method: method,
+        p_created_by_name: profile?.full_name ?? null,
+        p_client_token: clientToken,
+      });
       if (error) throw error;
       await logActivity(
         tableId!,
@@ -286,12 +298,39 @@ export default function TableOrderPage() {
       return amount;
     },
     onSuccess: (amount) => {
-      queryClient.invalidateQueries({ queryKey: ["order_payments"] });
-      queryClient.invalidateQueries({ queryKey: ["table_activity"] });
+      invalidateBalance();
       toast.success(`Abatimento de R$ ${amount.toFixed(2)} registrado — comanda segue aberta`);
     },
-    onError: (err) => toast.error("Erro ao registrar abatimento: " + (err as Error).message),
+    onError: (err) => toast.error("Erro ao registrar abatimento: " + translateBalanceError(err)),
   });
+
+  // Cancela (estorna) um abatimento específico — server-side, idempotente
+  const voidCreditMutation = useMutation({
+    mutationFn: async ({ paymentId, reason, amount }: { paymentId: string; reason: string; amount: number }) => {
+      const { error } = await supabase.rpc("void_order_payment" as any, {
+        p_payment_id: paymentId,
+        p_reason: reason,
+        p_voided_by_name: profile?.full_name ?? null,
+      });
+      if (error) throw error;
+      if (order) {
+        await logActivity(
+          tableId!,
+          "partial_payment_voided",
+          `Abatimento de R$ ${amount.toFixed(2)} cancelado — motivo: ${reason}`,
+          order.id,
+          profile?.full_name
+        );
+      }
+      return amount;
+    },
+    onSuccess: (amount) => {
+      invalidateBalance();
+      toast.success(`Abatimento de R$ ${amount.toFixed(2)} cancelado — saldo restaurado`);
+    },
+    onError: (err) => toast.error("Erro ao cancelar abatimento: " + translateBalanceError(err)),
+  });
+
 
 
   // Fetch complements for all order items
