@@ -181,13 +181,13 @@ export default function TablesPage() {
   // Pagamentos/abatimentos VÁLIDOS das comandas abertas (cancelados excluídos) — base do saldo no card
   const paidOrderIds = useMemo(() => (openOrders as any[]).map((o) => o.id), [openOrders]);
   const { data: paidByOrder = {} as Record<string, number> } = useQuery({
-    queryKey: ["open_orders_payments", openOrderIds.join(",")],
+    queryKey: ["open_orders_payments", paidOrderIds.join(",")],
     queryFn: async () => {
-      if (openOrderIds.length === 0) return {} as Record<string, number>;
+      if (paidOrderIds.length === 0) return {} as Record<string, number>;
       const { data, error } = await supabase
         .from("payments")
         .select("order_id, amount, voided_at")
-        .in("order_id", openOrderIds)
+        .in("order_id", paidOrderIds)
         .is("voided_at", null);
       if (error) throw error;
       const map: Record<string, number> = {};
@@ -196,7 +196,7 @@ export default function TablesPage() {
       }
       return map;
     },
-    enabled: openOrderIds.length > 0,
+    enabled: paidOrderIds.length > 0,
   });
 
   // VIP customer IDs (mensalistas) — comandas desses clientes ficam amarelas
