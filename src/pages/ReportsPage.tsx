@@ -13,6 +13,7 @@ import {
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
+import { useTenant } from "@/contexts/TenantContext";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,8 @@ type SortMode = "revenue" | "qty";
 
 export default function ReportsPage() {
   const { pin: ADMIN_PIN, pinEnabled } = useSecurityPin();
+  const { tenant, loading: loadingTenant } = useTenant();
+  const tenantId = tenant?.id ?? null;
   const [unlocked, setUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState("");
   useEffect(() => { if (!pinEnabled) setUnlocked(true); }, [pinEnabled]);
@@ -54,58 +57,7 @@ export default function ReportsPage() {
 
   const { goLiveAt, isLoading: loadingGoLive } = useGoLiveDate();
 
-  // ── Data fetching ──
-  const { data: orders = [], isLoading: loadingOrders } = useQuery({
-    queryKey: ["report_orders", goLiveAt],
-    queryFn: async () => {
-      let q = supabase
-        .from("orders")
-        .select("id, status, created_at, total, customer_name, whatsapp_phone, table_id, waiter_name")
-        .eq("status", "finalized")
-        .order("created_at", { ascending: true });
-      if (goLiveAt) q = q.gte("created_at", goLiveAt);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-    enabled: unlocked && !loadingGoLive,
-  });
-
-  const { data: payments = [], isLoading: loadingPayments } = useQuery({
-    queryKey: ["payments_report", goLiveAt],
-    queryFn: async () => {
-      let q = supabase
-        .from("payments")
-        .select("*, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id)")
-        .eq("orders.status", "finalized")
-        .is("voided_at", null)
-        .order("created_at", { ascending: true });
-      if (goLiveAt) q = q.gte("orders.created_at", goLiveAt);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-    enabled: unlocked && !loadingGoLive,
-  });
-
-  const { data: orderItems = [], isLoading: loadingItems } = useQuery({
-    queryKey: ["order_items_report", goLiveAt],
-    queryFn: async () => {
-      let q = supabase
-        .from("order_items")
-        .select("product_name, price, quantity, order_id, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id), product_id, products(category_id, categories(name))")
-        .eq("orders.status", "finalized");
-      if (goLiveAt) q = q.gte("orders.created_at", goLiveAt);
-      const { data, error } = await q;
-      if (error) throw error;
-      return data;
-    },
-    enabled: unlocked && !loadingGoLive,
-  });
-
-  const isLoading = loadingPayments || loadingItems || loadingOrders;
-
-  // ── Quick period → date range sync ──
+  // ── Quick period → date range sync (local browser timezone) ──
   const effectiveDateFrom = useMemo(() => {
     if (quickPeriod === "custom") return dateFrom ? startOfDay(dateFrom) : null;
     if (quickPeriod === "today") return startOfDay(new Date());
@@ -116,6 +68,79 @@ export default function ReportsPage() {
     if (quickPeriod === "custom") return dateTo ? endOfDay(dateTo) : null;
     return endOfDay(new Date());
   }, [quickPeriod, dateTo]);
+
+  // Lower bound applied in the database: respects go-live milestone + selected period
+  const rangeFromIso = useMemo(() => {
+    const candidates: number[] = [];
+    if (effectiveDateFrom) candidates.push(effectiveDateFrom.getTime());
+    if (goLiveAt) candidates.push(new Date(goLiveAt).getTime());
+    if (!candidates.length) return null;
+    return new Date(Math.max(...candidates)).toISOString();
+  }, [effectiveDateFrom, goLiveAt]);
+
+  const rangeToIso = useMemo(
+    () => (effectiveDateTo ? effectiveDateTo.toISOString() : null),
+    [effectiveDateTo]
+  );
+
+  const queriesEnabled = unlocked && !loadingGoLive && !loadingTenant && !!tenantId;
+
+  // ── Data fetching (same tenant + same date range for orders, payments and items) ──
+  const { data: orders = [], isLoading: loadingOrders } = useQuery({
+    queryKey: ["report_orders", tenantId, rangeFromIso, rangeToIso],
+    queryFn: async () => {
+      let q = supabase
+        .from("orders")
+        .select("id, status, created_at, total, customer_name, whatsapp_phone, table_id, waiter_name")
+        .eq("tenant_id", tenantId!)
+        .eq("status", "finalized")
+        .order("created_at", { ascending: true });
+      if (rangeFromIso) q = q.gte("created_at", rangeFromIso);
+      if (rangeToIso) q = q.lte("created_at", rangeToIso);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    },
+    enabled: queriesEnabled,
+  });
+
+  const { data: payments = [], isLoading: loadingPayments } = useQuery({
+    queryKey: ["payments_report", tenantId, rangeFromIso, rangeToIso],
+    queryFn: async () => {
+      let q = supabase
+        .from("payments")
+        .select("*, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id)")
+        .eq("tenant_id", tenantId!)
+        .eq("orders.status", "finalized")
+        .is("voided_at", null)
+        .order("created_at", { ascending: true });
+      if (rangeFromIso) q = q.gte("orders.created_at", rangeFromIso);
+      if (rangeToIso) q = q.lte("orders.created_at", rangeToIso);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    },
+    enabled: queriesEnabled,
+  });
+
+  const { data: orderItems = [], isLoading: loadingItems } = useQuery({
+    queryKey: ["order_items_report", tenantId, rangeFromIso, rangeToIso],
+    queryFn: async () => {
+      let q = supabase
+        .from("order_items")
+        .select("product_name, price, quantity, order_id, orders!inner(status, created_at, whatsapp_phone, customer_name, table_id), product_id, products(category_id, categories(name))")
+        .eq("tenant_id", tenantId!)
+        .eq("orders.status", "finalized");
+      if (rangeFromIso) q = q.gte("orders.created_at", rangeFromIso);
+      if (rangeToIso) q = q.lte("orders.created_at", rangeToIso);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data;
+    },
+    enabled: queriesEnabled,
+  });
+
+  const isLoading = loadingTenant || loadingPayments || loadingItems || loadingOrders;
 
   // ── Channel classification ──
   const getChannel = (o: any): Channel => {
@@ -141,21 +166,17 @@ export default function ReportsPage() {
 
   const filteredOrderIds = useMemo(() => new Set(filteredOrders.map((o) => o.id)), [filteredOrders]);
 
+  // Pagamentos e itens são sempre derivados do MESMO conjunto de pedidos filtrados
   const filteredPayments = useMemo(
-    () => payments.filter((p) => {
-      const orderDate = (p.orders as any)?.created_at;
-      return orderDate && inDateRange(orderDate) && matchesChannel(p.orders as any);
-    }),
-    [payments, effectiveDateFrom, effectiveDateTo, channel]
+    () => payments.filter((p) => filteredOrderIds.has(p.order_id)),
+    [payments, filteredOrderIds]
   );
 
   const filteredItems = useMemo(
-    () => orderItems.filter((i) => {
-      const o = i.orders as any;
-      return o?.created_at && inDateRange(o.created_at) && matchesChannel(o);
-    }),
-    [orderItems, effectiveDateFrom, effectiveDateTo, channel]
+    () => orderItems.filter((i) => filteredOrderIds.has(i.order_id)),
+    [orderItems, filteredOrderIds]
   );
+
 
   // ── KPIs ──
   const totalRevenue = filteredOrders.reduce((s, o) => s + Number(o.total), 0);
