@@ -141,19 +141,6 @@ export default function ReportsPage() {
 
   const isLoading = loadingTenant || loadingPayments || loadingItems || loadingOrders;
 
-
-  // ── Quick period → date range sync ──
-  const effectiveDateFrom = useMemo(() => {
-    if (quickPeriod === "custom") return dateFrom ? startOfDay(dateFrom) : null;
-    if (quickPeriod === "today") return startOfDay(new Date());
-    return startOfDay(subDays(new Date(), parseInt(quickPeriod)));
-  }, [quickPeriod, dateFrom]);
-
-  const effectiveDateTo = useMemo(() => {
-    if (quickPeriod === "custom") return dateTo ? endOfDay(dateTo) : null;
-    return endOfDay(new Date());
-  }, [quickPeriod, dateTo]);
-
   // ── Channel classification ──
   const getChannel = (o: any): Channel => {
     if (!o.customer_name || !o.customer_name.trim()) return "balcao";
@@ -178,21 +165,17 @@ export default function ReportsPage() {
 
   const filteredOrderIds = useMemo(() => new Set(filteredOrders.map((o) => o.id)), [filteredOrders]);
 
+  // Pagamentos e itens são sempre derivados do MESMO conjunto de pedidos filtrados
   const filteredPayments = useMemo(
-    () => payments.filter((p) => {
-      const orderDate = (p.orders as any)?.created_at;
-      return orderDate && inDateRange(orderDate) && matchesChannel(p.orders as any);
-    }),
-    [payments, effectiveDateFrom, effectiveDateTo, channel]
+    () => payments.filter((p) => filteredOrderIds.has(p.order_id)),
+    [payments, filteredOrderIds]
   );
 
   const filteredItems = useMemo(
-    () => orderItems.filter((i) => {
-      const o = i.orders as any;
-      return o?.created_at && inDateRange(o.created_at) && matchesChannel(o);
-    }),
-    [orderItems, effectiveDateFrom, effectiveDateTo, channel]
+    () => orderItems.filter((i) => filteredOrderIds.has(i.order_id)),
+    [orderItems, filteredOrderIds]
   );
+
 
   // ── KPIs ──
   const totalRevenue = filteredOrders.reduce((s, o) => s + Number(o.total), 0);
