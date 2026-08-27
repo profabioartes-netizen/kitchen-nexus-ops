@@ -21,6 +21,7 @@ interface OrderItem {
 export default function CashierPage() {
   const queryClient = useQueryClient();
   const { tenant } = useTenant();
+  const { profile } = useAuth();
 
   // Telefone do estabelecimento (opcional) lido do restaurant_settings
   const { data: phoneSetting } = useQuery({
