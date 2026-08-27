@@ -135,12 +135,14 @@ export default function CashierPage() {
       const { error: itemsError } = await supabase.from("order_items").insert(items);
       if (itemsError) throw itemsError;
 
-      // Insert payment (DB constraint allows: cash, card, pix)
-      const dbMethod = method === "credit" || method === "debit" ? "card" : method;
+      // Pagamento com a forma real (cash | debit | credit | pix).
+      // O gatilho do banco cria automaticamente a movimentação financeira
+      // vinculada à sessão de caixa aberta (idempotente por pagamento).
       const { error: payError } = await supabase.from("payments").insert({
         order_id: newOrder.id,
-        method: dbMethod,
+        method,
         amount: subtotal,
+        created_by_name: profile?.full_name ?? null,
       });
       if (payError) throw payError;
 
