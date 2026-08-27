@@ -60,9 +60,14 @@ export type Database = {
           created_by_name: string
           description: string
           id: string
-          session_id: string
+          method: string | null
+          order_id: string | null
+          payment_id: string | null
+          session_id: string | null
+          source: string
           tenant_id: string
           type: string
+          voided_at: string | null
         }
         Insert: {
           amount?: number
@@ -70,9 +75,14 @@ export type Database = {
           created_by_name?: string
           description?: string
           id?: string
-          session_id: string
+          method?: string | null
+          order_id?: string | null
+          payment_id?: string | null
+          session_id?: string | null
+          source?: string
           tenant_id?: string
           type: string
+          voided_at?: string | null
         }
         Update: {
           amount?: number
@@ -80,11 +90,23 @@ export type Database = {
           created_by_name?: string
           description?: string
           id?: string
-          session_id?: string
+          method?: string | null
+          order_id?: string | null
+          payment_id?: string | null
+          session_id?: string | null
+          source?: string
           tenant_id?: string
           type?: string
+          voided_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cash_movements_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cash_movements_session_id_fkey"
             columns: ["session_id"]
@@ -1390,6 +1412,10 @@ export type Database = {
         }[]
       }
       current_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      get_cash_session_summary: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
       get_customers_revenue: {
         Args: { p_customer_ids: string[]; p_end: string; p_start: string }
         Returns: {
