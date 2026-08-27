@@ -13,6 +13,7 @@ import {
 import { format, subDays, startOfDay, endOfDay, isAfter, isBefore, isEqual } from "date-fns";
 import { useGoLiveDate } from "@/hooks/useGoLiveDate";
 import { useSecurityPin } from "@/hooks/useSecurityPinEnabled";
+import { useTenant } from "@/contexts/TenantContext";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
